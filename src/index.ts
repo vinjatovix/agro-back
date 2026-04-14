@@ -1,21 +1,33 @@
 import dotenv from 'dotenv';
 import { AgroBackApp } from './apps/backend/AgroBackApp.js';
+import { buildLogger } from './Contexts/shared/plugins/loggerPlugin.js';
 
 dotenv.config();
 
+const logger = buildLogger('agroAPI');
+
 try {
-  new AgroBackApp().start();
+  new AgroBackApp().start(logger);
 } catch (err) {
-  console.error('Error starting the application:', err);
+  logger.error('Error starting the application:', err);
   process.exit(1);
 }
 
-process.on('unhandledRejection', (err) => {
-  console.error('unhandledRejection', err);
+process.on('unhandledRejection', (err: Error) => {
+  logger.error('unhandledRejection', err);
   process.exit(1);
 });
 
-process.on('uncaughtException', (err) => {
-  console.error('uncaughtException', err);
-  process.exit(1);
-});
+process.on(
+  'unhandledRejection',
+  (reason: unknown, promise: Promise<unknown>) => {
+    if (reason instanceof Error) {
+      logger.error(
+        `Unhandled Rejection: ${reason.name} - ${reason.message}, ${reason.stack} ${JSON.stringify(promise)}`
+      );
+    } else {
+      logger.error(`Unhandled Rejection:  ${JSON.stringify(reason)}`);
+    }
+    process.exit(1);
+  }
+);

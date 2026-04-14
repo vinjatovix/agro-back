@@ -8,6 +8,10 @@ import httpStatus from 'http-status';
 import cors from 'cors';
 import { registerRoutes } from './routes/index.js';
 import { HttpError } from '../../shared/errors/http-error.js';
+import { createAppContainer, type AppContainer } from './container.js';
+import { scopePerRequest } from 'awilix-express';
+import type { AppLogger } from '../../Contexts/shared/plugins/loggerPlugin.js';
+import { createRequestLoggerMiddleware } from './middlewares/requestLogger.middleware.js';
 
 const corsOptions: cors.CorsOptions = {
   origin: ['http://localhost:5173'],
@@ -17,20 +21,28 @@ const corsOptions: cors.CorsOptions = {
 
 export class Server {
   private express: express.Express;
+  private container: AppContainer;
   private port: string;
   private host: string;
   private httpServer?: http.Server;
+  private logger: AppLogger;
 
-  constructor(host: string, port: string) {
+  constructor(host: string, port: string, logger: AppLogger) {
     this.port = port;
     this.host = host;
     this.express = express();
+    this.express.set('trust proxy', true);
+    this.container = createAppContainer();
+    this.logger = logger;
 
     this.express.use(cors(corsOptions));
     this.express.use(express.json());
     this.express.use(express.urlencoded({ extended: true }));
 
     this.express.use(helmet());
+    this.express.use(createRequestLoggerMiddleware(this.logger));
+
+    this.express.use(scopePerRequest(this.container));
 
     const router = Router();
     registerRoutes(router);
@@ -41,13 +53,13 @@ export class Server {
     }
     this.express.use(
       (err: Error, _req: Request, res: Response, _next: NextFunction): void => {
-        console.error(err);
-
         if (err instanceof HttpError) {
           res.status(err.statusCode).json({ message: err.message });
+          this.logger.error(err.message, err);
           return;
         }
 
+        this.logger.error('Unexpected error at error handler', err);
         res
           .status(httpStatus.INTERNAL_SERVER_ERROR)
           .json({ message: 'Internal server error' });
@@ -64,7 +76,7 @@ export class Server {
           ? `${this.host}:${this.port}`
           : this.host;
         const message = `Backend running at ${host} in ${env} mode`;
-        console.log(message);
+        this.logger.info(message);
         resolve();
       });
     });
@@ -83,9 +95,11 @@ export class Server {
 
       this.httpServer.close((error) => {
         if (error) {
+          this.logger.error('Error stopping server', error);
           reject(error);
           return;
         }
+        this.logger.info('Server stopped');
         resolve();
       });
     });
