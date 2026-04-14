@@ -1,0 +1,34 @@
+{
+  "name": "agro-back",
+  "version": "1.0.0",
+  "description": "agro management back end",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
+    "format": "prettier \"src/**/*.{ts,tsx,js,jsx,json,md}\" --write",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vinjatovix/agro-back.git"
+  },
+  "author": "vinjadevix",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/vinjatovix/agro-back/issues"
+  },
+  "homepage": "https://github.com/vinjatovix/agro-back#readme",
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "@typescript-eslint/eslint-plugin": "^8.58.2",
+    "@typescript-eslint/parser": "^8.58.2",
+    "eslint": "^10.2.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
+    "prettier": "^3.8.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.2"
+  }
+}
