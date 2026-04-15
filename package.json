@@ -5,11 +5,13 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
+    "docker:mongo": "docker-compose -f ./docker/docker-compose.yml up --build -d",
+    "restoreDB": "./docker/mongo/scripts/restoreDB.sh",
+    "restoreDump": "./docker/mongo/scripts/restoreDump.sh",
     "dev": "tsx watch src/index.ts",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
-    "format": "prettier \"src/**/*.{ts,tsx,js,jsx,json,md}\" --write",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "format": "prettier \"src/**/*.{ts,tsx,js,jsx,json,md}\" --write"
   },
   "repository": {
     "type": "git",
