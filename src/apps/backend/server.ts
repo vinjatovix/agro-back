@@ -1,17 +1,18 @@
+import { scopePerRequest } from 'awilix-express';
+import cors from 'cors';
 import errorHandler from 'errorhandler';
 import express from 'express';
-import type { Request, Response, NextFunction } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 import Router from 'express-promise-router';
 import helmet from 'helmet';
 import * as http from 'http';
 import httpStatus from 'http-status';
-import cors from 'cors';
-import { registerRoutes } from './routes/index.js';
+
+import type { AppLogger } from '../../Contexts/shared/plugins/loggerPlugin.js';
 import { HttpError } from '../../shared/errors/http-error.js';
 import { createAppContainer, type AppContainer } from './container.js';
-import { scopePerRequest } from 'awilix-express';
-import type { AppLogger } from '../../Contexts/shared/plugins/loggerPlugin.js';
 import { createRequestLoggerMiddleware } from './middlewares/requestLogger.middleware.js';
+import { registerRoutes } from './routes/index.js';
 
 const corsOptions: cors.CorsOptions = {
   origin: ['http://localhost:5173'],
@@ -39,16 +40,22 @@ export class Server {
     this.express.use(express.json());
     this.express.use(express.urlencoded({ extended: true }));
 
-    this.express.use(helmet());
+    this.express.use(helmet.dnsPrefetchControl());
+    this.express.use(helmet.xssFilter());
+    this.express.use(helmet.noSniff());
+    this.express.use(helmet.hidePoweredBy());
+    this.express.use(helmet.frameguard({ action: 'deny' }));
+    this.express.use(helmet.hsts());
     this.express.use(createRequestLoggerMiddleware(this.logger));
 
     this.express.use(scopePerRequest(this.container));
+  }
 
+  async listen(): Promise<void> {
     const router = Router();
-    registerRoutes(router);
-
+    await registerRoutes(router);
     this.express.use(router);
-    if (process.env.NODE_ENV !== 'production') {
+    if (process.env.NODE_ENV === 'development') {
       this.express.use(errorHandler());
     }
     this.express.use(
@@ -65,9 +72,7 @@ export class Server {
           .json({ message: 'Internal server error' });
       }
     );
-  }
 
-  async listen(): Promise<void> {
     return new Promise((resolve) => {
       const env: string = this.express.get('env');
 

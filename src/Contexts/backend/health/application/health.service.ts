@@ -6,7 +6,7 @@ export class HealthService {
     version: string;
   }> {
     return {
-      status: 'ok',
+      status: 'OK',
       timestamp: new Date().toISOString(),
       version: this.appVersion
     };

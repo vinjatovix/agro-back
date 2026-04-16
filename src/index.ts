@@ -13,8 +13,8 @@ try {
   process.exit(1);
 }
 
-process.on('unhandledRejection', (err: Error) => {
-  logger.error('unhandledRejection', err);
+process.on('uncaughtException', (err: Error) => {
+  logger.error(`Uncaught Exception: ${err.message}, ${err.stack}`);
   process.exit(1);
 });
 

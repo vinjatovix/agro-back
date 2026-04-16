@@ -31,9 +31,19 @@ export class MongoClientFactory {
     return MongoClientFactory.clients[contextName] ?? null;
   }
 
+  private static readonly MAX_RETRIES = 3;
+  private static readonly RETRY_INTERVAL_MS = 5000;
+
   private static async createAndConnectClient(
-    config: MongoConfig
+    config: MongoConfig,
+    attempt = 1
   ): Promise<MongoClient> {
+    if (!config?.connectionString) {
+      throw new Error(
+        `MongoClientFactory: connectionString is missing in config: ${JSON.stringify(config)}`
+      );
+    }
+
     try {
       const client = new MongoClient(config.connectionString, {
         ignoreUndefined: true,
@@ -46,8 +56,21 @@ export class MongoClientFactory {
       console.info('MongoDB client connected successfully');
       return client;
     } catch (error) {
-      console.error('Error connecting to MongoDB:', error);
-      return await MongoClientFactory.createAndConnectClient(config);
+      if (attempt < MongoClientFactory.MAX_RETRIES) {
+        console.warn(
+          `MongoDB connection failed (attempt ${attempt}/${MongoClientFactory.MAX_RETRIES}). Retrying in ${MongoClientFactory.RETRY_INTERVAL_MS / 1000}s...`
+        );
+        await new Promise((resolve) =>
+          setTimeout(resolve, MongoClientFactory.RETRY_INTERVAL_MS)
+        );
+        return MongoClientFactory.createAndConnectClient(config, attempt + 1);
+      }
+
+      console.error(
+        `MongoDB connection failed after ${MongoClientFactory.MAX_RETRIES} attempts:`,
+        error
+      );
+      throw error;
     }
   }
 

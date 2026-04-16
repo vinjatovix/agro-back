@@ -3,15 +3,25 @@ import {
   asFunction,
   asValue,
   createContainer,
-  InjectionMode
+  InjectionMode,
+  type AwilixContainer
 } from 'awilix';
-import type { AwilixContainer } from 'awilix';
+import { createRequire } from 'module';
 import { HealthService } from '../../Contexts/backend/health/application/health.service.js';
-import pkg from '../../../package.json';
+import {
+  buildLogger,
+  type AppLogger
+} from '../../Contexts/shared/plugins/loggerPlugin.js';
 import {
   DBClientFactory,
-  DBConfigFactory
+  DBConfigFactory,
+  DBEnvironmentArranger,
+  type DBConfig
 } from '../../shared/infrastructure/persistence/index.js';
+
+const require = createRequire(import.meta.url);
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const pkg = require('../../../package.json') as { version: string };
 
 export type AppContainer = AwilixContainer;
 
@@ -22,11 +32,16 @@ export const createAppContainer = (): AppContainer => {
 
   container.register({
     appVersion: asValue(pkg.version),
+    logger: asValue<AppLogger>(buildLogger('backend')),
     DBConfig: asFunction(() => DBConfigFactory.createConfig()).singleton(),
-    DBClient: asFunction(({ DBConfig }) =>
+    DBClient: asFunction((DBConfig: DBConfig) =>
       DBClientFactory.createClient('backend', DBConfig)
     ).singleton(),
     healthService: asClass(HealthService).scoped()
+  });
+
+  container.register({
+    environmentArranger: asClass(DBEnvironmentArranger).singleton()
   });
 
   return container;

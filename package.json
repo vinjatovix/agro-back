@@ -11,7 +11,9 @@
     "dev": "tsx watch src/index.ts",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
-    "format": "prettier \"src/**/*.{ts,tsx,js,jsx,json,md}\" --write"
+    "format": "prettier \"src/**/*.{ts,tsx,js,jsx,json,md}\" --write",
+    "test": "jest",
+    "test:features": "cross-env NODE_ENV=test NODE_OPTIONS='--loader ts-node/esm' nyc --report-dir=coverage/cucumber --reporter=lcov cucumber-js tests/apps/agroApi/features/**/*.feature --import ./setupTests.ts --import ./tests/apps/agroApi/features/step_definitions/controller.steps.ts"
   },
   "repository": {
     "type": "git",
@@ -24,13 +26,22 @@
   },
   "homepage": "https://github.com/vinjatovix/agro-back#readme",
   "devDependencies": {
+    "@cucumber/cucumber": "^12.8.1",
+    "@types/chai": "^5.2.3",
+    "@types/jest": "^30.0.0",
     "@types/node": "^25.6.0",
+    "@types/supertest": "^7.2.0",
     "@typescript-eslint/eslint-plugin": "^8.58.2",
     "@typescript-eslint/parser": "^8.58.2",
+    "chai": "^6.2.2",
+    "cross-env": "^10.1.0",
     "eslint": "^10.2.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
+    "jest": "^30.3.0",
     "prettier": "^3.8.2",
+    "supertest": "^7.2.2",
+    "ts-jest": "^29.4.9",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2"
@@ -51,6 +62,7 @@
     "helmet": "^8.1.0",
     "http-status": "^2.1.0",
     "mongodb": "^7.1.1",
+    "nyc": "^18.0.0",
     "winston": "^3.19.0",
     "winston-mongodb": "^7.0.1"
   }

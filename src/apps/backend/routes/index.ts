@@ -1,7 +1,7 @@
 import type { Router } from 'express';
 import { globSync } from 'glob';
 
-export function registerRoutes(router: Router): void {
+export async function registerRoutes(router: Router): Promise<void> {
   const routeFiles = globSync('./src/apps/backend/routes/**/*.routes.ts', {
     absolute: true,
     ignore: ['./src/apps/backend/routes/index.ts']
@@ -11,19 +11,16 @@ export function registerRoutes(router: Router): void {
     registerRoutes?: (router: Router) => void;
   }
 
-  routeFiles.forEach((file: string): void => {
-    import(file)
-      .then((module: RouteModule) => {
-        if (module.registerRoutes) {
-          module.registerRoutes(router);
-        } else {
-          console.warn(
-            `El archivo ${file} no exporta una función registerRoutes`
-          );
-        }
-      })
-      .catch((err: Error): void => {
-        console.error(`Error al cargar el archivo de rutas ${file}:`, err);
-      });
-  });
+  for (const file of routeFiles) {
+    try {
+      const module: RouteModule = await import(file);
+      if (module.registerRoutes) {
+        module.registerRoutes(router);
+      } else {
+        console.warn(`El archivo ${file} no exporta registerRoutes`);
+      }
+    } catch (err) {
+      console.error(`Error al cargar rutas ${file}:`, err);
+    }
+  }
 }
