@@ -74,7 +74,7 @@ export class Server {
     );
 
     return new Promise((resolve) => {
-      const env: string = this.express.get('env');
+      const env: string = this.express.get('env') as string;
 
       this.httpServer = this.express.listen(this.port, () => {
         const host = ['local', 'test'].includes(env)

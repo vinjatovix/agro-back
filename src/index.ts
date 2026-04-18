@@ -6,12 +6,16 @@ dotenv.config();
 
 const logger = buildLogger('agroAPI');
 
-try {
-  new AgroBackApp().start(logger);
-} catch (err) {
-  logger.error('Error starting the application:', err);
-  process.exit(1);
+async function startServer() {
+  try {
+    await new AgroBackApp().start(logger);
+  } catch (err) {
+    logger.error('Error starting the application:', err);
+    process.exit(1);
+  }
 }
+
+void startServer();
 
 process.on('uncaughtException', (err: Error) => {
   logger.error(`Uncaught Exception: ${err.message}, ${err.stack}`);

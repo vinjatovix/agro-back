@@ -51,7 +51,9 @@ if (envs.NODE_ENV !== 'test') {
     }
   };
 
-  setupMongoLogger(logger);
+  setupMongoLogger(logger).catch((error) => {
+    logger.error('Error initializing MongoDB logger:', error);
+  });
 }
 
 if (envs.NODE_ENV !== 'production') {
@@ -59,12 +61,17 @@ if (envs.NODE_ENV !== 'production') {
     new winston.transports.Console({
       format: winston.format.combine(
         winston.format.colorize({ all: true }),
-        winston.format.printf(
-          (info) =>
-            `[${info.level}] ${info.service ?? 'app'} - ${info.timestamp} : ${
-              info.message
-            }`
-        )
+        winston.format.printf((info) => {
+          const service =
+            typeof info.service === 'string'
+              ? info.service
+              : info.service !== undefined
+                ? JSON.stringify(info.service)
+                : 'app';
+          return `[${info.level}] ${service} - ${String(info.timestamp)} : ${String(
+            info.message
+          )}`;
+        })
       )
     })
   );

@@ -13,7 +13,7 @@ export async function registerRoutes(router: Router): Promise<void> {
 
   for (const file of routeFiles) {
     try {
-      const module: RouteModule = await import(file);
+      const module = (await import(file)) as RouteModule;
       if (module.registerRoutes) {
         module.registerRoutes(router);
       } else {

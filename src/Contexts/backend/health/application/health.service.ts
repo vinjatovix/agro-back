@@ -1,10 +1,6 @@
 export class HealthService {
   constructor(private readonly appVersion: string) {}
-  async checkHealth(): Promise<{
-    status: string;
-    timestamp: string;
-    version: string;
-  }> {
+  checkHealth(): { status: string; timestamp: string; version: string } {
     return {
       status: 'OK',
       timestamp: new Date().toISOString(),

@@ -4,8 +4,8 @@ import type { HealthService } from '../../../../Contexts/backend/health/applicat
 import { makeInvoker } from 'awilix-express';
 
 const api = (healthService: HealthService) => ({
-  getHealth: async (_req: Request, res: Response) => {
-    const healthInfo = await healthService.checkHealth();
+  getHealth: (_req: Request, res: Response) => {
+    const healthInfo = healthService.checkHealth();
     res.json(healthInfo);
   }
 });

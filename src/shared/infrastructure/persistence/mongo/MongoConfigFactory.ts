@@ -7,7 +7,7 @@ const mongoConfig = {
   db: envs.MONGO_DB,
   username: envs.MONGO_USERNAME,
   password: envs.MONGO_PASSWORD,
-  appName: envs.MONGO_APP_NAME,
+  appName: envs.MONGO_APP_NAME
 };
 
 export class MongoConfigFactory {
