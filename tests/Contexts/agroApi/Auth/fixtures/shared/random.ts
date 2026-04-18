@@ -34,6 +34,10 @@ export class Random {
     return this.chance.guid({ version: isV4 ? 4 : 5 });
   }
 
+  public guid(isV4: boolean = true): string {
+    return this.uuid(isV4);
+  }
+
   public url(): string {
     return this.chance.url();
   }

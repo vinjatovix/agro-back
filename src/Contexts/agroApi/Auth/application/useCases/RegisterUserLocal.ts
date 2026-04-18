@@ -7,14 +7,20 @@ import {
 } from '../../../../shared/domain/valueObject/index.js';
 import type { EncrypterTool } from '../../../../shared/plugins/EncrypterTool.js';
 import { buildLogger } from '../../../../shared/plugins/logger.plugin.js';
-import { PlainPassword, User, Username, UserRoles } from '../../domain/index.js';
+import {
+  PlainPassword,
+  User,
+  UserAuthMethod,
+  Username,
+  UserRoles
+} from '../../domain/index.js';
 import type { UserRepository } from '../../domain/interfaces/UserRepository.js';
 import type { RegisterUserRequest } from '../interfaces/index.js';
 
 const logger = buildLogger('registerUser');
 const PASSWORDS_DO_NOT_MATCH_MESSAGE = 'Passwords do not match';
 
-export class RegisterUser {
+export class RegisterUserLocal {
   private readonly repository: UserRepository;
   private readonly encrypter: EncrypterTool;
 
@@ -43,6 +49,9 @@ export class RegisterUser {
       username: new Username(username),
       password: new PasswordHash(encryptedPassword),
       emailValidated: false,
+      authMethods: [
+        UserAuthMethod.local(new PasswordHash(encryptedPassword), date)
+      ],
       roles: new UserRoles(['user']),
       metadata: new Metadata({
         createdAt: date,

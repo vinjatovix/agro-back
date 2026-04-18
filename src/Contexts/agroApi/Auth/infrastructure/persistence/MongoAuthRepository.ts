@@ -1,5 +1,9 @@
 import type { Binary, UUID } from 'bson';
 import type { MetadataType } from '../../../../shared/infrastructure/persistence/mongo/types/MetadataType.js';
+import type {
+  AuthProvider,
+  UserAuthMethodPrimitives
+} from '../../domain/UserAuthMethod.js';
 import type { UserRepository } from '../../domain/interfaces/UserRepository.js';
 import { User } from '../../domain/User.js';
 import type { UserPatch } from '../../domain/UserPatch.js';
@@ -16,8 +20,9 @@ export interface AuthDocument {
   _id: string | Binary | UUID;
   email: string;
   username: string;
-  password: string;
+  password?: string;
   emailValidated: boolean;
+  authMethods?: UserAuthMethodPrimitives[];
   roles: string[];
   metadata: MetadataType;
 }
@@ -42,17 +47,24 @@ export class MongoAuthRepository
     const collection = await this.collection();
     const document = await collection.findOne<AuthDocument>({ email });
 
-    return document
-      ? User.fromPrimitives({
-          id: fromMongoId(document._id),
-          email: document.email,
-          username: document.username,
-          password: document.password,
-          emailValidated: document.emailValidated,
-          roles: document.roles,
-          metadata: document.metadata
-        })
-      : null;
+    return this.mapDocumentToUser(document);
+  }
+
+  async searchByProvider(
+    provider: AuthProvider,
+    providerUserId: string
+  ): Promise<Nullable<User>> {
+    const collection = await this.collection();
+    const document = await collection.findOne<AuthDocument>({
+      authMethods: {
+        $elemMatch: {
+          provider,
+          providerUserId
+        }
+      }
+    });
+
+    return this.mapDocumentToUser(document);
   }
 
   async findByQuery(query: {
@@ -72,5 +84,24 @@ export class MongoAuthRepository
       id: new Uuid(fromMongoId(doc._id)),
       username: new Username(doc.username)
     }));
+  }
+
+  private mapDocumentToUser(document: Nullable<AuthDocument>): Nullable<User> {
+    return document
+      ? User.fromPrimitives({
+          id: fromMongoId(document._id),
+          email: document.email,
+          username: document.username,
+          ...(document.password !== undefined && {
+            password: document.password
+          }),
+          emailValidated: document.emailValidated,
+          ...(document.authMethods !== undefined && {
+            authMethods: document.authMethods
+          }),
+          roles: document.roles,
+          metadata: document.metadata
+        })
+      : null;
   }
 }

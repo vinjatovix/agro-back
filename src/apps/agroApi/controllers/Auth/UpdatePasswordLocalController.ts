@@ -1,13 +1,13 @@
 import { type NextFunction, type Request, type Response } from 'express';
 import type {
-  UpdatePassword,
+  UpdatePasswordLocal,
   UpdatePasswordRequest,
   UserSessionInfo
 } from '../../../../Contexts/agroApi/Auth/application/index.js';
 import { HttpController } from '../../shared/controllers/HttpController.js';
 
-export class UpdatePasswordController extends HttpController {
-  constructor(protected readonly updatePassword: UpdatePassword) {
+export class UpdatePasswordLocalController extends HttpController {
+  constructor(protected readonly updatePassword: UpdatePasswordLocal) {
     super();
   }
 

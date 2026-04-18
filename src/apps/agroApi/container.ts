@@ -22,10 +22,10 @@ import {
 import { CryptAdapter } from '../../Contexts/shared/plugins/CryptAdapter.js';
 import { MongoAuthRepository } from '../../Contexts/agroApi/Auth/infrastructure/persistence/index.js';
 import {
-  LoginUser,
+  LoginUserLocal,
   RefreshToken,
-  RegisterUser,
-  UpdatePassword,
+  RegisterUserLocal,
+  UpdatePasswordLocal,
   ValidateMail
 } from '../../Contexts/agroApi/Auth/application/index.js';
 
@@ -58,17 +58,17 @@ const registerInfrastructureDependencies = (container: AppContainer): void => {
 const registerAuthUseCases = (container: AppContainer): void => {
   container.register({
     registerUser: asFunction((authRepository, encrypter) =>
-      new RegisterUser(authRepository, encrypter)
+      new RegisterUserLocal(authRepository, encrypter)
     ).scoped(),
     loginUser: asFunction((authRepository, encrypter) =>
-      new LoginUser(authRepository, encrypter)
+      new LoginUserLocal(authRepository, encrypter)
     ).scoped(),
     validateMail: asFunction((authRepository, encrypter) =>
       new ValidateMail(authRepository, encrypter)
     ).scoped(),
     refreshToken: asFunction((encrypter) => new RefreshToken(encrypter)).scoped(),
     updatePassword: asFunction((authRepository, encrypter) =>
-      new UpdatePassword(authRepository, encrypter)
+      new UpdatePasswordLocal(authRepository, encrypter)
     ).scoped()
   });
 };

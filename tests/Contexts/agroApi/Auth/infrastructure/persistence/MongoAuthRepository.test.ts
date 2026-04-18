@@ -39,9 +39,16 @@ describe('MongoAuthRepository', () => {
 
       await repository.update(userPatch, username);
 
-      expect(await repository.search(user.email.value)).toMatchObject(
-        userPatch
-      );
+      const updatedUser = await repository.search(user.email.value);
+
+      expect(updatedUser).toMatchObject({
+        id: userPatch.id,
+        password: userPatch.password,
+        emailValidated: userPatch.emailValidated,
+        roles: userPatch.roles
+      });
+      expect(updatedUser?.authMethods).toBeDefined();
+      expect(updatedUser?.authMethods[0]?.provider).toBe('local');
     });
   });
 
@@ -58,6 +65,27 @@ describe('MongoAuthRepository', () => {
       expect(await repository.search(UserMother.random().email.value)).toBe(
         null
       );
+    });
+
+    it('should return an existing user by provider identity', async () => {
+      const providerUserId = 'google-sub-123';
+      const user = UserMother.create({
+        authMethods: [UserMother.randomGoogleAuthMethod(providerUserId)]
+      });
+
+      await repository.save(user);
+
+      const found = await repository.searchByProvider('google', providerUserId);
+
+      expect(found).not.toBeNull();
+      expect(found?.id.value).toBe(user.id.value);
+      expect(found?.email.value).toBe(user.email.value);
+    });
+
+    it('should return null when provider identity does not exist', async () => {
+      const found = await repository.searchByProvider('google', 'missing-sub');
+
+      expect(found).toBeNull();
     });
   });
 

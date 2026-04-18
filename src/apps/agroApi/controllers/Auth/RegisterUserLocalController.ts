@@ -1,13 +1,13 @@
 import { type NextFunction, type Request, type Response } from 'express';
 import httpStatus from 'http-status';
 import type {
-  RegisterUser,
+  RegisterUserLocal,
   RegisterUserRequest
 } from '../../../../Contexts/agroApi/Auth/application/index.js';
 import { HttpController } from '../../shared/controllers/HttpController.js';
 
-export class RegisterUserController extends HttpController {
-  constructor(protected readonly registerUser: RegisterUser) {
+export class RegisterUserLocalController extends HttpController {
+  constructor(protected readonly registerUser: RegisterUserLocal) {
     super();
   }
 

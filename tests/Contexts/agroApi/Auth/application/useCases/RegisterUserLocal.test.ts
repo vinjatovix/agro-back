@@ -1,4 +1,4 @@
-import { RegisterUser } from '../../../../../../src/Contexts/agroApi/Auth/application/index.js';
+import { RegisterUserLocal } from '../../../../../../src/Contexts/agroApi/Auth/application/useCases/RegisterUserLocal.js';
 import {
   Username,
   UserRoles
@@ -12,15 +12,15 @@ import {
 import { CryptAdapterMock, UserRepositoryMock } from '../../__mocks__/index.js';
 import { RegisterUserRequestMother } from '../mothers/index.js';
 
-describe('RegisterUser', () => {
+describe('RegisterUserLocal', () => {
   let encrypter: CryptAdapterMock;
   let repository: UserRepositoryMock;
-  let registerUser: RegisterUser;
+  let registerUser: RegisterUserLocal;
 
   beforeEach(() => {
     encrypter = new CryptAdapterMock({ login: false });
     repository = new UserRepositoryMock({ find: false });
-    registerUser = new RegisterUser(repository, encrypter);
+    registerUser = new RegisterUserLocal(repository, encrypter);
   });
 
   it('should register a valid user', async () => {
@@ -46,7 +46,7 @@ describe('RegisterUser', () => {
   it('should throw an error when the user already exists', async () => {
     const request = RegisterUserRequestMother.random();
     repository = new UserRepositoryMock({ find: true });
-    registerUser = new RegisterUser(repository, encrypter);
+    registerUser = new RegisterUserLocal(repository, encrypter);
 
     expect(async () => {
       await registerUser.run(request);

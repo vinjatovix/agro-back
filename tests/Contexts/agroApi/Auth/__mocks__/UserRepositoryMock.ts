@@ -1,5 +1,6 @@
 import type { User, UserPatch } from '../../../../../src/Contexts/agroApi/Auth/domain/index.js';
 import type { UserRepository } from '../../../../../src/Contexts/agroApi/Auth/domain/interfaces/index.js';
+import type { AuthProvider } from '../../../../../src/Contexts/agroApi/Auth/domain/UserAuthMethod.js';
 import type { Nullable } from '../../../../../src/Contexts/shared/domain/types/Nullable.js';
 import {
   Email,
@@ -12,6 +13,7 @@ export class UserRepositoryMock implements UserRepository {
   private readonly saveMock = jest.fn();
   private readonly updateMock = jest.fn();
   private readonly findMock = jest.fn();
+  private readonly findByProviderMock = jest.fn();
   private readonly findByQueryMock = jest.fn();
   private readonly password = new PasswordHash(
     UserMother.randomPasswordHash().value
@@ -56,6 +58,16 @@ export class UserRepositoryMock implements UserRepository {
         return [user];
       }
     );
+
+    this.findByProviderMock.mockImplementation(
+      (_provider: AuthProvider, _providerUserId: string) => {
+        if (!this.isFindable) {
+          return null;
+        }
+
+        return UserMother.create({ password: this.password });
+      }
+    );
   }
 
   async save(user: User): Promise<void> {
@@ -76,6 +88,13 @@ export class UserRepositoryMock implements UserRepository {
 
   async search(email: string): Promise<Nullable<User>> {
     return this.findMock(email);
+  }
+
+  async searchByProvider(
+    provider: AuthProvider,
+    providerUserId: string
+  ): Promise<Nullable<User>> {
+    return this.findByProviderMock(provider, providerUserId);
   }
 
   assertSearchHasBeenCalledWith(expected: string): void {

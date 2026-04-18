@@ -7,7 +7,7 @@ const logger = buildLogger('loginUser');
 const INVALID_CREDENTIALS_MESSAGE = 'Invalid credentials';
 const TOKEN_GENERATION_ERROR_MESSAGE = 'Failed to generate authentication token';
 
-export class LoginUser {
+export class LoginUserLocal {
   private readonly repository: UserRepository;
   private readonly encrypter: EncrypterTool;
 
@@ -22,10 +22,12 @@ export class LoginUser {
       throw createError.auth(INVALID_CREDENTIALS_MESSAGE);
     }
 
-    const success = this.encrypter.compare(
-      password,
-      storedUser.password.value
-    );
+    const localPassword = storedUser.password;
+    if (!localPassword) {
+      throw createError.auth(INVALID_CREDENTIALS_MESSAGE);
+    }
+
+    const success = this.encrypter.compare(password, localPassword.value);
     if (!success) {
       throw createError.auth(INVALID_CREDENTIALS_MESSAGE);
     }

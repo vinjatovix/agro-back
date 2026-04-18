@@ -10,7 +10,7 @@
 // import { CryptAdapterMock } from '../__mocks__/CryptAdapterMock';
 // import { UserRepositoryMock } from '../__mocks__/UserRepositoryMock';
 
-import { UpdatePassword } from '../../../../../../src/Contexts/agroApi/Auth/application/useCases/UpdatePassword.js';
+import { UpdatePasswordLocal } from '../../../../../../src/Contexts/agroApi/Auth/application/useCases/UpdatePasswordLocal.js';
 import { Username } from '../../../../../../src/Contexts/agroApi/Auth/domain/Username.js';
 import { PasswordHash } from '../../../../../../src/Contexts/shared/domain/valueObject/PasswordHash.js';
 import { Uuid } from '../../../../../../src/Contexts/shared/domain/valueObject/Uuid.js';
@@ -34,20 +34,20 @@ const PAYLOAD = {
   oldPassword: 'OldSup3rSecretPassword.'
 };
 
-describe('UpdatePassword', () => {
+describe('UpdatePasswordLocal', () => {
   let encrypter: CryptAdapterMock;
   let repository: UserRepositoryMock;
-  let updatePassword: UpdatePassword;
+  let updatePassword: UpdatePasswordLocal;
 
   beforeEach(() => {
     encrypter = new CryptAdapterMock({ login: true });
     repository = new UserRepositoryMock({ find: true });
-    updatePassword = new UpdatePassword(repository, encrypter);
+    updatePassword = new UpdatePasswordLocal(repository, encrypter);
   });
 
   it('should throw an error when the user does not exist', async () => {
     repository = new UserRepositoryMock();
-    updatePassword = new UpdatePassword(repository, encrypter);
+    updatePassword = new UpdatePasswordLocal(repository, encrypter);
 
     expect(async () => {
       await updatePassword.run(PAYLOAD, CURRENT_USER);
@@ -56,7 +56,7 @@ describe('UpdatePassword', () => {
 
   it('should throw an error when the password is invalid', async () => {
     encrypter = new CryptAdapterMock({ login: false });
-    updatePassword = new UpdatePassword(repository, encrypter);
+    updatePassword = new UpdatePasswordLocal(repository, encrypter);
 
     expect(async () => {
       await updatePassword.run(PAYLOAD, CURRENT_USER);

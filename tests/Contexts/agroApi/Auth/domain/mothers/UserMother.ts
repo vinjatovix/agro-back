@@ -1,5 +1,6 @@
 import type { RegisterUserRequest } from '../../../../../../src/Contexts/agroApi/Auth/application/index.js';
 import {
+  UserAuthMethod,
   User,
   UserPatch,
   Username,
@@ -24,6 +25,7 @@ export class UserMother {
     username,
     password,
     emailValidated,
+    authMethods,
     roles,
     metadata
   }: {
@@ -32,6 +34,7 @@ export class UserMother {
     username?: Username;
     password?: PasswordHash;
     emailValidated?: boolean;
+    authMethods?: UserAuthMethod[];
     roles?: UserRoles;
     metadata?: Metadata;
   } = {}): User {
@@ -41,6 +44,7 @@ export class UserMother {
       email: email ?? EmailMother.random(),
       username: user,
       password: password ?? UserMother.randomPasswordHash(),
+      ...(authMethods !== undefined && { authMethods }),
       emailValidated: emailValidated ?? random.boolean(),
       roles:
         roles ??
@@ -82,5 +86,13 @@ export class UserMother {
 
   static randomPasswordHash(): PasswordHash {
     return new PasswordHash(`$2b$10$${'a'.repeat(53)}`);
+  }
+
+  static randomGoogleAuthMethod(providerUserId: string = random.guid()): UserAuthMethod {
+    return new UserAuthMethod({
+      provider: 'google',
+      providerUserId,
+      linkedAt: new Date()
+    });
   }
 }

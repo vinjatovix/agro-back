@@ -1,16 +1,16 @@
-import { LoginUser } from '../../../../../../src/Contexts/agroApi/Auth/application/useCases/LoginUser.js';
+import { LoginUserLocal } from '../../../../../../src/Contexts/agroApi/Auth/application/useCases/LoginUserLocal.js';
 import { CryptAdapterMock, UserRepositoryMock } from '../../__mocks__/index.js';
 import { LoginUserRequestMother } from '../mothers/index.js';
 
-describe('LoginUser', () => {
+describe('LoginUserLocal', () => {
   let encrypter: CryptAdapterMock;
   let repository: UserRepositoryMock;
-  let loginUser: LoginUser;
+  let loginUser: LoginUserLocal;
 
   beforeEach(() => {
     encrypter = new CryptAdapterMock({ login: true });
     repository = new UserRepositoryMock({ find: true });
-    loginUser = new LoginUser(repository, encrypter);
+    loginUser = new LoginUserLocal(repository, encrypter);
   });
 
   it('should login a valid user', async () => {
@@ -27,7 +27,7 @@ describe('LoginUser', () => {
 
   it('should throw an error when the user does not exist', async () => {
     repository = new UserRepositoryMock();
-    loginUser = new LoginUser(repository, encrypter);
+    loginUser = new LoginUserLocal(repository, encrypter);
     const request = LoginUserRequestMother.random();
 
     expect(async () => {
@@ -37,7 +37,7 @@ describe('LoginUser', () => {
 
   it('should throw an error when the password is invalid', async () => {
     encrypter = new CryptAdapterMock({ login: false });
-    loginUser = new LoginUser(repository, encrypter);
+    loginUser = new LoginUserLocal(repository, encrypter);
     const request = LoginUserRequestMother.random();
 
     expect(async () => {
