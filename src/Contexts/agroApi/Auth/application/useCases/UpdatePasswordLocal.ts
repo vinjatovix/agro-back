@@ -1,6 +1,12 @@
 import { createError } from '../../../../../shared/errors/index.js';
-import { PasswordHash, Uuid } from '../../../../shared/domain/valueObject/index.js';
-import { buildLogger, type EncrypterTool } from '../../../../shared/plugins/index.js';
+import {
+  PasswordHash,
+  Uuid
+} from '../../../../shared/domain/valueObject/index.js';
+import {
+  buildLogger,
+  type EncrypterTool
+} from '../../../../shared/plugins/index.js';
 import {
   PlainPassword,
   UserAuthMethod,
@@ -50,7 +56,7 @@ export class UpdatePasswordLocal {
     });
 
     await this.repository.update(userPatch, new Username(user.username));
-    logger.info(`Updated User: <${userPatch.id}> by <${user.username}>`);
+    logger.info(`Updated User: <${userPatch.id.value}> by <${user.username}>`);
   }
 
   private async validatePatchAndGetStoredUser(
@@ -67,7 +73,10 @@ export class UpdatePasswordLocal {
       throw createError.auth(INVALID_CREDENTIALS_MESSAGE);
     }
 
-    this.ensureOldPasswordMatches(request.oldPassword, storedUser.password.value);
+    this.ensureOldPasswordMatches(
+      request.oldPassword,
+      storedUser.password.value
+    );
     this.ensurePasswordConfirmationMatches(
       request.password,
       request.repeatPassword

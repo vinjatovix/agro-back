@@ -1,6 +1,8 @@
 import type { NextFunction, Request, Response } from 'express';
 import { createError } from '../../../../../shared/errors/index.js';
 
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+
 export const validateBody = (
   req: Request,
   res: Response,

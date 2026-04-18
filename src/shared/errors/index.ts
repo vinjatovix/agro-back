@@ -48,7 +48,16 @@ export class ConflictError extends HttpError {
   }
 }
 
-export const createError = {
+interface CreateError {
+  auth: (message: string) => UnauthorizedError;
+  conflict: (message: string) => ConflictError;
+  forbidden: (message: string) => ForbiddenError;
+  notFound: (message: string) => NotFoundError;
+  badRequest: (message: string) => BadRequestError;
+  test: (message: string) => TestError;
+}
+
+export const createError: CreateError = {
   auth: (message: string): UnauthorizedError => new UnauthorizedError(message),
   conflict: (message: string): ConflictError => new ConflictError(message),
   forbidden: (message: string): ForbiddenError => new ForbiddenError(message),

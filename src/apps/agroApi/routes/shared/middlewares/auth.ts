@@ -12,10 +12,10 @@ const getDeps = (req: Request) => {
   const container = (req as RequestWithContainer).container;
   return {
     logger: container.resolve<AppLogger>('logger'),
-    encrypter: container.resolve<EncrypterTool>('encrypter'),
+    encrypter: container.resolve<EncrypterTool>('encrypter')
   };
 };
 
 export const auth = (req: Request, res: Response, next: NextFunction) => {
-  EnsureAuthentication.run(getDeps(req), req, res, next);
+  void EnsureAuthentication.run(getDeps(req), req, res, next);
 };

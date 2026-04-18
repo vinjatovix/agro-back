@@ -10,7 +10,11 @@ import { authApiInvoker } from './authApiInvoker.js';
 import type { RegisterRoutes } from '../route.types.js';
 import { API_PREFIXES } from '../shared/index.js';
 import { authLimiter } from '../../middlewares/index.js';
-import { auth, validateBody, validateReqSchema } from '../shared/middlewares/index.js';
+import {
+  auth,
+  validateBody,
+  validateReqSchema
+} from '../shared/middlewares/index.js';
 
 const prefix = API_PREFIXES.auth;
 

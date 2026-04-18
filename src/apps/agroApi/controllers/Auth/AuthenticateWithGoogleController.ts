@@ -6,7 +6,9 @@ import type {
 import { HttpController } from '../../shared/controllers/HttpController.js';
 
 export class AuthenticateWithGoogleController extends HttpController {
-  constructor(protected readonly authenticateWithGoogle: AuthenticateWithGoogle) {
+  constructor(
+    protected readonly authenticateWithGoogle: AuthenticateWithGoogle
+  ) {
     super();
   }
 

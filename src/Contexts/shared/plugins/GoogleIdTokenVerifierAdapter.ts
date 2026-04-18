@@ -9,9 +9,14 @@ import type {
 const TEST_TOKEN_PREFIX = 'test-google';
 
 export class GoogleIdTokenVerifierAdapter implements GoogleIdTokenVerifierTool {
-  private readonly client = new OAuth2Client(envs.GOOGLE_CLIENT_ID || undefined);
+  private readonly client = new OAuth2Client(
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    envs.GOOGLE_CLIENT_ID || undefined
+  );
 
-  async verifyIdToken(idToken: string): Promise<Nullable<GoogleIdTokenPayload>> {
+  async verifyIdToken(
+    idToken: string
+  ): Promise<Nullable<GoogleIdTokenPayload>> {
     if (envs.NODE_ENV === 'test') {
       return this.verifyTestToken(idToken);
     }
@@ -23,6 +28,7 @@ export class GoogleIdTokenVerifierAdapter implements GoogleIdTokenVerifierTool {
     try {
       const ticket = await this.client.verifyIdToken({
         idToken,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         audience: envs.GOOGLE_CLIENT_ID
       });
 
@@ -54,7 +60,9 @@ export class GoogleIdTokenVerifierAdapter implements GoogleIdTokenVerifierTool {
       sub,
       email: decodeURIComponent(encodedEmail),
       emailVerified: emailVerified === 'true',
-      ...(encodedName !== undefined && { name: decodeURIComponent(encodedName) })
+      ...(encodedName !== undefined && {
+        name: decodeURIComponent(encodedName)
+      })
     };
   }
 }

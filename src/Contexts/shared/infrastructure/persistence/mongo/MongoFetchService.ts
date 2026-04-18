@@ -31,19 +31,23 @@ export class MongoFetchService {
     };
 
     const projection = options.fields?.length
-      ? options.fields.reduce(
-          (acc, field) => ({ ...acc, [field]: 1 }),
-          { _id: 1, metadata: 1 } as Record<string, number>
-        )
+      ? options.fields.reduce((acc, field) => ({ ...acc, [field]: 1 }), {
+          _id: 1,
+          metadata: 1
+        } as Record<string, number>)
       : undefined;
 
     const mongoQuery = query as Filter<TCollectionSchema>;
     const mongoOptions = (projection ? { projection } : {}) as FindOptions;
 
     if (!Object.keys(query).length && !projection) {
-      return (await collection.find({} as Filter<TCollectionSchema>).toArray()) as unknown as T[];
+      return (await collection
+        .find({} as Filter<TCollectionSchema>)
+        .toArray()) as unknown as T[];
     }
 
-    return (await collection.find(mongoQuery, mongoOptions).toArray()) as unknown as T[];
+    return (await collection
+      .find(mongoQuery, mongoOptions)
+      .toArray()) as unknown as T[];
   }
 }

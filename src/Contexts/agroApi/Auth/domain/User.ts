@@ -1,5 +1,10 @@
 import { AggregateRoot } from '../../../shared/domain/AggregateRoot.js';
-import { Email, Metadata, PasswordHash, Uuid } from '../../../shared/domain/valueObject/index.js';
+import {
+  Email,
+  Metadata,
+  PasswordHash,
+  Uuid
+} from '../../../shared/domain/valueObject/index.js';
 import type { MetadataType } from '../../../shared/infrastructure/persistence/mongo/types/MetadataType.js';
 import { Username } from './Username.js';
 import {
@@ -49,7 +54,8 @@ export class User extends AggregateRoot {
     this.username = username;
     this.authMethods = normalizedAuthMethods;
     const localPassword =
-      password ?? normalizedAuthMethods.find((method) => method.isLocal())?.password;
+      password ??
+      normalizedAuthMethods.find((method) => method.isLocal())?.password;
     if (localPassword !== undefined) {
       this.password = localPassword;
     }
@@ -97,14 +103,18 @@ export class User extends AggregateRoot {
       ...(password !== undefined && { password: new PasswordHash(password) }),
       emailValidated,
       ...(authMethods !== undefined && {
-        authMethods: authMethods.map((method) => UserAuthMethod.fromPrimitives(method))
+        authMethods: authMethods.map((method) =>
+          UserAuthMethod.fromPrimitives(method)
+        )
       }),
       roles: new UserRoles(roles),
       metadata: Metadata.fromPrimitives(metadata)
     });
   }
 
-  findAuthMethod(provider: UserAuthMethodPrimitives['provider']): UserAuthMethod | undefined {
+  findAuthMethod(
+    provider: UserAuthMethodPrimitives['provider']
+  ): UserAuthMethod | undefined {
     return this.authMethods.find((method) => method.provider === provider);
   }
 

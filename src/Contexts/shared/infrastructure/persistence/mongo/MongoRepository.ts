@@ -11,7 +11,10 @@ import { updateMetadata } from '../../../application/utils/updateMetadata.js';
 import { MongoErrorHandler } from './MongoErrorHandler.js';
 import { toMongoId } from './MongoId.js';
 import type { Entity } from './types/Entity.js';
-import { MongoFetchService, type MongoFetchOptions } from './MongoFetchService.js';
+import {
+  MongoFetchService,
+  type MongoFetchOptions
+} from './MongoFetchService.js';
 import type { RequestOptions } from '../../../../../apps/agroApi/shared/interfaces/RequestOptions.js';
 
 export abstract class MongoRepository<T extends AggregateRoot> {

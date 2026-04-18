@@ -9,7 +9,9 @@ export const getRegisterRouteOrThrow = (
   const registerRoute = module[ROUTE_REGISTER_EXPORT];
 
   if (typeof registerRoute !== 'function') {
-    throw new Error(`Route file ${file} must export a function named ${ROUTE_REGISTER_EXPORT}`);
+    throw new Error(
+      `Route file ${file} must export a function named ${ROUTE_REGISTER_EXPORT}`
+    );
   }
 
   return registerRoute;

@@ -31,6 +31,10 @@ import {
   ValidateMail
 } from '../../Contexts/agroApi/Auth/application/index.js';
 
+/* eslint-disable
+  @typescript-eslint/no-unsafe-argument,
+*/
+
 const pkg = JSON.parse(
   readFileSync(resolve(process.cwd(), 'package.json'), 'utf-8')
 ) as { version: string };
@@ -60,11 +64,13 @@ const registerInfrastructureDependencies = (container: AppContainer): void => {
 
 const registerAuthUseCases = (container: AppContainer): void => {
   container.register({
-    registerUser: asFunction((authRepository, encrypter) =>
-      new RegisterUserLocal(authRepository, encrypter)
+    registerUser: asFunction(
+      (authRepository, encrypter) =>
+        new RegisterUserLocal(authRepository, encrypter)
     ).scoped(),
-    loginUser: asFunction((authRepository, encrypter) =>
-      new LoginUserLocal(authRepository, encrypter)
+    loginUser: asFunction(
+      (authRepository, encrypter) =>
+        new LoginUserLocal(authRepository, encrypter)
     ).scoped(),
     authenticateWithGoogle: asFunction(
       (authRepository, encrypter, googleIdTokenVerifier) =>
@@ -74,12 +80,15 @@ const registerAuthUseCases = (container: AppContainer): void => {
           googleIdTokenVerifier
         )
     ).scoped(),
-    validateMail: asFunction((authRepository, encrypter) =>
-      new ValidateMail(authRepository, encrypter)
+    validateMail: asFunction(
+      (authRepository, encrypter) => new ValidateMail(authRepository, encrypter)
     ).scoped(),
-    refreshToken: asFunction((encrypter) => new RefreshToken(encrypter)).scoped(),
-    updatePassword: asFunction((authRepository, encrypter) =>
-      new UpdatePasswordLocal(authRepository, encrypter)
+    refreshToken: asFunction(
+      (encrypter) => new RefreshToken(encrypter)
+    ).scoped(),
+    updatePassword: asFunction(
+      (authRepository, encrypter) =>
+        new UpdatePasswordLocal(authRepository, encrypter)
     ).scoped()
   });
 };

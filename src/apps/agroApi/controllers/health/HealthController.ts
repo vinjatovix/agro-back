@@ -1,16 +1,14 @@
 import { type NextFunction, type Request, type Response } from 'express';
+import httpStatus from 'http-status';
 import type { CheckHealth } from '../../../../Contexts/agroApi/health/application/index.js';
-import { HttpController } from '../../shared/controllers/HttpController.js';
 
-export class HealthController extends HttpController {
-  constructor(protected readonly checkHealth: CheckHealth) {
-    super();
-  }
+export class HealthController {
+  constructor(protected readonly checkHealth: CheckHealth) {}
 
-  async run(_req: Request, res: Response, next: NextFunction): Promise<void> {
+  run(_req: Request, res: Response, next: NextFunction): void {
     try {
-      const healthInfo = await this.checkHealth.run();
-      res.status(this.status()).json(healthInfo);
+      const healthInfo = this.checkHealth.run();
+      res.status(httpStatus.OK).json(healthInfo);
     } catch (error) {
       next(error);
     }

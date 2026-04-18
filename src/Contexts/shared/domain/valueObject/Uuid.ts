@@ -28,9 +28,7 @@ export class Uuid {
 
   private static ensureIsValidUuid(id: string): void {
     if (!validate(id)) {
-      throw createError.badRequest(
-        `<Uuid> does not allow the value <${id}>`
-      );
+      throw createError.badRequest(`<Uuid> does not allow the value <${id}>`);
     }
   }
 }

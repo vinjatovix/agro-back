@@ -21,7 +21,8 @@ import type { AuthenticateWithGoogleRequest } from '../interfaces/index.js';
 
 const logger = buildLogger('authenticateWithGoogle');
 const INVALID_GOOGLE_TOKEN_MESSAGE = 'Invalid Google token';
-const TOKEN_GENERATION_ERROR_MESSAGE = 'Failed to generate authentication token';
+const TOKEN_GENERATION_ERROR_MESSAGE =
+  'Failed to generate authentication token';
 
 export class AuthenticateWithGoogle {
   constructor(
@@ -31,7 +32,8 @@ export class AuthenticateWithGoogle {
   ) {}
 
   async run({ idToken }: AuthenticateWithGoogleRequest): Promise<string> {
-    const tokenPayload = await this.googleIdTokenVerifier.verifyIdToken(idToken);
+    const tokenPayload =
+      await this.googleIdTokenVerifier.verifyIdToken(idToken);
 
     if (!tokenPayload || !tokenPayload.email || !tokenPayload.sub) {
       throw createError.auth(INVALID_GOOGLE_TOKEN_MESSAGE);
@@ -45,7 +47,10 @@ export class AuthenticateWithGoogle {
     return this.generateAuthToken(user);
   }
 
-  private async resolveUser(email: string, providerUserId: string): Promise<User> {
+  private async resolveUser(
+    email: string,
+    providerUserId: string
+  ): Promise<User> {
     const existingByProvider = await this.repository.searchByProvider(
       'google',
       providerUserId
@@ -78,7 +83,10 @@ export class AuthenticateWithGoogle {
     return this.createGoogleUser(email, providerUserId);
   }
 
-  private async linkGoogleMethod(user: User, providerUserId: string): Promise<void> {
+  private async linkGoogleMethod(
+    user: User,
+    providerUserId: string
+  ): Promise<void> {
     const linkedAt = new Date();
     const userPatch = new UserPatch({
       id: user.id,
@@ -125,7 +133,9 @@ export class AuthenticateWithGoogle {
     });
 
     await this.repository.save(user);
-    logger.info(`Created user <${user.username.value}> with Google authentication`);
+    logger.info(
+      `Created user <${user.username.value}> with Google authentication`
+    );
 
     return user;
   }
@@ -140,7 +150,9 @@ export class AuthenticateWithGoogle {
     const base = normalized.length > 0 ? normalized : fallback;
 
     const padded =
-      base.length >= minLength ? base : `${base}${fallback}`.slice(0, minLength);
+      base.length >= minLength
+        ? base
+        : `${base}${fallback}`.slice(0, minLength);
 
     return new Username(padded.slice(0, maxLength));
   }

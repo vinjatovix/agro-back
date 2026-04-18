@@ -15,10 +15,10 @@ export class StringValueObject {
     return this.value === other.value;
   }
 
-  protected static ensureType(value: string): string {
+  protected static ensureType(value: unknown): string {
     if (typeof value !== 'string') {
       throw createError.badRequest(
-        `<${this.name}> does not allow the value <${value}>`
+        `<${this.name}> does not allow the value <${String(value)}>`
       );
     }
 

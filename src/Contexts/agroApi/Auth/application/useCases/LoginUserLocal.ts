@@ -1,11 +1,15 @@
 import { createError } from '../../../../../shared/errors/index.js';
-import { buildLogger, type EncrypterTool } from '../../../../shared/plugins/index.js';
+import {
+  buildLogger,
+  type EncrypterTool
+} from '../../../../shared/plugins/index.js';
 import type { UserRepository } from '../../domain/interfaces/UserRepository.js';
 import type { LoginUserRequest } from '../interfaces/index.js';
 
 const logger = buildLogger('loginUser');
 const INVALID_CREDENTIALS_MESSAGE = 'Invalid credentials';
-const TOKEN_GENERATION_ERROR_MESSAGE = 'Failed to generate authentication token';
+const TOKEN_GENERATION_ERROR_MESSAGE =
+  'Failed to generate authentication token';
 
 export class LoginUserLocal {
   private readonly repository: UserRepository;

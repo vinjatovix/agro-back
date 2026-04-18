@@ -7,12 +7,13 @@ const ROUTE_FILES_GLOB = './src/apps/agroApi/routes/**/*.routes.ts';
 const CURRENT_FILE_GLOB = './src/apps/agroApi/routes/registerRoutes.ts';
 const WINDOWS_PATH_SEPARATOR_REGEX = /\\/g;
 
-const toUnixPath = (file: string): string => file.replace(WINDOWS_PATH_SEPARATOR_REGEX, '/');
+const toUnixPath = (file: string): string =>
+  file.replace(WINDOWS_PATH_SEPARATOR_REGEX, '/');
 
 const loadRouteFiles = (): string[] =>
   globSync(ROUTE_FILES_GLOB, {
     absolute: true,
-    ignore: [CURRENT_FILE_GLOB],
+    ignore: [CURRENT_FILE_GLOB]
   }).map(toUnixPath);
 
 export async function registerRoutes(router: Router): Promise<void> {

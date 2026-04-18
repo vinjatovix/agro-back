@@ -1,5 +1,8 @@
 import type { NextFunction, Request, Response } from 'express';
-import type { AppLogger, EncrypterTool } from '../../../../../Contexts/shared/plugins/index.js';
+import type {
+  AppLogger,
+  EncrypterTool
+} from '../../../../../Contexts/shared/plugins/index.js';
 import { HttpError, createError } from '../../../../../shared/errors/index.js';
 
 type AuthDeps = {
@@ -23,9 +26,11 @@ const getRequestContext = (req: Request): string => {
 };
 
 const getAdminDenyReason = (user: unknown): string | null => {
-  if (!user || !Array.isArray((user as { roles?: unknown }).roles)) return 'missing_roles';
-  if (!(user as { roles: string[] }).roles.includes('admin')) return 'insufficient_role';
-  
+  if (!user || !Array.isArray((user as { roles?: unknown }).roles))
+    return 'missing_roles';
+  if (!(user as { roles: string[] }).roles.includes('admin'))
+    return 'insufficient_role';
+
   return null;
 };
 
@@ -39,9 +44,7 @@ export class EnsureAuthentication {
     try {
       const token: string = req.headers.authorization ?? '';
       if (!token.startsWith('Bearer ')) {
-        logger.warn(
-          `[auth] missing_bearer ${getRequestContext(req)}`
-        );
+        logger.warn(`[auth] missing_bearer ${getRequestContext(req)}`);
         throw createError.auth('Invalid token');
       }
 
@@ -57,7 +60,10 @@ export class EnsureAuthentication {
       next();
     } catch (error) {
       if (!(error instanceof HttpError)) {
-        logger.error(`[auth] auth_middleware_failure ${getRequestContext(req)}`, error);
+        logger.error(
+          `[auth] auth_middleware_failure ${getRequestContext(req)}`,
+          error
+        );
       }
       next(error);
     }
@@ -69,7 +75,7 @@ export class EnsureAuthentication {
     res: Response,
     next: NextFunction
   ): void {
-    const user = res.locals.user;
+    const user = res.locals.user as { roles?: string[] };
     const denyReason = getAdminDenyReason(user);
 
     if (denyReason) {

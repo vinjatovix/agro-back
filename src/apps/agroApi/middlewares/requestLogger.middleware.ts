@@ -14,7 +14,7 @@ const getClientIp = (req: Request): string => {
 };
 
 const getRoutePath = (req: Request): string => {
-  const routePath = req.route?.path;
+  const routePath = (req.route as { path?: string } | undefined)?.path;
 
   if (typeof routePath === 'string') {
     return `${req.baseUrl}${routePath}` || req.path;
@@ -51,13 +51,17 @@ const getLoggableUrl = (req: Request): string => {
 const getRequestSource = (req: Request): string => {
   const parts = [
     req.get('origin') && `origin="${req.get('origin')}"`,
-    req.get('referer') && `referer="${req.get('referer')}"`,
+    req.get('referer') && `referer="${req.get('referer')}"`
   ].filter(Boolean);
 
   return parts.length > 0 ? ` ${parts.join(' ')}` : '';
 };
 
-const buildLogMessage = (req: Request, res: Response, elapsedMs: number): string => {
+const buildLogMessage = (
+  req: Request,
+  res: Response,
+  elapsedMs: number
+): string => {
   const clientIp = getClientIp(req);
   const userAgent = req.get('user-agent') ?? 'unknown';
   const requestId = req.get('x-request-id') ?? 'none';

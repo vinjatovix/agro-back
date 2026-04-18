@@ -1,11 +1,13 @@
-import { AggregateRoot } from "../../../shared/domain/AggregateRoot.js";
-import { PasswordHash, Uuid } from "../../../shared/domain/valueObject/index.js";
+import { AggregateRoot } from '../../../shared/domain/AggregateRoot.js';
+import {
+  PasswordHash,
+  Uuid
+} from '../../../shared/domain/valueObject/index.js';
 import {
   UserAuthMethod,
   type UserAuthMethodPrimitives
-} from "./UserAuthMethod.js";
-import { UserRoles } from "./UserRoles.js";
-
+} from './UserAuthMethod.js';
+import { UserRoles } from './UserRoles.js';
 
 export class UserPatch extends AggregateRoot {
   readonly id: Uuid;
@@ -75,7 +77,9 @@ export class UserPatch extends AggregateRoot {
       ...(password !== undefined && { password: new PasswordHash(password) }),
       ...(emailValidated !== undefined && { emailValidated }),
       ...(authMethods !== undefined && {
-        authMethods: authMethods.map((method) => UserAuthMethod.fromPrimitives(method))
+        authMethods: authMethods.map((method) =>
+          UserAuthMethod.fromPrimitives(method)
+        )
       }),
       ...(roles !== undefined && { roles: new UserRoles(roles) })
     });

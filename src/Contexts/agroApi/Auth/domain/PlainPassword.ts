@@ -24,10 +24,10 @@ export class PlainPassword {
     return this.value === other.value;
   }
 
-  private static ensureIsValid(value: string): void {
+  private static ensureIsValid(value: unknown): void {
     if (typeof value !== 'string') {
       throw createError.badRequest(
-        `<PlainPassword> does not allow the value <${value}>`
+        `<PlainPassword> does not allow the value <${String(value)}>`
       );
     }
 

@@ -1,5 +1,9 @@
 import { body, check, checkExact, param } from 'express-validator';
 
+/* eslint-disable 
+@typescript-eslint/no-unsafe-member-access
+ */
+
 const PASSWORDS_DO_NOT_MATCH_MESSAGE = 'Passwords do not match';
 
 const validateMatchingPassword = (field: string = 'repeatPassword') =>

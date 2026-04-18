@@ -16,11 +16,15 @@ export class MongoErrorHandler {
     }
 
     if (err.code === MONGO_ERROR_CODES.VALIDATION_ERROR) {
-      throw createError.badRequest(`Document validation failed: ${err.errmsg || err.message}`);
+      throw createError.badRequest(
+        `Document validation failed: ${err.errmsg || err.message}`
+      );
     }
 
     if (err.code === MONGO_ERROR_CODES.WRONG_TYPE) {
-      throw createError.badRequest(`Invalid data type: ${err.errmsg || err.message}`);
+      throw createError.badRequest(
+        `Invalid data type: ${err.errmsg || err.message}`
+      );
     }
 
     if (

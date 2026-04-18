@@ -11,7 +11,7 @@
     "dev": "tsx watch src/index.ts",
     "check-circular": "skott --displayMode=raw --showCircularDependencies --tsconfig ./tsconfig.json",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
-    "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
+    "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix --fix-type problem,layout,suggestion",
     "format": "prettier \"src/**/*.{ts,tsx,js,jsx,json,md}\" --write",
     "build": "npm run build:clean && npm run build:validate-routes && npm run build:tsc && npm run build:di",
     "build:clean": "rm -r dist; exit 0",
