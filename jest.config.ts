@@ -3,20 +3,28 @@ import type { Config } from 'jest';
 const config: Config = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  setupFiles: ['<rootDir>/setupTests.ts'],
+  setupFilesAfterEnv: ['<rootDir>/setupTests.ts'],
+  transform: {
+    '^.+\\.tsx?$': ['ts-jest', { tsconfig: { module: 'CommonJS', moduleResolution: 'node', ignoreDeprecations: '6.0' } }]
+  },
+  moduleNameMapper: {
+    '^(\\.{1,2}/.*)\\.js$': '$1'
+  },
   cacheDirectory: '.tmp/jestCache',
 
   collectCoverage: true,
-  coverageDirectory: '<rootDir>/coverage',
+  coverageDirectory: '<rootDir>/coverage/jest',
   collectCoverageFrom: ['<rootDir>/src/**/*.ts'],
   coverageReporters: ['lcov'],
   coveragePathIgnorePatterns: [
     '/interfaces/',
+    '/routes/',
+    '/controllers/',
     '/dist/',
     '/node_modules/',
     '/test/',
     '/tests/',
-    '/start.ts',
+    '/index.ts',
     '/server.ts'
   ],
 
