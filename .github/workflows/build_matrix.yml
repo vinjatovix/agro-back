@@ -7,12 +7,32 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      PORT: 3377
+      HOST: http://localhost
+      ALLOWED_ORIGINS: http://localhost:3377
+      JSON_BODY_LIMIT: 1mb
+      URL_ENCODED_BODY_LIMIT: 1mb
+      REQUEST_TIMEOUT_MS: 30000
+      HEADERS_TIMEOUT_MS: 35000
+      KEEP_ALIVE_TIMEOUT_MS: 5000
+      NODE_ENV: test
+      MONGO_CONNECTION: mongodb
+      MONGO_URL: localhost:27017
+      MONGO_DB: test
+      MONGO_USERNAME: localUser
+      MONGO_PASSWORD: localPassword
+      MONGO_APP_NAME: "Cluster0"
+      JWT_SECRET: secret
+      JWT_DEFAULT_DURATION: 2h
+      BCRYPT_SALT_ROUNDS: 12
+      MONGO_REPLICA_SET: rs0
+      GOOGLE_CLIENT_ID: your-google-client-id.apps.googleusercontent.com
 
     strategy:
       matrix:
-        node-version: [22.x, 23.x]
+        node-version: [22.x, 24.x]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
