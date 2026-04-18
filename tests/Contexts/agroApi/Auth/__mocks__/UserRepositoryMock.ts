@@ -10,6 +10,8 @@ import {
 import { UserMother } from '../domain/mothers/UserMother.js';
 import { Username } from '../../../../../src/Contexts/agroApi/Auth/domain/index.js';
 
+const DEFAULT_OPTIONS = { find: false };
+
 export class UserRepositoryMock implements UserRepository {
   private readonly saveMock = jest.fn();
   private readonly updateMock = jest.fn();
@@ -25,7 +27,7 @@ export class UserRepositoryMock implements UserRepository {
   private isFindable: boolean;
   private readonly storage: User[] = [];
 
-  constructor({ find }: { find: boolean } = { find: false }) {
+  constructor({ find }: { find: boolean } = DEFAULT_OPTIONS) {
     this.isFindable = find;
     this.setupMocks();
   }

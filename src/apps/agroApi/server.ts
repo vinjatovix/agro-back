@@ -5,7 +5,7 @@ import express from 'express';
 import type { NextFunction, Request, Response } from 'express';
 import Router from 'express-promise-router';
 import helmet from 'helmet';
-import * as http from 'http';
+import * as http from 'node:http';
 import httpStatus from 'http-status';
 
 import type { AppLogger } from '../../Contexts/shared/plugins/logger.plugin.js';
@@ -29,12 +29,12 @@ const corsOptions: cors.CorsOptions = {
 };
 
 export class Server {
-  private express: express.Express;
-  private container: AppContainer;
-  private port: string;
-  private host: string;
+  private readonly express: express.Express;
+  private readonly container: AppContainer;
+  private readonly port: string;
+  private readonly host: string;
   private httpServer?: http.Server;
-  private logger: AppLogger;
+  private readonly logger: AppLogger;
 
   constructor(host: string, port: string, logger: AppLogger) {
     this.port = port;

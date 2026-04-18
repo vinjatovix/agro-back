@@ -1,10 +1,10 @@
 import { AfterAll, BeforeAll, Given, Then } from '@cucumber/cucumber';
 import { assert } from 'chai';
 import request from 'supertest';
+import type { Server } from 'node:http';
 import { createAppContainer } from '../../../../../src/apps/agroApi/container.js';
 import { EnvironmentArranger } from '../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
 import { AgroBackApp } from '../../../../../src/apps/agroApi/AgroBackApp.js';
-import type { Server } from 'http';
 import { API_PREFIXES } from '../../../../../src/apps/agroApi/routes/shared/apiPrefixes.js';
 import type { Nullable } from '../../../../../src/Contexts/shared/domain/types/Nullable.js';
 import { Uuid } from '../../../../../src/Contexts/shared/domain/valueObject/index.js';
@@ -73,7 +73,7 @@ BeforeAll(async () => {
   }
   httpServer = app.httpServer;
   await (await ENVIRONMENT_ARRANGER).arrange();
-    validAdminBearerToken = await ENCRYPTER.generateToken({
+  validAdminBearerToken = await ENCRYPTER.generateToken({
     id: Uuid.random().value,
     email: 'admin@tsapi.com',
     username: UserMother.random().username.value,

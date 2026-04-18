@@ -4,7 +4,7 @@ import { getRegisterRouteOrThrow } from '../src/apps/agroApi/routes/routeModuleV
 
 const ROUTE_FILES_GLOB = './src/apps/agroApi/routes/**/*.routes.ts';
 
-const toUnixPath = (file: string): string => file.replace(/\\/g, '/');
+const toUnixPath = (file: string): string => file.replaceAll('\\', '/');   
 
 const routeFiles = globSync(ROUTE_FILES_GLOB, { absolute: true }).map(
   toUnixPath

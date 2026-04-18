@@ -14,8 +14,11 @@ RESTORE_PASSWORD=rootPassword
 set -e
 
 print() {
-    printf "\n\n\n# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #\n%s\n# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #\n\n\n" "$1"
-}
+  local message="$1"
+  printf "\n\n\n# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #\n%s\n# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #\n\n\n" "$message"
+  return 0
+}   
+
 
 if [[ $ENV_DUMP == "PREINT" || $ENV_DUMP == "PRE" || $ENV_DUMP == "DES" || $ENV_DUMP == "PRO" ]]; then
     print "                    Restoring $ENV_DUMP dump"

@@ -8,7 +8,7 @@ const CURRENT_FILE_GLOB = './src/apps/agroApi/routes/registerRoutes.ts';
 const WINDOWS_PATH_SEPARATOR_REGEX = /\\/g;
 
 const toUnixPath = (file: string): string =>
-  file.replace(WINDOWS_PATH_SEPARATOR_REGEX, '/');
+  file.replaceAll(WINDOWS_PATH_SEPARATOR_REGEX, '/');
 
 const loadRouteFiles = (): string[] =>
   globSync(ROUTE_FILES_GLOB, {

@@ -1,15 +1,3 @@
-// import { UserPatcher } from '../../../../../src/Contexts/apiApp/Auth/application/UserPatcher';
-// import { Username } from '../../../../../src/Contexts/apiApp/Auth/domain';
-// import {
-//   StringValueObject,
-//   Uuid
-// } from '../../../../../src/Contexts/shared/domain/valueObject';
-// import { random } from '../../../fixtures/shared';
-// import { UuidMother } from '../../../fixtures/shared/domain/mothers';
-// import { EmailMother } from '../../../shared/domain/mothers';
-// import { CryptAdapterMock } from '../__mocks__/CryptAdapterMock';
-// import { UserRepositoryMock } from '../__mocks__/UserRepositoryMock';
-
 import { UpdatePasswordLocal } from '../../../../../../src/Contexts/agroApi/Auth/application/useCases/UpdatePasswordLocal.js';
 import { Username } from '../../../../../../src/Contexts/agroApi/Auth/domain/Username.js';
 import { PasswordHash } from '../../../../../../src/Contexts/shared/domain/valueObject/PasswordHash.js';
@@ -54,7 +42,7 @@ describe('UpdatePasswordLocal', () => {
     }).rejects.toThrow(expect.objectContaining({ name: 'NotFoundError' }));
   });
 
-  it('should throw an error when the password is invalid', async () => {
+  it('should throw an error when the password is invalid', () => {
     encrypter = new CryptAdapterMock({ login: false });
     updatePassword = new UpdatePasswordLocal(repository, encrypter);
 
@@ -68,7 +56,7 @@ describe('UpdatePasswordLocal', () => {
     );
   });
 
-  it('should throw an error when the password does not match', async () => {
+  it('should throw an error when the password does not match', () => {
     const request = {
       ...PAYLOAD,
       repeatPassword: 'differentPassword'
@@ -84,7 +72,7 @@ describe('UpdatePasswordLocal', () => {
     );
   });
 
-  it('should throw an error when the password is the same as the old one', async () => {
+  it('should throw an error when the password is the same as the old one', () => {
     const request = {
       password: PAYLOAD.oldPassword,
       repeatPassword: PAYLOAD.oldPassword,

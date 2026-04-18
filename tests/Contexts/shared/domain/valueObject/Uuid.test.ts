@@ -1,5 +1,4 @@
 import { Uuid } from '../../../../../src/Contexts/shared/domain/valueObject/Uuid.js';
-import { v4 as uuidv4 } from 'uuid';
 
 describe('Uuid', () => {
   const VALID_UUID = '550e8400-e29b-41d4-a716-446655440000';
@@ -23,9 +22,7 @@ describe('Uuid', () => {
     });
 
     it('should throw when value is an empty string', () => {
-      expect(() => new Uuid('')).toThrow(
-        '<Uuid> does not allow the value <>'
-      );
+      expect(() => new Uuid('')).toThrow('<Uuid> does not allow the value <>');
     });
 
     it('should throw when value is invalid UUID format', () => {

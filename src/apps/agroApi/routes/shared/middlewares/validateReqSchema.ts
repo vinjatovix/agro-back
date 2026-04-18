@@ -16,13 +16,13 @@ import { createError } from '../../../../../shared/errors/index.js';
 
 type ValidationErrorInfo = Record<string, string>;
 
-const HIDDEN_FIELDS = ['password', 'repeatPassword'];
+const HIDDEN_FIELDS = new Set(['password', 'repeatPassword']);
 
 const extractFieldErrorInfo = (
   error: FieldValidationError
 ): ValidationErrorInfo => {
   const baseMessage = `${error.msg} at ${error.location}.`;
-  const value = HIDDEN_FIELDS.includes(error.path)
+  const value = HIDDEN_FIELDS.has(error.path)
     ? baseMessage
     : `${baseMessage} Value: ${error.value}`;
   return { [error.path]: value };
@@ -77,6 +77,6 @@ export const validateReqSchema = (
     }, {});
 
   throw createError.badRequest(
-    JSON.stringify(errorMessages).replace(/"/g, ' ')
+    JSON.stringify(errorMessages).replaceAll('"', ' ')
   );
 };

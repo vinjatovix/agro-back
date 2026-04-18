@@ -25,7 +25,7 @@ export class Random {
   }
 
   public name(toLowerCase: boolean = false): string {
-    const name = this.chance.sentence().replace(/\s|\./g, '-');
+    const name = this.chance.sentence().replaceAll(/\s|\./g, '-');
 
     return toLowerCase ? name.toLowerCase() : name;
   }

@@ -35,7 +35,7 @@ export class AuthenticateWithGoogle {
     const tokenPayload =
       await this.googleIdTokenVerifier.verifyIdToken(idToken);
 
-    if (!tokenPayload || !tokenPayload.email || !tokenPayload.sub) {
+    if (!tokenPayload?.email || !tokenPayload?.sub) {
       throw createError.auth(INVALID_GOOGLE_TOKEN_MESSAGE);
     }
 
@@ -142,7 +142,7 @@ export class AuthenticateWithGoogle {
 
   private deriveUsernameFromEmail(email: string): Username {
     const localPart = email.split('@')[0] ?? '';
-    const normalized = localPart.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+    const normalized = localPart.replaceAll(/[^a-zA-Z0-9]/g, '').toLowerCase();
 
     const minLength = Username.MIN_LENGTH;
     const maxLength = Username.MAX_LENGTH;

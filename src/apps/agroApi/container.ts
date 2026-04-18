@@ -6,8 +6,8 @@ import {
   InjectionMode,
   type AwilixContainer
 } from 'awilix';
-import { readFileSync } from 'fs';
-import { resolve } from 'path';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { CheckHealth } from '../../Contexts/agroApi/health/application/index.js';
 import {
   GoogleIdTokenVerifierAdapter,
