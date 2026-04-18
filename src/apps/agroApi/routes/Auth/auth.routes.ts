@@ -1,5 +1,6 @@
 import type { Router } from 'express';
 import {
+  googleAuthReqSchema,
   loginReqSchema,
   registerReqSchema,
   updatePasswordReqSchema,
@@ -30,6 +31,15 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
     loginReqSchema,
     validateReqSchema,
     authApiInvoker('login')
+  );
+
+  router.post(
+    `${prefix}/google`,
+    authLimiter,
+    validateBody,
+    googleAuthReqSchema,
+    validateReqSchema,
+    authApiInvoker('authenticateWithGoogle')
   );
 
   router.get(

@@ -10,9 +10,10 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { CheckHealth } from '../../Contexts/agroApi/health/application/index.js';
 import {
+  GoogleIdTokenVerifierAdapter,
   buildLogger,
   type AppLogger
-} from '../../Contexts/shared/plugins/logger.plugin.js';
+} from '../../Contexts/shared/plugins/index.js';
 import {
   DBClientFactory,
   DBConfigFactory,
@@ -22,6 +23,7 @@ import {
 import { CryptAdapter } from '../../Contexts/shared/plugins/CryptAdapter.js';
 import { MongoAuthRepository } from '../../Contexts/agroApi/Auth/infrastructure/persistence/index.js';
 import {
+  AuthenticateWithGoogle,
   LoginUserLocal,
   RefreshToken,
   RegisterUserLocal,
@@ -51,6 +53,7 @@ const registerInfrastructureDependencies = (container: AppContainer): void => {
     ).singleton(),
     environmentArranger: asClass(DBEnvironmentArranger).singleton(),
     encrypter: asClass(CryptAdapter).singleton(),
+    googleIdTokenVerifier: asClass(GoogleIdTokenVerifierAdapter).singleton(),
     authRepository: asClass(MongoAuthRepository).singleton()
   });
 };
@@ -62,6 +65,14 @@ const registerAuthUseCases = (container: AppContainer): void => {
     ).scoped(),
     loginUser: asFunction((authRepository, encrypter) =>
       new LoginUserLocal(authRepository, encrypter)
+    ).scoped(),
+    authenticateWithGoogle: asFunction(
+      (authRepository, encrypter, googleIdTokenVerifier) =>
+        new AuthenticateWithGoogle(
+          authRepository,
+          encrypter,
+          googleIdTokenVerifier
+        )
     ).scoped(),
     validateMail: asFunction((authRepository, encrypter) =>
       new ValidateMail(authRepository, encrypter)

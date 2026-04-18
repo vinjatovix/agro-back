@@ -3,6 +3,10 @@ export interface LoginUserRequest {
   password: string;
 }
 
+export interface AuthenticateWithGoogleRequest {
+  idToken: string;
+}
+
 export interface RegisterUserRequest extends LoginUserRequest {
   id: string;
   username: string;

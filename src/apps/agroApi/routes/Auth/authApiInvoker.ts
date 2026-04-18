@@ -1,5 +1,6 @@
 import { makeInvoker } from 'awilix-express';
 import type {
+  AuthenticateWithGoogle,
   LoginUserLocal,
   RefreshToken,
   RegisterUserLocal,
@@ -7,6 +8,7 @@ import type {
   ValidateMail
 } from '../../../../Contexts/agroApi/Auth/application/index.js';
 import {
+  AuthenticateWithGoogleController,
   LoginUserLocalController,
   RefreshTokenController,
   RegisterUserLocalController,
@@ -18,12 +20,16 @@ import { bindRun } from '../shared/index.js';
 const api = (
   registerUser: RegisterUserLocal,
   loginUser: LoginUserLocal,
+  authenticateWithGoogle: AuthenticateWithGoogle,
   validateMail: ValidateMail,
   refreshToken: RefreshToken,
   updatePassword: UpdatePasswordLocal
 ) => {
   const registerUserCtrl = new RegisterUserLocalController(registerUser);
   const loginUserCtrl = new LoginUserLocalController(loginUser);
+  const authenticateWithGoogleCtrl = new AuthenticateWithGoogleController(
+    authenticateWithGoogle
+  );
   const validateMailCtrl = new ValidateMailController(validateMail);
   const refreshTokenCtrl = new RefreshTokenController(refreshToken);
   const updatePasswordCtrl = new UpdatePasswordLocalController(updatePassword);
@@ -31,6 +37,7 @@ const api = (
   return {
     registerUser: bindRun(registerUserCtrl),
     login: bindRun(loginUserCtrl),
+    authenticateWithGoogle: bindRun(authenticateWithGoogleCtrl),
     validateMail: bindRun(validateMailCtrl),
     refreshToken: bindRun(refreshTokenCtrl),
     updatePassword: bindRun(updatePasswordCtrl)

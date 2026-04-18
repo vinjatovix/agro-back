@@ -36,3 +36,8 @@ export const updatePasswordReqSchema = [
 ];
 
 export const loginReqSchema = [...loginSchema, checkExact()];
+
+export const googleAuthReqSchema = [
+  body('idToken').exists().isString(),
+  checkExact()
+];

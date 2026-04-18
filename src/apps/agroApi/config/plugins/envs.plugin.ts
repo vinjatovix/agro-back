@@ -35,6 +35,7 @@ export const envs = {
     .get('JWT_DEFAULT_DURATION')
     .default('2h')
     .asString(),
+  GOOGLE_CLIENT_ID: env.get('GOOGLE_CLIENT_ID').default('').asString(),
   BCRYPT_SALT_ROUNDS: env
     .get('BCRYPT_SALT_ROUNDS')
     .default('12')

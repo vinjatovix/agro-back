@@ -8,6 +8,7 @@ import {
   Uuid
 } from '../../../../../src/Contexts/shared/domain/valueObject/index.js';
 import { UserMother } from '../domain/mothers/UserMother.js';
+import { Username } from '../../../../../src/Contexts/agroApi/Auth/domain/index.js';
 
 export class UserRepositoryMock implements UserRepository {
   private readonly saveMock = jest.fn();
@@ -18,6 +19,8 @@ export class UserRepositoryMock implements UserRepository {
   private readonly password = new PasswordHash(
     UserMother.randomPasswordHash().value
   );
+  private searchResult: Nullable<User> | undefined;
+  private searchByProviderResult: Nullable<User> | undefined;
 
   private isFindable: boolean;
   private readonly storage: User[] = [];
@@ -29,6 +32,10 @@ export class UserRepositoryMock implements UserRepository {
 
   private setupMocks(): void {
     this.findMock.mockImplementation((email: string) => {
+      if (this.searchResult !== undefined) {
+        return this.searchResult;
+      }
+
       if (!this.isFindable) {
         return null;
       }
@@ -61,6 +68,10 @@ export class UserRepositoryMock implements UserRepository {
 
     this.findByProviderMock.mockImplementation(
       (_provider: AuthProvider, _providerUserId: string) => {
+        if (this.searchByProviderResult !== undefined) {
+          return this.searchByProviderResult;
+        }
+
         if (!this.isFindable) {
           return null;
         }
@@ -78,12 +89,18 @@ export class UserRepositoryMock implements UserRepository {
     expect(this.saveMock).toHaveBeenCalledWith(expected);
   }
 
-  async update(user: UserPatch): Promise<void> {
-    this.updateMock(user);
+  async update(user: UserPatch, username: Username): Promise<void> {
+    this.updateMock(user, username);
   }
 
   assertUpdateHasBeenCalledWith(expected: UserPatch): void {
-    expect(this.updateMock).toHaveBeenCalledWith(expected);
+    const lastCall = this.updateMock.mock.calls.at(-1);
+    expect(lastCall?.[0]).toEqual(expected);
+  }
+
+  assertUpdateHasBeenCalledWithUsername(expected: Username): void {
+    const lastCall = this.updateMock.mock.calls.at(-1);
+    expect(lastCall?.[1]).toEqual(expected);
   }
 
   async search(email: string): Promise<Nullable<User>> {
@@ -99,6 +116,13 @@ export class UserRepositoryMock implements UserRepository {
 
   assertSearchHasBeenCalledWith(expected: string): void {
     expect(this.findMock).toHaveBeenCalledWith(expected);
+  }
+
+  assertSearchByProviderHasBeenCalledWith(
+    provider: AuthProvider,
+    providerUserId: string
+  ): void {
+    expect(this.findByProviderMock).toHaveBeenCalledWith(provider, providerUserId);
   }
 
   async findByQuery(query: {
@@ -117,6 +141,14 @@ export class UserRepositoryMock implements UserRepository {
 
   setIsFindable(exists: boolean): void {
     this.isFindable = exists;
+  }
+
+  setSearchResult(user: Nullable<User> | undefined): void {
+    this.searchResult = user;
+  }
+
+  setSearchByProviderResult(user: Nullable<User> | undefined): void {
+    this.searchByProviderResult = user;
   }
 
   addToStorage(user: User): void {
