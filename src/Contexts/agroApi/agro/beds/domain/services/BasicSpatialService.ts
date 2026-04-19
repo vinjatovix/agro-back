@@ -1,21 +1,18 @@
+import type { PlantRepository } from '../../../plants/domain/repositories/PlantRepository.js';
 import type { PlantInstance } from '../entities/PlantInstance.js';
-import type {
-  SpatialContext,
-  SpatialConstraints,
-  SpatialService
-} from './SpatialService.js';
+import type { SpatialContext, SpatialService } from './SpatialService.js';
 
 export class BasicSpatialService implements SpatialService {
   validatePlacement(
     context: SpatialContext,
     newPlant: PlantInstance,
-    constraints: SpatialConstraints
+    plantRepository: PlantRepository
   ): void {
-    const plantData = constraints.getPlant(newPlant.plantId);
+    const plantData = plantRepository.findById(newPlant.plantId);
     const newRadius = plantData.spacing.max / 2;
 
     this.validateBounds(context, newPlant, newRadius);
-    this.validateCollisions(context, newPlant, newRadius, constraints);
+    this.validateCollisions(context, newPlant, newRadius, plantRepository);
   }
 
   private validateBounds(
@@ -38,12 +35,12 @@ export class BasicSpatialService implements SpatialService {
     context: SpatialContext,
     newPlant: PlantInstance,
     newRadius: number,
-    constraints: SpatialConstraints
+    plantRepository: PlantRepository
   ): void {
     for (const existing of context.plants) {
       if (existing.id === newPlant.id) continue;
 
-      const existingPlantData = constraints.getPlant(existing.plantId);
+      const existingPlantData = plantRepository.findById(existing.plantId);
       const existingRadius = existingPlantData.spacing.max / 2;
 
       const distance = existing.position.distanceTo(newPlant.position);

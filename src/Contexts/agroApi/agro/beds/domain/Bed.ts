@@ -1,5 +1,5 @@
 import { AggregateRoot } from '../../../../shared/domain/AggregateRoot.js';
-import type { Plant } from '../../plants/domain/entities/Plant.js';
+import type { PlantRepository } from '../../plants/domain/repositories/PlantRepository.js';
 import type { PlantInstance } from './entities/PlantInstance.js';
 import { BasicSpatialService } from './services/BasicSpatialService.js';
 import type { SpatialService } from './services/SpatialService.js';
@@ -8,11 +8,11 @@ export interface BedProps {
   id: string;
   width: number;
   height: number;
-  plantInstances: PlantInstance[];
+  plantInstances?: PlantInstance[];
 }
 
 export class Bed extends AggregateRoot {
-  private props: BedProps;
+  private props: BedProps & { plantInstances: PlantInstance[] };
 
   constructor(
     props: BedProps,
@@ -22,7 +22,7 @@ export class Bed extends AggregateRoot {
 
     this.props = {
       ...props,
-      plantInstances: props.plantInstances
+      plantInstances: props.plantInstances ?? []
     };
   }
 
@@ -42,18 +42,21 @@ export class Bed extends AggregateRoot {
     return this.props.plantInstances;
   }
 
-  addPlant(plant: PlantInstance, getPlant: (plantId: string) => Plant): void {
+  addPlant(
+    plantInstance: PlantInstance,
+    plantRepository: PlantRepository
+  ): void {
     this.spatialService.validatePlacement(
       {
         width: this.props.width,
         height: this.props.height,
         plants: this.props.plantInstances
       },
-      plant,
-      { getPlant }
+      plantInstance,
+      plantRepository
     );
 
-    this.props.plantInstances.push(plant);
+    this.props.plantInstances.push(plantInstance);
   }
 
   removePlant(plantId: string): void {

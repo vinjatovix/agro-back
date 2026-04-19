@@ -1,4 +1,4 @@
-import type { Plant } from '../../../plants/domain/entities/Plant.js';
+import type { PlantRepository } from '../../../plants/domain/repositories/PlantRepository.js';
 import type { PlantInstance } from '../entities/PlantInstance.js';
 
 export interface SpatialContext {
@@ -7,14 +7,10 @@ export interface SpatialContext {
   plants: PlantInstance[];
 }
 
-export interface SpatialConstraints {
-  getPlant: (plantId: string) => Plant;
-}
-
 export interface SpatialService {
   validatePlacement(
     context: SpatialContext,
     newPlant: PlantInstance,
-    constraints: SpatialConstraints
+    plantRepository: PlantRepository
   ): void;
 }

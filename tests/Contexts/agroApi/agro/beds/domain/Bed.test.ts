@@ -2,9 +2,9 @@ import type { SpatialService } from '../../../../../../src/Contexts/agroApi/agro
 import { Bed } from '../../../../../../src/Contexts/agroApi/agro/beds/domain/Bed.js';
 import type { PlantInstance } from '../../../../../../src/Contexts/agroApi/agro/beds/domain/entities/PlantInstance.js';
 import { PlantInstanceMother } from './mothers/PlantInstanceMother.js';
-import { createPlantCatalog } from './services/fixtures/plantCatalogFixture.js';
+import { createPlantCatalog } from '../helpers/InMemoryPlantRepository.js';
 
-const { getPlant } = createPlantCatalog();
+const { plantRepository } = createPlantCatalog();
 
 describe('Bed', () => {
   const createBed = (plants: PlantInstance[] = []) =>
@@ -20,7 +20,7 @@ describe('Bed', () => {
 
     const plant = PlantInstanceMother.atPosition(50, 50);
 
-    bed.addPlant(plant, getPlant);
+    bed.addPlant(plant, plantRepository);
 
     expect(bed.plants.length).toBe(1);
   });
@@ -31,7 +31,9 @@ describe('Bed', () => {
 
     const bed = createBed([plant1]);
 
-    expect(() => bed.addPlant(plant2, getPlant)).toThrow('Collision detected');
+    expect(() => bed.addPlant(plant2, plantRepository)).toThrow(
+      'Collision detected'
+    );
   });
 
   it('should delegate placement validation to spatial service', () => {
@@ -48,7 +50,7 @@ describe('Bed', () => {
 
     const plant = PlantInstanceMother.atPosition(50, 50);
 
-    bed.addPlant(plant, getPlant);
+    bed.addPlant(plant, plantRepository);
 
     expect(validatePlacement).toHaveBeenCalledTimes(1);
   });
@@ -67,7 +69,7 @@ describe('Bed', () => {
 
     const plant = PlantInstanceMother.atPosition(50, 50);
 
-    expect(() => bed.addPlant(plant, getPlant)).toThrow();
+    expect(() => bed.addPlant(plant, plantRepository)).toThrow();
 
     expect(bed.plants.length).toBe(0);
   });
@@ -126,7 +128,7 @@ describe('Bed', () => {
 
     const plant = PlantInstanceMother.atPosition(10, 10);
 
-    bed.addPlant(plant, getPlant);
+    bed.addPlant(plant, plantRepository);
 
     expect(service.validatePlacement).toHaveBeenCalled();
     expect(bed.plants).toHaveLength(1);
