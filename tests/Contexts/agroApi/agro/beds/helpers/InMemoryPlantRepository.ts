@@ -20,6 +20,11 @@ export class InMemoryPlantRepository implements PlantRepository {
   async findAll(): Promise<Plant[]> {
     return Array.from(this.plants.values());
   }
+
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async exists(id: string): Promise<boolean> {
+    return this.plants.has(id);
+  }
 }
 
 export function createPlantCatalog() {

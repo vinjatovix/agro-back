@@ -4,12 +4,13 @@ import { AggregateRoot } from '../../../../../shared/domain/AggregateRoot.js';
 import type { Metadata } from '../../../../../shared/domain/valueObject/Metadata.js';
 import type { PlantLifecycle } from '../value-objects/PlantLifecycicle.js';
 import type { CreatePlantProps } from './types/CreatePlantProps.js';
+import type { PlantPrimitives } from './types/PlantPrimitives.js';
 
 export interface PlantProps {
   id: string;
   name: string;
   scientificName?: string;
-  familyId?: string;
+  familyId: string;
 
   lifecycle: PlantLifecycle;
 
@@ -27,7 +28,7 @@ export interface PlantProps {
   metadata: Metadata;
 }
 
-export class Plant extends AggregateRoot {
+export class Plant extends AggregateRoot<PlantPrimitives> {
   private props: PlantProps;
 
   constructor(props: PlantProps) {
@@ -75,25 +76,34 @@ export class Plant extends AggregateRoot {
     return this.props.metadata;
   }
 
-  toPrimitives(): Record<string, unknown> {
-    return {
+  toPrimitives(): PlantPrimitives {
+    const primitives: PlantPrimitives = {
       id: this.props.id,
       name: this.props.name,
-      scientificName: this.props.scientificName,
       familyId: this.props.familyId,
       lifecycle: this.props.lifecycle.getValue(),
+
       size: {
-        height: this.props.size.height,
-        spread: this.props.size.spread
+        height: this.props.size.height.toPrimitives(),
+        spread: this.props.size.spread.toPrimitives()
       },
-      sowingMonths: this.props.sowingMonths,
-      floweringMonths: this.props.floweringMonths,
-      harvestMonths: this.props.harvestMonths,
-      spacingCm: this.props.spacingCm,
-      metadata: this.props.metadata
-        ? this.props.metadata.toPrimitives()
-        : undefined
+
+      sowingMonths: this.props.sowingMonths.toArray(),
+      floweringMonths: this.props.floweringMonths.toArray(),
+      harvestMonths: this.props.harvestMonths.toArray(),
+
+      spacingCm: this.props.spacingCm.toPrimitives()
     };
+
+    if (this.props.scientificName) {
+      primitives.scientificName = this.props.scientificName;
+    }
+
+    if (this.props.metadata) {
+      primitives.metadata = this.props.metadata.toPrimitives();
+    }
+
+    return primitives;
   }
 
   static create(props: CreatePlantProps): Plant {

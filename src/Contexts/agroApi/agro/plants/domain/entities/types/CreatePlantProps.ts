@@ -7,7 +7,7 @@ export type CreatePlantProps = {
   id: string;
   name: string;
   scientificName?: string;
-  familyId?: string;
+  familyId: string;
   lifecycle: PlantLifecycle;
   size: {
     height: Range;

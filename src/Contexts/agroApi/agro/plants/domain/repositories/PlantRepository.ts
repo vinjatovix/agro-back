@@ -4,4 +4,5 @@ export interface PlantRepository {
   findById(id: string): Promise<Plant>;
   save(plant: Plant): Promise<void>;
   findAll(): Promise<Plant[]>;
+  exists(id: string): Promise<boolean>;
 }

@@ -1,5 +1,6 @@
 import { Plant } from '../../../../../../../../src/Contexts/agroApi/agro/plants/domain/entities/Plant.js';
 import { PlantLifecycle } from '../../../../../../../../src/Contexts/agroApi/agro/plants/domain/value-objects/PlantLifecycicle.js';
+import { Metadata } from '../../../../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
 import { MonthSet } from '../../../../../../../../src/shared/domain/value-objects/MonthSet.js';
 import { Range } from '../../../../../../../../src/shared/domain/value-objects/Range.js';
 
@@ -8,6 +9,7 @@ describe('Plant', () => {
     new Plant({
       id: 'tomato',
       name: 'Tomato',
+      familyId: 'solanaceae',
       lifecycle: PlantLifecycle.from('annual'),
 
       size: {
@@ -19,7 +21,14 @@ describe('Plant', () => {
 
       sowingMonths: new MonthSet([3, 4]),
       floweringMonths: new MonthSet([6, 7]),
-      harvestMonths: new MonthSet([8, 9])
+      harvestMonths: new MonthSet([8, 9]),
+
+      metadata: new Metadata({
+        createdAt: new Date(),
+        createdBy: 'test',
+        updatedAt: new Date(),
+        updatedBy: 'test'
+      })
     });
 
   it('should create a valid plant', () => {

@@ -38,4 +38,8 @@ export class Range {
   equals(other: Range): boolean {
     return this.min === other.min && this.max === other.max;
   }
+
+  toPrimitives(): { min: number; max: number } {
+    return { min: this.min, max: this.max };
+  }
 }

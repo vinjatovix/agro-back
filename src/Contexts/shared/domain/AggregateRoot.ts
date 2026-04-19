@@ -1,3 +1,3 @@
-export abstract class AggregateRoot {
-  abstract toPrimitives(): Record<string, unknown>;
+export abstract class AggregateRoot<TPrimitives = Record<string, unknown>> {
+  abstract toPrimitives(): TPrimitives;
 }

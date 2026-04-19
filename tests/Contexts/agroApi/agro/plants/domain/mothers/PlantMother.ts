@@ -1,6 +1,7 @@
 import { Plant } from '../../../../../../../src/Contexts/agroApi/agro/plants/domain/entities/Plant.js';
 import { Range } from '../../../../../../../src/shared/domain/value-objects/Range.js';
 import { MonthSet } from '../../../../../../../src/shared/domain/value-objects/MonthSet.js';
+import { PlantLifecycle } from '../../../../../../../src/Contexts/agroApi/agro/plants/domain/value-objects/PlantLifecycicle.js';
 
 export class PlantMother {
   static tomato(
@@ -9,7 +10,8 @@ export class PlantMother {
     return new Plant({
       id: 'tomato',
       name: 'Tomato',
-      lifecycle: 'annual',
+      familyId: 'solanaceae',
+      lifecycle: PlantLifecycle.from('annual'),
 
       size: {
         height: new Range(10, 100),
@@ -32,7 +34,8 @@ export class PlantMother {
     return new Plant({
       id: 'lettuce',
       name: 'Lettuce',
-      lifecycle: 'annual',
+      familyId: 'asteraceae',
+      lifecycle: PlantLifecycle.from('annual'),
 
       size: {
         height: new Range(5, 30),
@@ -55,7 +58,8 @@ export class PlantMother {
     return new Plant({
       id: 'plant_' + Math.random().toString(36).substring(2),
       name: 'Generic plant',
-      lifecycle: 'annual',
+      familyId: 'generic',
+      lifecycle: PlantLifecycle.from('annual'),
 
       size: {
         height: new Range(10, 50),
