@@ -1,4 +1,5 @@
 import { Plant } from '../../../../../../../../src/Contexts/agroApi/agro/plants/domain/entities/Plant.js';
+import { PlantLifecycle } from '../../../../../../../../src/Contexts/agroApi/agro/plants/domain/value-objects/PlantLifecycicle.js';
 import { MonthSet } from '../../../../../../../../src/shared/domain/value-objects/MonthSet.js';
 import { Range } from '../../../../../../../../src/shared/domain/value-objects/Range.js';
 
@@ -7,7 +8,7 @@ describe('Plant', () => {
     new Plant({
       id: 'tomato',
       name: 'Tomato',
-      lifecycle: 'annual',
+      lifecycle: PlantLifecycle.from('annual'),
 
       size: {
         height: new Range(10, 100),
@@ -65,7 +66,6 @@ describe('Plant', () => {
   it('should preserve value objects integrity', () => {
     const plant = createPlant();
 
-    // no debe ser primitivo
     expect(plant.spacing).toBeInstanceOf(Range);
     expect(plant.size.height).toBeInstanceOf(Range);
   });

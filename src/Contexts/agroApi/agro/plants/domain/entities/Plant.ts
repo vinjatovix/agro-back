@@ -2,6 +2,8 @@ import type { MonthSet } from '../../../../../../shared/domain/value-objects/Mon
 import type { Range } from '../../../../../../shared/domain/value-objects/Range.js';
 import { AggregateRoot } from '../../../../../shared/domain/AggregateRoot.js';
 import type { Metadata } from '../../../../../shared/domain/valueObject/Metadata.js';
+import type { PlantLifecycle } from '../value-objects/PlantLifecycicle.js';
+import type { CreatePlantProps } from './types/CreatePlantProps.js';
 
 export interface PlantProps {
   id: string;
@@ -9,7 +11,7 @@ export interface PlantProps {
   scientificName?: string;
   familyId?: string;
 
-  lifecycle: 'annual' | 'biennial' | 'perennial';
+  lifecycle: PlantLifecycle;
 
   size: {
     height: Range;
@@ -22,7 +24,7 @@ export interface PlantProps {
 
   spacingCm: Range;
 
-  metadata?: Metadata;
+  metadata: Metadata;
 }
 
 export class Plant extends AggregateRoot {
@@ -39,6 +41,10 @@ export class Plant extends AggregateRoot {
 
   get name(): string {
     return this.props.name;
+  }
+
+  get lifecycle(): PlantLifecycle {
+    return this.props.lifecycle;
   }
 
   get size() {
@@ -61,13 +67,21 @@ export class Plant extends AggregateRoot {
     return this.props.spacingCm;
   }
 
+  get scientificName(): string | undefined {
+    return this.props.scientificName;
+  }
+
+  get metadata(): Metadata {
+    return this.props.metadata;
+  }
+
   toPrimitives(): Record<string, unknown> {
     return {
       id: this.props.id,
       name: this.props.name,
       scientificName: this.props.scientificName,
       familyId: this.props.familyId,
-      lifecycle: this.props.lifecycle,
+      lifecycle: this.props.lifecycle.getValue(),
       size: {
         height: this.props.size.height,
         spread: this.props.size.spread
@@ -76,7 +90,15 @@ export class Plant extends AggregateRoot {
       floweringMonths: this.props.floweringMonths,
       harvestMonths: this.props.harvestMonths,
       spacingCm: this.props.spacingCm,
-      metadata: this.props.metadata ? this.props.metadata : undefined
+      metadata: this.props.metadata
+        ? this.props.metadata.toPrimitives()
+        : undefined
     };
+  }
+
+  static create(props: CreatePlantProps): Plant {
+    return new Plant({
+      ...props
+    });
   }
 }
