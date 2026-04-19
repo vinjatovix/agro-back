@@ -1,11 +1,12 @@
 import type { PlantInstance } from '../../../../../../../src/Contexts/agroApi/agro/beds/domain/entities/PlantInstance.js';
 import { BasicSpatialService } from '../../../../../../../src/Contexts/agroApi/agro/beds/domain/services/BasicSpatialService.js';
 import { PlantInstanceMother } from '../mothers/PlantInstanceMother.js';
+import { createPlantCatalog } from './fixtures/plantCatalogFixture.js';
+
+const { getPlant } = createPlantCatalog();
 
 describe('BasicSpatialService', () => {
   const service = new BasicSpatialService();
-
-  const getRadius = (_plant: PlantInstance) => 10;
 
   const baseContext = {
     width: 200,
@@ -18,7 +19,7 @@ describe('BasicSpatialService', () => {
       const plant = PlantInstanceMother.atPosition(50, 50);
 
       expect(() => {
-        service.validatePlacement(baseContext, plant, { getRadius });
+        service.validatePlacement(baseContext, plant, { getPlant });
       }).not.toThrow();
     });
 
@@ -26,7 +27,7 @@ describe('BasicSpatialService', () => {
       const plant = PlantInstanceMother.atPosition(5, 5);
 
       expect(() => {
-        service.validatePlacement(baseContext, plant, { getRadius });
+        service.validatePlacement(baseContext, plant, { getPlant });
       }).toThrow('Plant out of bounds (min limit)');
     });
 
@@ -34,7 +35,7 @@ describe('BasicSpatialService', () => {
       const plant = PlantInstanceMother.atPosition(195, 195);
 
       expect(() => {
-        service.validatePlacement(baseContext, plant, { getRadius });
+        service.validatePlacement(baseContext, plant, { getPlant });
       }).toThrow('Plant out of bounds (max limit)');
     });
 
@@ -48,7 +49,7 @@ describe('BasicSpatialService', () => {
       };
 
       expect(() => {
-        service.validatePlacement(context, newPlant, { getRadius });
+        service.validatePlacement(context, newPlant, { getPlant });
       }).toThrow('Collision detected');
     });
 
@@ -62,7 +63,7 @@ describe('BasicSpatialService', () => {
       };
 
       expect(() => {
-        service.validatePlacement(context, newPlant, { getRadius });
+        service.validatePlacement(context, newPlant, { getPlant });
       }).not.toThrow();
     });
 
@@ -75,7 +76,7 @@ describe('BasicSpatialService', () => {
       };
 
       expect(() => {
-        service.validatePlacement(context, plant, { getRadius });
+        service.validatePlacement(context, plant, { getPlant });
       }).not.toThrow();
     });
   });
@@ -90,7 +91,7 @@ describe('BasicSpatialService', () => {
     };
 
     expect(() => {
-      service.validatePlacement(context, newPlant, { getRadius });
+      service.validatePlacement(context, newPlant, { getPlant });
     }).not.toThrow();
   });
 
@@ -109,7 +110,7 @@ describe('BasicSpatialService', () => {
     };
 
     expect(() => {
-      service.validatePlacement(context, newPlant, { getRadius });
+      service.validatePlacement(context, newPlant, { getPlant });
     }).toThrow('Collision detected');
   });
 
@@ -117,7 +118,7 @@ describe('BasicSpatialService', () => {
     const plant = PlantInstanceMother.atPosition(10, 10); // radius = 10
 
     expect(() => {
-      service.validatePlacement(baseContext, plant, { getRadius });
+      service.validatePlacement(baseContext, plant, { getPlant });
     }).not.toThrow();
   });
 });

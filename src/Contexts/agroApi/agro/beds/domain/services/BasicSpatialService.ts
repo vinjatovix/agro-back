@@ -11,7 +11,8 @@ export class BasicSpatialService implements SpatialService {
     newPlant: PlantInstance,
     constraints: SpatialConstraints
   ): void {
-    const newRadius = constraints.getRadius(newPlant);
+    const plantData = constraints.getPlant(newPlant.plantId);
+    const newRadius = plantData.spacing.max / 2;
 
     this.validateBounds(context, newPlant, newRadius);
     this.validateCollisions(context, newPlant, newRadius, constraints);
@@ -42,7 +43,8 @@ export class BasicSpatialService implements SpatialService {
     for (const existing of context.plants) {
       if (existing.id === newPlant.id) continue;
 
-      const existingRadius = constraints.getRadius(existing);
+      const existingPlantData = constraints.getPlant(existing.plantId);
+      const existingRadius = existingPlantData.spacing.max / 2;
 
       const distance = existing.position.distanceTo(newPlant.position);
       const minDistance = newRadius + existingRadius;

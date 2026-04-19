@@ -1,9 +1,10 @@
 import { Bed } from '../../../../../../src/Contexts/agroApi/agro/beds/domain/Bed.js';
 import { PlantInstanceMother } from './mothers/PlantInstanceMother.js';
+import { createPlantCatalog } from './services/fixtures/plantCatalogFixture.js';
+
+const { getPlant } = createPlantCatalog();
 
 describe('Bed + SpatialService (integration)', () => {
-  const getRadius = () => 10;
-
   const createBed = () =>
     new Bed({
       id: 'bed_1',
@@ -18,8 +19,8 @@ describe('Bed + SpatialService (integration)', () => {
     const p1 = PlantInstanceMother.atPosition(50, 50);
     const p2 = PlantInstanceMother.atPosition(80, 50);
 
-    bed.addPlant(p1, getRadius);
-    bed.addPlant(p2, getRadius);
+    bed.addPlant(p1, getPlant);
+    bed.addPlant(p2, getPlant);
 
     expect(bed.plants.length).toBe(2);
   });
@@ -30,9 +31,9 @@ describe('Bed + SpatialService (integration)', () => {
     const p1 = PlantInstanceMother.atPosition(50, 50);
     const p2 = PlantInstanceMother.atPosition(55, 55);
 
-    bed.addPlant(p1, getRadius);
+    bed.addPlant(p1, getPlant);
 
-    expect(() => bed.addPlant(p2, getRadius)).toThrow('Collision detected');
+    expect(() => bed.addPlant(p2, getPlant)).toThrow('Collision detected');
     expect(bed.plants.length).toBe(1);
   });
 
@@ -41,7 +42,7 @@ describe('Bed + SpatialService (integration)', () => {
 
     const plant = PlantInstanceMother.atPosition(5, 5);
 
-    expect(() => bed.addPlant(plant, getRadius)).toThrow(
+    expect(() => bed.addPlant(plant, getPlant)).toThrow(
       'Plant out of bounds (min limit)'
     );
 
@@ -54,8 +55,8 @@ describe('Bed + SpatialService (integration)', () => {
     const p1 = PlantInstanceMother.atPosition(50, 50);
     const p2 = PlantInstanceMother.atPosition(70, 50); // 10 + 10
 
-    bed.addPlant(p1, getRadius);
-    bed.addPlant(p2, getRadius);
+    bed.addPlant(p1, getPlant);
+    bed.addPlant(p2, getPlant);
 
     expect(bed.plants.length).toBe(2);
   });
@@ -65,7 +66,7 @@ describe('Bed + SpatialService (integration)', () => {
 
     const plant = PlantInstanceMother.atPosition(10, 10); // radius = 10
 
-    bed.addPlant(plant, getRadius);
+    bed.addPlant(plant, getPlant);
 
     expect(bed.plants.length).toBe(1);
   });
@@ -76,10 +77,10 @@ describe('Bed + SpatialService (integration)', () => {
     const p1 = PlantInstanceMother.atPosition(50, 50);
     const p2 = PlantInstanceMother.atPosition(55, 55);
 
-    bed.addPlant(p1, getRadius);
+    bed.addPlant(p1, getPlant);
     bed.removePlant(p1.id);
 
-    expect(() => bed.addPlant(p2, getRadius)).not.toThrow();
+    expect(() => bed.addPlant(p2, getPlant)).not.toThrow();
     expect(bed.plants.length).toBe(1);
   });
 });

@@ -1,4 +1,5 @@
 import { AggregateRoot } from '../../../../shared/domain/AggregateRoot.js';
+import type { Plant } from '../../plants/domain/entities/Plant.js';
 import type { PlantInstance } from './entities/PlantInstance.js';
 import { BasicSpatialService } from './services/BasicSpatialService.js';
 import type { SpatialService } from './services/SpatialService.js';
@@ -7,11 +8,11 @@ export interface BedProps {
   id: string;
   width: number;
   height: number;
-  plantInstances?: PlantInstance[];
+  plantInstances: PlantInstance[];
 }
 
 export class Bed extends AggregateRoot {
-  private props: Required<BedProps>;
+  private props: BedProps;
 
   constructor(
     props: BedProps,
@@ -21,7 +22,7 @@ export class Bed extends AggregateRoot {
 
     this.props = {
       ...props,
-      plantInstances: props.plantInstances ?? []
+      plantInstances: props.plantInstances
     };
   }
 
@@ -41,10 +42,7 @@ export class Bed extends AggregateRoot {
     return this.props.plantInstances;
   }
 
-  addPlant(
-    plant: PlantInstance,
-    getRadius: (plant: PlantInstance) => number
-  ): void {
+  addPlant(plant: PlantInstance, getPlant: (plantId: string) => Plant): void {
     this.spatialService.validatePlacement(
       {
         width: this.props.width,
@@ -52,7 +50,7 @@ export class Bed extends AggregateRoot {
         plants: this.props.plantInstances
       },
       plant,
-      { getRadius }
+      { getPlant }
     );
 
     this.props.plantInstances.push(plant);

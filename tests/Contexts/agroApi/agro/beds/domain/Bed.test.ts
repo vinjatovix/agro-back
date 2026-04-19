@@ -2,10 +2,11 @@ import type { SpatialService } from '../../../../../../src/Contexts/agroApi/agro
 import { Bed } from '../../../../../../src/Contexts/agroApi/agro/beds/domain/Bed.js';
 import type { PlantInstance } from '../../../../../../src/Contexts/agroApi/agro/beds/domain/entities/PlantInstance.js';
 import { PlantInstanceMother } from './mothers/PlantInstanceMother.js';
+import { createPlantCatalog } from './services/fixtures/plantCatalogFixture.js';
+
+const { getPlant } = createPlantCatalog();
 
 describe('Bed', () => {
-  const getRadius = () => 10;
-
   const createBed = (plants: PlantInstance[] = []) =>
     new Bed({
       id: 'bed_1',
@@ -19,7 +20,7 @@ describe('Bed', () => {
 
     const plant = PlantInstanceMother.atPosition(50, 50);
 
-    bed.addPlant(plant, getRadius);
+    bed.addPlant(plant, getPlant);
 
     expect(bed.plants.length).toBe(1);
   });
@@ -30,7 +31,7 @@ describe('Bed', () => {
 
     const bed = createBed([plant1]);
 
-    expect(() => bed.addPlant(plant2, getRadius)).toThrow('Collision detected');
+    expect(() => bed.addPlant(plant2, getPlant)).toThrow('Collision detected');
   });
 
   it('should delegate placement validation to spatial service', () => {
@@ -47,7 +48,7 @@ describe('Bed', () => {
 
     const plant = PlantInstanceMother.atPosition(50, 50);
 
-    bed.addPlant(plant, () => 10);
+    bed.addPlant(plant, getPlant);
 
     expect(validatePlacement).toHaveBeenCalledTimes(1);
   });
@@ -66,7 +67,7 @@ describe('Bed', () => {
 
     const plant = PlantInstanceMother.atPosition(50, 50);
 
-    expect(() => bed.addPlant(plant, getRadius)).toThrow();
+    expect(() => bed.addPlant(plant, getPlant)).toThrow();
 
     expect(bed.plants.length).toBe(0);
   });
@@ -113,5 +114,21 @@ describe('Bed', () => {
         })
       ]
     });
+  });
+
+  it('should call spatial service before mutating state', () => {
+    const service = { validatePlacement: jest.fn() };
+
+    const bed = new Bed(
+      { id: 'bed_1', width: 200, height: 200, plantInstances: [] },
+      service
+    );
+
+    const plant = PlantInstanceMother.atPosition(10, 10);
+
+    bed.addPlant(plant, getPlant);
+
+    expect(service.validatePlacement).toHaveBeenCalled();
+    expect(bed.plants).toHaveLength(1);
   });
 });

@@ -1,3 +1,4 @@
+import type { Plant } from '../../../plants/domain/entities/Plant.js';
 import type { PlantInstance } from '../entities/PlantInstance.js';
 
 export interface SpatialContext {
@@ -7,7 +8,7 @@ export interface SpatialContext {
 }
 
 export interface SpatialConstraints {
-  getRadius: (plant: PlantInstance) => number;
+  getPlant: (plantId: string) => Plant;
 }
 
 export interface SpatialService {

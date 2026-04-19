@@ -10,7 +10,7 @@ export class PlantInstanceMother {
     return new PlantInstance({
       id: random.uuid(),
       userId: 'user_1',
-      plantId: random.uuid(),
+      plantId: 'tomato',
       position: new Coordinates(50, 50),
       status: 'planted',
       plantedAt: new Date(),
