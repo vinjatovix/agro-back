@@ -42,11 +42,11 @@ export class Bed extends AggregateRoot {
     return this.props.plantInstances;
   }
 
-  addPlant(
+  async addPlant(
     plantInstance: PlantInstance,
     plantRepository: PlantRepository
-  ): void {
-    this.spatialService.validatePlacement(
+  ): Promise<void> {
+    await this.spatialService.validatePlacement(
       {
         width: this.props.width,
         height: this.props.height,

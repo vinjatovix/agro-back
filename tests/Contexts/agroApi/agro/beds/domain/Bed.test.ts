@@ -15,29 +15,28 @@ describe('Bed', () => {
       plantInstances: plants
     });
 
-  it('should add plant inside bounds without collision', () => {
+  it('should add plant inside bounds without collision', async () => {
     const bed = createBed();
-
     const plant = PlantInstanceMother.atPosition(50, 50);
 
-    bed.addPlant(plant, plantRepository);
+    await bed.addPlant(plant, plantRepository);
 
     expect(bed.plants.length).toBe(1);
   });
 
-  it('should throw on collision', () => {
+  it('should throw on collision', async () => {
     const plant1 = PlantInstanceMother.atPosition(50, 50);
     const plant2 = PlantInstanceMother.atPosition(55, 55);
 
     const bed = createBed([plant1]);
 
-    expect(() => bed.addPlant(plant2, plantRepository)).toThrow(
+    await expect(bed.addPlant(plant2, plantRepository)).rejects.toThrow(
       'Collision detected'
     );
   });
 
-  it('should delegate placement validation to spatial service', () => {
-    const validatePlacement = jest.fn();
+  it('should delegate placement validation to spatial service', async () => {
+    const validatePlacement = jest.fn().mockResolvedValue(undefined);
 
     const mockService: SpatialService = {
       validatePlacement
@@ -50,16 +49,14 @@ describe('Bed', () => {
 
     const plant = PlantInstanceMother.atPosition(50, 50);
 
-    bed.addPlant(plant, plantRepository);
+    await bed.addPlant(plant, plantRepository);
 
     expect(validatePlacement).toHaveBeenCalledTimes(1);
   });
 
-  it('should not add plant if spatial validation fails', () => {
+  it('should not add plant if spatial validation fails', async () => {
     const mockService: SpatialService = {
-      validatePlacement: jest.fn(() => {
-        throw new Error('fail');
-      })
+      validatePlacement: jest.fn().mockRejectedValue(new Error('fail'))
     };
 
     const bed = new Bed(
@@ -69,14 +66,13 @@ describe('Bed', () => {
 
     const plant = PlantInstanceMother.atPosition(50, 50);
 
-    expect(() => bed.addPlant(plant, plantRepository)).toThrow();
+    await expect(bed.addPlant(plant, plantRepository)).rejects.toThrow();
 
     expect(bed.plants.length).toBe(0);
   });
 
   it('should remove plant by id', () => {
     const plant = PlantInstanceMother.atPosition(50, 50);
-
     const bed = createBed([plant]);
 
     bed.removePlant(plant.id);
@@ -100,7 +96,6 @@ describe('Bed', () => {
 
   it('should convert to primitives correctly', () => {
     const plant = PlantInstanceMother.atPosition(50, 50);
-
     const bed = createBed([plant]);
 
     const result = bed.toPrimitives();
@@ -118,8 +113,12 @@ describe('Bed', () => {
     });
   });
 
-  it('should call spatial service before mutating state', () => {
-    const service = { validatePlacement: jest.fn() };
+  it('should call spatial service before mutating state', async () => {
+    const validatePlacement = jest.fn().mockResolvedValue(undefined);
+
+    const service: SpatialService = {
+      validatePlacement
+    };
 
     const bed = new Bed(
       { id: 'bed_1', width: 200, height: 200, plantInstances: [] },
@@ -128,9 +127,9 @@ describe('Bed', () => {
 
     const plant = PlantInstanceMother.atPosition(10, 10);
 
-    bed.addPlant(plant, plantRepository);
+    await bed.addPlant(plant, plantRepository);
 
-    expect(service.validatePlacement).toHaveBeenCalled();
+    expect(validatePlacement).toHaveBeenCalled();
     expect(bed.plants).toHaveLength(1);
   });
 });

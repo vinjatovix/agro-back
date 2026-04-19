@@ -15,31 +15,31 @@ describe('BasicSpatialService', () => {
   };
 
   describe('validatePlacement', () => {
-    it('should allow valid placement', () => {
+    it('should allow valid placement', async () => {
       const plant = PlantInstanceMother.atPosition(50, 50);
 
-      expect(() => {
-        service.validatePlacement(baseContext, plant, plantRepository);
-      }).not.toThrow();
+      await expect(
+        service.validatePlacement(baseContext, plant, plantRepository)
+      ).resolves.toBeUndefined();
     });
 
-    it('should throw when plant is out of bounds (min limit)', () => {
+    it('should throw when plant is out of bounds (min limit)', async () => {
       const plant = PlantInstanceMother.atPosition(5, 5);
 
-      expect(() => {
-        service.validatePlacement(baseContext, plant, plantRepository);
-      }).toThrow('Plant out of bounds (min limit)');
+      await expect(
+        service.validatePlacement(baseContext, plant, plantRepository)
+      ).rejects.toThrow('Plant out of bounds (min limit)');
     });
 
-    it('should throw when plant is out of bounds (max limit)', () => {
+    it('should throw when plant is out of bounds (max limit)', async () => {
       const plant = PlantInstanceMother.atPosition(195, 195);
 
-      expect(() => {
-        service.validatePlacement(baseContext, plant, plantRepository);
-      }).toThrow('Plant out of bounds (max limit)');
+      await expect(
+        service.validatePlacement(baseContext, plant, plantRepository)
+      ).rejects.toThrow('Plant out of bounds (max limit)');
     });
 
-    it('should throw on collision between plants', () => {
+    it('should throw on collision between plants', async () => {
       const existing = PlantInstanceMother.atPosition(50, 50);
       const newPlant = PlantInstanceMother.atPosition(55, 55);
 
@@ -48,12 +48,12 @@ describe('BasicSpatialService', () => {
         plants: [existing]
       };
 
-      expect(() => {
-        service.validatePlacement(context, newPlant, plantRepository);
-      }).toThrow('Collision detected');
+      await expect(
+        service.validatePlacement(context, newPlant, plantRepository)
+      ).rejects.toThrow('Collision detected');
     });
 
-    it('should allow placement when distance is safe', () => {
+    it('should allow placement when distance is safe', async () => {
       const existing = PlantInstanceMother.atPosition(50, 50);
       const newPlant = PlantInstanceMother.atPosition(80, 50);
 
@@ -62,12 +62,12 @@ describe('BasicSpatialService', () => {
         plants: [existing]
       };
 
-      expect(() => {
-        service.validatePlacement(context, newPlant, plantRepository);
-      }).not.toThrow();
+      await expect(
+        service.validatePlacement(context, newPlant, plantRepository)
+      ).resolves.toBeUndefined();
     });
 
-    it('should ignore self in collision detection', () => {
+    it('should ignore self in collision detection', async () => {
       const plant = PlantInstanceMother.atPosition(50, 50);
 
       const context = {
@@ -75,27 +75,27 @@ describe('BasicSpatialService', () => {
         plants: [plant]
       };
 
-      expect(() => {
-        service.validatePlacement(context, plant, plantRepository);
-      }).not.toThrow();
+      await expect(
+        service.validatePlacement(context, plant, plantRepository)
+      ).resolves.toBeUndefined();
     });
   });
 
-  it('should allow placement when plants are exactly touching', () => {
+  it('should allow placement when plants are exactly touching', async () => {
     const existing = PlantInstanceMother.atPosition(50, 50);
-    const newPlant = PlantInstanceMother.atPosition(70, 50); // 20 = 10 + 10
+    const newPlant = PlantInstanceMother.atPosition(70, 50);
 
     const context = {
       ...baseContext,
       plants: [existing]
     };
 
-    expect(() => {
-      service.validatePlacement(context, newPlant, plantRepository);
-    }).not.toThrow();
+    await expect(
+      service.validatePlacement(context, newPlant, plantRepository)
+    ).resolves.toBeUndefined();
   });
 
-  it('should detect collision with any existing plant', () => {
+  it('should detect collision with any existing plant', async () => {
     const plants = [
       PlantInstanceMother.atPosition(20, 20),
       PlantInstanceMother.atPosition(50, 50),
@@ -109,16 +109,16 @@ describe('BasicSpatialService', () => {
       plants
     };
 
-    expect(() => {
-      service.validatePlacement(context, newPlant, plantRepository);
-    }).toThrow('Collision detected');
+    await expect(
+      service.validatePlacement(context, newPlant, plantRepository)
+    ).rejects.toThrow('Collision detected');
   });
 
-  it('should allow placement exactly on the boundary edge', () => {
-    const plant = PlantInstanceMother.atPosition(10, 10); // radius = 10
+  it('should allow placement exactly on the boundary edge', async () => {
+    const plant = PlantInstanceMother.atPosition(10, 10);
 
-    expect(() => {
-      service.validatePlacement(baseContext, plant, plantRepository);
-    }).not.toThrow();
+    await expect(
+      service.validatePlacement(baseContext, plant, plantRepository)
+    ).resolves.toBeUndefined();
   });
 });

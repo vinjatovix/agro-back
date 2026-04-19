@@ -12,5 +12,5 @@ export interface SpatialService {
     context: SpatialContext,
     newPlant: PlantInstance,
     plantRepository: PlantRepository
-  ): void;
+  ): Promise<void>;
 }

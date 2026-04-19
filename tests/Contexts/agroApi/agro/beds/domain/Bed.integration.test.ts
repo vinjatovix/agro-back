@@ -13,76 +13,78 @@ describe('Bed + SpatialService (integration)', () => {
       plantInstances: []
     });
 
-  it('should add multiple plants correctly when valid', () => {
+  it('should add multiple plants correctly when valid', async () => {
     const bed = createBed();
 
     const p1 = PlantInstanceMother.atPosition(50, 50);
     const p2 = PlantInstanceMother.atPosition(80, 50);
 
-    bed.addPlant(p1, plantRepository);
-    bed.addPlant(p2, plantRepository);
+    await bed.addPlant(p1, plantRepository);
+    await bed.addPlant(p2, plantRepository);
 
     expect(bed.plants.length).toBe(2);
   });
 
-  it('should prevent adding a plant that collides', () => {
+  it('should prevent adding a plant that collides', async () => {
     const bed = createBed();
 
     const p1 = PlantInstanceMother.atPosition(50, 50);
     const p2 = PlantInstanceMother.atPosition(55, 55);
 
-    bed.addPlant(p1, plantRepository);
+    await bed.addPlant(p1, plantRepository);
 
-    expect(() => bed.addPlant(p2, plantRepository)).toThrow(
+    await expect(bed.addPlant(p2, plantRepository)).rejects.toThrow(
       'Collision detected'
     );
+
     expect(bed.plants.length).toBe(1);
   });
 
-  it('should prevent adding a plant outside bounds', () => {
+  it('should prevent adding a plant outside bounds', async () => {
     const bed = createBed();
 
     const plant = PlantInstanceMother.atPosition(5, 5);
 
-    expect(() => bed.addPlant(plant, plantRepository)).toThrow(
+    await expect(bed.addPlant(plant, plantRepository)).rejects.toThrow(
       'Plant out of bounds (min limit)'
     );
 
     expect(bed.plants.length).toBe(0);
   });
 
-  it('should allow plants exactly touching (no collision)', () => {
+  it('should allow plants exactly touching (no collision)', async () => {
     const bed = createBed();
 
     const p1 = PlantInstanceMother.atPosition(50, 50);
-    const p2 = PlantInstanceMother.atPosition(70, 50); // 10 + 10
+    const p2 = PlantInstanceMother.atPosition(70, 50);
 
-    bed.addPlant(p1, plantRepository);
-    bed.addPlant(p2, plantRepository);
+    await bed.addPlant(p1, plantRepository);
+    await bed.addPlant(p2, plantRepository);
 
     expect(bed.plants.length).toBe(2);
   });
 
-  it('should allow plants on boundary edge', () => {
+  it('should allow plants on boundary edge', async () => {
     const bed = createBed();
 
-    const plant = PlantInstanceMother.atPosition(10, 10); // radius = 10
+    const plant = PlantInstanceMother.atPosition(10, 10);
 
-    bed.addPlant(plant, plantRepository);
+    await bed.addPlant(plant, plantRepository);
 
     expect(bed.plants.length).toBe(1);
   });
 
-  it('should continue working after removing a plant', () => {
+  it('should continue working after removing a plant', async () => {
     const bed = createBed();
 
     const p1 = PlantInstanceMother.atPosition(50, 50);
     const p2 = PlantInstanceMother.atPosition(55, 55);
 
-    bed.addPlant(p1, plantRepository);
+    await bed.addPlant(p1, plantRepository);
     bed.removePlant(p1.id);
 
-    expect(() => bed.addPlant(p2, plantRepository)).not.toThrow();
+    await expect(bed.addPlant(p2, plantRepository)).resolves.not.toThrow();
+
     expect(bed.plants.length).toBe(1);
   });
 });
