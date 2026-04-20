@@ -3,7 +3,7 @@ export class MonthSet {
 
   constructor(months: number[]) {
     if (!Array.isArray(months)) {
-      throw new Error('MonthSet must be an array');
+      throw new TypeError('MonthSet must be an array');
     }
 
     const normalized = months.map((m) => {

@@ -4,7 +4,7 @@ export class Coordinates {
     public readonly y: number
   ) {
     if (!Number.isFinite(x) || !Number.isFinite(y)) {
-      throw new Error('Coordinates must be finite numbers');
+      throw new TypeError('Coordinates must be finite numbers');
     }
     Object.freeze(this);
   }

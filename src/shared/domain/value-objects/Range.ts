@@ -4,7 +4,7 @@ export class Range {
 
   constructor(min: number, max: number) {
     if (!Number.isFinite(min) || !Number.isFinite(max)) {
-      throw new Error('Range values must be finite numbers');
+      throw new TypeError('Range values must be finite numbers');
     }
 
     if (min < 0 || max < 0) {
