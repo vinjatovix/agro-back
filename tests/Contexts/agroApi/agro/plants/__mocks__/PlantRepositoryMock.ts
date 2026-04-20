@@ -14,7 +14,7 @@ export class PlantRepositoryMock implements PlantRepository {
   private readonly findAllMock = jest.fn();
   private readonly existsMock = jest.fn();
 
-  private storage: Map<string, Plant> = new Map();
+  private readonly storage: Map<string, Plant> = new Map();
   private failOnSave = false;
 
   // eslint-disable-next-line @typescript-eslint/require-await

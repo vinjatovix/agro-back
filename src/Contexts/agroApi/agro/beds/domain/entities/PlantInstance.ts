@@ -19,7 +19,7 @@ export interface PlantInstanceProps {
 }
 
 export class PlantInstance {
-  constructor(private props: PlantInstanceProps) {}
+  constructor(private readonly props: PlantInstanceProps) {}
 
   get id() {
     return this.props.id;

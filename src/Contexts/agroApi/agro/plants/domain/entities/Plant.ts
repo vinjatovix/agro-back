@@ -29,7 +29,7 @@ export interface PlantProps {
 }
 
 export class Plant extends AggregateRoot<PlantPrimitives> {
-  private props: PlantProps;
+  private readonly props: PlantProps;
 
   constructor(props: PlantProps) {
     super();

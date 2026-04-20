@@ -12,7 +12,7 @@ export interface BedProps {
 }
 
 export class Bed extends AggregateRoot {
-  private props: BedProps & { plantInstances: PlantInstance[] };
+  private readonly props: BedProps & { plantInstances: PlantInstance[] };
 
   constructor(
     props: BedProps,
