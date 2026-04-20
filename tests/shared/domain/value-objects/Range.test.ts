@@ -9,7 +9,7 @@ describe('Range', () => {
   });
 
   it('should throw if values are not finite', () => {
-    expect(() => new Range(NaN, 10)).toThrow();
+    expect(() => new Range(Number.NaN, 10)).toThrow();
     expect(() => new Range(10, Infinity)).toThrow();
   });
 
