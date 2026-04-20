@@ -2,6 +2,7 @@ import { Plant } from '../../../../../../../src/Contexts/agroApi/agro/plants/dom
 import { Range } from '../../../../../../../src/shared/domain/value-objects/Range.js';
 import { MonthSet } from '../../../../../../../src/shared/domain/value-objects/MonthSet.js';
 import { PlantLifecycle } from '../../../../../../../src/Contexts/agroApi/agro/plants/domain/value-objects/PlantLifecycicle.js';
+import { random } from '../../../../Auth/fixtures/shared/index.js';
 
 export class PlantMother {
   static tomato(
@@ -56,7 +57,7 @@ export class PlantMother {
     overrides: Partial<ConstructorParameters<typeof Plant>[0]>
   ): Plant {
     return new Plant({
-      id: 'plant_' + Math.random().toString(36).substring(2),
+      id: random.uuid(),
       name: 'Generic plant',
       familyId: 'generic',
       lifecycle: PlantLifecycle.from('annual'),
