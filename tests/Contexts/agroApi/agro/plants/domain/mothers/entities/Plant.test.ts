@@ -1,5 +1,6 @@
 import { Plant } from '../../../../../../../../src/Contexts/agroApi/agro/plants/domain/entities/Plant.js';
 import { PlantLifecycle } from '../../../../../../../../src/Contexts/agroApi/agro/plants/domain/value-objects/PlantLifecycicle.js';
+import { PlantSowing } from '../../../../../../../../src/Contexts/agroApi/agro/plants/domain/value-objects/PlantSowing.js';
 import { Metadata } from '../../../../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
 import { MonthSet } from '../../../../../../../../src/shared/domain/value-objects/MonthSet.js';
 import { Range } from '../../../../../../../../src/shared/domain/value-objects/Range.js';
@@ -19,7 +20,14 @@ describe('Plant', () => {
 
       spacingCm: new Range(10, 20),
 
-      sowingMonths: new MonthSet([3, 4]),
+      sowing: new PlantSowing({
+        seedsPerHole: new Range(1, 3),
+        germinationDays: new Range(7, 14),
+        months: new MonthSet([3]),
+        methods: {
+          direct: { depth: new Range(1, 2) }
+        }
+      }),
       floweringMonths: new MonthSet([6, 7]),
       harvestMonths: new MonthSet([8, 9]),
 
@@ -57,7 +65,7 @@ describe('Plant', () => {
   it('should expose growth months', () => {
     const plant = createPlant();
 
-    expect(plant.sowingMonths).toBeDefined();
+    expect(plant.sowing).toBeDefined();
     expect(plant.floweringMonths).toBeDefined();
     expect(plant.harvestMonths).toBeDefined();
   });

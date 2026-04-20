@@ -2,6 +2,7 @@ import type { MonthSet } from '../../../../../../../shared/domain/value-objects/
 import type { Range } from '../../../../../../../shared/domain/value-objects/Range.js';
 import type { Metadata } from '../../../../../../shared/domain/valueObject/Metadata.js';
 import type { PlantLifecycle } from '../../value-objects/PlantLifecycicle.js';
+import type { PlantSowing } from '../../value-objects/PlantSowing.js';
 
 export type CreatePlantProps = {
   id: string;
@@ -13,7 +14,7 @@ export type CreatePlantProps = {
     height: Range;
     spread: Range;
   };
-  sowingMonths: MonthSet;
+  sowing: PlantSowing;
   floweringMonths: MonthSet;
   harvestMonths: MonthSet;
   spacingCm: Range;

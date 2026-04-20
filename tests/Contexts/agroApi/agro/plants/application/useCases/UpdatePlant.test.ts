@@ -1,6 +1,7 @@
 import { UpdatePlant } from '../../../../../../../src/Contexts/agroApi/agro/plants/application/useCases/UpdatePlant.js';
 import { Plant } from '../../../../../../../src/Contexts/agroApi/agro/plants/domain/entities/Plant.js';
 import { PlantLifecycle } from '../../../../../../../src/Contexts/agroApi/agro/plants/domain/value-objects/PlantLifecycicle.js';
+import { PlantSowing } from '../../../../../../../src/Contexts/agroApi/agro/plants/domain/value-objects/PlantSowing.js';
 import { Metadata } from '../../../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
 import { MonthSet } from '../../../../../../../src/shared/domain/value-objects/MonthSet.js';
 import { Range } from '../../../../../../../src/shared/domain/value-objects/Range.js';
@@ -26,7 +27,14 @@ describe('UpdatePlant use case', () => {
         height: new Range(10, 20),
         spread: new Range(5, 10)
       },
-      sowingMonths: new MonthSet([1, 2]),
+      sowing: PlantSowing.fromPrimitives({
+        seedsPerHole: { min: 1, max: 2 },
+        germinationDays: { min: 7, max: 14 },
+        months: [1, 2],
+        methods: {
+          direct: { depthCm: { min: 1, max: 2 } }
+        }
+      }),
       floweringMonths: new MonthSet([3, 4]),
       harvestMonths: new MonthSet([5, 6]),
       spacingCm: new Range(10, 15),
@@ -63,7 +71,14 @@ describe('UpdatePlant use case', () => {
         height: new Range(10, 20),
         spread: new Range(5, 10)
       },
-      sowingMonths: new MonthSet([1, 2]),
+      sowing: PlantSowing.fromPrimitives({
+        seedsPerHole: { min: 1, max: 2 },
+        germinationDays: { min: 7, max: 14 },
+        months: [1, 2],
+        methods: {
+          direct: { depthCm: { min: 1, max: 2 } }
+        }
+      }),
       floweringMonths: new MonthSet([3, 4]),
       harvestMonths: new MonthSet([5, 6]),
       spacingCm: new Range(10, 15),
@@ -94,6 +109,7 @@ describe('UpdatePlant use case', () => {
     expect(updated.size.height.min).toBe(20);
     expect(updated.size.height.max).toBe(40);
     expect(updated.size.spread.min).toBe(5); // no tocado
+    expect(updated.size.spread.max).toBe(10); // no tocado
   });
 
   it('should throw if plant does not exist', async () => {

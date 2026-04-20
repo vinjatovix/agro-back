@@ -4,6 +4,7 @@ import { Metadata } from '../../../../../shared/domain/valueObject/Metadata.js';
 import { Plant, type PlantProps } from '../../domain/entities/Plant.js';
 import type { PlantRepository } from '../../domain/repositories/PlantRepository.js';
 import { PlantLifecycle } from '../../domain/value-objects/PlantLifecycicle.js';
+import { PlantSowing } from '../../domain/value-objects/PlantSowing.js';
 import type { CreatePlantDto } from './interfaces/CreatePlantDto.js';
 
 export class CreatePlant {
@@ -18,6 +19,10 @@ export class CreatePlant {
 
     const now = new Date();
 
+    if (!dto.sowing.methods?.direct) {
+      throw new Error('PlantSowing.direct is required');
+    }
+
     const plantProps: PlantProps = {
       id: dto.id,
       name: dto.name,
@@ -29,7 +34,38 @@ export class CreatePlant {
         spread: new Range(dto.size.spread.min, dto.size.spread.max)
       },
 
-      sowingMonths: new MonthSet(dto.sowingMonths),
+      sowing: new PlantSowing({
+        seedsPerHole: new Range(
+          dto.sowing.seedsPerHole.min,
+          dto.sowing.seedsPerHole.max
+        ),
+
+        germinationDays: new Range(
+          dto.sowing.germinationDays.min,
+          dto.sowing.germinationDays.max
+        ),
+
+        months: new MonthSet(dto.sowing.months),
+
+        methods: {
+          direct: {
+            depth: new Range(
+              dto.sowing.methods.direct.depthCm.min,
+              dto.sowing.methods.direct.depthCm.max
+            )
+          },
+
+          ...(dto.sowing.methods.starter && {
+            starter: {
+              depth: new Range(
+                dto.sowing.methods.starter.depthCm.min,
+                dto.sowing.methods.starter.depthCm.max
+              )
+            }
+          })
+        }
+      }),
+
       floweringMonths: new MonthSet(dto.floweringMonths),
       harvestMonths: new MonthSet(dto.harvestMonths),
 

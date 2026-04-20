@@ -3,6 +3,7 @@ import type { Range } from '../../../../../../shared/domain/value-objects/Range.
 import { AggregateRoot } from '../../../../../shared/domain/AggregateRoot.js';
 import type { Metadata } from '../../../../../shared/domain/valueObject/Metadata.js';
 import type { PlantLifecycle } from '../value-objects/PlantLifecycicle.js';
+import type { PlantSowing } from '../value-objects/PlantSowing.js';
 import type { CreatePlantProps } from './types/CreatePlantProps.js';
 import type { PlantPrimitives } from './types/PlantPrimitives.js';
 
@@ -19,7 +20,7 @@ export interface PlantProps {
     spread: Range;
   };
 
-  sowingMonths: MonthSet;
+  sowing: PlantSowing;
   floweringMonths: MonthSet;
   harvestMonths: MonthSet;
 
@@ -52,8 +53,8 @@ export class Plant extends AggregateRoot<PlantPrimitives> {
     return this.props.size;
   }
 
-  get sowingMonths(): MonthSet {
-    return this.props.sowingMonths;
+  get sowing(): PlantSowing {
+    return this.props.sowing;
   }
 
   get floweringMonths(): MonthSet {
@@ -88,7 +89,7 @@ export class Plant extends AggregateRoot<PlantPrimitives> {
         spread: this.props.size.spread.toPrimitives()
       },
 
-      sowingMonths: this.props.sowingMonths.toArray(),
+      sowing: this.props.sowing.toPrimitives(),
       floweringMonths: this.props.floweringMonths.toArray(),
       harvestMonths: this.props.harvestMonths.toArray(),
 

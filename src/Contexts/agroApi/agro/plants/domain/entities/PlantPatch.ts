@@ -2,6 +2,7 @@ import type { MonthSet } from '../../../../../../shared/domain/value-objects/Mon
 import type { Range } from '../../../../../../shared/domain/value-objects/Range.js';
 import type { Uuid } from '../../../../../shared/domain/valueObject/Uuid.js';
 import { PlantLifecycle } from '../value-objects/PlantLifecycicle.js';
+import type { PlantSowingPatch } from '../value-objects/PlantSowingPatch.js';
 
 export class PlantPatch {
   readonly id: Uuid;
@@ -18,7 +19,7 @@ export class PlantPatch {
 
   readonly spacingCm?: Range;
 
-  readonly sowingMonths?: MonthSet;
+  readonly sowing?: PlantSowingPatch;
   readonly floweringMonths?: MonthSet;
   readonly harvestMonths?: MonthSet;
 
@@ -34,7 +35,7 @@ export class PlantPatch {
       spread?: Range;
     };
     spacingCm?: Range;
-    sowingMonths?: MonthSet;
+    sowing?: PlantSowingPatch;
     floweringMonths?: MonthSet;
     harvestMonths?: MonthSet;
     scientificName?: string;
@@ -46,8 +47,9 @@ export class PlantPatch {
     if (params.lifecycle !== undefined) this.lifecycle = params.lifecycle;
     if (params.size !== undefined) this.size = params.size;
     if (params.spacingCm !== undefined) this.spacingCm = params.spacingCm;
-    if (params.sowingMonths !== undefined)
-      this.sowingMonths = params.sowingMonths;
+    if (params.sowing !== undefined) {
+      this.sowing = params.sowing;
+    }
     if (params.floweringMonths !== undefined)
       this.floweringMonths = params.floweringMonths;
     if (params.harvestMonths !== undefined)
@@ -77,8 +79,8 @@ export class PlantPatch {
       ...(this.spacingCm !== undefined && {
         spacingCm: this.spacingCm.toPrimitives()
       }),
-      ...(this.sowingMonths !== undefined && {
-        sowingMonths: this.sowingMonths.toArray()
+      ...(this.sowing !== undefined && {
+        sowing: this.sowing.toPrimitives()
       }),
       ...(this.floweringMonths !== undefined && {
         floweringMonths: this.floweringMonths.toArray()

@@ -3,7 +3,9 @@ import { Range } from '../../../../../../shared/domain/value-objects/Range.js';
 import { Uuid } from '../../../../../shared/domain/valueObject/Uuid.js';
 import { PlantPatch } from '../../domain/entities/PlantPatch.js';
 import { PlantLifecycle } from '../../domain/value-objects/PlantLifecycicle.js';
+import type { PlantSowingPatch } from '../../domain/value-objects/PlantSowingPatch.js';
 import type { UpdatePlantDto } from '../useCases/interfaces/UpdatePlantDto.js';
+import { PlantSowingDtoMapper } from './PlantSowingDtoMapper.js';
 
 export class PlantDtoMapper {
   static toPatch(dto: UpdatePlantDto): PlantPatch {
@@ -17,7 +19,7 @@ export class PlantDtoMapper {
         spread?: Range;
       };
       spacingCm?: Range;
-      sowingMonths?: MonthSet;
+      sowing?: PlantSowingPatch;
       floweringMonths?: MonthSet;
       harvestMonths?: MonthSet;
       scientificName?: string;
@@ -53,8 +55,8 @@ export class PlantDtoMapper {
       patch.spacingCm = new Range(dto.spacingCm.min, dto.spacingCm.max);
     }
 
-    if (dto.sowingMonths !== undefined) {
-      patch.sowingMonths = new MonthSet(dto.sowingMonths);
+    if (dto.sowing !== undefined) {
+      patch.sowing = PlantSowingDtoMapper.toPatch(dto.sowing);
     }
 
     if (dto.floweringMonths !== undefined) {

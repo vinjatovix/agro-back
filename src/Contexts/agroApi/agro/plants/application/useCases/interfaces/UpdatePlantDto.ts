@@ -5,13 +5,26 @@ export interface UpdatePlantDto {
   name?: string;
   familyId?: string;
   lifecycle?: PlantLifecycleValue;
+
   size?: {
     height?: { min: number; max: number };
     spread?: { min: number; max: number };
   };
+
   spacingCm?: { min: number; max: number };
-  sowingMonths?: number[];
+
+  sowing?: {
+    months?: number[];
+    seedsPerHole?: { min: number; max: number };
+    germinationDays?: { min: number; max: number };
+    methods?: {
+      direct?: { depthCm: { min: number; max: number } };
+      starter?: { depthCm: { min: number; max: number } };
+    };
+  };
+
   floweringMonths?: number[];
   harvestMonths?: number[];
+
   scientificName?: string;
 }
