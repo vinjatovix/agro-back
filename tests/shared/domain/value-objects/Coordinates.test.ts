@@ -9,7 +9,7 @@ describe('Coordinates', () => {
   });
 
   it('should throw if values are not finite', () => {
-    expect(() => new Coordinates(NaN, 10)).toThrow();
+    expect(() => new Coordinates(Number.NaN, 10)).toThrow();
     expect(() => new Coordinates(10, Infinity)).toThrow();
   });
 
