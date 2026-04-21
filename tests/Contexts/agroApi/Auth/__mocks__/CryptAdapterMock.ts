@@ -1,6 +1,6 @@
 import type { CryptAdapter } from '../../../../../src/Contexts/shared/plugins/CryptAdapter.js';
 import { jest, expect } from '@jest/globals';
-import { random } from '../fixtures/shared/index.js';
+import { random } from '../../../shared/fixtures/index.js';
 import { EmailMother } from '../../../shared/domain/mothers/EmailMother.js';
 import type { Nullable } from '../../../../../src/Contexts/shared/domain/types/Nullable.js';
 

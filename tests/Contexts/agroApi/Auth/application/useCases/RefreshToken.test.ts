@@ -1,6 +1,6 @@
 import { RefreshToken } from '../../../../../../src/Contexts/agroApi/Auth/application/useCases/RefreshToken.js';
 import { CryptAdapterMock } from '../../__mocks__/CryptAdapterMock.js';
-import { random } from '../../fixtures/shared/index.js';
+import { random } from '../../../../shared/fixtures/index.js';
 
 describe('RefreshToken', () => {
   it('should return a new token when current token is refreshable', async () => {

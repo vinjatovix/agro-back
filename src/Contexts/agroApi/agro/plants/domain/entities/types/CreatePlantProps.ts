@@ -1,11 +1,15 @@
-import type { MonthSet } from '../../../../../../../shared/domain/value-objects/MonthSet.js';
-import type { Range } from '../../../../../../../shared/domain/value-objects/Range.js';
-import type { Metadata } from '../../../../../../shared/domain/valueObject/Metadata.js';
-import type { PlantLifecycle } from '../../value-objects/PlantLifecycicle.js';
-import type { PlantSowing } from '../../value-objects/PlantSowing.js';
+import type {
+  MonthSet,
+  Range
+} from '../../../../../../../shared/domain/value-objects/index.js';
+import type {
+  Metadata,
+  Uuid
+} from '../../../../../../shared/domain/valueObject/index.js';
+import type { PlantLifecycle, PlantSowing } from '../../value-objects/index.js';
 
 export type CreatePlantProps = {
-  id: string;
+  id: Uuid;
   name: string;
   scientificName?: string;
   familyId: string;

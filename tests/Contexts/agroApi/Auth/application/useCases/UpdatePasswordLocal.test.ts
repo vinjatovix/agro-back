@@ -5,8 +5,7 @@ import { Uuid } from '../../../../../../src/Contexts/shared/domain/valueObject/U
 import { EmailMother } from '../../../../shared/domain/mothers/EmailMother.js';
 import { CryptAdapterMock } from '../../__mocks__/CryptAdapterMock.js';
 import { UserRepositoryMock } from '../../__mocks__/UserRepositoryMock.js';
-import { UuidMother } from '../../fixtures/shared/domain/mothers/UuidMother.js';
-import { random } from '../../fixtures/shared/index.js';
+import { random, UuidMother } from '../../../../shared/fixtures/index.js';
 
 const CURRENT_USER = {
   id: UuidMother.random().value,

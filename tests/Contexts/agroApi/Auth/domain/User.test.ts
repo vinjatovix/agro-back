@@ -1,5 +1,5 @@
 import { User } from "../../../../../src/Contexts/agroApi/Auth/domain/User.js";
-import type { MetadataType } from "../../../../../src/Contexts/shared/infrastructure/persistence/mongo/types/MetadataType.js";
+import type { MetadataPrimitives } from "../../../../../src/Contexts/shared/infrastructure/persistence/mongo/types/MetadataPrimitives.js";
 import { UserMother } from "./mothers/UserMother.js";
 
 describe('User', () => {
@@ -68,7 +68,7 @@ describe('User', () => {
           password: string;
           emailValidated: boolean;
           roles: string[];
-          metadata: MetadataType;
+          metadata: MetadataPrimitives;
         }
       );
 
@@ -87,7 +87,7 @@ describe('User', () => {
           password: string;
           emailValidated: boolean;
           roles: string[];
-          metadata: MetadataType;
+          metadata: MetadataPrimitives;
         }
       );
 

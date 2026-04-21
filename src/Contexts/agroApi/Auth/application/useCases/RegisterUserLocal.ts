@@ -5,8 +5,10 @@ import {
   PasswordHash,
   Uuid
 } from '../../../../shared/domain/valueObject/index.js';
-import type { EncrypterTool } from '../../../../shared/plugins/EncrypterTool.js';
-import { buildLogger } from '../../../../shared/plugins/logger.plugin.js';
+import {
+  buildLogger,
+  type EncrypterTool
+} from '../../../../shared/plugins/index.js';
 import {
   PlainPassword,
   User,
@@ -53,12 +55,7 @@ export class RegisterUserLocal {
         UserAuthMethod.local(new PasswordHash(encryptedPassword), date)
       ],
       roles: new UserRoles(['user']),
-      metadata: new Metadata({
-        createdAt: date,
-        createdBy: username,
-        updatedAt: date,
-        updatedBy: username
-      })
+      metadata: Metadata.create(username)
     });
 
     await this.repository.save(user);

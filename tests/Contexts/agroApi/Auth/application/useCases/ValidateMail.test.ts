@@ -1,7 +1,7 @@
 import { ValidateMail } from '../../../../../../src/Contexts/agroApi/Auth/application/useCases/ValidateMail.js';
 import { UserPatch } from '../../../../../../src/Contexts/agroApi/Auth/domain/UserPatch.js';
 import { CryptAdapterMock, UserRepositoryMock } from '../../__mocks__/index.js';
-import { random } from '../../fixtures/shared/index.js';
+import { random } from '../../../../shared/fixtures/index.js';
 
 describe('ValidateMail', () => {
   let encrypter: CryptAdapterMock;

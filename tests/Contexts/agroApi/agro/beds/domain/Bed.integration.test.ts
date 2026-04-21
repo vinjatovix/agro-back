@@ -1,13 +1,13 @@
 import { Bed } from '../../../../../../src/Contexts/agroApi/agro/beds/domain/Bed.js';
+import { UuidMother } from '../../../../shared/fixtures/UuidMother.js';
 import { createPlantCatalog } from '../helpers/InMemoryPlantRepository.js';
 import { PlantInstanceMother } from './mothers/PlantInstanceMother.js';
 
-const { plantRepository } = createPlantCatalog();
+const { plantRepository, fixtures } = createPlantCatalog();
 
 describe('Bed + SpatialService (integration)', () => {
   const createBed = () =>
-    new Bed({
-      id: 'bed_1',
+    new Bed(UuidMother.random(), {
       width: 200,
       height: 200,
       plantInstances: []
@@ -16,8 +16,8 @@ describe('Bed + SpatialService (integration)', () => {
   it('should add multiple plants correctly when valid', async () => {
     const bed = createBed();
 
-    const p1 = PlantInstanceMother.atPosition(50, 50);
-    const p2 = PlantInstanceMother.atPosition(80, 50);
+    const p1 = PlantInstanceMother.fromPlantAtPosition(fixtures.tomato, 50, 50);
+    const p2 = PlantInstanceMother.fromPlantAtPosition(fixtures.tomato, 80, 50);
 
     await bed.addPlant(p1, plantRepository);
     await bed.addPlant(p2, plantRepository);
@@ -28,8 +28,8 @@ describe('Bed + SpatialService (integration)', () => {
   it('should prevent adding a plant that collides', async () => {
     const bed = createBed();
 
-    const p1 = PlantInstanceMother.atPosition(50, 50);
-    const p2 = PlantInstanceMother.atPosition(55, 55);
+    const p1 = PlantInstanceMother.fromPlantAtPosition(fixtures.tomato, 50, 50);
+    const p2 = PlantInstanceMother.fromPlantAtPosition(fixtures.tomato, 55, 55);
 
     await bed.addPlant(p1, plantRepository);
 
@@ -43,7 +43,11 @@ describe('Bed + SpatialService (integration)', () => {
   it('should prevent adding a plant outside bounds', async () => {
     const bed = createBed();
 
-    const plant = PlantInstanceMother.atPosition(5, 5);
+    const plant = PlantInstanceMother.fromPlantAtPosition(
+      fixtures.tomato,
+      5,
+      5
+    );
 
     await expect(bed.addPlant(plant, plantRepository)).rejects.toThrow(
       'Plant out of bounds (min limit)'
@@ -55,8 +59,8 @@ describe('Bed + SpatialService (integration)', () => {
   it('should allow plants exactly touching (no collision)', async () => {
     const bed = createBed();
 
-    const p1 = PlantInstanceMother.atPosition(50, 50);
-    const p2 = PlantInstanceMother.atPosition(70, 50);
+    const p1 = PlantInstanceMother.fromPlantAtPosition(fixtures.tomato, 50, 50);
+    const p2 = PlantInstanceMother.fromPlantAtPosition(fixtures.tomato, 70, 50);
 
     await bed.addPlant(p1, plantRepository);
     await bed.addPlant(p2, plantRepository);
@@ -67,7 +71,11 @@ describe('Bed + SpatialService (integration)', () => {
   it('should allow plants on boundary edge', async () => {
     const bed = createBed();
 
-    const plant = PlantInstanceMother.atPosition(10, 10);
+    const plant = PlantInstanceMother.fromPlantAtPosition(
+      fixtures.tomato,
+      10,
+      10
+    );
 
     await bed.addPlant(plant, plantRepository);
 
@@ -77,8 +85,8 @@ describe('Bed + SpatialService (integration)', () => {
   it('should continue working after removing a plant', async () => {
     const bed = createBed();
 
-    const p1 = PlantInstanceMother.atPosition(50, 50);
-    const p2 = PlantInstanceMother.atPosition(55, 55);
+    const p1 = PlantInstanceMother.fromPlantAtPosition(fixtures.tomato, 50, 50);
+    const p2 = PlantInstanceMother.fromPlantAtPosition(fixtures.tomato, 55, 55);
 
     await bed.addPlant(p1, plantRepository);
     bed.removePlant(p1.id);

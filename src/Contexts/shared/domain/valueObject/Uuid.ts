@@ -31,4 +31,8 @@ export class Uuid {
       throw createError.badRequest(`<Uuid> does not allow the value <${id}>`);
     }
   }
+
+  static equals(a: Uuid, b: Uuid): boolean {
+    return a.value === b.value;
+  }
 }

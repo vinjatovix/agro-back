@@ -99,7 +99,7 @@ describe('MongoAuthRepository', () => {
       });
 
       expect(results).toHaveLength(1);
-      expect(results[0].username?.value).toBe(user.username.value);
+      expect(results[0]?.username?.value).toBe(user.username.value);
     });
 
     it('should find a user by id', async () => {
@@ -109,7 +109,7 @@ describe('MongoAuthRepository', () => {
       const results = await repository.findByQuery({ id: user.id.value });
 
       expect(results).toHaveLength(1);
-      expect(results[0].username?.value).toBe(user.username.value);
+      expect(results[0]?.username?.value).toBe(user.username.value);
     });
 
     it('should return empty array when username does not exist', async () => {
@@ -139,8 +139,8 @@ describe('MongoAuthRepository', () => {
       });
 
       expect(results).toHaveLength(1);
-      expect(results[0].id?.value).toBe(user.id.value);
-      expect(results[0].username?.value).toBe(user.username.value);
+      expect(results[0]?.id?.value).toBe(user.id.value);
+      expect(results[0]?.username?.value).toBe(user.username.value);
     });
 
     it('should return all users when query is empty', async () => {

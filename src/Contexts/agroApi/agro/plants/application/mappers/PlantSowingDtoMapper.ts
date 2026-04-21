@@ -1,15 +1,16 @@
+import type { RangePrimitives } from '../../../../../../shared/domain/value-objects/interfaces/RangePrimitives.js';
 import { MonthSet } from '../../../../../../shared/domain/value-objects/MonthSet.js';
 import { Range } from '../../../../../../shared/domain/value-objects/Range.js';
 import { PlantSowingPatch } from '../../domain/value-objects/PlantSowingPatch.js';
 
 export class PlantSowingDtoMapper {
   static toPatch(dto: {
-    seedsPerHole?: { min: number; max: number };
-    germinationDays?: { min: number; max: number };
+    seedsPerHole?: RangePrimitives;
+    germinationDays?: RangePrimitives;
     months?: number[];
     methods?: {
-      direct?: { depthCm: { min: number; max: number } };
-      starter?: { depthCm: { min: number; max: number } };
+      direct?: { depthCm: RangePrimitives };
+      starter?: { depthCm: RangePrimitives };
     };
   }): PlantSowingPatch {
     const patch: ConstructorParameters<typeof PlantSowingPatch>[0] = {};

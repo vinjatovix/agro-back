@@ -1,44 +1,26 @@
-import type { MonthSet } from '../../../../../../shared/domain/value-objects/MonthSet.js';
-import type { Range } from '../../../../../../shared/domain/value-objects/Range.js';
+import type {
+  MonthSet,
+  Range
+} from '../../../../../../shared/domain/value-objects/index.js';
 import { AggregateRoot } from '../../../../../shared/domain/AggregateRoot.js';
-import type { Metadata } from '../../../../../shared/domain/valueObject/Metadata.js';
-import type { PlantLifecycle } from '../value-objects/PlantLifecycicle.js';
-import type { PlantSowing } from '../value-objects/PlantSowing.js';
-import type { CreatePlantProps } from './types/CreatePlantProps.js';
-import type { PlantPrimitives } from './types/PlantPrimitives.js';
+import type { Serializable } from '../../../../../shared/domain/interfaces/index.js';
+import type {
+  Metadata,
+  Uuid
+} from '../../../../../shared/domain/valueObject/index.js';
+import type { PlantLifecycle, PlantSowing } from '../value-objects/index.js';
+import type { PlantProps } from './types/PlantProps.js';
+import type { CreatePlantProps, PlantPrimitives } from './types/index.js';
 
-export interface PlantProps {
-  id: string;
-  name: string;
-  scientificName?: string;
-  familyId: string;
-
-  lifecycle: PlantLifecycle;
-
-  size: {
-    height: Range;
-    spread: Range;
-  };
-
-  sowing: PlantSowing;
-  floweringMonths: MonthSet;
-  harvestMonths: MonthSet;
-
-  spacingCm: Range;
-
-  metadata: Metadata;
-}
-
-export class Plant extends AggregateRoot<PlantPrimitives> {
+export class Plant
+  extends AggregateRoot<Uuid>
+  implements Serializable<PlantPrimitives>
+{
   private readonly props: PlantProps;
 
   constructor(props: PlantProps) {
-    super();
+    super(props.id);
     this.props = props;
-  }
-
-  get id(): string {
-    return this.props.id;
   }
 
   get name(): string {
@@ -79,7 +61,7 @@ export class Plant extends AggregateRoot<PlantPrimitives> {
 
   toPrimitives(): PlantPrimitives {
     const primitives: PlantPrimitives = {
-      id: this.props.id,
+      id: this.props.id.value,
       name: this.props.name,
       familyId: this.props.familyId,
       lifecycle: this.props.lifecycle.getValue(),
@@ -93,15 +75,12 @@ export class Plant extends AggregateRoot<PlantPrimitives> {
       floweringMonths: this.props.floweringMonths.toArray(),
       harvestMonths: this.props.harvestMonths.toArray(),
 
-      spacingCm: this.props.spacingCm.toPrimitives()
+      spacingCm: this.props.spacingCm.toPrimitives(),
+      metadata: this.props.metadata.toPrimitives()
     };
 
-    if (this.props.scientificName) {
+    if (this.props.scientificName !== undefined) {
       primitives.scientificName = this.props.scientificName;
-    }
-
-    if (this.props.metadata) {
-      primitives.metadata = this.props.metadata.toPrimitives();
     }
 
     return primitives;

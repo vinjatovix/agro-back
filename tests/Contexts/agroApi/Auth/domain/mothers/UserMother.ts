@@ -14,8 +14,7 @@ import {
 } from '../../../../../../src/Contexts/shared/domain/valueObject/index.js';
 
 import { EmailMother } from '../../../../shared/domain/mothers/EmailMother.js';
-import { UuidMother } from '../../fixtures/shared/domain/mothers/UuidMother.js';
-import { random } from '../../fixtures/shared/index.js';
+import { random, UuidMother } from '../../../../shared/fixtures/index.js';
 import { UserRolesMother } from './UserRolesMother.js';
 
 export class UserMother {
@@ -48,15 +47,10 @@ export class UserMother {
       emailValidated: emailValidated ?? random.boolean(),
       roles:
         roles ??
-        UserRolesMother.create([`${random.arrayElement(['admin', 'user'])}`]),
-      metadata:
-        metadata ??
-        new Metadata({
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          createdBy: user.value,
-          updatedBy: user.value
-        })
+        UserRolesMother.create([
+          random.arrayElement(['admin', 'user'] as string[]) as string
+        ]),
+      metadata: metadata ?? Metadata.create(user.value)
     });
   }
 
@@ -88,7 +82,9 @@ export class UserMother {
     return new PasswordHash(`$2b$10$${'a'.repeat(53)}`);
   }
 
-  static randomGoogleAuthMethod(providerUserId: string = random.guid()): UserAuthMethod {
+  static randomGoogleAuthMethod(
+    providerUserId: string = random.guid()
+  ): UserAuthMethod {
     return new UserAuthMethod({
       provider: 'google',
       providerUserId,

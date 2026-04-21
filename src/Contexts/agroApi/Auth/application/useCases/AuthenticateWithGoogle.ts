@@ -4,11 +4,11 @@ import {
   Metadata,
   Uuid
 } from '../../../../shared/domain/valueObject/index.js';
-import type {
-  EncrypterTool,
-  GoogleIdTokenVerifierTool
+import {
+  buildLogger,
+  type EncrypterTool,
+  type GoogleIdTokenVerifierTool
 } from '../../../../shared/plugins/index.js';
-import { buildLogger } from '../../../../shared/plugins/logger.plugin.js';
 import {
   User,
   UserAuthMethod,
@@ -124,12 +124,7 @@ export class AuthenticateWithGoogle {
         })
       ],
       roles: new UserRoles(['user']),
-      metadata: new Metadata({
-        createdAt: date,
-        createdBy: username.value,
-        updatedAt: date,
-        updatedBy: username.value
-      })
+      metadata: Metadata.create(username.value)
     });
 
     await this.repository.save(user);

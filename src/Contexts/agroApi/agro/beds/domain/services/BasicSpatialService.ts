@@ -1,3 +1,4 @@
+import { Uuid } from '../../../../../shared/domain/valueObject/Uuid.js';
 import type { PlantRepository } from '../../../plants/domain/repositories/PlantRepository.js';
 import type { PlantInstance } from '../entities/PlantInstance.js';
 import type { SpatialContext, SpatialService } from './SpatialService.js';
@@ -8,7 +9,7 @@ export class BasicSpatialService implements SpatialService {
     newPlant: PlantInstance,
     plantRepository: PlantRepository
   ): Promise<void> {
-    const plantData = await plantRepository.findById(newPlant.plantId);
+    const plantData = await plantRepository.findById(newPlant.plantId.value);
     const newRadius = plantData.spacing.max / 2;
 
     this.validateBounds(context, newPlant, newRadius);
@@ -43,10 +44,10 @@ export class BasicSpatialService implements SpatialService {
     plantRepository: PlantRepository
   ): Promise<void> {
     for (const existing of context.plants) {
-      if (existing.id === newPlant.id) continue;
+      if (Uuid.equals(existing.id, newPlant.id)) continue;
 
       const existingPlantData = await plantRepository.findById(
-        existing.plantId
+        existing.plantId.value
       );
       const existingRadius = existingPlantData.spacing.max / 2;
 
@@ -55,7 +56,7 @@ export class BasicSpatialService implements SpatialService {
 
       if (distance < minDistance) {
         throw new Error(
-          `Collision detected between ${existing.id} and ${newPlant.id}`
+          `Collision detected between ${existing.id.value} and ${newPlant.id.value}`
         );
       }
     }

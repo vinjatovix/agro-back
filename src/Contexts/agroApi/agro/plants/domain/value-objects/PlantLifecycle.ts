@@ -1,4 +1,4 @@
-export type PlantLifecycleValue = 'annual' | 'biennial' | 'perennial';
+import type { PlantLifecycleValue } from '../entities/types/PlantLifecycleValue.js';
 
 export class PlantLifecycle {
   private constructor(private readonly value: PlantLifecycleValue) {}

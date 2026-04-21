@@ -5,7 +5,6 @@ import {
   MongoServerError,
   type Document
 } from 'mongodb';
-import type { AggregateRoot } from '../../../domain/AggregateRoot.js';
 import type { Username } from '../../../../agroApi/Auth/domain/Username.js';
 import { updateMetadata } from '../../../application/utils/updateMetadata.js';
 import { MongoErrorHandler } from './MongoErrorHandler.js';
@@ -16,8 +15,9 @@ import {
   type MongoFetchOptions
 } from './MongoFetchService.js';
 import type { RequestOptions } from '../../../../../apps/agroApi/shared/interfaces/RequestOptions.js';
+import type { Serializable } from '../../../domain/interfaces/Serializable.js';
 
-export abstract class MongoRepository<T extends AggregateRoot> {
+export abstract class MongoRepository<T extends Serializable<unknown>> {
   constructor(private readonly DBClient: Promise<MongoClient>) {}
 
   protected abstract collectionName(): string;
@@ -42,7 +42,7 @@ export abstract class MongoRepository<T extends AggregateRoot> {
     const collection = await this.collection();
     const mongoId = toMongoId(id);
     const document = {
-      ...aggregateRoot.toPrimitives(),
+      ...(aggregateRoot.toPrimitives() as Record<string, unknown>),
       id: undefined,
       ...(username && updateMetadata(username))
     };

@@ -1,5 +1,5 @@
 import { UserRoles } from '../../../../../src/Contexts/agroApi/Auth/domain/UserRoles.js';
-import { random } from '../fixtures/shared/index.js';
+import { random } from '../../../shared/fixtures/index.js';
 import { UserRolesMother } from './mothers/UserRolesMother.js';
 
 describe('UserRoles', () => {

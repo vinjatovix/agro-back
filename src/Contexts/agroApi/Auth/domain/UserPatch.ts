@@ -1,4 +1,3 @@
-import { AggregateRoot } from '../../../shared/domain/AggregateRoot.js';
 import {
   PasswordHash,
   Uuid
@@ -9,7 +8,7 @@ import {
 } from './UserAuthMethod.js';
 import { UserRoles } from './UserRoles.js';
 
-export class UserPatch extends AggregateRoot {
+export class UserPatch {
   readonly id: Uuid;
   readonly password?: PasswordHash;
   readonly emailValidated?: boolean;
@@ -29,7 +28,6 @@ export class UserPatch extends AggregateRoot {
     authMethods?: UserAuthMethod[];
     roles?: UserRoles;
   }) {
-    super();
     this.id = id;
     if (password !== undefined) {
       this.password = password;

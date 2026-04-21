@@ -3,9 +3,10 @@ import { Plant } from '../../../../../../src/Contexts/agroApi/agro/plants/domain
 import type { PlantPatch } from '../../../../../../src/Contexts/agroApi/agro/plants/domain/entities/PlantPatch.js';
 import type { PlantPrimitives } from '../../../../../../src/Contexts/agroApi/agro/plants/domain/entities/types/PlantPrimitives.js';
 import type { PlantRepository } from '../../../../../../src/Contexts/agroApi/agro/plants/domain/repositories/PlantRepository.js';
-import { PlantLifecycle } from '../../../../../../src/Contexts/agroApi/agro/plants/domain/value-objects/PlantLifecycicle.js';
+import { PlantLifecycle } from '../../../../../../src/Contexts/agroApi/agro/plants/domain/value-objects/PlantLifecycle.js';
 import { PlantSowing } from '../../../../../../src/Contexts/agroApi/agro/plants/domain/value-objects/PlantSowing.js';
 import { Metadata } from '../../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
+import { Uuid } from '../../../../../../src/Contexts/shared/domain/valueObject/Uuid.js';
 import { MonthSet } from '../../../../../../src/shared/domain/value-objects/MonthSet.js';
 import { Range } from '../../../../../../src/shared/domain/value-objects/Range.js';
 
@@ -26,7 +27,7 @@ export class PlantRepositoryMock implements PlantRepository {
       throw new Error('Save failed');
     }
 
-    this.storage.set(plant.id, plant);
+    this.storage.set(plant.id.value, plant);
   }
 
   async update(patch: PlantPatch, username: string): Promise<void> {
@@ -85,7 +86,7 @@ export class PlantRepositoryMock implements PlantRepository {
     };
 
     const updatedPlant = Plant.create({
-      id: updatedPrimitives.id,
+      id: new Uuid(updatedPrimitives.id),
       name: updatedPrimitives.name,
       ...(updatedPrimitives.scientificName && {
         scientificName: updatedPrimitives.scientificName
@@ -180,7 +181,7 @@ export class PlantRepositoryMock implements PlantRepository {
   }
 
   addToStorage(plant: Plant): void {
-    this.storage.set(plant.id, plant);
+    this.storage.set(plant.id.value, plant);
   }
 
   clear(): void {

@@ -1,30 +1,26 @@
-import type { PlantLifecycleValue } from '../../../domain/value-objects/PlantLifecycicle.js';
+import type { RangePrimitives } from '../../../../../../../shared/domain/value-objects/interfaces/RangePrimitives.js';
+import type { PlantLifecycleValue } from '../../../domain/entities/types/PlantLifecycleValue.js';
 
 export interface CreatePlantDto {
   id: string;
   name: string;
-
   scientificName?: string;
   familyId: string;
-
   lifecycle: PlantLifecycleValue;
-
+  spacingCm: RangePrimitives;
+  harvestMonths: number[];
+  floweringMonths: number[];
   size: {
-    height: { min: number; max: number };
-    spread: { min: number; max: number };
+    height: RangePrimitives;
+    spread: RangePrimitives;
   };
-
   sowing: {
     months: number[];
-    seedsPerHole: { min: number; max: number };
-    germinationDays: { min: number; max: number };
-    methods?: {
-      direct?: { depthCm: { min: number; max: number } };
-      starter?: { depthCm: { min: number; max: number } };
+    seedsPerHole: RangePrimitives;
+    germinationDays: RangePrimitives;
+    methods: {
+      direct: { depthCm: RangePrimitives };
+      starter?: { depthCm: RangePrimitives };
     };
   };
-  floweringMonths: number[];
-  harvestMonths: number[];
-
-  spacingCm: { min: number; max: number };
 }

@@ -1,16 +1,18 @@
+import { Plant } from '../../../../../../../src/Contexts/agroApi/agro/plants/domain/entities/Plant.js';
 import {
-  Plant,
-  type PlantProps
-} from '../../../../../../../src/Contexts/agroApi/agro/plants/domain/entities/Plant.js';
-import { Range } from '../../../../../../../src/shared/domain/value-objects/Range.js';
-import { MonthSet } from '../../../../../../../src/shared/domain/value-objects/MonthSet.js';
-import { PlantLifecycle } from '../../../../../../../src/Contexts/agroApi/agro/plants/domain/value-objects/PlantLifecycicle.js';
-import { random } from '../../../../Auth/fixtures/shared/index.js';
-import { PlantSowing } from '../../../../../../../src/Contexts/agroApi/agro/plants/domain/value-objects/PlantSowing.js';
-import { Metadata } from '../../../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
+  MonthSet,
+  Range
+} from '../../../../../../../src/shared/domain/value-objects/index.js';
+import {
+  PlantLifecycle,
+  PlantSowing
+} from '../../../../../../../src/Contexts/agroApi/agro/plants/domain/value-objects/index.js';
+import { Metadata } from '../../../../../../../src/Contexts/shared/domain/valueObject/index.js';
+import { UuidMother } from '../../../../../shared/fixtures/UuidMother.js';
+import type { PlantProps } from '../../../../../../../src/Contexts/agroApi/agro/plants/domain/entities/types/PlantProps.js';
 
 const base: PlantProps = {
-  id: random.uuid(),
+  id: UuidMother.random(),
   name: 'Generic plant',
   familyId: 'generic',
   lifecycle: PlantLifecycle.from('annual'),
@@ -33,12 +35,7 @@ const base: PlantProps = {
   floweringMonths: new MonthSet([6]),
   harvestMonths: new MonthSet([9]),
 
-  metadata: new Metadata({
-    createdAt: new Date(),
-    createdBy: 'test',
-    updatedAt: new Date(),
-    updatedBy: 'test'
-  })
+  metadata: Metadata.create('test')
 };
 
 export class PlantMother {
@@ -47,7 +44,7 @@ export class PlantMother {
   ): Plant {
     return new Plant({
       ...base,
-      id: 'tomato',
+      id: UuidMother.random(),
       name: 'Tomato',
       familyId: 'solanaceae',
 
@@ -60,7 +57,7 @@ export class PlantMother {
   ): Plant {
     return new Plant({
       ...base,
-      id: 'lettuce',
+      id: UuidMother.random(),
       name: 'Lettuce',
       familyId: 'asteraceae',
 

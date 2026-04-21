@@ -2,7 +2,7 @@ import { MonthSet } from '../../../../../../shared/domain/value-objects/MonthSet
 import { Range } from '../../../../../../shared/domain/value-objects/Range.js';
 import { Uuid } from '../../../../../shared/domain/valueObject/Uuid.js';
 import { PlantPatch } from '../../domain/entities/PlantPatch.js';
-import { PlantLifecycle } from '../../domain/value-objects/PlantLifecycicle.js';
+import { PlantLifecycle } from '../../domain/value-objects/PlantLifecycle.js';
 import type { PlantSowingPatch } from '../../domain/value-objects/PlantSowingPatch.js';
 import type { UpdatePlantDto } from '../useCases/interfaces/UpdatePlantDto.js';
 import { PlantSowingDtoMapper } from './PlantSowingDtoMapper.js';

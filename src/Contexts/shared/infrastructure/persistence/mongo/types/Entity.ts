@@ -1,6 +1,6 @@
-import type { MetadataType } from './MetadataType.js';
+import type { MetadataPrimitives } from './MetadataPrimitives.js';
 
 export type Entity = {
   _id: string;
-  metadata: MetadataType;
+  metadata: MetadataPrimitives;
 };

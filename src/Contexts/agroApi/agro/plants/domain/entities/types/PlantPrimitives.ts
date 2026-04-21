@@ -1,4 +1,6 @@
-import type { PlantLifecycleValue } from '../../value-objects/PlantLifecycicle.js';
+import type { RangePrimitives } from '../../../../../../../shared/domain/value-objects/interfaces/RangePrimitives.js';
+import type { MetadataPrimitives } from '../../../../../../shared/infrastructure/persistence/mongo/types/index.js';
+import type { PlantLifecycleValue } from './PlantLifecycleValue.js';
 
 export interface PlantPrimitives {
   id: string;
@@ -6,31 +8,21 @@ export interface PlantPrimitives {
   scientificName?: string;
   familyId: string;
   lifecycle: PlantLifecycleValue;
-
   size: {
-    height: { min: number; max: number };
-    spread: { min: number; max: number };
+    height: RangePrimitives;
+    spread: RangePrimitives;
   };
-
   sowing: {
     months: number[];
-    seedsPerHole?: { min: number; max: number };
-    germinationDays?: { min: number; max: number };
-    methods?: {
-      direct?: { depthCm: { min: number; max: number } };
-      starter?: { depthCm: { min: number; max: number } };
+    seedsPerHole: RangePrimitives;
+    germinationDays: RangePrimitives;
+    methods: {
+      direct: { depthCm: RangePrimitives };
+      starter?: { depthCm: RangePrimitives };
     };
   };
-
   floweringMonths: number[];
   harvestMonths: number[];
-
-  spacingCm: { min: number; max: number };
-
-  metadata?: {
-    createdAt?: Date;
-    createdBy?: string;
-    updatedAt: Date;
-    updatedBy: string;
-  };
+  spacingCm: RangePrimitives;
+  metadata: MetadataPrimitives;
 }

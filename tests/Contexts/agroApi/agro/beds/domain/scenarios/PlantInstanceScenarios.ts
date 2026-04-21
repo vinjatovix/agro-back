@@ -1,27 +1,28 @@
+import { CropGrowthStatus } from '../../../../../../../src/Contexts/agroApi/agro/beds/domain/entities/interfaces/CropGrowthStatus.js';
 import { PlantInstanceMother } from '../mothers/PlantInstanceMother.js';
 
 export const PlantInstanceScenarios = {
   seeded: (overrides = {}) =>
     PlantInstanceMother.create({
-      status: 'seeded',
+      growthStatus: CropGrowthStatus.SEEDED,
       ...overrides
     }),
 
   planted: (overrides = {}) =>
     PlantInstanceMother.create({
-      status: 'planted',
+      growthStatus: CropGrowthStatus.PLANTED,
       ...overrides
     }),
 
   growing: (overrides = {}) =>
     PlantInstanceMother.create({
-      status: 'growing',
+      growthStatus: CropGrowthStatus.GROWING,
       ...overrides
     }),
 
   harvested: (overrides = {}) =>
     PlantInstanceMother.create({
-      status: 'harvested',
+      growthStatus: CropGrowthStatus.HARVESTED,
       ...overrides
     })
 };

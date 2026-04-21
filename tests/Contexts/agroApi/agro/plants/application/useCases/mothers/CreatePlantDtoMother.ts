@@ -1,7 +1,8 @@
-import type { CreatePlantDto } from '../../../../../../../../src/Contexts/agroApi/agro/plants/application/useCases/interfaces/CreatePlantDto.js';
+import type { CreatePlantDto } from '../../../../../../../../src/Contexts/agroApi/agro/plants/application/useCases/interfaces/index.js';
+import { random } from '../../../../../../shared/fixtures/index.js';
 
-const baseDto: CreatePlantDto = {
-  id: 'tomato',
+const base = (): CreatePlantDto => ({
+  id: random.uuid(),
   name: 'Tomato',
   familyId: 'solanaceae',
   lifecycle: 'annual',
@@ -22,26 +23,27 @@ const baseDto: CreatePlantDto = {
   floweringMonths: [6, 7],
   harvestMonths: [8, 9],
   spacingCm: { min: 10, max: 20 }
-};
+});
 
 export class CreatePlantDtoMother {
   static tomato(): CreatePlantDto {
-    return baseDto;
+    return base();
   }
 
   static lettuce(): CreatePlantDto {
+    const dto = base();
+
     return {
-      ...baseDto,
-      id: 'lettuce',
+      ...dto,
+      id: random.uuid(),
       name: 'Lettuce',
       familyId: 'asteraceae',
-      lifecycle: 'annual',
       size: {
         height: { min: 5, max: 20 },
         spread: { min: 5, max: 15 }
       },
       sowing: {
-        ...baseDto.sowing,
+        ...dto.sowing,
         months: [2]
       },
       floweringMonths: [4],
@@ -51,15 +53,19 @@ export class CreatePlantDtoMother {
   }
 
   static withOptionalFields(): CreatePlantDto {
+    const dto = base();
+
     return {
-      ...baseDto,
+      ...dto,
       scientificName: 'Solanum lycopersicum'
     };
   }
 
   static custom(overrides: Partial<CreatePlantDto>): CreatePlantDto {
+    const dto = base();
+
     return {
-      ...baseDto,
+      ...dto,
       ...overrides
     };
   }

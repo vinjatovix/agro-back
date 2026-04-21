@@ -1,5 +1,5 @@
 import type { Binary, UUID } from 'bson';
-import type { MetadataType } from '../../../../shared/infrastructure/persistence/mongo/types/MetadataType.js';
+import type { MetadataPrimitives } from '../../../../shared/infrastructure/persistence/mongo/types/MetadataPrimitives.js';
 import type {
   AuthProvider,
   UserAuthMethodPrimitives
@@ -15,6 +15,7 @@ import {
 } from '../../../../shared/infrastructure/persistence/mongo/MongoId.js';
 import { Username } from '../../domain/Username.js';
 import { Uuid } from '../../../../shared/domain/valueObject/Uuid.js';
+import { updateMetadata } from '../../../../shared/application/utils/updateMetadata.js';
 
 export interface AuthDocument {
   _id: string | Binary | UUID;
@@ -24,11 +25,11 @@ export interface AuthDocument {
   emailValidated: boolean;
   authMethods?: UserAuthMethodPrimitives[];
   roles: string[];
-  metadata: MetadataType;
+  metadata: MetadataPrimitives;
 }
 
 export class MongoAuthRepository
-  extends MongoRepository<User | UserPatch>
+  extends MongoRepository<User>
   implements UserRepository
 {
   protected collectionName(): string {
@@ -40,7 +41,19 @@ export class MongoAuthRepository
   }
 
   async update(user: UserPatch, username: Username): Promise<void> {
-    return this.persist(user.id.value, user, username);
+    const collection = await this.collection();
+
+    const mongoId = toMongoId(user.id.value);
+
+    const document = {
+      ...user.toPrimitives(),
+      ...(username && updateMetadata(username))
+    };
+
+    await this.handleMongoError(
+      async () =>
+        await collection.updateOne({ _id: mongoId }, { $set: document })
+    );
   }
 
   async search(email: string): Promise<Nullable<User>> {

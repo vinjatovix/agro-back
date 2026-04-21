@@ -1,3 +1,5 @@
+import type { CoordinatesPrimitives } from './interfaces/CoordinatesPrimitives.js';
+
 export class Coordinates {
   constructor(
     public readonly x: number,
@@ -6,7 +8,6 @@ export class Coordinates {
     if (!Number.isFinite(x) || !Number.isFinite(y)) {
       throw new TypeError('Coordinates must be finite numbers');
     }
-    Object.freeze(this);
   }
 
   distanceTo(other: Coordinates): number {
@@ -17,5 +18,16 @@ export class Coordinates {
 
   equals(other: Coordinates): boolean {
     return this.x === other.x && this.y === other.y;
+  }
+
+  toPrimitives(): CoordinatesPrimitives {
+    return {
+      x: this.x,
+      y: this.y
+    };
+  }
+
+  static fromPrimitives(p: CoordinatesPrimitives): Coordinates {
+    return new Coordinates(p.x, p.y);
   }
 }

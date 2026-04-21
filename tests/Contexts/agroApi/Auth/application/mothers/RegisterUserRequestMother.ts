@@ -6,8 +6,7 @@ import {
   Uuid
 } from '../../../../../../src/Contexts/shared/domain/valueObject/index.js';
 import { EmailMother } from '../../../../shared/domain/mothers/EmailMother.js';
-import { UuidMother } from '../../fixtures/shared/domain/mothers/UuidMother.js';
-import { random } from '../../fixtures/shared/index.js';
+import { random, UuidMother } from '../../../../shared/fixtures/index.js';
 
 export class RegisterUserRequestMother {
   static create(

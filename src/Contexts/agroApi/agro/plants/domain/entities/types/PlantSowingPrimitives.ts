@@ -1,13 +1,15 @@
+import type { RangePrimitives } from '../../../../../../../shared/domain/value-objects/interfaces/RangePrimitives.js';
+
 export type PlantSowingPrimitives = {
-  seedsPerHole: { min: number; max: number };
-  germinationDays: { min: number; max: number };
+  seedsPerHole: RangePrimitives;
+  germinationDays: RangePrimitives;
   months: number[];
   methods: {
     direct: {
-      depthCm: { min: number; max: number };
+      depthCm: RangePrimitives;
     };
     starter?: {
-      depthCm: { min: number; max: number };
+      depthCm: RangePrimitives;
     };
   };
 };

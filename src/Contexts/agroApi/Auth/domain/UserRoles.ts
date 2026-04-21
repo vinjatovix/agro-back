@@ -1,10 +1,11 @@
 import { createError } from '../../../../shared/errors/index.js';
+import type { Serializable } from '../../../shared/domain/interfaces/Serializable.js';
 
 export const USER_ROLES = ['admin', 'user'] as const;
 
 export type UserRole = (typeof USER_ROLES)[number];
 
-export class UserRoles {
+export class UserRoles implements Serializable<UserRole[]> {
   private static readonly VALID_ROLES = new Set<UserRole>(USER_ROLES);
   readonly value: ReadonlyArray<UserRole>;
 

@@ -1,6 +1,6 @@
 import Chance from 'chance';
 
-export class Random {
+class Random {
   private readonly chance: Chance.Chance;
 
   constructor() {
@@ -65,3 +65,7 @@ export class Random {
     return this.chance.email();
   }
 }
+
+const random: Random = new Random();
+
+export { random };

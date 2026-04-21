@@ -1,7 +1,7 @@
 import type { MonthSet } from '../../../../../../shared/domain/value-objects/MonthSet.js';
 import type { Range } from '../../../../../../shared/domain/value-objects/Range.js';
 import type { Uuid } from '../../../../../shared/domain/valueObject/Uuid.js';
-import { PlantLifecycle } from '../value-objects/PlantLifecycicle.js';
+import { PlantLifecycle } from '../value-objects/PlantLifecycle.js';
 import type { PlantSowingPatch } from '../value-objects/PlantSowingPatch.js';
 
 export class PlantPatch {

@@ -1,7 +1,10 @@
 import { UserPatch } from '../../../../../src/Contexts/agroApi/Auth/domain/UserPatch.js';
-import { PasswordHash, Uuid } from '../../../../../src/Contexts/shared/domain/valueObject/index.js';
+import {
+  PasswordHash,
+  Uuid
+} from '../../../../../src/Contexts/shared/domain/valueObject/index.js';
 import { UserRoles } from '../../../../../src/Contexts/agroApi/Auth/domain/UserRoles.js';
-import { UuidMother } from '../fixtures/shared/domain/mothers/UuidMother.js';
+import { UuidMother } from '../../../shared/fixtures/UuidMother.js';
 
 const VALID_ID = UuidMother.random().value;
 const VALID_PASSWORD_HASH = `$2b$10$${'a'.repeat(53)}`;
@@ -26,12 +29,18 @@ describe('UserPatch', () => {
     });
 
     it('should create a patch with emailValidated', () => {
-      const patch = new UserPatch({ id: new Uuid(VALID_ID), emailValidated: true });
+      const patch = new UserPatch({
+        id: new Uuid(VALID_ID),
+        emailValidated: true
+      });
       expect(patch.emailValidated).toBe(true);
     });
 
     it('should create a patch with emailValidated set to false', () => {
-      const patch = new UserPatch({ id: new Uuid(VALID_ID), emailValidated: false });
+      const patch = new UserPatch({
+        id: new Uuid(VALID_ID),
+        emailValidated: false
+      });
       expect(patch.emailValidated).toBe(false);
     });
 
@@ -55,16 +64,24 @@ describe('UserPatch', () => {
         id: new Uuid(VALID_ID),
         password: new PasswordHash(VALID_PASSWORD_HASH)
       });
-      expect(patch.toPrimitives()).toMatchObject({ password: VALID_PASSWORD_HASH });
+      expect(patch.toPrimitives()).toMatchObject({
+        password: VALID_PASSWORD_HASH
+      });
     });
 
     it('should include emailValidated: true when set', () => {
-      const patch = new UserPatch({ id: new Uuid(VALID_ID), emailValidated: true });
+      const patch = new UserPatch({
+        id: new Uuid(VALID_ID),
+        emailValidated: true
+      });
       expect(patch.toPrimitives()).toMatchObject({ emailValidated: true });
     });
 
     it('should include emailValidated: false when set', () => {
-      const patch = new UserPatch({ id: new Uuid(VALID_ID), emailValidated: false });
+      const patch = new UserPatch({
+        id: new Uuid(VALID_ID),
+        emailValidated: false
+      });
       expect(patch.toPrimitives()).toMatchObject({ emailValidated: false });
     });
 
@@ -102,17 +119,26 @@ describe('UserPatch', () => {
     });
 
     it('should create a patch with password', () => {
-      const patch = UserPatch.fromPrimitives({ id: VALID_ID, password: VALID_PASSWORD_HASH });
+      const patch = UserPatch.fromPrimitives({
+        id: VALID_ID,
+        password: VALID_PASSWORD_HASH
+      });
       expect(patch.password?.value).toBe(VALID_PASSWORD_HASH);
     });
 
     it('should create a patch with emailValidated: false', () => {
-      const patch = UserPatch.fromPrimitives({ id: VALID_ID, emailValidated: false });
+      const patch = UserPatch.fromPrimitives({
+        id: VALID_ID,
+        emailValidated: false
+      });
       expect(patch.emailValidated).toBe(false);
     });
 
     it('should create a patch with roles', () => {
-      const patch = UserPatch.fromPrimitives({ id: VALID_ID, roles: VALID_ROLES });
+      const patch = UserPatch.fromPrimitives({
+        id: VALID_ID,
+        roles: VALID_ROLES
+      });
       expect(patch.roles?.value).toEqual(VALID_ROLES);
     });
 

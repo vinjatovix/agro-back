@@ -5,15 +5,20 @@ import {
   PasswordHash,
   Uuid
 } from '../../../shared/domain/valueObject/index.js';
-import type { MetadataType } from '../../../shared/infrastructure/persistence/mongo/types/MetadataType.js';
+import type { MetadataPrimitives } from '../../../shared/infrastructure/persistence/mongo/types/index.js';
 import { Username } from './Username.js';
 import {
   UserAuthMethod,
   type UserAuthMethodPrimitives
 } from './UserAuthMethod.js';
 import { UserRoles } from './UserRoles.js';
+import type { Serializable } from '../../../shared/domain/interfaces/Serializable.js';
+import type { UserPrimitives } from './interfaces/UserPrimitives.js';
 
-export class User extends AggregateRoot {
+export class User
+  extends AggregateRoot<Uuid>
+  implements Serializable<UserPrimitives>
+{
   readonly id: Uuid;
   readonly email: Email;
   readonly username: Username;
@@ -42,7 +47,7 @@ export class User extends AggregateRoot {
     roles: UserRoles;
     metadata: Metadata;
   }) {
-    super();
+    super(id);
     const normalizedAuthMethods = User.normalizeAuthMethods({
       ...(authMethods !== undefined && { authMethods }),
       ...(password !== undefined && { password }),
@@ -64,7 +69,7 @@ export class User extends AggregateRoot {
     this.metadata = metadata;
   }
 
-  toPrimitives(): Record<string, unknown> {
+  toPrimitives(): UserPrimitives {
     return {
       id: this.id.value,
       email: this.email.value,
@@ -94,7 +99,7 @@ export class User extends AggregateRoot {
     emailValidated: boolean;
     authMethods?: UserAuthMethodPrimitives[];
     roles: string[];
-    metadata: MetadataType;
+    metadata: MetadataPrimitives;
   }): User {
     return new User({
       id: new Uuid(id),

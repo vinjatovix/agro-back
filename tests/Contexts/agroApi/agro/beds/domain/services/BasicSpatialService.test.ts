@@ -3,7 +3,7 @@ import { BasicSpatialService } from '../../../../../../../src/Contexts/agroApi/a
 import { createPlantCatalog } from '../../helpers/InMemoryPlantRepository.js';
 import { PlantInstanceMother } from '../mothers/PlantInstanceMother.js';
 
-const { plantRepository } = createPlantCatalog();
+const { plantRepository, fixtures } = createPlantCatalog();
 
 describe('BasicSpatialService', () => {
   const service = new BasicSpatialService();
@@ -16,7 +16,11 @@ describe('BasicSpatialService', () => {
 
   describe('validatePlacement', () => {
     it('should allow valid placement', async () => {
-      const plant = PlantInstanceMother.atPosition(50, 50);
+      const plant = PlantInstanceMother.fromPlantAtPosition(
+        fixtures.tomato,
+        50,
+        50
+      );
 
       await expect(
         service.validatePlacement(baseContext, plant, plantRepository)
@@ -24,7 +28,11 @@ describe('BasicSpatialService', () => {
     });
 
     it('should throw when plant is out of bounds (min limit)', async () => {
-      const plant = PlantInstanceMother.atPosition(5, 5);
+      const plant = PlantInstanceMother.fromPlantAtPosition(
+        fixtures.tomato,
+        5,
+        5
+      );
 
       await expect(
         service.validatePlacement(baseContext, plant, plantRepository)
@@ -32,7 +40,11 @@ describe('BasicSpatialService', () => {
     });
 
     it('should throw when plant is out of bounds (max limit)', async () => {
-      const plant = PlantInstanceMother.atPosition(195, 195);
+      const plant = PlantInstanceMother.fromPlantAtPosition(
+        fixtures.tomato,
+        195,
+        195
+      );
 
       await expect(
         service.validatePlacement(baseContext, plant, plantRepository)
@@ -40,8 +52,16 @@ describe('BasicSpatialService', () => {
     });
 
     it('should throw on collision between plants', async () => {
-      const existing = PlantInstanceMother.atPosition(50, 50);
-      const newPlant = PlantInstanceMother.atPosition(55, 55);
+      const existing = PlantInstanceMother.fromPlantAtPosition(
+        fixtures.tomato,
+        50,
+        50
+      );
+      const newPlant = PlantInstanceMother.fromPlantAtPosition(
+        fixtures.tomato,
+        55,
+        55
+      );
 
       const context = {
         ...baseContext,
@@ -54,8 +74,16 @@ describe('BasicSpatialService', () => {
     });
 
     it('should allow placement when distance is safe', async () => {
-      const existing = PlantInstanceMother.atPosition(50, 50);
-      const newPlant = PlantInstanceMother.atPosition(80, 50);
+      const existing = PlantInstanceMother.fromPlantAtPosition(
+        fixtures.tomato,
+        50,
+        50
+      );
+      const newPlant = PlantInstanceMother.fromPlantAtPosition(
+        fixtures.tomato,
+        80,
+        50
+      );
 
       const context = {
         ...baseContext,
@@ -68,7 +96,11 @@ describe('BasicSpatialService', () => {
     });
 
     it('should ignore self in collision detection', async () => {
-      const plant = PlantInstanceMother.atPosition(50, 50);
+      const plant = PlantInstanceMother.fromPlantAtPosition(
+        fixtures.tomato,
+        50,
+        50
+      );
 
       const context = {
         ...baseContext,
@@ -82,8 +114,16 @@ describe('BasicSpatialService', () => {
   });
 
   it('should allow placement when plants are exactly touching', async () => {
-    const existing = PlantInstanceMother.atPosition(50, 50);
-    const newPlant = PlantInstanceMother.atPosition(70, 50);
+    const existing = PlantInstanceMother.fromPlantAtPosition(
+      fixtures.tomato,
+      50,
+      50
+    );
+    const newPlant = PlantInstanceMother.fromPlantAtPosition(
+      fixtures.tomato,
+      70,
+      50
+    );
 
     const context = {
       ...baseContext,
@@ -97,12 +137,16 @@ describe('BasicSpatialService', () => {
 
   it('should detect collision with any existing plant', async () => {
     const plants = [
-      PlantInstanceMother.atPosition(20, 20),
-      PlantInstanceMother.atPosition(50, 50),
-      PlantInstanceMother.atPosition(100, 100)
+      PlantInstanceMother.fromPlantAtPosition(fixtures.tomato, 20, 20),
+      PlantInstanceMother.fromPlantAtPosition(fixtures.tomato, 50, 50),
+      PlantInstanceMother.fromPlantAtPosition(fixtures.tomato, 100, 100)
     ];
 
-    const newPlant = PlantInstanceMother.atPosition(55, 55);
+    const newPlant = PlantInstanceMother.fromPlantAtPosition(
+      fixtures.tomato,
+      55,
+      55
+    );
 
     const context = {
       ...baseContext,
@@ -115,7 +159,11 @@ describe('BasicSpatialService', () => {
   });
 
   it('should allow placement exactly on the boundary edge', async () => {
-    const plant = PlantInstanceMother.atPosition(10, 10);
+    const plant = PlantInstanceMother.fromPlantAtPosition(
+      fixtures.tomato,
+      10,
+      10
+    );
 
     await expect(
       service.validatePlacement(baseContext, plant, plantRepository)

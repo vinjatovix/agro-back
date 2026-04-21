@@ -1,6 +1,5 @@
-import { Uuid } from "../../../../../../../../src/Contexts/shared/domain/valueObject/Uuid.js";
-import { random } from "../../index.js";
-
+import { Uuid } from '../../../../src/Contexts/shared/domain/valueObject/Uuid.js';
+import { random } from './random.js';
 
 export class UuidMother {
   static create(value: string): Uuid {

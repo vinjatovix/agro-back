@@ -1,5 +1,5 @@
 import { Username } from "../../../../../src/Contexts/agroApi/Auth/domain/Username.js";
-import { random } from "../fixtures/shared/index.js";
+import { random } from "../../../shared/fixtures/index.js";
 
 describe('UserName', () => {
   it('should create a valid username', () => {

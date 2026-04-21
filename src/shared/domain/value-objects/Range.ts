@@ -1,4 +1,7 @@
-export class Range {
+import type { Serializable } from '../../../Contexts/shared/domain/interfaces/Serializable.js';
+import type { RangePrimitives } from './interfaces/RangePrimitives.js';
+
+export class Range implements Serializable<RangePrimitives> {
   public readonly min: number;
   public readonly max: number;
 
@@ -39,7 +42,7 @@ export class Range {
     return this.min === other.min && this.max === other.max;
   }
 
-  toPrimitives(): { min: number; max: number } {
+  toPrimitives(): RangePrimitives {
     return { min: this.min, max: this.max };
   }
 }

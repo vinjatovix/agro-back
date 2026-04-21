@@ -1,4 +1,5 @@
-import { CreatePlant } from '../../../../../../../src/Contexts/agroApi/agro/plants/application/useCases/CreatePlant.js';
+import { CreatePlant } from '../../../../../../../src/Contexts/agroApi/agro/plants/application/useCases/index.js';
+import type { CreatePlantDto } from '../../../../../../../src/Contexts/agroApi/agro/plants/application/useCases/interfaces/CreatePlantDto.js';
 import { PlantRepositoryMock } from '../../__mocks__/PlantRepositoryMock.js';
 import { CreatePlantDtoMother } from './mothers/CreatePlantDtoMother.js';
 
@@ -11,16 +12,24 @@ describe('CreatePlant', () => {
     useCase = new CreatePlant(repository);
   });
 
+  it('should throw if id is not a valid uuid', async () => {
+    const dto = CreatePlantDtoMother.custom({
+      id: 'not-a-uuid'
+    });
+
+    await expect(useCase.execute(dto)).rejects.toThrow();
+  });
+
   it('should create and persist a plant', async () => {
     const dto = CreatePlantDtoMother.tomato();
 
     const plant = await useCase.execute(dto);
 
-    expect(plant.id).toBe(dto.id);
+    expect(plant.id.value).toBe(dto.id);
     expect(plant.name).toBe(dto.name);
 
     const stored = await repository.findById(dto.id);
-    expect(stored.id).toBe(plant.id);
+    expect(stored.id.value).toBe(plant.id.value);
 
     repository.assertSaveHasBeenCalledWith(plant);
   });
@@ -48,6 +57,24 @@ describe('CreatePlant', () => {
     });
   });
 
+  it('should correctly map nested structures', async () => {
+    const dto = CreatePlantDtoMother.tomato();
+
+    const plant = await useCase.execute(dto);
+    const primitives = plant.toPrimitives();
+
+    expect(primitives.size.height).toEqual(dto.size.height);
+    expect(primitives.size.spread).toEqual(dto.size.spread);
+    expect(primitives.spacingCm).toEqual(dto.spacingCm);
+    expect(primitives.sowing.seedsPerHole).toEqual(dto.sowing.seedsPerHole);
+    expect(primitives.sowing.germinationDays).toEqual(
+      dto.sowing.germinationDays
+    );
+    expect(primitives.sowing.methods.direct.depthCm).toEqual(
+      dto.sowing.methods.direct.depthCm
+    );
+  });
+
   it('should include optional fields when provided', async () => {
     const dto = CreatePlantDtoMother.withOptionalFields();
 
@@ -70,6 +97,19 @@ describe('CreatePlant', () => {
     expect(all).toHaveLength(2);
   });
 
+  it('should throw if sowing.direct method is missing', async () => {
+    const dto = {
+      ...CreatePlantDtoMother.tomato(),
+      sowing: {
+        ...CreatePlantDtoMother.tomato().sowing,
+        methods: {}
+      }
+    } as unknown as CreatePlantDto;
+
+    await expect(useCase.execute(dto)).rejects.toThrow(
+      'PlantSowing.direct is required'
+    );
+  });
   it('should propagate error when repository fails on save', async () => {
     const dto = CreatePlantDtoMother.tomato();
 
