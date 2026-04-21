@@ -7,7 +7,7 @@ import type {
 import type { UserRepository } from '../../domain/interfaces/UserRepository.js';
 import { User } from '../../domain/User.js';
 import type { UserPatch } from '../../domain/UserPatch.js';
-import type { Nullable } from '../../../../shared/domain/types/Nullable.js';
+import type { Nullable } from '../../../../../shared/domain/types/Nullable.js';
 import { MongoRepository } from '../../../../shared/infrastructure/persistence/mongo/MongoRepository.js';
 import {
   fromMongoId,

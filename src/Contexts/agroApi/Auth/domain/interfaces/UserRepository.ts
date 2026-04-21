@@ -1,4 +1,4 @@
-import type { Nullable } from '../../../../shared/domain/types/Nullable.js';
+import type { Nullable } from '../../../../../shared/domain/types/Nullable.js';
 import type { AuthProvider, User, Username, UserPatch } from '../index.js';
 
 export interface UserRepository {

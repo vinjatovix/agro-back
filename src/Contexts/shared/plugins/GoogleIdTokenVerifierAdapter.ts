@@ -1,6 +1,6 @@
 import { OAuth2Client } from 'google-auth-library';
 import { envs } from '../../../apps/agroApi/config/plugins/envs.plugin.js';
-import type { Nullable } from '../domain/types/Nullable.js';
+import type { Nullable } from '../../../shared/domain/types/Nullable.js';
 import type {
   GoogleIdTokenPayload,
   GoogleIdTokenVerifierTool

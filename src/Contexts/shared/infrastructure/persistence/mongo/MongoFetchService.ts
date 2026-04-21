@@ -6,10 +6,11 @@ import {
 } from 'mongodb';
 import { toMongoId } from './MongoId.js';
 import type { Entity } from './types/Entity.js';
+import type { UnknownRecord } from '../../../../../shared/domain/types/UnknownRecord.js';
 
 export type MongoFetchOptions = {
   fields?: string[];
-  filter?: Record<string, unknown>;
+  filter?: UnknownRecord;
 };
 
 export class MongoFetchService {
@@ -25,7 +26,7 @@ export class MongoFetchService {
     id?: string;
     options: MongoFetchOptions;
   }): Promise<T[]> {
-    const query: Record<string, unknown> = {
+    const query: UnknownRecord = {
       ...(id ? { _id: toMongoId(id) } : {}),
       ...(options.filter ?? {})
     };

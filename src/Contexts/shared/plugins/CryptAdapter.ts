@@ -3,15 +3,16 @@ import jwt from 'jsonwebtoken';
 import type { SignOptions } from 'jsonwebtoken';
 
 import { envs } from '../../../apps/agroApi/config/plugins/envs.plugin.js';
-import type { Nullable } from '../domain/types/Nullable.js';
+import type { Nullable } from '../../../shared/domain/types/Nullable.js';
 import type { EncrypterTool } from './EncrypterTool.js';
+import type { UnknownRecord } from '../../../shared/domain/types/UnknownRecord.js';
 
 const JWT_SECRET = envs.JWT_SECRET;
 const SALT_ROUNDS = envs.BCRYPT_SALT_ROUNDS;
 const DEFAULT_TOKEN_DURATION = envs.JWT_DEFAULT_DURATION;
 const { sign, verify } = jwt;
 
-const isRecord = (value: unknown): value is Record<string, unknown> => {
+const isRecord = (value: unknown): value is UnknownRecord => {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 };
 
@@ -26,7 +27,7 @@ export class CryptAdapter implements EncrypterTool {
   }
 
   async generateToken(
-    payload: Record<string, unknown>,
+    payload: UnknownRecord,
     duration: string = DEFAULT_TOKEN_DURATION
   ): Promise<Nullable<string>> {
     return new Promise((resolve) => {
@@ -39,7 +40,7 @@ export class CryptAdapter implements EncrypterTool {
     });
   }
 
-  async verifyToken(token: string): Promise<Nullable<Record<string, unknown>>> {
+  async verifyToken(token: string): Promise<Nullable<UnknownRecord>> {
     return new Promise((resolve) => {
       verify(token, JWT_SECRET, (err, decoded) => {
         if (err || !isRecord(decoded)) {

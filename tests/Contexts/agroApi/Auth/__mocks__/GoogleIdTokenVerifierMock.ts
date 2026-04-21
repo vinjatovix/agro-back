@@ -3,7 +3,7 @@ import type {
   GoogleIdTokenPayload,
   GoogleIdTokenVerifierTool
 } from '../../../../../src/Contexts/shared/plugins/index.js';
-import type { Nullable } from '../../../../../src/Contexts/shared/domain/types/Nullable.js';
+import type { Nullable } from '../../../../../src/shared/domain/types/Nullable.js';
 
 export class GoogleIdTokenVerifierMock implements GoogleIdTokenVerifierTool {
   private readonly verifyIdTokenMock: jest.Mock<

@@ -2,7 +2,8 @@ import type { CryptAdapter } from '../../../../../src/Contexts/shared/plugins/Cr
 import { jest, expect } from '@jest/globals';
 import { random } from '../../../shared/fixtures/index.js';
 import { EmailMother } from '../../../shared/domain/mothers/EmailMother.js';
-import type { Nullable } from '../../../../../src/Contexts/shared/domain/types/Nullable.js';
+import type { Nullable } from '../../../../../src/shared/domain/types/Nullable.js';
+import type { UnknownRecord } from '../../../../../src/shared/domain/types/UnknownRecord.js';
 
 interface Options {
   login?: boolean;
@@ -22,13 +23,10 @@ export class CryptAdapterMock implements CryptAdapter {
     (value: string, encryptedValue: string) => boolean
   >;
   private readonly generateTokenMock: jest.Mock<
-    (
-      payload: Record<string, unknown>,
-      duration?: string
-    ) => Promise<Nullable<string>>
+    (payload: UnknownRecord, duration?: string) => Promise<Nullable<string>>
   >;
   private readonly verifyTokenMock: jest.Mock<
-    (token: string) => Promise<Nullable<Record<string, unknown>>>
+    (token: string) => Promise<Nullable<UnknownRecord>>
   >;
   private readonly refreshTokenMock: jest.Mock<
     (token: string) => Promise<Nullable<string>>
@@ -45,18 +43,15 @@ export class CryptAdapterMock implements CryptAdapter {
       .mockReturnValue(login ?? false);
     this.generateTokenMock = jest
       .fn<
-        (
-          payload: Record<string, unknown>,
-          duration?: string
-        ) => Promise<Nullable<string>>
+        (payload: UnknownRecord, duration?: string) => Promise<Nullable<string>>
       >()
       .mockResolvedValue(random.word());
     this.verifyTokenMock = token
       ? jest
-          .fn<(token: string) => Promise<Nullable<Record<string, unknown>>>>()
+          .fn<(token: string) => Promise<Nullable<UnknownRecord>>>()
           .mockResolvedValue({ email: EmailMother.random().value })
       : jest
-          .fn<(token: string) => Promise<Nullable<Record<string, unknown>>>>()
+          .fn<(token: string) => Promise<Nullable<UnknownRecord>>>()
           .mockResolvedValue(null);
     this.refreshTokenMock = jest
       .fn<(token: string) => Promise<Nullable<string>>>()
@@ -86,12 +81,12 @@ export class CryptAdapterMock implements CryptAdapter {
   }
 
   generateToken(
-    payload: Record<string, unknown>,
+    payload: UnknownRecord,
     duration?: string
   ): Promise<Nullable<string>> {
     return this.generateTokenMock(payload, duration);
   }
-  verifyToken(token: string): Promise<Nullable<Record<string, unknown>>> {
+  verifyToken(token: string): Promise<Nullable<UnknownRecord>> {
     return this.verifyTokenMock(token);
   }
 

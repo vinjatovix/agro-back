@@ -1,4 +1,4 @@
-import type { Nullable } from '../domain/types/Nullable.js';
+import type { Nullable } from '../../../shared/domain/types/Nullable.js';
 
 export interface GoogleIdTokenPayload {
   sub: string;

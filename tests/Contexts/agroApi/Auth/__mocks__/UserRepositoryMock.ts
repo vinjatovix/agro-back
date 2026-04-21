@@ -1,7 +1,7 @@
 import type { User, UserPatch } from '../../../../../src/Contexts/agroApi/Auth/domain/index.js';
 import type { UserRepository } from '../../../../../src/Contexts/agroApi/Auth/domain/interfaces/index.js';
 import type { AuthProvider } from '../../../../../src/Contexts/agroApi/Auth/domain/UserAuthMethod.js';
-import type { Nullable } from '../../../../../src/Contexts/shared/domain/types/Nullable.js';
+import type { Nullable } from '../../../../../src/shared/domain/types/Nullable.js';
 import {
   Email,
   PasswordHash,

@@ -16,11 +16,16 @@ jest.mock('jsonwebtoken', () => ({
 }));
 
 import { CryptAdapter } from '../../../../src/Contexts/shared/plugins/CryptAdapter.js';
+import type { UnknownRecord } from '../../../../src/shared/domain/types/UnknownRecord.js';
 
 describe('CryptAdapter', () => {
-  const mockedGenSaltSync = genSaltSync as jest.MockedFunction<typeof genSaltSync>;
+  const mockedGenSaltSync = genSaltSync as jest.MockedFunction<
+    typeof genSaltSync
+  >;
   const mockedHashSync = hashSync as jest.MockedFunction<typeof hashSync>;
-  const mockedCompareSync = compareSync as jest.MockedFunction<typeof compareSync>;
+  const mockedCompareSync = compareSync as jest.MockedFunction<
+    typeof compareSync
+  >;
   const mockedJwt = jwt as unknown as {
     sign: jest.Mock;
     verify: jest.Mock;
@@ -42,7 +47,10 @@ describe('CryptAdapter', () => {
 
       expect(result).toBe('hashed-password');
       expect(mockedGenSaltSync).toHaveBeenCalledWith(12);
-      expect(mockedHashSync).toHaveBeenCalledWith('plain-password', 'generated-salt');
+      expect(mockedHashSync).toHaveBeenCalledWith(
+        'plain-password',
+        'generated-salt'
+      );
     });
   });
 
@@ -53,7 +61,10 @@ describe('CryptAdapter', () => {
       const result = adapter.compare('plain-password', 'hashed-password');
 
       expect(result).toBe(true);
-      expect(mockedCompareSync).toHaveBeenCalledWith('plain-password', 'hashed-password');
+      expect(mockedCompareSync).toHaveBeenCalledWith(
+        'plain-password',
+        'hashed-password'
+      );
     });
 
     it('should return false when bcrypt comparison fails', () => {
@@ -62,7 +73,10 @@ describe('CryptAdapter', () => {
       const result = adapter.compare('plain-password', 'hashed-password');
 
       expect(result).toBe(false);
-      expect(mockedCompareSync).toHaveBeenCalledWith('plain-password', 'hashed-password');
+      expect(mockedCompareSync).toHaveBeenCalledWith(
+        'plain-password',
+        'hashed-password'
+      );
     });
   });
 
@@ -70,7 +84,7 @@ describe('CryptAdapter', () => {
     it('should resolve a token when jwt sign succeeds', async () => {
       mockedJwt.sign.mockImplementation(
         (
-          _payload: Record<string, unknown>,
+          _payload: UnknownRecord,
           _secret: string,
           _options: object,
           callback: (err: Error | null, token?: string) => void
@@ -92,7 +106,7 @@ describe('CryptAdapter', () => {
     it('should resolve null when jwt sign fails', async () => {
       mockedJwt.sign.mockImplementation(
         (
-          _payload: Record<string, unknown>,
+          _payload: UnknownRecord,
           _secret: string,
           _options: object,
           callback: (err: Error | null, token?: string) => void
@@ -107,7 +121,7 @@ describe('CryptAdapter', () => {
     it('should use configured default duration when not provided', async () => {
       mockedJwt.sign.mockImplementation(
         (
-          _payload: Record<string, unknown>,
+          _payload: UnknownRecord,
           _secret: string,
           _options: object,
           callback: (err: Error | null, token?: string) => void

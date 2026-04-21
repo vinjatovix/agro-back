@@ -16,6 +16,7 @@ import {
 } from './MongoFetchService.js';
 import type { RequestOptions } from '../../../../../apps/agroApi/shared/interfaces/RequestOptions.js';
 import type { Serializable } from '../../../domain/interfaces/Serializable.js';
+import type { UnknownRecord } from '../../../../../shared/domain/types/UnknownRecord.js';
 
 export abstract class MongoRepository<T extends Serializable<unknown>> {
   constructor(private readonly DBClient: Promise<MongoClient>) {}
@@ -42,7 +43,7 @@ export abstract class MongoRepository<T extends Serializable<unknown>> {
     const collection = await this.collection();
     const mongoId = toMongoId(id);
     const document = {
-      ...(aggregateRoot.toPrimitives() as Record<string, unknown>),
+      ...(aggregateRoot.toPrimitives() as UnknownRecord),
       id: undefined,
       ...(username && updateMetadata(username))
     };
@@ -106,27 +107,24 @@ export abstract class MongoRepository<T extends Serializable<unknown>> {
       return baseOptions;
     }
 
-    const filter = options.filter.reduce(
-      (acc, curr) => {
-        const separatorIndex = curr.indexOf(':');
-        if (separatorIndex <= 0) {
-          return acc;
-        }
+    const filter = options.filter.reduce((acc, curr) => {
+      const separatorIndex = curr.indexOf(':');
+      if (separatorIndex <= 0) {
+        return acc;
+      }
 
-        const key = curr.slice(0, separatorIndex).trim();
-        const value = curr.slice(separatorIndex + 1).trim();
+      const key = curr.slice(0, separatorIndex).trim();
+      const value = curr.slice(separatorIndex + 1).trim();
 
-        if (!key || !value) {
-          return acc;
-        }
+      if (!key || !value) {
+        return acc;
+      }
 
-        return {
-          ...acc,
-          [key]: value.includes(',') ? { $in: value.split(',') } : value
-        };
-      },
-      {} as Record<string, unknown>
-    );
+      return {
+        ...acc,
+        [key]: value.includes(',') ? { $in: value.split(',') } : value
+      };
+    }, {} as UnknownRecord);
 
     return {
       ...baseOptions,

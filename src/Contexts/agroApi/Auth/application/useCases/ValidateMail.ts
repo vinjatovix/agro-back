@@ -1,3 +1,4 @@
+import type { UnknownRecord } from '../../../../../shared/domain/types/UnknownRecord.js';
 import { createError } from '../../../../../shared/errors/index.js';
 import type { EncrypterTool } from '../../../../shared/plugins/EncrypterTool.js';
 import { buildLogger } from '../../../../shared/plugins/logger.plugin.js';
@@ -49,7 +50,7 @@ export class ValidateMail {
     return newToken;
   }
 
-  private extractEmailFromToken(decodedToken: Record<string, unknown>): string {
+  private extractEmailFromToken(decodedToken: UnknownRecord): string {
     const email = decodedToken['email'];
     if (typeof email !== 'string' || !email) {
       throw createError.auth(INVALID_TOKEN_MESSAGE);

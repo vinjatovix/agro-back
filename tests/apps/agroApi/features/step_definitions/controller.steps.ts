@@ -6,10 +6,11 @@ import { createAppContainer } from '../../../../../src/apps/agroApi/container.js
 import { EnvironmentArranger } from '../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
 import { AgroBackApp } from '../../../../../src/apps/agroApi/AgroBackApp.js';
 import { API_PREFIXES } from '../../../../../src/apps/agroApi/routes/shared/apiPrefixes.js';
-import type { Nullable } from '../../../../../src/Contexts/shared/domain/types/Nullable.js';
+import type { Nullable } from '../../../../../src/shared/domain/types/Nullable.js';
 import { Uuid } from '../../../../../src/Contexts/shared/domain/valueObject/index.js';
 import { UserMother } from '../../../../Contexts/agroApi/Auth/domain/mothers/UserMother.js';
 import type { EncrypterTool } from '../../../../../src/Contexts/shared/plugins/index.js';
+import type { UnknownRecord } from '../../../../../src/shared/domain/types/UnknownRecord.js';
 
 const container = createAppContainer();
 
@@ -47,9 +48,8 @@ const compareResponseObject = <T>(
           ([subKey, subValue]: [string, unknown]) => {
             const typedSubKey = subKey as keyof typeof value;
             return (
-              (responseObj[key as keyof T] as Record<string, unknown>)[
-                typedSubKey
-              ] === subValue
+              (responseObj[key as keyof T] as UnknownRecord)[typedSubKey] ===
+              subValue
             );
           }
         );
