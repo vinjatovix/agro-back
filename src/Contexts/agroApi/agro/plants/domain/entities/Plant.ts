@@ -1,14 +1,14 @@
-import type {
+import {
   MonthSet,
   Range
 } from '../../../../../../shared/domain/value-objects/index.js';
 import { AggregateRoot } from '../../../../../shared/domain/AggregateRoot.js';
 import type { Serializable } from '../../../../../shared/domain/interfaces/index.js';
-import type {
+import {
   Metadata,
   Uuid
 } from '../../../../../shared/domain/valueObject/index.js';
-import type { PlantLifecycle, PlantSowing } from '../value-objects/index.js';
+import { PlantLifecycle, PlantSowing } from '../value-objects/index.js';
 import type { PlantProps } from './types/PlantProps.js';
 import type { CreatePlantProps, PlantPrimitives } from './types/index.js';
 
@@ -89,6 +89,27 @@ export class Plant
   static create(props: CreatePlantProps): Plant {
     return new Plant({
       ...props
+    });
+  }
+
+  static fromPrimitives(primitives: PlantPrimitives): Plant {
+    return new Plant({
+      id: new Uuid(primitives.id),
+      name: primitives.name,
+      familyId: primitives.familyId,
+      lifecycle: PlantLifecycle.from(primitives.lifecycle),
+      size: {
+        height: Range.fromPrimitives(primitives.size.height),
+        spread: Range.fromPrimitives(primitives.size.spread)
+      },
+      sowing: PlantSowing.fromPrimitives(primitives.sowing),
+      floweringMonths: MonthSet.fromArray(primitives.floweringMonths),
+      harvestMonths: MonthSet.fromArray(primitives.harvestMonths),
+      spacingCm: Range.fromPrimitives(primitives.spacingCm),
+      ...(primitives.scientificName !== undefined && {
+        scientificName: primitives.scientificName
+      }),
+      metadata: Metadata.fromPrimitives(primitives.metadata)
     });
   }
 }

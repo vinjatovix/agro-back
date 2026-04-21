@@ -47,4 +47,8 @@ export class MonthSet {
   equals(other: MonthSet): boolean {
     return this.toArray().join() === other.toArray().join();
   }
+
+  static fromArray(months: number[]): MonthSet {
+    return new MonthSet(months);
+  }
 }

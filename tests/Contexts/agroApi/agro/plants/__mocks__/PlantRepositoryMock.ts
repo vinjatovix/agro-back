@@ -1,14 +1,7 @@
 /* eslint-disable @typescript-eslint/require-await */
 import { Plant } from '../../../../../../src/Contexts/agroApi/agro/plants/domain/entities/Plant.js';
 import type { PlantPatch } from '../../../../../../src/Contexts/agroApi/agro/plants/domain/entities/PlantPatch.js';
-import type { PlantPrimitives } from '../../../../../../src/Contexts/agroApi/agro/plants/domain/entities/types/PlantPrimitives.js';
 import type { PlantRepository } from '../../../../../../src/Contexts/agroApi/agro/plants/domain/repositories/PlantRepository.js';
-import { PlantLifecycle } from '../../../../../../src/Contexts/agroApi/agro/plants/domain/value-objects/PlantLifecycle.js';
-import { PlantSowing } from '../../../../../../src/Contexts/agroApi/agro/plants/domain/value-objects/PlantSowing.js';
-import { Metadata } from '../../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
-import { Uuid } from '../../../../../../src/Contexts/shared/domain/valueObject/Uuid.js';
-import { MonthSet } from '../../../../../../src/shared/domain/value-objects/MonthSet.js';
-import { Range } from '../../../../../../src/shared/domain/value-objects/Range.js';
 
 export class PlantRepositoryMock implements PlantRepository {
   private readonly saveMock = jest.fn();
@@ -30,102 +23,6 @@ export class PlantRepositoryMock implements PlantRepository {
     this.storage.set(plant.id.value, plant);
   }
 
-  async update(patch: PlantPatch, username: string): Promise<void> {
-    this.updateMock(patch, username);
-
-    if (this.failOnSave) {
-      throw new Error('Update failed');
-    }
-
-    const id = patch.id.value;
-    const existing = this.storage.get(id);
-
-    if (!existing) {
-      throw new Error(`Plant not found: ${id}`);
-    }
-
-    const existingPrimitives = existing.toPrimitives();
-    const patchPrimitives = patch.toPrimitives();
-
-    const size = {
-      height: patchPrimitives.size?.height ?? existingPrimitives.size.height,
-      spread: patchPrimitives.size?.spread ?? existingPrimitives.size.spread
-    };
-
-    const sowing = {
-      seedsPerHole:
-        patchPrimitives.sowing?.seedsPerHole ??
-        existingPrimitives.sowing.seedsPerHole,
-
-      germinationDays:
-        patchPrimitives.sowing?.germinationDays ??
-        existingPrimitives.sowing.germinationDays,
-
-      months:
-        patchPrimitives.sowing?.months ?? existingPrimitives.sowing.months,
-
-      methods: {
-        direct: {
-          depthCm:
-            patchPrimitives.sowing?.methods?.direct?.depthCm ??
-            existingPrimitives.sowing.methods.direct.depthCm
-        },
-        starter: patchPrimitives.sowing?.methods?.starter
-          ? {
-              depthCm: patchPrimitives.sowing.methods.starter.depthCm
-            }
-          : existingPrimitives.sowing.methods.starter
-      }
-    };
-
-    const updatedPrimitives: PlantPrimitives = {
-      ...existingPrimitives,
-      ...patchPrimitives,
-      size,
-      sowing
-    };
-
-    const updatedPlant = Plant.create({
-      id: new Uuid(updatedPrimitives.id),
-      name: updatedPrimitives.name,
-      ...(updatedPrimitives.scientificName && {
-        scientificName: updatedPrimitives.scientificName
-      }),
-      familyId: updatedPrimitives.familyId,
-      lifecycle: PlantLifecycle.from(updatedPrimitives.lifecycle),
-
-      size: {
-        height: new Range(
-          updatedPrimitives.size.height.min,
-          updatedPrimitives.size.height.max
-        ),
-        spread: new Range(
-          updatedPrimitives.size.spread.min,
-          updatedPrimitives.size.spread.max
-        )
-      },
-
-      sowing: PlantSowing.fromPrimitives(updatedPrimitives.sowing),
-
-      floweringMonths: new MonthSet(updatedPrimitives.floweringMonths),
-      harvestMonths: new MonthSet(updatedPrimitives.harvestMonths),
-
-      spacingCm: new Range(
-        updatedPrimitives.spacingCm.min,
-        updatedPrimitives.spacingCm.max
-      ),
-
-      metadata: Metadata.fromPrimitives({
-        createdAt: existing.metadata.createdAt ?? new Date(),
-        createdBy: existing.metadata.createdBy ?? 'unknown',
-        updatedAt: new Date(),
-        updatedBy: username
-      })
-    });
-
-    this.storage.set(id, updatedPlant);
-  }
-
   async findById(id: string): Promise<Plant> {
     this.findByIdMock(id);
 
@@ -144,6 +41,22 @@ export class PlantRepositoryMock implements PlantRepository {
   async exists(id: string): Promise<boolean> {
     this.existsMock(id);
     return this.storage.has(id);
+  }
+
+  async updateWithDiff(
+    current: Plant,
+    updated: Plant,
+    username: string
+  ): Promise<void> {
+    this.updateMock(current, updated, username);
+
+    const id = current.id.value;
+
+    if (!this.storage.has(id)) {
+      throw new Error(`Plant not found: ${id}`);
+    }
+
+    this.storage.set(id, updated);
   }
 
   assertSaveHasBeenCalled(): void {

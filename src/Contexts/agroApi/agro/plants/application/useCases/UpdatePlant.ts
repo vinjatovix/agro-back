@@ -1,3 +1,5 @@
+import { applyPatch } from '../../../../../../shared/domain/patch/applyPatch.js';
+import { Plant } from '../../domain/entities/Plant.js';
 import type { PlantRepository } from '../../domain/repositories/PlantRepository.js';
 import { PlantDtoMapper } from '../mappers/PlantDtoMapper.js';
 import type { UpdatePlantDto } from './interfaces/UpdatePlantDto.js';
@@ -13,7 +15,10 @@ export class UpdatePlant {
     }
 
     const patch = PlantDtoMapper.toPatch(dto);
+    const current = plant.toPrimitives();
+    const patched = applyPatch(current, patch);
+    const updatedPlant = Plant.fromPrimitives(patched);
 
-    await this.plantRepository.update(patch, user);
+    await this.plantRepository.updateWithDiff(plant, updatedPlant, user);
   }
 }

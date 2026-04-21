@@ -45,4 +45,8 @@ export class Range implements Serializable<RangePrimitives> {
   toPrimitives(): RangePrimitives {
     return { min: this.min, max: this.max };
   }
+
+  static fromPrimitives(primitives: RangePrimitives): Range {
+    return new Range(primitives.min, primitives.max);
+  }
 }
