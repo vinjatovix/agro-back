@@ -1,4 +1,4 @@
-import { CreatePlant } from '../../../../../../../src/Contexts/agroApi/agro/plants/application/useCases/index.js';
+import { CreatePlant } from '../../../../../../../src/Contexts/agroApi/agro/plants/application/useCases/CreatePlant.js';
 import type { CreatePlantDto } from '../../../../../../../src/Contexts/agroApi/agro/plants/application/useCases/interfaces/CreatePlantDto.js';
 import { PlantRepositoryMock } from '../../__mocks__/PlantRepositoryMock.js';
 import { CreatePlantDtoMother } from './mothers/CreatePlantDtoMother.js';
@@ -18,6 +18,27 @@ describe('CreatePlant', () => {
     });
 
     await expect(useCase.execute(dto)).rejects.toThrow();
+  });
+
+  it('should throw if sowing.methods is missing', async () => {
+    const dto = CreatePlantDtoMother.tomato();
+
+    dto.sowing.methods =
+      undefined as unknown as CreatePlantDto['sowing']['methods'];
+
+    await expect(useCase.execute(dto)).rejects.toThrow(
+      'PlantSowing.direct is required'
+    );
+  });
+
+  it('should NOT include scientificName when not provided', async () => {
+    const dto = CreatePlantDtoMother.tomato();
+    delete dto.scientificName;
+
+    const plant = await useCase.execute(dto);
+    const primitives = plant.toPrimitives();
+
+    expect(primitives.scientificName).toBeUndefined();
   });
 
   it('should create and persist a plant', async () => {
@@ -42,6 +63,14 @@ describe('CreatePlant', () => {
     await expect(useCase.execute(dto)).rejects.toThrow(
       `Plant already exists: ${dto.id}`
     );
+  });
+
+  it('should throw if exists returns true directly', async () => {
+    const dto = CreatePlantDtoMother.tomato();
+
+    jest.spyOn(repository, 'exists').mockResolvedValue(true);
+
+    await expect(useCase.execute(dto)).rejects.toThrow();
   });
 
   it('should correctly map primitive fields into domain', async () => {
@@ -110,6 +139,7 @@ describe('CreatePlant', () => {
       'PlantSowing.direct is required'
     );
   });
+
   it('should propagate error when repository fails on save', async () => {
     const dto = CreatePlantDtoMother.tomato();
 
