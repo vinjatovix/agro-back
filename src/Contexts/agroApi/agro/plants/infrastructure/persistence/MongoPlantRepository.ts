@@ -22,6 +22,8 @@ type PlantDocument = {
   spacingCm: PlantPrimitives['spacingCm'];
   metadata: PlantPrimitives['metadata'];
   scientificName?: string;
+  status: PlantPrimitives['status'];
+  deletedAt?: string | null;
 };
 
 export class MongoPlantRepository
@@ -121,6 +123,8 @@ export class MongoPlantRepository
       harvestMonths: document.harvestMonths,
       spacingCm: document.spacingCm,
       metadata: document.metadata,
+      status: document.status,
+      deletedAt: document.deletedAt ?? null,
       ...(document.scientificName !== undefined && {
         scientificName: document.scientificName
       })

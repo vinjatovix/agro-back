@@ -10,17 +10,25 @@ import {
 } from '../../../../../shared/domain/valueObject/index.js';
 import { PlantLifecycle, PlantSowing } from '../value-objects/index.js';
 import type { PlantProps } from './types/PlantProps.js';
-import type { CreatePlantProps, PlantPrimitives } from './types/index.js';
+import {
+  PlantStatus,
+  type CreatePlantProps,
+  type PlantPrimitives
+} from './types/index.js';
 
 export class Plant
   extends AggregateRoot<Uuid>
   implements Serializable<PlantPrimitives>
 {
   private readonly props: PlantProps;
+  private status: PlantStatus;
+  private deletedAt: Date | undefined;
 
   constructor(props: PlantProps) {
     super(props.id);
     this.props = props;
+    this.status = props.status ?? PlantStatus.ACTIVE;
+    this.deletedAt = props.deletedAt;
   }
 
   get name(): string {
@@ -59,9 +67,22 @@ export class Plant
     return this.props.metadata;
   }
 
+  isDeleted(): boolean {
+    return this.status === PlantStatus.DELETED;
+  }
+
+  markAsDeleted(): void {
+    if (this.isDeleted()) return;
+
+    this.status = PlantStatus.DELETED;
+    this.deletedAt = new Date();
+  }
+
   toPrimitives(): PlantPrimitives {
     const primitives: PlantPrimitives = {
-      id: this.props.id.value,
+      id: this.id.value,
+      status: this.status,
+      deletedAt: this.deletedAt?.toISOString() ?? null,
       name: this.props.name,
       familyId: this.props.familyId,
       lifecycle: this.props.lifecycle.getValue(),
@@ -116,6 +137,10 @@ export class Plant
       primitives.scientificName !== null
     ) {
       props.scientificName = primitives.scientificName;
+    }
+
+    if (primitives.deletedAt) {
+      props.deletedAt = new Date(primitives.deletedAt);
     }
 
     return new Plant(props);

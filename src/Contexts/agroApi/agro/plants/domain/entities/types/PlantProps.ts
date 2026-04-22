@@ -7,6 +7,7 @@ import type {
   Uuid
 } from '../../../../../../shared/domain/valueObject/index.js';
 import type { PlantLifecycle, PlantSowing } from '../../value-objects/index.js';
+import type { PlantStatus } from './PlantStatus.js';
 
 export interface PlantProps {
   id: Uuid;
@@ -28,4 +29,6 @@ export interface PlantProps {
   spacingCm: Range;
 
   metadata: Metadata;
+  status?: PlantStatus;
+  deletedAt?: Date;
 }

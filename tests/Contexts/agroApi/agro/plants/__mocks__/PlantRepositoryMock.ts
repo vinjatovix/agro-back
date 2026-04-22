@@ -70,6 +70,10 @@ export class PlantRepositoryMock implements PlantRepository {
     expect(this.saveMock).toHaveBeenCalled();
   }
 
+  assertSaveNotCalled(): void {
+    expect(this.saveMock).not.toHaveBeenCalled();
+  }
+
   assertSaveHasBeenCalledWith(expected: Plant): void {
     expect(this.saveMock).toHaveBeenCalledWith(expected);
   }
