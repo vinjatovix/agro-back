@@ -1,3 +1,4 @@
+import type { UnknownRecord } from '../../../../../../shared/domain/types/UnknownRecord.js';
 import type { Plant } from '../entities/Plant.js';
 
 export interface PlantRepository {
@@ -5,8 +6,8 @@ export interface PlantRepository {
   save(plant: Plant): Promise<void>;
   updateWithDiff(
     current: Plant,
-    updated: Plant,
-    username: string
+    updated: UnknownRecord,
+    user: string
   ): Promise<void>;
   findAll(): Promise<Plant[]>;
   exists(id: string): Promise<boolean>;

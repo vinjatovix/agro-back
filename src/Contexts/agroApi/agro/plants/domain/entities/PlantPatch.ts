@@ -4,7 +4,7 @@ import type { PlantLifecycleValue } from './types/PlantLifecycleValue.js';
 export interface PlantPatch {
   id: string;
   name?: string;
-  scientificName?: string;
+  scientificName?: string | null;
   familyId?: string;
   lifecycle?: PlantLifecycleValue;
   spacingCm?: RangePrimitives;

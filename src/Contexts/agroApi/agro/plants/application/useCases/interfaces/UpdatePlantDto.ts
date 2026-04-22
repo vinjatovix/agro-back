@@ -9,7 +9,7 @@ export interface UpdatePlantDto {
   spacingCm?: RangePrimitives;
   floweringMonths?: number[];
   harvestMonths?: number[];
-  scientificName?: string;
+  scientificName?: string | null;
   size?: {
     height?: RangePrimitives;
     spread?: RangePrimitives;

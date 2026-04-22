@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/require-await */
 import { Plant } from '../../../../../../src/Contexts/agroApi/agro/plants/domain/entities/Plant.js';
-import type { PlantPatch } from '../../../../../../src/Contexts/agroApi/agro/plants/domain/entities/PlantPatch.js';
 import type { PlantRepository } from '../../../../../../src/Contexts/agroApi/agro/plants/domain/repositories/PlantRepository.js';
+import { applyPatch } from '../../../../../../src/shared/domain/patch/applyPatch.js';
+import type { UnknownRecord } from '../../../../../../src/shared/domain/types/UnknownRecord.js';
 
 export class PlantRepositoryMock implements PlantRepository {
   private readonly saveMock = jest.fn();
@@ -45,7 +46,7 @@ export class PlantRepositoryMock implements PlantRepository {
 
   async updateWithDiff(
     current: Plant,
-    updated: Plant,
+    updated: UnknownRecord,
     username: string
   ): Promise<void> {
     this.updateMock(current, updated, username);
@@ -56,7 +57,13 @@ export class PlantRepositoryMock implements PlantRepository {
       throw new Error(`Plant not found: ${id}`);
     }
 
-    this.storage.set(id, updated);
+    const currentPrimitives = current.toPrimitives();
+
+    const patchedPrimitives = applyPatch(currentPrimitives, updated);
+
+    const updatedPlant = Plant.fromPrimitives(patchedPrimitives);
+
+    this.storage.set(id, updatedPlant);
   }
 
   assertSaveHasBeenCalled(): void {
@@ -72,11 +79,13 @@ export class PlantRepositoryMock implements PlantRepository {
   }
 
   assertUpdateHasBeenCalledWith(
-    expectedPatch: PlantPatch,
+    expectedCurrent: Plant,
+    expectedUpdated: UnknownRecord,
     expectedUsername: string
   ): void {
     expect(this.updateMock).toHaveBeenCalledWith(
-      expectedPatch,
+      expectedCurrent,
+      expectedUpdated,
       expectedUsername
     );
   }

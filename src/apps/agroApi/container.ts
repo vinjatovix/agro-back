@@ -30,6 +30,11 @@ import {
   UpdatePasswordLocal,
   ValidateMail
 } from '../../Contexts/agroApi/Auth/application/index.js';
+import { MongoPlantRepository } from '../../Contexts/agroApi/agro/plants/infrastructure/persistence/MongoPlantRepository.js';
+import { CreatePlant } from '../../Contexts/agroApi/agro/plants/application/useCases/CreatePlant.js';
+import { GetPlant } from '../../Contexts/agroApi/agro/plants/application/useCases/GetPlant.js';
+import { UpdatePlant } from '../../Contexts/agroApi/agro/plants/application/useCases/UpdatePlant.js';
+import { ListPlants } from '../../Contexts/agroApi/agro/plants/application/useCases/ListPlants.js';
 
 /* eslint-disable
   @typescript-eslint/no-unsafe-argument,
@@ -58,7 +63,8 @@ const registerInfrastructureDependencies = (container: AppContainer): void => {
     environmentArranger: asClass(DBEnvironmentArranger).singleton(),
     encrypter: asClass(CryptAdapter).singleton(),
     googleIdTokenVerifier: asClass(GoogleIdTokenVerifierAdapter).singleton(),
-    authRepository: asClass(MongoAuthRepository).singleton()
+    authRepository: asClass(MongoAuthRepository).singleton(),
+    plantRepository: asClass(MongoPlantRepository).singleton()
   });
 };
 
@@ -93,6 +99,23 @@ const registerAuthUseCases = (container: AppContainer): void => {
   });
 };
 
+const registerPlantUseCases = (container: AppContainer): void => {
+  container.register({
+    createPlant: asFunction(
+      (plantRepository) => new CreatePlant(plantRepository)
+    ).scoped(),
+    getPlant: asFunction(
+      (plantRepository) => new GetPlant(plantRepository)
+    ).scoped(),
+    listPlants: asFunction(
+      (plantRepository) => new ListPlants(plantRepository)
+    ).scoped(),
+    updatePlant: asFunction(
+      (plantRepository) => new UpdatePlant(plantRepository)
+    ).scoped()
+  });
+};
+
 export const createAppContainer = (): AppContainer => {
   const container = createContainer({
     injectionMode: InjectionMode.CLASSIC
@@ -101,6 +124,6 @@ export const createAppContainer = (): AppContainer => {
   registerCoreDependencies(container);
   registerInfrastructureDependencies(container);
   registerAuthUseCases(container);
-
+  registerPlantUseCases(container);
   return container;
 };

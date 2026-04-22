@@ -93,23 +93,31 @@ export class Plant
   }
 
   static fromPrimitives(primitives: PlantPrimitives): Plant {
-    return new Plant({
+    const props: PlantProps = {
       id: new Uuid(primitives.id),
       name: primitives.name,
       familyId: primitives.familyId,
       lifecycle: PlantLifecycle.from(primitives.lifecycle),
+
       size: {
         height: Range.fromPrimitives(primitives.size.height),
         spread: Range.fromPrimitives(primitives.size.spread)
       },
+
       sowing: PlantSowing.fromPrimitives(primitives.sowing),
       floweringMonths: MonthSet.fromArray(primitives.floweringMonths),
       harvestMonths: MonthSet.fromArray(primitives.harvestMonths),
       spacingCm: Range.fromPrimitives(primitives.spacingCm),
-      ...(primitives.scientificName !== undefined && {
-        scientificName: primitives.scientificName
-      }),
       metadata: Metadata.fromPrimitives(primitives.metadata)
-    });
+    };
+
+    if (
+      primitives.scientificName !== undefined &&
+      primitives.scientificName !== null
+    ) {
+      props.scientificName = primitives.scientificName;
+    }
+
+    return new Plant(props);
   }
 }

@@ -20,7 +20,7 @@ function applyObjectPatch(
 
     // 2. CLEAR
     if (patchValue === null) {
-      delete result[key];
+      result[key] = null;
       continue;
     }
 

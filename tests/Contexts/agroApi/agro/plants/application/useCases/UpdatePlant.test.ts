@@ -1,5 +1,6 @@
 import { UpdatePlant } from '../../../../../../../src/Contexts/agroApi/agro/plants/application/useCases/index.js';
 import { PlantLifecycle } from '../../../../../../../src/Contexts/agroApi/agro/plants/domain/value-objects/index.js';
+import type { UnknownRecord } from '../../../../../../../src/shared/domain/types/UnknownRecord.js';
 import { Range } from '../../../../../../../src/shared/domain/value-objects/index.js';
 import { random } from '../../../../../shared/fixtures/index.js';
 import { PlantRepositoryMock } from '../../__mocks__/PlantRepositoryMock.js';
@@ -99,46 +100,23 @@ describe('UpdatePlant use case', () => {
     expect(updated.scientificName).toBe('New scientific name');
   });
 
-  // TODO: add test for clearing optional fields when explicitly set to null
-  // it('should allow clearing optional fields if explicitly set to null', async () => {
-  //   const plant = Plant.create({
-  //     id: UuidMother.random(),
-  //     name: 'Plant',
-  //     familyId: 'rosaceae',
-  //     lifecycle: PlantLifecycle.from('annual'),
-  //     size: {
-  //       height: new Range(10, 20),
-  //       spread: new Range(5, 10)
-  //     },
-  //     sowing: PlantSowing.fromPrimitives({
-  //       seedsPerHole: { min: 1, max: 2 },
-  //       germinationDays: { min: 7, max: 14 },
-  //       months: [1, 2],
-  //       methods: {
-  //         direct: { depthCm: { min: 1, max: 2 } }
-  //       }
-  //     }),
-  //     floweringMonths: new MonthSet([3, 4]),
-  //     harvestMonths: new MonthSet([5, 6]),
-  //     spacingCm: new Range(10, 15),
-  //     scientificName: 'Original scientific name',
-  //     metadata: Metadata.create('test')
-  //   });
+  it('should allow clearing optional fields if explicitly set to null', async () => {
+    const plant = PlantMother.tomato();
 
-  //   repository.addToStorage(plant);
+    repository.addToStorage(plant);
 
-  //   await useCase.execute(
-  //     {
-  //       id: plant.id.value,
-  //       scientificName: null
-  //     },
-  //     'user-1'
-  //   );
+    await useCase.execute(
+      {
+        id: plant.id.value,
+        scientificName: null
+      },
+      'user-1'
+    );
 
-  //   const updated = await repository.findById(plant.id.value);
+    const updated = await repository.findById(plant.id.value);
 
-  //   expect(updated.scientificName).toBeNull();
-  // });
+    expect(updated.scientificName).toBeUndefined();
+  });
 
   it('should throw if plant does not exist', async () => {
     const id = random.uuid();
@@ -151,5 +129,27 @@ describe('UpdatePlant use case', () => {
         'user-1'
       )
     ).rejects.toThrow(`Plant not found: ${id}`);
+  });
+
+  it('should call repository.updateWithDiff with correct payload', async () => {
+    const plant = PlantMother.tomato();
+
+    repository.addToStorage(plant);
+
+    const dto = {
+      id: plant.id.value,
+      name: 'Updated name'
+    };
+
+    await useCase.execute(dto, 'user-1');
+
+    repository.assertUpdateHasBeenCalledWith(
+      plant,
+      expect.objectContaining({
+        ...plant.toPrimitives(),
+        name: 'Updated name'
+      }) as unknown as UnknownRecord,
+      'user-1'
+    );
   });
 });
