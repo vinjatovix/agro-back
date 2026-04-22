@@ -25,7 +25,26 @@ const config: Config = {
 
   cacheDirectory: '.tmp/jestCache',
 
-  collectCoverage: false,
+  collectCoverage: true,
+
+  collectCoverageFrom: [
+    'src/**/*.ts',
+
+    '!src/**/*.d.ts',
+    '!src/index.ts',
+
+    '!src/**/interfaces/**',
+    '!src/**/types/**',
+    '!src/**/dto/**',
+
+    '!src/**/*.interface.ts',
+    '!src/**/*.interfaces.ts',
+    '!src/**/*.types.ts',
+    '!src/**/*.dto.ts'
+  ],
+
+  coverageDirectory: 'coverage',
+  coverageProvider: 'v8',
 
   watchPathIgnorePatterns: ['<rootDir>/test-report.json'],
 

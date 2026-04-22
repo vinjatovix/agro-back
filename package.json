@@ -19,10 +19,10 @@
     "build:di": "find ./src -type f \\( -name '*.json' -o -name '*.yml' -o -name '*.yaml' -o -name '*.html' -o -name '*.png' -o -name '*.env' \\) -exec cp --parents {} dist/ \\;",
     "build:tsc": "tsc -p tsconfig.prod.json --sourceMap false",
     "test": "npm run test:coverage",
-    "test:coverage": "npm run test:clean:coverage && c8 npm run test:all",
+    "test:coverage": "npm run test:clean:coverage && npm run test:all",
     "test:clean:coverage": "rm -rf coverage && rm -rf .c8_output",
     "test:all": "npm run test:unit && npm run test:features",
-    "test:unit": "jest --coverage=false --detectOpenHandles --forceExit",
+    "test:unit": "jest --coverage --detectOpenHandles --forceExit",
     "test:unit:watch": "jest --watch --detectOpenHandles --forceExit",
     "test:features": "cross-env NODE_ENV=test NODE_OPTIONS='--loader ts-node/esm' cucumber-js tests/**/*.feature --import ./setupTests.ts --import ./tests/apps/agroApi/features/step_definitions/controller.steps.ts",
     "prepare": "husky install"
