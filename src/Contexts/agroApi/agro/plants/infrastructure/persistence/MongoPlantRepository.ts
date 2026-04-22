@@ -64,35 +64,32 @@ export class MongoPlantRepository
     const currentPrimitives =
       current.toPrimitives() as unknown as UnknownRecord;
 
-    const updatedPrimitives = updated;
+    const diff = diffObjects(currentPrimitives, updated);
 
-    const diff = diffObjects(currentPrimitives, updatedPrimitives);
+    const patch = this.normalizePatch(diff);
+
+    const metadata = updateMetadata(new Username(username));
 
     const updateQuery: {
       $set?: UnknownRecord;
       $unset?: Record<string, ''>;
     } = {};
 
-    if (Object.keys(diff.set).length > 0) {
-      updateQuery.$set = diff.set;
+    if (Object.keys(patch.set).length > 0) {
+      updateQuery.$set = {
+        ...patch.set,
+        ...metadata
+      };
     }
 
-    if (Object.keys(diff.unset).length > 0) {
-      updateQuery.$unset = diff.unset;
+    if (Object.keys(patch.unset).length > 0) {
+      updateQuery.$unset = patch.unset;
     }
-
-    const metadata = updateMetadata(new Username(username));
-
-    updateQuery.$set = {
-      ...updateQuery.$set,
-      ...metadata
-    };
 
     await this.handleMongoError(() =>
       collection.updateOne({ _id: mongoId }, updateQuery)
     );
   }
-
   async findAll(): Promise<Plant[]> {
     const collection = await this.collection();
 
@@ -129,5 +126,30 @@ export class MongoPlantRepository
         scientificName: document.scientificName
       })
     });
+  }
+
+  private normalizePatch(diff: UnknownRecord): {
+    set: UnknownRecord;
+    unset: Record<string, ''>;
+  } {
+    const set: UnknownRecord = {};
+    const unset: Record<string, ''> = {};
+
+    for (const [key, value] of Object.entries(diff.set ?? {})) {
+      if (value === undefined) continue;
+
+      if (value === null) {
+        unset[key] = '';
+        continue;
+      }
+
+      set[key] = value;
+    }
+
+    for (const key of Object.keys(diff.unset ?? {})) {
+      unset[key] = '';
+    }
+
+    return { set, unset };
   }
 }
