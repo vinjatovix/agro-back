@@ -1,10 +1,8 @@
 import { Bed } from '../../../../../../src/Contexts/agroApi/agro/beds/domain/Bed.js';
 import { UuidMother } from '../../../../shared/fixtures/UuidMother.js';
-import { createPlantCatalog } from '../helpers/InMemoryPlantRepository.js';
 import { PlantInstanceMother } from './mothers/PlantInstanceMother.js';
 import type { SpatialService } from '../../../../../../src/Contexts/agroApi/agro/beds/domain/services/spatial/interfaces/SpatialService.js';
-
-const { plantRepository } = createPlantCatalog();
+import type { SpatialPlantModel } from '../../../../../../src/Contexts/agroApi/agro/beds/domain/services/spatial/interfaces/SpatialPlantModel.js';
 
 describe('Bed (unit)', () => {
   let validatePlacement: jest.Mock;
@@ -12,8 +10,27 @@ describe('Bed (unit)', () => {
 
   let bed: Bed;
 
+  const BED_DIMENSION = 200;
+  const DEFAULT_SPACING = 50;
+
+  const POSITION_A = { x: 10, y: 10 };
+  const POSITION_B = { x: 20, y: 20 };
+  const POSITION_C = { x: 50, y: 50 };
+
+  const toSpatial = (
+    plant: ReturnType<typeof PlantInstanceMother.atPosition>
+  ): SpatialPlantModel => ({
+    id: plant.id.value,
+    plantId: plant.plantId.value,
+    position: {
+      x: plant.position.x,
+      y: plant.position.y
+    },
+    spacingCm: DEFAULT_SPACING
+  });
+
   beforeAll(() => {
-    validatePlacement = jest.fn().mockResolvedValue(undefined);
+    validatePlacement = jest.fn();
 
     spatialService = {
       validatePlacement
@@ -26,71 +43,72 @@ describe('Bed (unit)', () => {
     bed = new Bed(
       UuidMother.random(),
       {
-        width: 200,
-        height: 200,
+        width: BED_DIMENSION,
+        height: BED_DIMENSION,
         plantInstances: []
       },
       spatialService
     );
   });
 
+  it('should expose correct dimensions and id', () => {
+    expect(bed.id).toBeDefined();
+    expect(bed.width).toBe(BED_DIMENSION);
+    expect(bed.height).toBe(BED_DIMENSION);
+  });
+
   it('should start with empty plant list', () => {
     expect(bed.plants).toHaveLength(0);
   });
 
-  it('should add plant when spatial service allows it', async () => {
-    const plant = PlantInstanceMother.atPosition(50, 50);
+  it('should call spatial service before adding plant', () => {
+    const plant = PlantInstanceMother.atPosition(POSITION_A.x, POSITION_A.y);
 
-    await bed.addPlant(plant, plantRepository);
+    const spatial = toSpatial(plant);
+
+    bed.addPlant(plant, spatial, []);
+
+    expect(validatePlacement).toHaveBeenCalledTimes(1);
+
+    expect(validatePlacement).toHaveBeenCalledWith(
+      {
+        width: BED_DIMENSION,
+        height: BED_DIMENSION,
+        plants: []
+      },
+      spatial
+    );
+  });
+
+  it('should not mutate state if spatial validation fails', () => {
+    validatePlacement.mockImplementationOnce(() => {
+      throw new Error('invalid');
+    });
+
+    const plant = PlantInstanceMother.atPosition(POSITION_A.x, POSITION_A.y);
+
+    expect(() => bed.addPlant(plant, toSpatial(plant), [])).toThrow('invalid');
+
+    expect(bed.plants).toHaveLength(0);
+  });
+
+  it('should add plant when spatial service allows it', () => {
+    const plant = PlantInstanceMother.atPosition(POSITION_C.x, POSITION_C.y);
+
+    bed.addPlant(plant, toSpatial(plant), []);
 
     expect(bed.plants).toHaveLength(1);
     expect(bed.plants[0]).toBe(plant);
   });
 
-  it('should call spatial service before adding plant', async () => {
-    const plant = PlantInstanceMother.atPosition(10, 10);
-
-    await bed.addPlant(plant, plantRepository);
-
-    const expectedContext: Partial<{
-      width: number;
-      height: number;
-      plants: unknown[];
-    }> = {
-      width: 200,
-      height: 200,
-      plants: expect.any(Array) as unknown[]
-    };
-
-    expect(validatePlacement).toHaveBeenCalledTimes(1);
-
-    expect(validatePlacement).toHaveBeenCalledWith(
-      expect.objectContaining(expectedContext),
-      plant,
-      plantRepository
-    );
-  });
-
-  it('should not mutate state if spatial validation fails', async () => {
-    validatePlacement.mockRejectedValueOnce(new Error('invalid'));
-
-    const plant = PlantInstanceMother.atPosition(10, 10);
-
-    await expect(bed.addPlant(plant, plantRepository)).rejects.toThrow(
-      'invalid'
-    );
-
-    expect(bed.plants).toHaveLength(0);
-  });
-
   it('should remove plant by id', () => {
-    const plant = PlantInstanceMother.atPosition(50, 50);
+    const plant = PlantInstanceMother.atPosition(POSITION_C.x, POSITION_C.y);
 
     bed = new Bed(
       bed.id,
       {
-        width: 200,
-        height: 200,
+        width: BED_DIMENSION,
+        height: BED_DIMENSION,
         plantInstances: [plant]
       },
       spatialService
@@ -107,20 +125,14 @@ describe('Bed (unit)', () => {
     expect(bed.plants).toHaveLength(0);
   });
 
-  it('should expose correct dimensions and id', () => {
-    expect(bed.id).toBeDefined();
-    expect(bed.width).toBe(200);
-    expect(bed.height).toBe(200);
-  });
-
   it('should serialize to primitives correctly', () => {
-    const plant = PlantInstanceMother.atPosition(50, 50);
+    const plant = PlantInstanceMother.atPosition(POSITION_C.x, POSITION_C.y);
 
     bed = new Bed(
       bed.id,
       {
-        width: 200,
-        height: 200,
+        width: BED_DIMENSION,
+        height: BED_DIMENSION,
         plantInstances: [plant]
       },
       spatialService
@@ -131,8 +143,8 @@ describe('Bed (unit)', () => {
     expect(result).toEqual(
       expect.objectContaining({
         id: bed.id.value,
-        width: 200,
-        height: 200,
+        width: BED_DIMENSION,
+        height: BED_DIMENSION,
         plantInstances: expect.arrayContaining([
           expect.objectContaining({
             id: plant.id.value,
@@ -143,33 +155,36 @@ describe('Bed (unit)', () => {
     );
   });
 
-  it('should pass plants array to spatial service on add', async () => {
-    const plant1 = PlantInstanceMother.atPosition(10, 10);
-    const plant2 = PlantInstanceMother.atPosition(20, 20);
+  it('should pass plants array to spatial service on add', () => {
+    const plant1 = PlantInstanceMother.atPosition(POSITION_A.x, POSITION_A.y);
+    const plant2 = PlantInstanceMother.atPosition(POSITION_B.x, POSITION_B.y);
 
-    await bed.addPlant(plant1, plantRepository);
-    await bed.addPlant(plant2, plantRepository);
+    const spatial1 = toSpatial(plant1);
+    const spatial2 = toSpatial(plant2);
+
+    bed.addPlant(plant1, spatial1, []);
+    bed.addPlant(plant2, spatial2, [spatial1]);
 
     expect(validatePlacement).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        plants: expect.any(Array) as unknown[]
-      }),
-      plant2,
-      plantRepository
+      {
+        width: BED_DIMENSION,
+        height: BED_DIMENSION,
+        plants: [spatial1]
+      },
+      spatial2
     );
   });
 
-  it('should call spatial service before mutating state', async () => {
-    const plant = PlantInstanceMother.atPosition(10, 10);
+  it('should call spatial service before mutating state', () => {
+    const plant = PlantInstanceMother.atPosition(POSITION_A.x, POSITION_A.y);
 
-    let capturedPlants: unknown;
+    let capturedPlants: unknown[] = [];
 
     validatePlacement.mockImplementation((context: { plants: unknown[] }) => {
       capturedPlants = context.plants;
-      return Promise.resolve();
     });
 
-    await bed.addPlant(plant, plantRepository);
+    bed.addPlant(plant, toSpatial(plant), []);
 
     expect(capturedPlants).toHaveLength(0);
   });

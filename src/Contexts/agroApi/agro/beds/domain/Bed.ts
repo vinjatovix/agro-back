@@ -1,10 +1,10 @@
 import { AggregateRoot } from '../../../../shared/domain/AggregateRoot.js';
 import type { Serializable } from '../../../../shared/domain/interfaces/index.js';
 import type { Uuid } from '../../../../shared/domain/valueObject/index.js';
-import type { PlantRepository } from '../../plants/domain/repositories/PlantRepository.js';
 import type { PlantInstance } from './entities/PlantInstance.js';
 import type { BedPrimitives, BedProps } from './interfaces/index.js';
 import { BasicSpatialService } from './services/spatial/BasicSpatialService.js';
+import type { SpatialPlantModel } from './services/spatial/interfaces/SpatialPlantModel.js';
 import type { SpatialService } from './services/spatial/interfaces/SpatialService.js';
 
 export class Bed
@@ -38,21 +38,21 @@ export class Bed
     return [...this.props.plantInstances];
   }
 
-  async addPlant(
-    plantInstance: PlantInstance,
-    plantRepository: PlantRepository
-  ): Promise<void> {
-    await this.spatialService.validatePlacement(
+  addPlant(
+    plant: PlantInstance,
+    newPlantSpatial: SpatialPlantModel,
+    existingSpatialPlants: SpatialPlantModel[]
+  ): void {
+    this.spatialService.validatePlacement(
       {
         width: this.props.width,
         height: this.props.height,
-        plants: [...this.props.plantInstances]
+        plants: existingSpatialPlants
       },
-      plantInstance,
-      plantRepository
+      newPlantSpatial
     );
 
-    this.props.plantInstances.push(plantInstance);
+    this.props.plantInstances.push(plant);
   }
 
   removePlant(plantId: Uuid): void {

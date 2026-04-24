@@ -1,10 +1,11 @@
-import type { PlantInstance } from '../../../../../../../src/Contexts/agroApi/agro/beds/domain/entities/PlantInstance.js';
 import { BasicSpatialService } from '../../../../../../../src/Contexts/agroApi/agro/beds/domain/services/spatial/BasicSpatialService.js';
+import type { SpatialPlantModel } from '../../../../../../../src/Contexts/agroApi/agro/beds/domain/services/spatial/interfaces/SpatialPlantModel.js';
 import { createPlantCatalog } from '../../helpers/InMemoryPlantRepository.js';
 import { PlantInstanceMother } from '../mothers/PlantInstanceMother.js';
 import { SpatialTestScenarioBuilder } from '../mothers/SpatialTestScenarioBuilder.js';
+import { convertToSpatialPlant } from '../../helpers/convertToSpatialPlant.js';
 
-const { plantRepository, fixtures } = createPlantCatalog();
+const { fixtures } = createPlantCatalog();
 
 describe('BasicSpatialService', () => {
   const service = new BasicSpatialService();
@@ -12,123 +13,126 @@ describe('BasicSpatialService', () => {
   const bed = {
     width: 200,
     height: 200,
-    plants: [] as PlantInstance[]
+    plants: [] as SpatialPlantModel[]
   };
 
-  const tomatoSafeSpacingInCm = fixtures.tomato.traits.spacingCm.max;
+  const CROP = fixtures.tomato;
+  const SPACING_CM = CROP.traits.spacingCm.max;
 
   describe('validatePlacement', () => {
-    it('allows valid placement', async () => {
+    it('allows valid placement', () => {
       const { newPlant } = SpatialTestScenarioBuilder.safePlacement(
         bed,
-        tomatoSafeSpacingInCm
+        SPACING_CM
       );
 
-      await expect(
+      expect(() =>
         service.validatePlacement(
           bed,
-          newPlant(PlantInstanceMother, fixtures.tomato),
-          plantRepository
+          convertToSpatialPlant(newPlant(PlantInstanceMother, CROP), SPACING_CM)
         )
-      ).resolves.toBeUndefined();
+      ).not.toThrow();
     });
 
-    it('rejects out of bounds (min limit)', async () => {
-      const build = SpatialTestScenarioBuilder.outOfBoundsMin(
-        tomatoSafeSpacingInCm
+    it('rejects out of bounds (min limit)', () => {
+      const build = SpatialTestScenarioBuilder.outOfBoundsMin();
+
+      const plant = convertToSpatialPlant(
+        build(PlantInstanceMother, CROP),
+        SPACING_CM
       );
 
-      const plant = build(PlantInstanceMother, fixtures.tomato);
-
-      await expect(
-        service.validatePlacement(bed, plant, plantRepository)
-      ).rejects.toThrow('Plant out of bounds (min limit)');
-    });
-
-    it('rejects out of bounds (max limit)', async () => {
-      const build = SpatialTestScenarioBuilder.outOfBoundsMax(
-        bed,
-        tomatoSafeSpacingInCm
+      expect(() => service.validatePlacement(bed, plant)).toThrow(
+        'Plant out of bounds (min limit)'
       );
-
-      const plant = build(PlantInstanceMother, fixtures.tomato);
-
-      await expect(
-        service.validatePlacement(bed, plant, plantRepository)
-      ).rejects.toThrow('Plant out of bounds (max limit)');
     });
 
-    it('detects collision with existing plant', async () => {
-      const { existing, newPlant } = SpatialTestScenarioBuilder.colliding(
-        tomatoSafeSpacingInCm
-      );
-
-      const ctx = {
-        ...bed,
-        plants: [existing(PlantInstanceMother, fixtures.tomato)]
-      };
-
-      await expect(
-        service.validatePlacement(
-          ctx,
-          newPlant(PlantInstanceMother, fixtures.tomato),
-          plantRepository
-        )
-      ).rejects.toThrow('Collision detected');
-    });
-
-    it('ignores self but detects other collisions', async () => {
+    it('rejects out of bounds (max limit)', () => {
       const plant = PlantInstanceMother.fromPlantAtPosition(
-        fixtures.tomato,
-        tomatoSafeSpacingInCm,
-        tomatoSafeSpacingInCm
+        CROP,
+        bed.width + 1,
+        bed.height + 1
       );
 
-      const ctx = {
-        ...bed,
-        plants: [plant]
-      };
+      const spatial = convertToSpatialPlant(plant, SPACING_CM);
 
-      await expect(
-        service.validatePlacement(ctx, plant, plantRepository)
-      ).resolves.toBeUndefined();
+      expect(() => service.validatePlacement(bed, spatial)).toThrow(
+        'Plant out of bounds (max limit)'
+      );
     });
 
-    it('detects collision in crowded environment', async () => {
-      const { existing, newPlant } = SpatialTestScenarioBuilder.colliding(
-        tomatoSafeSpacingInCm
-      );
+    it('detects collision with existing plant', () => {
+      const { existing, newPlant } =
+        SpatialTestScenarioBuilder.colliding(SPACING_CM);
 
       const ctx = {
         ...bed,
         plants: [
-          existing(PlantInstanceMother, fixtures.tomato),
-          PlantInstanceMother.fromPlantAtPosition(fixtures.tomato, 120, 120),
-          PlantInstanceMother.fromPlantAtPosition(fixtures.tomato, 160, 160)
+          convertToSpatialPlant(existing(PlantInstanceMother, CROP), SPACING_CM)
         ]
       };
 
-      await expect(
-        service.validatePlacement(
-          ctx,
-          newPlant(PlantInstanceMother, fixtures.tomato),
-          plantRepository
-        )
-      ).rejects.toThrow('Collision detected');
-    });
-
-    it('allows boundary-aligned placement', async () => {
-      const center = tomatoSafeSpacingInCm / 2;
-
-      const plant = PlantInstanceMother.fromPlantAtPosition(
-        fixtures.tomato,
-        center,
-        center
+      const plant = convertToSpatialPlant(
+        newPlant(PlantInstanceMother, CROP),
+        SPACING_CM
       );
 
-      await expect(
-        service.validatePlacement(bed, plant, plantRepository)
-      ).resolves.toBeUndefined();
+      expect(() => service.validatePlacement(ctx, plant)).toThrow(
+        'Collision detected'
+      );
+    });
+
+    it('ignores self but detects other collisions', () => {
+      const plant = PlantInstanceMother.fromPlantAtPosition(
+        CROP,
+        SPACING_CM,
+        SPACING_CM
+      );
+
+      const ctx = {
+        ...bed,
+        plants: [convertToSpatialPlant(plant, SPACING_CM)]
+      };
+
+      expect(() =>
+        service.validatePlacement(ctx, convertToSpatialPlant(plant, SPACING_CM))
+      ).not.toThrow();
+    });
+
+    it('detects collision in crowded environment', () => {
+      const { existingPlants, newPlant } =
+        SpatialTestScenarioBuilder.crowded(SPACING_CM);
+
+      const ctx = {
+        ...bed,
+        plants: existingPlants(PlantInstanceMother, CROP).map((p) =>
+          convertToSpatialPlant(p, SPACING_CM)
+        )
+      };
+
+      const plant = convertToSpatialPlant(
+        newPlant(PlantInstanceMother, fixtures.tomato),
+        SPACING_CM
+      );
+
+      expect(() => service.validatePlacement(ctx, plant)).toThrow(
+        'Collision detected'
+      );
+    });
+
+    it('allows boundary-aligned placement', () => {
+      const center = SPACING_CM / 2;
+
+      const plant = convertToSpatialPlant(
+        PlantInstanceMother.fromPlantAtPosition(
+          fixtures.tomato,
+          center,
+          center
+        ),
+        SPACING_CM
+      );
+
+      expect(() => service.validatePlacement(bed, plant)).not.toThrow();
     });
   });
 });

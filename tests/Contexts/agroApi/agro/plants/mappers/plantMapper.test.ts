@@ -3,6 +3,7 @@ import { CreatePlantDtoMother } from '../application/useCases/mothers/CreatePlan
 import { CreatePlant } from '../../../../../../src/Contexts/agroApi/agro/plants/application/useCases/CreatePlant.js';
 import { PlantRepositoryMock } from '../__mocks__/PlantRepositoryMock.js';
 import { PollinationType } from '../../../../../../src/Contexts/agroApi/agro/plants/domain/entities/types/PollinationType.js';
+import type { UpdatePlantDto } from '../../../../../../src/Contexts/agroApi/agro/plants/application/useCases/interfaces/UpdatePlantDto.js';
 
 describe('PlantMapper', () => {
   let repo: PlantRepositoryMock;
@@ -135,5 +136,91 @@ describe('PlantMapper', () => {
     const p = plantMapper.toPrimitives(plant);
 
     expect(p.knowledge).toBeDefined();
+  });
+
+  it('mapKnowledge should return empty when null or empty', () => {
+    expect(plantMapper.mapKnowledge(null)).toBeDefined();
+    expect(plantMapper.mapKnowledge(undefined)).toBeDefined();
+    expect(plantMapper.mapKnowledge({})).toBeDefined();
+  });
+
+  describe('fromUpdateDtoToPrimitivesPatch', () => {
+    it('should map identity fields', () => {
+      const patch = plantMapper.fromUpdateDtoToPrimitivesPatch({
+        id: 'plant-1',
+        identity: {
+          name: { primary: 'Tomate', aliases: ['Tomato'] },
+          scientificName: 'Solanum lycopersicum',
+          familyId: 'solanaceae'
+        }
+      });
+
+      expect(patch.identity?.name?.primary).toBe('Tomate');
+      expect(patch.identity?.name?.aliases).toEqual(['Tomato']);
+      expect(patch.identity?.scientificName).toBe('Solanum lycopersicum');
+      expect(patch.identity?.familyId).toBe('solanaceae');
+    });
+
+    it('should map traits fields', () => {
+      const patch = plantMapper.fromUpdateDtoToPrimitivesPatch({
+        id: 'plant-1',
+        traits: {
+          lifecycle: 'annual',
+          spacingCm: { min: 10, max: 50 },
+          size: {
+            height: { min: 10, max: 100 },
+            spread: { min: 20, max: 80 }
+          }
+        }
+      });
+
+      expect(patch.traits?.lifecycle).toBe('annual');
+      expect(patch.traits?.spacingCm).toEqual({ min: 10, max: 50 });
+      expect(patch.traits?.size?.height).toEqual({ min: 10, max: 100 });
+      expect(patch.traits?.size?.spread).toEqual({ min: 20, max: 80 });
+    });
+
+    it('should map phenology sowing fields', () => {
+      const patch = plantMapper.fromUpdateDtoToPrimitivesPatch({
+        id: 'plant-1',
+        phenology: {
+          sowing: {
+            months: [1, 2],
+            seedsPerHole: { min: 3, max: 3 },
+            germinationDays: { min: 5, max: 10 },
+            methods: {
+              direct: { depthCm: { min: 2, max: 2 } },
+              starter: { depthCm: { min: 1, max: 1 } }
+            }
+          }
+        }
+      });
+
+      expect(patch.phenology?.sowing?.months).toEqual([1, 2]);
+      expect(patch.phenology?.sowing?.seedsPerHole).toEqual({ min: 3, max: 3 });
+      expect(patch.phenology?.sowing?.methods?.direct?.depthCm).toEqual({
+        min: 2,
+        max: 2
+      });
+    });
+
+    it('should map knowledge', () => {
+      const patch = plantMapper.fromUpdateDtoToPrimitivesPatch({
+        id: 'plant-1',
+        knowledge: {
+          notes: ['water regularly']
+        }
+      });
+
+      expect(patch.knowledge).toBeDefined();
+    });
+
+    it('should return empty patch when dto is empty', () => {
+      const patch = plantMapper.fromUpdateDtoToPrimitivesPatch(
+        {} as UpdatePlantDto
+      );
+
+      expect(patch).toEqual({});
+    });
   });
 });

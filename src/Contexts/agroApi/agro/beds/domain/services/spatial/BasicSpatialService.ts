@@ -1,66 +1,54 @@
-import { Uuid } from '../../../../../../shared/domain/valueObject/Uuid.js';
-import type { PlantRepository } from '../../../../plants/domain/repositories/PlantRepository.js';
-import type { PlantInstance } from '../../entities/PlantInstance.js';
-import type {
-  SpatialContext,
-  SpatialService
-} from './interfaces/SpatialService.js';
+import type { SpatialService } from './interfaces/SpatialService.js';
+import type { SpatialContext } from './interfaces/SpatialContext.js';
+import type { SpatialPlantModel } from './interfaces/SpatialPlantModel.js';
 
 export class BasicSpatialService implements SpatialService {
-  async validatePlacement(
+  validatePlacement(
     context: SpatialContext,
-    newPlant: PlantInstance,
-    plantRepository: PlantRepository
-  ): Promise<void> {
-    const plantData = await plantRepository.findById(newPlant.plantId.value);
-    const newSpacing = plantData.traits.spacingCm.max;
-    const newRadius = newSpacing / 2;
-
-    this.validateBounds(context, newPlant, newRadius);
-
-    await this.validateCollisions(
-      context,
-      newPlant,
-      newSpacing,
-      plantRepository
-    );
+    newPlant: SpatialPlantModel
+  ): void {
+    this.validateBounds(context, newPlant);
+    this.validateCollisions(context, newPlant);
   }
 
   private validateBounds(
     context: SpatialContext,
-    plant: PlantInstance,
-    radius: number
+    plant: SpatialPlantModel
   ): void {
     const { x, y } = plant.position;
-    if (x - radius < 0 || y - radius < 0) {
+
+    if (x < 0 || y < 0) {
       throw new Error('Plant out of bounds (min limit)');
     }
-    if (x + radius > context.width || y + radius > context.height) {
+
+    if (x > context.width || y > context.height) {
       throw new Error('Plant out of bounds (max limit)');
     }
   }
 
-  private async validateCollisions(
+  private validateCollisions(
     context: SpatialContext,
-    newPlant: PlantInstance,
-    newSpacing: number,
-    plantRepository: PlantRepository
-  ): Promise<void> {
+    newPlant: SpatialPlantModel
+  ): void {
     for (const existing of context.plants) {
-      if (Uuid.equals(existing.id, newPlant.id)) continue;
+      if (existing.id === newPlant.id) continue;
 
-      const existingData = await plantRepository.findById(
-        existing.plantId.value
-      );
-      const existingSpacing = existingData.traits.spacingCm.max;
-      const distance = existing.position.distanceTo(newPlant.position);
-      const minDistance = Math.max(newSpacing, existingSpacing);
+      const distance = this.distance(existing.position, newPlant.position);
 
-      if (distance < minDistance) {
+      const minDistance = Math.max(existing.spacingCm, newPlant.spacingCm);
+
+      if (distance <= minDistance) {
         throw new Error(
-          `Collision detected between ${existing.id.value} and ${newPlant.id.value}`
+          `Collision detected between ${existing.id} and ${newPlant.id}`
         );
       }
     }
+  }
+
+  private distance(
+    a: { x: number; y: number },
+    b: { x: number; y: number }
+  ): number {
+    return Math.hypot(a.x - b.x, a.y - b.y);
   }
 }

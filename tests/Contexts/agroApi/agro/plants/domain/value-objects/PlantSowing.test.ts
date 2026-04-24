@@ -88,7 +88,9 @@ describe('PlantSowing (value object)', () => {
       }
     });
 
-    expect(sowing.months.toArray()).toEqual(sowingMonths.sort((a, b) => a - b));
+    const expectedMonths = [...sowingMonths].sort((a, b) => a - b);
+
+    expect(sowing.months.toArray()).toEqual(expectedMonths);
   });
 
   it('should preserve optional starter method', () => {

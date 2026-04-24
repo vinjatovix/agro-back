@@ -1,16 +1,6 @@
-import type { PlantRepository } from '../../../../../plants/domain/repositories/PlantRepository.js';
-import type { PlantInstance } from '../../../entities/PlantInstance.js';
-
-export interface SpatialContext {
-  width: number;
-  height: number;
-  plants: PlantInstance[];
-}
+import type { SpatialContext } from './SpatialContext.js';
+import type { SpatialPlantModel } from './SpatialPlantModel.js';
 
 export interface SpatialService {
-  validatePlacement(
-    context: SpatialContext,
-    newPlant: PlantInstance,
-    plantRepository: PlantRepository
-  ): Promise<void>;
+  validatePlacement(context: SpatialContext, newPlant: SpatialPlantModel): void;
 }

@@ -52,11 +52,9 @@ export const SpatialTestScenarioBuilder = {
     };
   },
 
-  outOfBoundsMin(spacing: number) {
-    const { center } = spacingToStep(spacing);
-
+  outOfBoundsMin() {
     return (factory: PlantFactory, plant: Plant) =>
-      factory.fromPlantAtPosition(plant, center - 1, center - 1);
+      factory.fromPlantAtPosition(plant, -1, -1);
   },
 
   outOfBoundsMax(context: { width: number; height: number }, spacing: number) {
@@ -90,12 +88,16 @@ export const SpatialTestScenarioBuilder = {
           ];
 
     return {
-      existing: (factory: PlantFactory, plant: Plant) =>
-        factory.fromPlantAtPosition(plant, base, base),
-
-      extraPlants: (factory: PlantFactory, plant: Plant) =>
+      existingPlants: (factory: PlantFactory, plant: Plant) =>
         offsets.map((o) =>
           factory.fromPlantAtPosition(plant, base + o.x, base + o.y)
+        ),
+
+      newPlant: (factory: PlantFactory, plant: Plant) =>
+        factory.fromPlantAtPosition(
+          plant,
+          base + spacing * 1.5,
+          base + spacing * 1.5
         )
     };
   }

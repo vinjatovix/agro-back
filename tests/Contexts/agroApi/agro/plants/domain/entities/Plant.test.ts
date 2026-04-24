@@ -159,28 +159,29 @@ describe('Plant (aggregate root)', () => {
   it('should not allow inconsistent state if ACTIVE but deletedAt is provided', () => {
     const deletedAt = new Date();
 
-    expect(() => {
-      new Plant({
-        id: UuidMother.random(),
-        identity: {
-          name: { primary: 'Tomato' },
-          familyId: 'solanaceae'
-        },
-        traits: {
-          lifecycle: PlantLifecycle.from('annual'),
-          size: {
-            height: Range.single(10),
-            spread: Range.single(20)
+    expect(
+      () =>
+        new Plant({
+          id: UuidMother.random(),
+          identity: {
+            name: { primary: 'Tomato' },
+            familyId: 'solanaceae'
           },
-          spacingCm: Range.single(15)
-        },
-        phenology: buildPlant().phenology,
-        knowledge: PlantKnowledge.empty(),
-        metadata: Metadata.create('system'),
-        status: PlantStatus.ACTIVE,
-        deletedAt
-      });
-    }).toThrow('Active plant cannot have deletedAt');
+          traits: {
+            lifecycle: PlantLifecycle.from('annual'),
+            size: {
+              height: Range.single(10),
+              spread: Range.single(20)
+            },
+            spacingCm: Range.single(15)
+          },
+          phenology: buildPlant().phenology,
+          knowledge: PlantKnowledge.empty(),
+          metadata: Metadata.create('system'),
+          status: PlantStatus.ACTIVE,
+          deletedAt
+        })
+    ).toThrow('Active plant cannot have deletedAt');
   });
 
   it('should allow DELETED plant without deletedAt only if set via markAsDeleted', () => {
