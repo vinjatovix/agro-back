@@ -1,5 +1,5 @@
 import type { PlantInstance } from '../../../../../../../src/Contexts/agroApi/agro/beds/domain/entities/PlantInstance.js';
-import { BasicSpatialService } from '../../../../../../../src/Contexts/agroApi/agro/beds/domain/services/BasicSpatialService.js';
+import { BasicSpatialService } from '../../../../../../../src/Contexts/agroApi/agro/beds/domain/services/spatial/BasicSpatialService.js';
 import { createPlantCatalog } from '../../helpers/InMemoryPlantRepository.js';
 import { PlantInstanceMother } from '../mothers/PlantInstanceMother.js';
 import { SpatialTestScenarioBuilder } from '../mothers/SpatialTestScenarioBuilder.js';

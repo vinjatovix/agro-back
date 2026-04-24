@@ -2,7 +2,7 @@ import { Bed } from '../../../../../../src/Contexts/agroApi/agro/beds/domain/Bed
 import { UuidMother } from '../../../../shared/fixtures/UuidMother.js';
 import { createPlantCatalog } from '../helpers/InMemoryPlantRepository.js';
 import { PlantInstanceMother } from './mothers/PlantInstanceMother.js';
-import type { SpatialService } from '../../../../../../src/Contexts/agroApi/agro/beds/domain/services/SpatialService.js';
+import type { SpatialService } from '../../../../../../src/Contexts/agroApi/agro/beds/domain/services/spatial/interfaces/SpatialService.js';
 
 const { plantRepository } = createPlantCatalog();
 

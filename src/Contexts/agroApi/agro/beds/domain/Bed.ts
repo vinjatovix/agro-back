@@ -4,7 +4,8 @@ import type { Uuid } from '../../../../shared/domain/valueObject/index.js';
 import type { PlantRepository } from '../../plants/domain/repositories/PlantRepository.js';
 import type { PlantInstance } from './entities/PlantInstance.js';
 import type { BedPrimitives, BedProps } from './interfaces/index.js';
-import { BasicSpatialService, type SpatialService } from './services/index.js';
+import { BasicSpatialService } from './services/spatial/BasicSpatialService.js';
+import type { SpatialService } from './services/spatial/interfaces/SpatialService.js';
 
 export class Bed
   extends AggregateRoot<Uuid>

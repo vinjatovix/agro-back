@@ -1,7 +1,10 @@
-import { Uuid } from '../../../../../shared/domain/valueObject/Uuid.js';
-import type { PlantRepository } from '../../../plants/domain/repositories/PlantRepository.js';
-import type { PlantInstance } from '../entities/PlantInstance.js';
-import type { SpatialContext, SpatialService } from './SpatialService.js';
+import { Uuid } from '../../../../../../shared/domain/valueObject/Uuid.js';
+import type { PlantRepository } from '../../../../plants/domain/repositories/PlantRepository.js';
+import type { PlantInstance } from '../../entities/PlantInstance.js';
+import type {
+  SpatialContext,
+  SpatialService
+} from './interfaces/SpatialService.js';
 
 export class BasicSpatialService implements SpatialService {
   async validatePlacement(
