@@ -1,12 +1,13 @@
 import type { UnknownRecord } from '../types/UnknownRecord.js';
+import type { DeepPartial } from './DeepPartial.js';
 import { isArray } from './utils/isArray.js';
 import { isObject } from './utils/isObject.js';
 import { isPrimitive } from './utils/isPrimitive.js';
 
-function applyObjectPatch(
-  target: UnknownRecord,
-  patch: UnknownRecord
-): UnknownRecord {
+function applyObjectPatch<T extends UnknownRecord>(
+  target: T,
+  patch: DeepPartial<T>
+): T {
   const result: UnknownRecord = { ...target };
 
   for (const key of Object.keys(patch)) {
@@ -45,23 +46,17 @@ function applyObjectPatch(
     result[key] = patchValue;
   }
 
-  return result;
+  return result as T;
 }
 
-export function applyPatch<TTarget, TPatch>(
-  target: TTarget,
-  patch: TPatch
-): TTarget {
+export function applyPatch<T>(target: T, patch: DeepPartial<T>): T {
   if (patch === null || patch === undefined) {
     return target;
   }
 
   if (typeof patch !== 'object' || typeof target !== 'object') {
-    return patch as TTarget;
+    return patch as T;
   }
 
-  return applyObjectPatch(
-    target as UnknownRecord,
-    patch as UnknownRecord
-  ) as TTarget;
+  return applyObjectPatch(target as UnknownRecord, patch as UnknownRecord) as T;
 }

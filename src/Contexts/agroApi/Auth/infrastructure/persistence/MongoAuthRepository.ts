@@ -29,7 +29,7 @@ export interface AuthDocument {
 }
 
 export class MongoAuthRepository
-  extends MongoRepository<User>
+  extends MongoRepository
   implements UserRepository
 {
   protected collectionName(): string {
@@ -37,7 +37,7 @@ export class MongoAuthRepository
   }
 
   async save(user: User): Promise<void> {
-    return this.persist(user.id.value, user);
+    await this.persist(user.id.value, user.toPrimitives());
   }
 
   async update(user: UserPatch, username: Username): Promise<void> {

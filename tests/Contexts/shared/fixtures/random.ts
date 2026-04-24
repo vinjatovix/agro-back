@@ -7,7 +7,7 @@ class Random {
     this.chance = new Chance();
   }
 
-  public arrayElement(array: unknown[] = []): unknown {
+  public arrayElement<T>(array: T[] = []): T {
     return this.chance.pickone(array);
   }
 

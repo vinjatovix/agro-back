@@ -1,0 +1,199 @@
+[
+  {
+    "_id": "plant_calendula",
+
+    "identity": {
+      "name": {
+        "primary": "Caléndula",
+        "aliases": ["Maravilla"]
+      },
+      "familyId": "fam_asteraceae",
+      "scientificName": "Calendula officinalis"
+    },
+
+    "traits": {
+      "lifecycle": "perennial",
+
+      "size": {
+        "height": {
+          "min": 30,
+          "max": 60
+        },
+        "spread": {
+          "min": 20,
+          "max": 40
+        }
+      },
+
+      "spacingCm": {
+        "min": 20,
+        "max": 30
+      }
+    },
+
+    "phenology": {
+      "sowing": {
+        "seedsPerHole": {
+          "min": 2,
+          "max": 3
+        },
+        "germinationDays": {
+          "min": 7,
+          "max": 14
+        },
+        "months": [3, 4, 5, 6],
+        "methods": {
+          "direct": {
+            "depthCm": {
+              "min": 1,
+              "max": 2
+            }
+          },
+          "starter": {
+            "depthCm": {
+              "min": 0.5,
+              "max": 1
+            }
+          }
+        }
+      },
+
+      "flowering": {
+        "months": [4, 5, 6, 7, 8, 9, 10],
+        "pollination": {
+          "type": "insect",
+          "agents": ["bees", "butterflies"]
+        }
+      },
+
+      "harvest": {
+        "months": [5, 6, 7, 8, 9, 10],
+        "description": "Harvest flowers when fully open and dry on plant."
+      }
+    },
+
+    "knowledge": {
+      "soil": {
+        "ph": {
+          "min": 6.0,
+          "max": 7.5
+        },
+        "availableDepthCm": {
+          "min": 15,
+          "max": 30
+        }
+      },
+
+      "rootSystem": {
+        "type": "taproot",
+        "depthCm": {
+          "min": 20,
+          "max": 50
+        },
+        "spreadCm": {
+          "min": 10,
+          "max": 25
+        }
+      },
+
+      "watering": {
+        "frequency": "weekly",
+        "amountMm": 25,
+        "conditions": ["no_rain"]
+      },
+
+      "light": {
+        "hoursMin": 6,
+        "type": "full_sun",
+        "preference": "morning"
+      },
+
+      "pruning": [
+        {
+          "type": "maintenance",
+          "intensity": "light",
+          "season": "spring",
+          "frequencyPerYear": 2,
+          "bestPractices": [
+            "Remove wilted flowers",
+            "Encourage continuous blooming"
+          ]
+        }
+      ],
+
+      "propagation": {
+        "methods": {
+          "seeds": {
+            "season": "spring",
+            "estimatedTimeWeeks": {
+              "min": 1,
+              "max": 2
+            },
+            "bestPractices": [
+              "Sow directly in place",
+              "Keep soil moist during germination"
+            ]
+          },
+          "cuttings": {
+            "season": "spring",
+            "estimatedTimeWeeks": {
+              "min": 3,
+              "max": 5
+            },
+            "bestPractices": [
+              "Use semi-hardwood cuttings",
+              "Maintain humidity"
+            ]
+          }
+        }
+      },
+
+      "ecology": {
+        "strategicBenefits": [
+          "attr_pollinator",
+          "trap_crop",
+          "nematode_control"
+        ]
+      },
+
+      "resources": [
+        {
+          "type": "image",
+          "url": "https://example.com/calendula.jpg",
+          "title": "Caléndula en flor",
+          "source": "system",
+          "tags": ["flower", "reference"]
+        },
+        {
+          "type": "article",
+          "url": "https://example.com/calendula-care",
+          "title": "Guía de cultivo de caléndula",
+          "source": "system",
+          "tags": ["care", "guide"]
+        },
+        {
+          "type": "video",
+          "url": "https://example.com/calendula-video",
+          "title": "Cultivo paso a paso",
+          "source": "system",
+          "tags": ["tutorial"]
+        }
+      ],
+
+      "notes": [
+        "Self-sows easily",
+        "May require thinning after germination"
+      ]
+    },
+
+    "metadata": {
+      "createdAt": "2026-04-18T10:00:00Z",
+      "createdBy": "system",
+      "updatedAt": "2026-04-18T10:00:00Z",
+      "updatedBy": "system"
+    },
+
+    "status": "ACTIVE",
+    "deletedAt": null
+  }
+]

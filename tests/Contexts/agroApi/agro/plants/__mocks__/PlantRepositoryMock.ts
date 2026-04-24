@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/require-await */
 import { Plant } from '../../../../../../src/Contexts/agroApi/agro/plants/domain/entities/Plant.js';
+import type { PlantPrimitives } from '../../../../../../src/Contexts/agroApi/agro/plants/domain/entities/types/PlantPrimitives.js';
 import type { PlantRepository } from '../../../../../../src/Contexts/agroApi/agro/plants/domain/repositories/PlantRepository.js';
+import { plantMapper } from '../../../../../../src/Contexts/agroApi/agro/plants/mappers/plantMapper.js';
 import { applyPatch } from '../../../../../../src/shared/domain/patch/applyPatch.js';
-import type { UnknownRecord } from '../../../../../../src/shared/domain/types/UnknownRecord.js';
 
 export class PlantRepositoryMock implements PlantRepository {
   private readonly saveMock = jest.fn();
@@ -45,23 +46,21 @@ export class PlantRepositoryMock implements PlantRepository {
   }
 
   async updateWithDiff(
-    current: Plant,
-    updated: UnknownRecord,
+    current: PlantPrimitives,
+    updated: unknown,
     username: string
   ): Promise<void> {
     this.updateMock(current, updated, username);
 
-    const id = current.id.value;
+    const id = current.id;
 
     if (!this.storage.has(id)) {
       throw new Error(`Plant not found: ${id}`);
     }
 
-    const currentPrimitives = current.toPrimitives();
+    const patchedPrimitives = applyPatch(current, updated as PlantPrimitives);
 
-    const patchedPrimitives = applyPatch(currentPrimitives, updated);
-
-    const updatedPlant = Plant.fromPrimitives(patchedPrimitives);
+    const updatedPlant = plantMapper.fromPrimitives(patchedPrimitives);
 
     this.storage.set(id, updatedPlant);
   }
@@ -70,28 +69,24 @@ export class PlantRepositoryMock implements PlantRepository {
     expect(this.saveMock).toHaveBeenCalled();
   }
 
-  assertSaveNotCalled(): void {
-    expect(this.saveMock).not.toHaveBeenCalled();
-  }
-
   assertSaveHasBeenCalledWith(expected: Plant): void {
     expect(this.saveMock).toHaveBeenCalledWith(expected);
   }
 
-  assertUpdateHasBeenCalled(): void {
-    expect(this.updateMock).toHaveBeenCalled();
+  assertSaveNotCalled(): void {
+    expect(this.saveMock).not.toHaveBeenCalled();
   }
 
   assertUpdateHasBeenCalledWith(
-    expectedCurrent: Plant,
-    expectedUpdated: UnknownRecord,
-    expectedUsername: string
+    current: PlantPrimitives,
+    updated: unknown,
+    user: string
   ): void {
-    expect(this.updateMock).toHaveBeenCalledWith(
-      expectedCurrent,
-      expectedUpdated,
-      expectedUsername
-    );
+    expect(this.updateMock).toHaveBeenCalledWith(current, updated, user);
+  }
+
+  assertUpdateHasBeenCalled(): void {
+    expect(this.updateMock).toHaveBeenCalled();
   }
 
   assertFindByIdHasBeenCalledWith(expected: string): void {

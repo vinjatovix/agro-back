@@ -1,12 +1,12 @@
-import type { UnknownRecord } from '../../../../../../shared/domain/types/UnknownRecord.js';
 import type { Plant } from '../entities/Plant.js';
+import type { PlantPrimitives } from '../entities/types/PlantPrimitives.js';
 
 export interface PlantRepository {
   findById(id: string): Promise<Plant>;
   save(plant: Plant): Promise<void>;
   updateWithDiff(
-    current: Plant,
-    updated: UnknownRecord,
+    current: PlantPrimitives,
+    updated: PlantPrimitives,
     user: string
   ): Promise<void>;
   findAll(): Promise<Plant[]>;

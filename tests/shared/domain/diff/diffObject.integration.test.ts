@@ -46,4 +46,21 @@ describe('diffObjects', () => {
 
     expect(result.set.months).toEqual([3, 4]);
   });
+
+  it('returns empty diff when values are identical', () => {
+    const current = {
+      name: 'a',
+      size: { h: 1 }
+    };
+
+    const updated = {
+      name: 'a',
+      size: { h: 1 }
+    };
+
+    const result = diffObjects(current, updated);
+
+    expect(result.set).toEqual({});
+    expect(result.unset).toEqual({});
+  });
 });

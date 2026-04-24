@@ -1,30 +1,49 @@
 import type { RangePrimitives } from '../../../../../../../shared/domain/value-objects/interfaces/RangePrimitives.js';
-import type { MetadataPrimitives } from '../../../../../../shared/infrastructure/persistence/mongo/types/index.js';
+import type { MetadataPrimitives } from '../../../../../../shared/infrastructure/persistence/mongo/types/MetadataPrimitives.js';
+import type { PlantKnowledgePrimitives } from './PlantKnowledgePrimitives.js';
 import type { PlantLifecycleValue } from './PlantLifecycleValue.js';
+import type { PlantSowingPrimitives } from './PlantSowingPrimitives.js';
 import type { PlantStatus } from './PlantStatus.js';
+import type { PollinationType } from './PollinationType.js';
 
 export interface PlantPrimitives {
   id: string;
-  name: string;
-  scientificName?: string;
-  familyId: string;
-  lifecycle: PlantLifecycleValue;
-  size: {
-    height: RangePrimitives;
-    spread: RangePrimitives;
+
+  identity: {
+    name: {
+      primary: string;
+      aliases?: string[];
+    };
+    scientificName?: string;
+    familyId: string;
   };
-  sowing: {
-    months: number[];
-    seedsPerHole: RangePrimitives;
-    germinationDays: RangePrimitives;
-    methods: {
-      direct: { depthCm: RangePrimitives };
-      starter?: { depthCm: RangePrimitives };
+
+  traits: {
+    lifecycle: PlantLifecycleValue;
+    size: {
+      height: RangePrimitives;
+      spread: RangePrimitives;
+    };
+    spacingCm: RangePrimitives;
+  };
+
+  phenology: {
+    sowing: PlantSowingPrimitives;
+    flowering: {
+      months: number[];
+      pollination?: {
+        type: PollinationType;
+        agents?: string[];
+      };
+    };
+    harvest: {
+      months: number[];
+      description?: string;
     };
   };
-  floweringMonths: number[];
-  harvestMonths: number[];
-  spacingCm: RangePrimitives;
+
+  knowledge?: PlantKnowledgePrimitives;
+
   metadata: MetadataPrimitives;
   status: PlantStatus;
   deletedAt?: string | null;

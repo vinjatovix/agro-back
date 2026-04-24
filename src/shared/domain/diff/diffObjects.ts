@@ -33,7 +33,7 @@ export function diffObjects(
           const nested = diffObjects(c, u, path);
           Object.assign(set, nested.set);
           Object.assign(unset, nested.unset);
-        } else {
+        } else if (c !== u) {
           set[path] = u;
         }
     }

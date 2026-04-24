@@ -1,6 +1,6 @@
 import { DeletePlant } from '../../../../../../../src/Contexts/agroApi/agro/plants/application/useCases/DeletePlant.js';
 import { PlantRepositoryMock } from '../../__mocks__/PlantRepositoryMock.js';
-import { PlantMother } from '../../domain/mothers/PlantMother.js';
+import { PlantFactory } from '../../domain/mothers/PlantFactory.js';
 
 describe('DeletePlant use case', () => {
   let repository: PlantRepositoryMock;
@@ -11,7 +11,7 @@ describe('DeletePlant use case', () => {
   });
 
   it('should mark plant as deleted', async () => {
-    const plant = PlantMother.create();
+    const plant = PlantFactory.create();
 
     repository.addToStorage(plant);
 
@@ -22,7 +22,7 @@ describe('DeletePlant use case', () => {
   });
 
   it('should not fail if plant already deleted', async () => {
-    const plant = PlantMother.create();
+    const plant = PlantFactory.create();
     plant.markAsDeleted();
 
     repository.addToStorage(plant);

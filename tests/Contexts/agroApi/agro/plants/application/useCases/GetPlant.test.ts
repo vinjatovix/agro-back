@@ -22,7 +22,7 @@ describe('GetPlant', () => {
     const result = await getPlant.execute(dto.id);
 
     expect(result.id).toBe(dto.id);
-    expect(result.name).toBe(dto.name);
+    expect(result.identity.name.primary).toBe(dto.identity.name.primary);
     repository.assertFindByIdHasBeenCalledWith(dto.id);
   });
 

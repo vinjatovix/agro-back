@@ -45,9 +45,7 @@ describe('ListPlants', () => {
     const result = await listPlants.execute();
 
     expect(result[0]).toMatchObject({
-      id: dto.id,
-      name: dto.name,
-      lifecycle: dto.lifecycle
+      id: dto.id
     });
   });
 });

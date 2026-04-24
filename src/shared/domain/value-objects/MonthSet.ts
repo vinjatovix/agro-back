@@ -6,12 +6,14 @@ export class MonthSet {
       throw new TypeError('MonthSet must be an array');
     }
 
-    const normalized = months.map((m) => {
-      if (!Number.isInteger(m) || m < 1 || m > 12) {
-        throw new Error(`Invalid month: ${m}`);
-      }
-      return m;
-    });
+    const normalized = months
+      .map((m) => {
+        if (!Number.isInteger(m) || m < 1 || m > 12) {
+          throw new Error(`Invalid month: ${m}`);
+        }
+        return m;
+      })
+      .sort((a, b) => a - b);
 
     this.months = new Set(normalized);
   }
@@ -41,11 +43,15 @@ export class MonthSet {
   }
 
   toArray(): number[] {
-    return [...this.months].sort((a, b) => a - b);
+    return [...this.months];
   }
 
   equals(other: MonthSet): boolean {
     return this.toArray().join() === other.toArray().join();
+  }
+
+  isEmpty(): boolean {
+    return this.months.size === 0;
   }
 
   static fromArray(months: number[]): MonthSet {

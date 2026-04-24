@@ -1,10 +1,9 @@
 import { MonthSet } from '../../../../../../shared/domain/value-objects/MonthSet.js';
 import { Range } from '../../../../../../shared/domain/value-objects/Range.js';
 import type { PlantSowingPrimitives } from '../entities/types/PlantSowingPrimitives.js';
-import type { PlantSowingPatch } from './PlantSowingPatch.js';
 
 export interface SowingMethod {
-  depth: Range;
+  depthCm: Range;
 }
 
 export interface PlantSowingProps {
@@ -27,10 +26,30 @@ export class PlantSowing {
   };
 
   constructor(props: PlantSowingProps) {
+    this.validate(props);
     this.seedsPerHole = props.seedsPerHole;
     this.germinationDays = props.germinationDays;
     this.months = props.months;
     this.methods = props.methods;
+  }
+
+  private validate(props: PlantSowingProps) {
+    if (!props.methods?.direct?.depthCm) {
+      throw new Error('PlantSowing.direct.depthCm is required');
+    }
+    if (props.methods.starter && !props.methods.starter.depthCm) {
+      throw new Error('PlantSowing.starter.depthCm is required');
+    }
+
+    if (props.months.isEmpty()) {
+      throw new Error('PlantSowing.months must have at least one month');
+    }
+    if (props.seedsPerHole.min <= 0 || props.seedsPerHole.max <= 0) {
+      throw new Error('PlantSowing.seedsPerHole must be greater than 0');
+    }
+    if (props.germinationDays.min <= 0 || props.germinationDays.max <= 0) {
+      throw new Error('PlantSowing.germinationDays must be greater than 0');
+    }
   }
 
   toPrimitives() {
@@ -41,77 +60,42 @@ export class PlantSowing {
 
       methods: {
         direct: {
-          depthCm: this.methods.direct.depth.toPrimitives()
+          depthCm: this.methods.direct.depthCm.toPrimitives()
         },
 
         ...(this.methods.starter && {
           starter: {
-            depthCm: this.methods.starter.depth.toPrimitives()
+            depthCm: this.methods.starter.depthCm.toPrimitives()
           }
         })
       }
     };
   }
 
-  static fromPrimitives(primitives: PlantSowingPrimitives): PlantSowing {
+  static fromPrimitives(p: PlantSowingPrimitives): PlantSowing {
+    if (!p.methods?.direct?.depthCm) {
+      throw new Error('PlantSowing.direct.depthCm is required');
+    }
+    if (p.methods.starter && !p.methods.starter.depthCm) {
+      throw new Error('PlantSowing.starter.depthCm is required');
+    }
+
+    const { direct, starter } = p.methods;
+
     return new PlantSowing({
-      seedsPerHole: new Range(
-        primitives.seedsPerHole.min,
-        primitives.seedsPerHole.max
-      ),
-
-      germinationDays: new Range(
-        primitives.germinationDays.min,
-        primitives.germinationDays.max
-      ),
-
-      months: new MonthSet(primitives.months),
-
+      seedsPerHole: Range.fromPrimitives(p.seedsPerHole),
+      germinationDays: Range.fromPrimitives(p.germinationDays),
+      months: MonthSet.fromArray(p.months),
       methods: {
         direct: {
-          depth: new Range(
-            primitives.methods.direct.depthCm.min,
-            primitives.methods.direct.depthCm.max
-          )
+          depthCm: Range.fromPrimitives(direct.depthCm)
         },
-
-        ...(primitives.methods.starter && {
+        ...(starter && {
           starter: {
-            depth: new Range(
-              primitives.methods.starter.depthCm.min,
-              primitives.methods.starter.depthCm.max
-            )
+            depthCm: Range.fromPrimitives(starter.depthCm)
           }
         })
       }
     });
-  }
-
-  apply(patch: PlantSowingPatch): PlantSowing {
-    return new PlantSowing({
-      seedsPerHole: patch.seedsPerHole ?? this.seedsPerHole,
-      germinationDays: patch.germinationDays ?? this.germinationDays,
-      months: patch.months ?? this.months,
-      methods: this.buildMethods(patch)
-    });
-  }
-
-  private buildMethods(patch: PlantSowingPatch): PlantSowingProps['methods'] {
-    return {
-      direct: {
-        depth: patch.methods?.direct?.depth ?? this.methods.direct.depth
-      },
-
-      ...(patch.methods?.starter || this.methods.starter
-        ? {
-            starter: {
-              depth:
-                patch.methods?.starter?.depth ??
-                this.methods.starter?.depth ??
-                this.methods.direct.depth
-            }
-          }
-        : {})
-    };
   }
 }

@@ -1,6 +1,8 @@
 import type { Plant } from '../../../../../../src/Contexts/agroApi/agro/plants/domain/entities/Plant.js';
+import type { PlantPrimitives } from '../../../../../../src/Contexts/agroApi/agro/plants/domain/entities/types/PlantPrimitives.js';
 import type { PlantRepository } from '../../../../../../src/Contexts/agroApi/agro/plants/domain/repositories/PlantRepository.js';
-import { PlantMother } from '../../plants/domain/mothers/PlantMother.js';
+import { plantMapper } from '../../../../../../src/Contexts/agroApi/agro/plants/mappers/plantMapper.js';
+import { PlantFactory } from '../../plants/domain/mothers/PlantFactory.js';
 
 export class InMemoryPlantRepository implements PlantRepository {
   constructor(private readonly plants = new Map<string, Plant>()) {}
@@ -29,23 +31,24 @@ export class InMemoryPlantRepository implements PlantRepository {
 
   // eslint-disable-next-line @typescript-eslint/require-await
   async updateWithDiff(
-    _current: Plant,
-    updated: Plant,
+    _current: PlantPrimitives,
+    updated: PlantPrimitives,
     _username: string
   ): Promise<void> {
-    const id = updated.id.value;
-
+    const id = _current.id;
     if (!this.plants.has(id)) {
       throw new Error(`Plant not found: ${id}`);
     }
 
-    this.plants.set(id, updated);
+    const updatedPlant = plantMapper.fromPrimitives(updated);
+
+    this.plants.set(id, updatedPlant);
   }
 }
 
 export function createPlantCatalog() {
-  const tomato = PlantMother.tomato();
-  const lettuce = PlantMother.lettuce();
+  const tomato = PlantFactory.tomato();
+  const lettuce = PlantFactory.lettuce();
 
   const plantRepository = new InMemoryPlantRepository(
     new Map([

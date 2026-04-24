@@ -15,10 +15,9 @@ import {
   type MongoFetchOptions
 } from './MongoFetchService.js';
 import type { RequestOptions } from '../../../../../apps/agroApi/shared/interfaces/RequestOptions.js';
-import type { Serializable } from '../../../domain/interfaces/Serializable.js';
 import type { UnknownRecord } from '../../../../../shared/domain/types/UnknownRecord.js';
 
-export abstract class MongoRepository<T extends Serializable<unknown>> {
+export abstract class MongoRepository {
   constructor(private readonly DBClient: Promise<MongoClient>) {}
 
   protected abstract collectionName(): string;
@@ -37,24 +36,22 @@ export abstract class MongoRepository<T extends Serializable<unknown>> {
 
   protected async persist(
     id: string,
-    aggregateRoot: T,
+    document: unknown,
     username?: Username
   ): Promise<void> {
     const collection = await this.collection();
     const mongoId = toMongoId(id);
-    const document = {
-      ...(aggregateRoot.toPrimitives() as UnknownRecord),
-      id: undefined,
+    const finalDocument = {
+      ...(document as object),
       ...(username && updateMetadata(username))
     };
 
-    await this.handleMongoError(
-      async () =>
-        await collection.updateOne(
-          { _id: mongoId },
-          { $set: document },
-          { upsert: true }
-        )
+    await this.handleMongoError(() =>
+      collection.updateOne(
+        { _id: mongoId },
+        { $set: finalDocument },
+        { upsert: true }
+      )
     );
   }
 

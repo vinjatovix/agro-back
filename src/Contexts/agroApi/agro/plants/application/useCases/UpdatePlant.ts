@@ -1,7 +1,6 @@
 import { applyPatch } from '../../../../../../shared/domain/patch/applyPatch.js';
-import type { UnknownRecord } from '../../../../../../shared/domain/types/UnknownRecord.js';
 import type { PlantRepository } from '../../domain/repositories/PlantRepository.js';
-import { PlantDtoMapper } from '../mappers/PlantDtoMapper.js';
+import { plantMapper } from '../../mappers/plantMapper.js';
 import type { UpdatePlantDto } from './interfaces/UpdatePlantDto.js';
 
 export class UpdatePlant {
@@ -14,14 +13,10 @@ export class UpdatePlant {
       throw new Error(`Plant not found: ${dto.id}`);
     }
 
-    const patch = PlantDtoMapper.toPatch(dto);
-    const current = plant.toPrimitives();
+    const current = plantMapper.toPrimitives(plant);
+    const patch = plantMapper.fromUpdateDtoToPrimitivesPatch(dto);
     const patched = applyPatch(current, patch);
 
-    await this.plantRepository.updateWithDiff(
-      plant,
-      patched as unknown as UnknownRecord,
-      user
-    );
+    await this.plantRepository.updateWithDiff(current, patched, user);
   }
 }

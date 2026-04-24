@@ -22,6 +22,10 @@ describe('Range', () => {
     expect(() => new Range(20, 10)).toThrow();
   });
 
+  it('should throw if max is less than min', () => {
+    expect(() => new Range(20, 10)).toThrow();
+  });
+
   it('should check contains correctly', () => {
     const range = new Range(10, 20);
 

@@ -10,13 +10,15 @@ export class BasicSpatialService implements SpatialService {
     plantRepository: PlantRepository
   ): Promise<void> {
     const plantData = await plantRepository.findById(newPlant.plantId.value);
-    const newRadius = plantData.spacing.max / 2;
+    const newSpacing = plantData.traits.spacingCm.max;
+    const newRadius = newSpacing / 2;
 
     this.validateBounds(context, newPlant, newRadius);
+
     await this.validateCollisions(
       context,
       newPlant,
-      newRadius,
+      newSpacing,
       plantRepository
     );
   }
@@ -27,11 +29,9 @@ export class BasicSpatialService implements SpatialService {
     radius: number
   ): void {
     const { x, y } = plant.position;
-
     if (x - radius < 0 || y - radius < 0) {
       throw new Error('Plant out of bounds (min limit)');
     }
-
     if (x + radius > context.width || y + radius > context.height) {
       throw new Error('Plant out of bounds (max limit)');
     }
@@ -40,19 +40,18 @@ export class BasicSpatialService implements SpatialService {
   private async validateCollisions(
     context: SpatialContext,
     newPlant: PlantInstance,
-    newRadius: number,
+    newSpacing: number,
     plantRepository: PlantRepository
   ): Promise<void> {
     for (const existing of context.plants) {
       if (Uuid.equals(existing.id, newPlant.id)) continue;
 
-      const existingPlantData = await plantRepository.findById(
+      const existingData = await plantRepository.findById(
         existing.plantId.value
       );
-      const existingRadius = existingPlantData.spacing.max / 2;
-
+      const existingSpacing = existingData.traits.spacingCm.max;
       const distance = existing.position.distanceTo(newPlant.position);
-      const minDistance = newRadius + existingRadius;
+      const minDistance = Math.max(newSpacing, existingSpacing);
 
       if (distance < minDistance) {
         throw new Error(

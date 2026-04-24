@@ -1,28 +1,59 @@
 import type { CreatePlantDto } from '../../../../../../../../src/Contexts/agroApi/agro/plants/application/useCases/interfaces/index.js';
+import type { PlantLifecycleValue } from '../../../../../../../../src/Contexts/agroApi/agro/plants/domain/entities/types/PlantLifecycleValue.js';
 import { random } from '../../../../../../shared/fixtures/index.js';
+
+const lifecycle = (): PlantLifecycleValue =>
+  random.arrayElement(['annual', 'biennial', 'perennial']);
+
+const range = (minA: number, maxA: number) => ({
+  min: minA,
+  max: maxA
+});
 
 const base = (): CreatePlantDto => ({
   id: random.uuid(),
-  name: 'Tomato',
-  familyId: 'solanaceae',
-  lifecycle: 'annual',
-  size: {
-    height: { min: 10, max: 100 },
-    spread: { min: 10, max: 30 }
+
+  identity: {
+    name: {
+      primary: 'Tomato'
+    },
+    familyId: 'solanaceae'
   },
-  sowing: {
-    seedsPerHole: { min: 1, max: 3 },
-    germinationDays: { min: 7, max: 14 },
-    months: [3, 4],
-    methods: {
-      direct: {
-        depthCm: { min: 1, max: 2 }
+
+  traits: {
+    lifecycle: lifecycle(),
+
+    size: {
+      height: range(10, 100),
+      spread: range(10, 30)
+    },
+
+    spacingCm: range(10, 20)
+  },
+
+  phenology: {
+    sowing: {
+      months: [3, 4],
+
+      seedsPerHole: range(1, 3),
+
+      germinationDays: range(7, 14),
+
+      methods: {
+        direct: {
+          depthCm: range(1, 2)
+        }
       }
+    },
+
+    flowering: {
+      months: [6, 7]
+    },
+
+    harvest: {
+      months: [8, 9]
     }
-  },
-  floweringMonths: [6, 7],
-  harvestMonths: [8, 9],
-  spacingCm: { min: 10, max: 20 }
+  }
 });
 
 export class CreatePlantDtoMother {
@@ -35,20 +66,39 @@ export class CreatePlantDtoMother {
 
     return {
       ...dto,
+
       id: random.uuid(),
-      name: 'Lettuce',
-      familyId: 'asteraceae',
-      size: {
-        height: { min: 5, max: 20 },
-        spread: { min: 5, max: 15 }
+
+      identity: {
+        name: { primary: 'Lettuce' },
+        familyId: 'asteraceae'
       },
-      sowing: {
-        ...dto.sowing,
-        months: [2]
+
+      traits: {
+        lifecycle: 'annual',
+        size: {
+          height: range(5, 20),
+          spread: range(5, 15)
+        },
+        spacingCm: range(5, 10)
       },
-      floweringMonths: [4],
-      harvestMonths: [5],
-      spacingCm: { min: 5, max: 10 }
+
+      phenology: {
+        ...dto.phenology,
+
+        sowing: {
+          ...dto.phenology.sowing,
+          months: [2]
+        },
+
+        flowering: {
+          months: [4]
+        },
+
+        harvest: {
+          months: [5]
+        }
+      }
     };
   }
 
@@ -57,15 +107,17 @@ export class CreatePlantDtoMother {
 
     return {
       ...dto,
-      scientificName: 'Solanum lycopersicum'
+
+      identity: {
+        ...dto.identity,
+        scientificName: 'Solanum lycopersicum'
+      }
     };
   }
 
   static custom(overrides: Partial<CreatePlantDto>): CreatePlantDto {
-    const dto = base();
-
     return {
-      ...dto,
+      ...base(),
       ...overrides
     };
   }

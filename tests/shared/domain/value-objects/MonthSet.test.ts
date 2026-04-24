@@ -64,4 +64,18 @@ describe('MonthSet', () => {
 
     expect(a.equals(b)).toBe(true);
   });
+
+  it('should check emptiness', () => {
+    const empty = MonthSet.empty();
+    const nonEmpty = new MonthSet([1]);
+
+    expect(empty.isEmpty()).toBe(true);
+    expect(nonEmpty.isEmpty()).toBe(false);
+  });
+
+  it('should return sorted array from toArray', () => {
+    const set = new MonthSet([3, 1, 2]);
+
+    expect(set.toArray()).toEqual([1, 2, 3]);
+  });
 });

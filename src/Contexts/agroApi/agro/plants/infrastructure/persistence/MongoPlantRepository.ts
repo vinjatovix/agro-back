@@ -4,30 +4,60 @@ import { Plant } from '../../domain/entities/Plant.js';
 import type { PlantRepository } from '../../domain/repositories/PlantRepository.js';
 import { toMongoId } from '../../../../../shared/infrastructure/persistence/mongo/MongoId.js';
 import { updateMetadata } from '../../../../../shared/application/utils/updateMetadata.js';
-import type { PlantPrimitives } from '../../domain/entities/types/PlantPrimitives.js';
 import type { PlantLifecycleValue } from '../../domain/entities/types/PlantLifecycleValue.js';
 import { diffObjects } from '../../../../../../shared/domain/diff/diffObjects.js';
 import { Username } from '../../../../Auth/domain/Username.js';
 import type { UnknownRecord } from '../../../../../../shared/domain/types/UnknownRecord.js';
+import { plantMapper } from '../../mappers/plantMapper.js';
+import type { PlantPrimitives } from '../../domain/entities/types/PlantPrimitives.js';
+import type { RangePrimitives } from '../../../../../../shared/domain/value-objects/interfaces/RangePrimitives.js';
+import type { PlantSowingPrimitives } from '../../domain/entities/types/PlantSowingPrimitives.js';
+import type { PlantKnowledgePrimitives } from '../../domain/entities/types/PlantKnowledgePrimitives.js';
 
 type PlantDocument = {
   _id: string | Binary | UUID;
-  name: string;
-  familyId: string;
-  lifecycle: PlantLifecycleValue;
-  size: PlantPrimitives['size'];
-  sowing: PlantPrimitives['sowing'];
-  floweringMonths: number[];
-  harvestMonths: number[];
-  spacingCm: PlantPrimitives['spacingCm'];
+  identity: {
+    name: {
+      primary: string;
+      aliases?: string[];
+    };
+    familyId: string;
+    scientificName?: string;
+  };
+
+  traits: {
+    lifecycle: PlantLifecycleValue;
+    size: {
+      height: RangePrimitives;
+      spread: RangePrimitives;
+    };
+    spacingCm: RangePrimitives;
+  };
+
+  phenology: {
+    sowing: PlantSowingPrimitives;
+    flowering: {
+      months: number[];
+      pollination?: {
+        type: string;
+        agents?: string[];
+      };
+    };
+    harvest: {
+      months: number[];
+      description?: string;
+    };
+  };
+
+  knowledge?: PlantKnowledgePrimitives;
+
   metadata: PlantPrimitives['metadata'];
-  scientificName?: string;
   status: PlantPrimitives['status'];
   deletedAt?: string | null;
 };
 
 export class MongoPlantRepository
-  extends MongoRepository<Plant>
+  extends MongoRepository
   implements PlantRepository
 {
   protected collectionName(): string {
@@ -49,47 +79,60 @@ export class MongoPlantRepository
   }
 
   async save(plant: Plant): Promise<void> {
-    return this.persist(plant.id.value, plant);
+    await this.persist(plant.id.value, plantMapper.toPrimitives(plant));
   }
 
   async updateWithDiff(
-    current: Plant,
-    updated: UnknownRecord,
+    current: PlantPrimitives,
+    updated: PlantPrimitives,
     username: string
   ): Promise<void> {
     const collection = await this.collection();
 
-    const mongoId = toMongoId(current.id.value);
+    const mongoId = toMongoId(current.id);
 
-    const currentPrimitives =
-      current.toPrimitives() as unknown as UnknownRecord;
-
-    const diff = diffObjects(currentPrimitives, updated);
+    const diff = diffObjects(
+      current as unknown as UnknownRecord,
+      updated as unknown as UnknownRecord
+    );
 
     const patch = this.normalizePatch(diff);
+    const hasSet = Object.keys(patch.set ?? {}).length > 0;
+    const hasUnset = Object.keys(patch.unset ?? {}).length > 0;
 
-    const metadata = updateMetadata(new Username(username));
+    if (!hasSet && !hasUnset) {
+      return;
+    }
+
+    const metadata = updateMetadata(
+      new Username(username)
+    ) as unknown as UnknownRecord;
 
     const updateQuery: {
       $set?: UnknownRecord;
       $unset?: Record<string, ''>;
     } = {};
 
-    if (Object.keys(patch.set).length > 0) {
+    if (hasSet) {
       updateQuery.$set = {
         ...patch.set,
         ...metadata
       };
+    } else {
+      updateQuery.$set = metadata;
     }
 
-    if (Object.keys(patch.unset).length > 0) {
+    if (hasUnset) {
       updateQuery.$unset = patch.unset;
     }
 
-    await this.handleMongoError(() =>
-      collection.updateOne({ _id: mongoId }, updateQuery)
-    );
+    const result = await collection.updateOne({ _id: mongoId }, updateQuery);
+
+    if (result.matchedCount === 0) {
+      throw new Error(`Plant not found: ${current.id}`);
+    }
   }
+
   async findAll(): Promise<Plant[]> {
     const collection = await this.collection();
 
@@ -109,23 +152,20 @@ export class MongoPlantRepository
   }
 
   private mapDocumentToPlant(document: PlantDocument): Plant {
-    return Plant.fromPrimitives({
+    return plantMapper.fromPrimitives({
       id: document._id.toString(),
-      name: document.name,
-      familyId: document.familyId,
-      lifecycle: document.lifecycle,
-      size: document.size,
-      sowing: document.sowing,
-      floweringMonths: document.floweringMonths,
-      harvestMonths: document.harvestMonths,
-      spacingCm: document.spacingCm,
+      identity: document.identity,
+      traits: {
+        lifecycle: document.traits.lifecycle,
+        size: document.traits.size,
+        spacingCm: document.traits.spacingCm
+      },
+      knowledge: document.knowledge,
+      phenology: document.phenology,
       metadata: document.metadata,
       status: document.status,
-      deletedAt: document.deletedAt ?? null,
-      ...(document.scientificName !== undefined && {
-        scientificName: document.scientificName
-      })
-    });
+      deletedAt: document.deletedAt
+    } as PlantPrimitives);
   }
 
   private normalizePatch(diff: UnknownRecord): {
