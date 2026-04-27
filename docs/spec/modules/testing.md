@@ -1,6 +1,6 @@
 ## MODULE: TESTING
 
-version: 1.0.0
+version: 1.1.0
 source-spec: v1.0.0
 status: stable
 
@@ -63,7 +63,7 @@ Rules:
 
 ---
 
-## 2.4 Contract Tests (NEW CRITICAL LAYER)
+## 2.4 Contract Tests
 
 Scope:
 
@@ -90,6 +90,7 @@ Rules:
 * NO dependency on exact error strings
 * use semantic matching only
 * avoid brittle snapshots unless stable contract (OpenAPI)
+* asserting raw error strings is allowed ONLY when explicitly defined by validation contract
 
 ---
 
@@ -113,6 +114,5 @@ Rules:
 # 7. ANTI-PATTERNS
 
 * testing implementation details instead of behavior
-* asserting raw error strings
 * coupling tests to Express internals
 * missing contract alignment with OpenAPI

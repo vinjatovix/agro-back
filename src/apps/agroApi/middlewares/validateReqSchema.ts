@@ -7,25 +7,37 @@ import {
 } from 'express-validator';
 import { createError } from '../../../shared/errors/index.js';
 
-/* eslint-disable 
-@typescript-eslint/no-unsafe-assignment, 
-@typescript-eslint/no-unsafe-member-access, 
-@typescript-eslint/no-unsafe-argument, 
-@typescript-eslint/no-unsafe-call
- */
-
 type ValidationErrorInfo = Record<string, string>;
 
 const HIDDEN_FIELDS = new Set(['password', 'repeatPassword']);
 
+const formatValue = (value: unknown): string => {
+  if (value === undefined) return 'undefined';
+  if (value === null) return 'null';
+
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number') return String(value);
+  if (typeof value === 'boolean') return String(value);
+
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return '[unserializable]';
+  }
+};
+
 const extractFieldErrorInfo = (
   error: FieldValidationError
 ): ValidationErrorInfo => {
-  const baseMessage = `${error.msg} at ${error.location}.`;
-  const value = HIDDEN_FIELDS.has(error.path)
-    ? baseMessage
-    : `${baseMessage} Value: ${error.value}`;
-  return { [error.path]: value };
+  const baseMessage = `${String(error.msg)} at ${error.location}.`;
+
+  const valuePart = HIDDEN_FIELDS.has(error.path)
+    ? ''
+    : ` Value: ${formatValue(error.value)}`;
+
+  return {
+    [error.path]: `${baseMessage}${valuePart}`
+  };
 };
 
 const extractUnknownFieldsErrorInfo = (
@@ -34,17 +46,20 @@ const extractUnknownFieldsErrorInfo = (
   const fields = error.fields
     .map(
       (field) =>
-        `Unknown field <${field.path}> in <${field.location}> with value <${field.value}>`
+        `Unknown field <${field.path}> in <${field.location}> with value <${formatValue(field.value)}>`
     )
-    .join(',');
+    .join(', ');
+
   return { fields };
 };
 
 const extractGenericErrorInfo = (
   error: ValidationError
-): ValidationErrorInfo => ({
-  message: error.msg || 'Unknown error'
-});
+): ValidationErrorInfo => {
+  return {
+    message: String(error.msg ?? 'Unknown error')
+  };
+};
 
 const extractErrorInfo = (error: ValidationError): ValidationErrorInfo => {
   switch (error.type) {
@@ -62,21 +77,25 @@ export const validateReqSchema = (
   _res: Response,
   next: NextFunction
 ) => {
-  const validationErrors = validationResult(req);
-  if (validationErrors.isEmpty()) {
+  const result = validationResult(req);
+
+  if (result.isEmpty()) {
     return next();
   }
 
-  const errorMessages = validationErrors
+  const errorMessages = result
     .array()
-    .reduce((acc: ValidationErrorInfo, error: ValidationError) => {
+    .reduce<ValidationErrorInfo>((acc, error) => {
       const info = extractErrorInfo(error);
-      const entry = Object.entries(info)[0];
-      if (entry && !(entry[0] in acc)) acc[entry[0]] = entry[1];
+
+      for (const [key, value] of Object.entries(info)) {
+        if (!(key in acc)) {
+          acc[key] = value;
+        }
+      }
+
       return acc;
     }, {});
 
-  throw createError.badRequest(
-    JSON.stringify(errorMessages).replaceAll('"', ' ')
-  );
+  throw createError.badRequest('Validation error', errorMessages);
 };

@@ -1,4 +1,4 @@
-## MODULE: OPENAPI CONTRACT
+# MODULE: OPENAPI CONTRACT
 
 version: 1.0.0
 source-spec: v1.0.0
@@ -110,6 +110,30 @@ OpenAPI MUST define:
 * status code mapping
 * field-level validation errors
 
+### 6.1 Validation error behavior (EPIC 13 alignment)
+
+Validation errors MUST be represented as:
+
+* deterministic
+* field-path based
+* structured under `errors`
+
+```json
+{
+  "message": "Validation error",
+  "errors": {
+    "field.path": "Invalid value at body. Value: undefined"
+  }
+}
+```
+
+Rules:
+
+* error keys MUST be full field paths
+* error messages MUST be deterministic across environments
+* runtime value leakage format is part of current system behavior and MUST be reflected in contract tests if enforced
+* OpenAPI MUST define this structure exactly once stabilized
+
 ---
 
 # 7. TESTING INTEGRATION
@@ -117,6 +141,7 @@ OpenAPI MUST define:
 * contract tests validate OpenAPI compliance
 * E2E tests MUST match spec
 * no endpoint exists without OpenAPI definition
+* validation error shape MUST be covered by contract tests when finalized
 
 ---
 

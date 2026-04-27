@@ -1,6 +1,6 @@
 ## MODULE: VALIDATION
 
-version: 1.0.0
+version: 1.1.0
 source-spec: v1.0.0
 status: stable
 
@@ -35,24 +35,16 @@ type ApiErrorResponse = {
   message: string;
   errors?: Record<string, string>;
 };
-```
+````
 
 ---
 
-# 5. CURRENT PROBLEM
+# 5. VALIDATION OUTPUT RULES (NEW CONTRACT BEHAVIOR)
 
-* errors are stringified blobs
-* tests depend on unstable messages
-* validation output not standardized
-
----
-
-# 6. TARGET STATE
-
-* structured field-level errors
-* deterministic error formatting
-* OpenAPI-aligned validation rules
-* no framework leakage (no express internals exposed)
+* errors MUST be Record<string, string>
+* error values MUST be deterministic strings
+* FieldValidationError.value is ignored at API boundary
+* validation output MUST match ApiErrorResponse exactly
 
 ---
 

@@ -1,14 +1,11 @@
 import { scopePerRequest } from 'awilix-express';
 import cors from 'cors';
 import express from 'express';
-import type { NextFunction, Request, Response } from 'express';
 import Router from 'express-promise-router';
 import helmet from 'helmet';
 import * as http from 'node:http';
-import httpStatus from 'http-status';
 
 import type { AppLogger } from '../../Contexts/shared/plugins/logger.plugin.js';
-import { HttpError } from '../../shared/errors/index.js';
 import { envs } from './config/plugins/envs.plugin.js';
 import { createAppContainer, type AppContainer } from './container.js';
 import {
@@ -16,6 +13,7 @@ import {
   globalLimiter
 } from './middlewares/index.js';
 import { registerRoutes } from './routes/registerRoutes.js';
+import { errorHandler } from './middlewares/errorHandler.js';
 
 const allowedOrigins = envs.ALLOWED_ORIGINS.split(',')
   .map((origin) => origin.trim())
@@ -66,18 +64,9 @@ export class Server {
     await registerRoutes(router);
     this.express.use(router);
     this.express.use(
-      (err: Error, _req: Request, res: Response, _next: NextFunction): void => {
-        if (err instanceof HttpError) {
-          res.status(err.statusCode).json({ message: err.message });
-          this.logger.error(err.message, err);
-          return;
-        }
-
-        this.logger.error('Unexpected error at error handler', err);
-        res
-          .status(httpStatus.INTERNAL_SERVER_ERROR)
-          .json({ message: 'Internal server error' });
-      }
+      errorHandler({
+        logger: this.logger
+      })
     );
 
     return new Promise((resolve) => {

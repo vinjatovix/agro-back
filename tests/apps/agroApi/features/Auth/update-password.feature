@@ -86,7 +86,10 @@ Feature: Update Password
     Then the response body should be
       """
       {
-        "message": "{ repeatPassword : Passwords do not match at body. }"
+        "message": "Validation error",
+        "errors": {
+          "repeatPassword": "Passwords do not match at body."
+        }
       }
       """
 
