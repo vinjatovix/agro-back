@@ -8,15 +8,17 @@ const getHTTPServerMock = jest.fn();
 const serverConstructorMock = jest.fn();
 
 jest.mock('../../../src/apps/agroApi/server.js', () => ({
-  Server: jest.fn().mockImplementation((host: string, port: string, logger: AppLogger) => {
-    serverConstructorMock(host, port, logger);
+  Server: jest
+    .fn()
+    .mockImplementation((host: string, port: string, logger: AppLogger) => {
+      serverConstructorMock(host, port, logger);
 
-    return {
-      listen: listenMock,
-      stop: stopMock,
-      getHTTPServer: getHTTPServerMock
-    };
-  })
+      return {
+        listen: listenMock,
+        stop: stopMock,
+        getHTTPServer: getHTTPServerMock
+      };
+    })
 }));
 
 import { AgroBackApp } from '../../../src/apps/agroApi/AgroBackApp.js';
@@ -46,7 +48,7 @@ describe('AgroBackApp', () => {
     });
 
     getHTTPServerMock.mockReturnValue({
-      address: () => ({ port: 3456 } satisfies Partial<AddressInfo>)
+      address: () => ({ port: 3456 }) satisfies Partial<AddressInfo>
     });
 
     await app.start(logger);
@@ -58,7 +60,9 @@ describe('AgroBackApp', () => {
     );
     expect(listenMock).toHaveBeenCalledTimes(1);
     expect(app.host).toBe('http://localhost:3456');
-    expect(logger.info).toHaveBeenCalledWith('Server running at http://localhost:3456');
+    expect(logger.info).toHaveBeenCalledWith(
+      'Server running at http://localhost:3456'
+    );
   });
 
   it('should use the injected config values', async () => {
@@ -68,14 +72,20 @@ describe('AgroBackApp', () => {
     });
 
     getHTTPServerMock.mockReturnValue({
-      address: () => ({ port: 9001 } satisfies Partial<AddressInfo>)
+      address: () => ({ port: 9001 }) satisfies Partial<AddressInfo>
     });
 
     await app.start(logger);
 
-    expect(serverConstructorMock).toHaveBeenCalledWith('http://agro.test', '8080', logger);
+    expect(serverConstructorMock).toHaveBeenCalledWith(
+      'http://agro.test',
+      '8080',
+      logger
+    );
     expect(app.host).toBe('http://agro.test:9001');
-    expect(logger.info).toHaveBeenCalledWith('Server running at http://agro.test:9001');
+    expect(logger.info).toHaveBeenCalledWith(
+      'Server running at http://agro.test:9001'
+    );
   });
 
   it('should fall back to configured port when address is not an object', async () => {
@@ -91,7 +101,9 @@ describe('AgroBackApp', () => {
     await app.start(logger);
 
     expect(app.host).toBe('http://localhost:8080');
-    expect(logger.info).toHaveBeenCalledWith('Server running at http://localhost:8080');
+    expect(logger.info).toHaveBeenCalledWith(
+      'Server running at http://localhost:8080'
+    );
   });
 
   it('should stop server and log when server exists', async () => {
@@ -101,7 +113,7 @@ describe('AgroBackApp', () => {
     });
 
     getHTTPServerMock.mockReturnValue({
-      address: () => ({ port: 3456 } satisfies Partial<AddressInfo>)
+      address: () => ({ port: 3456 }) satisfies Partial<AddressInfo>
     });
 
     await app.start(logger);

@@ -6,8 +6,14 @@ import type {
   SpatialPlantModel,
   SpatialService
 } from '../services/spatial/interfaces/index.js';
-import type { BedPrimitives, BedProps } from './types/index.js';
+import type { BedPrimitives } from './types/index.js';
 import type { PlantInstance } from './PlantInstance.js';
+
+export type BedProps = {
+  width: number;
+  height: number;
+  plantInstances?: PlantInstance[];
+};
 
 export class Bed
   extends AggregateRoot<Uuid>

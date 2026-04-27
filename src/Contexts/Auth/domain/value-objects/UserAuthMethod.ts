@@ -1,14 +1,10 @@
 import { createError } from '../../../../shared/errors/index.js';
-import type { AuthProvider } from './types/AuthProvider.js';
+import {
+  SUPPORTED_AUTH_PROVIDERS,
+  type AuthProvider
+} from './types/AuthProvider.js';
 import { PasswordHash } from './PasswordHash.js';
 import type { UserAuthMethodPrimitives } from './types/UserAuthMethodPrimitives.js';
-
-export const SUPPORTED_AUTH_PROVIDERS = [
-  'local',
-  'google',
-  'github',
-  'facebook'
-] as const;
 
 export class UserAuthMethod {
   readonly provider: AuthProvider;
