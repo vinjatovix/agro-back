@@ -3,8 +3,8 @@ import type {
   UpdatePasswordLocal,
   UpdatePasswordRequest,
   UserSessionInfo
-} from '../../../../Contexts/agroApi/Auth/application/index.js';
-import { HttpController } from '../../shared/controllers/HttpController.js';
+} from '../../../../Contexts/Auth/application/index.js';
+import { HttpController } from '../../shared/HttpController.js';
 
 export class UpdatePasswordLocalController extends HttpController {
   constructor(protected readonly updatePassword: UpdatePasswordLocal) {

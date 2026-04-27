@@ -1,6 +1,6 @@
 import { type NextFunction, type Request, type Response } from 'express';
-import type { RefreshToken } from '../../../../Contexts/agroApi/Auth/application/index.js';
-import { HttpController } from '../../shared/controllers/HttpController.js';
+import type { RefreshToken } from '../../../../Contexts/Auth/application/index.js';
+import { HttpController } from '../../shared/HttpController.js';
 
 export class RefreshTokenController extends HttpController {
   constructor(protected readonly refreshToken: RefreshToken) {

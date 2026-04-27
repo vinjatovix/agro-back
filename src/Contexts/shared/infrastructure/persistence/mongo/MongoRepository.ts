@@ -5,7 +5,7 @@ import {
   MongoServerError,
   type Document
 } from 'mongodb';
-import type { Username } from '../../../../agroApi/Auth/domain/Username.js';
+import type { Username } from '../../../../Auth/domain/value-objects/Username.js';
 import { updateMetadata } from '../../../application/utils/updateMetadata.js';
 import { MongoErrorHandler } from './MongoErrorHandler.js';
 import { toMongoId } from './MongoId.js';

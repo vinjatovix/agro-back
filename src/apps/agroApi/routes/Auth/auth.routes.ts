@@ -1,20 +1,20 @@
 import type { Router } from 'express';
 import {
+  auth,
+  authLimiter,
+  validateBody,
+  validateReqSchema
+} from '../../middlewares/index.js';
+import type { RegisterRoutes } from '../route.types.js';
+import { API_PREFIXES } from '../shared/index.js';
+import { authApiInvoker } from './authApiInvoker.js';
+import {
   googleAuthReqSchema,
   loginReqSchema,
   registerReqSchema,
   updatePasswordReqSchema,
   validateMailReqSchema
 } from './reqSchemas.js';
-import { authApiInvoker } from './authApiInvoker.js';
-import type { RegisterRoutes } from '../route.types.js';
-import { API_PREFIXES } from '../shared/index.js';
-import { authLimiter } from '../../middlewares/index.js';
-import {
-  auth,
-  validateBody,
-  validateReqSchema
-} from '../shared/middlewares/index.js';
 
 const prefix = API_PREFIXES.auth;
 

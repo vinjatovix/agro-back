@@ -8,7 +8,7 @@ import {
 } from 'awilix';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { CheckHealth } from '../../Contexts/agroApi/health/application/index.js';
+import { CheckHealth } from '../../Contexts/health/application/index.js';
 import {
   GoogleIdTokenVerifierAdapter,
   buildLogger,
@@ -21,7 +21,7 @@ import {
   type DBConfig
 } from '../../shared/infrastructure/persistence/index.js';
 import { CryptAdapter } from '../../Contexts/shared/plugins/CryptAdapter.js';
-import { MongoAuthRepository } from '../../Contexts/agroApi/Auth/infrastructure/persistence/index.js';
+import { MongoAuthRepository } from '../../Contexts/Auth/infrastructure/persistence/index.js';
 import {
   AuthenticateWithGoogle,
   LoginUserLocal,
@@ -29,12 +29,12 @@ import {
   RegisterUserLocal,
   UpdatePasswordLocal,
   ValidateMail
-} from '../../Contexts/agroApi/Auth/application/index.js';
-import { MongoPlantRepository } from '../../Contexts/agroApi/agro/plants/infrastructure/persistence/MongoPlantRepository.js';
-import { CreatePlant } from '../../Contexts/agroApi/agro/plants/application/useCases/CreatePlant.js';
-import { GetPlant } from '../../Contexts/agroApi/agro/plants/application/useCases/GetPlant.js';
-import { UpdatePlant } from '../../Contexts/agroApi/agro/plants/application/useCases/UpdatePlant.js';
-import { ListPlants } from '../../Contexts/agroApi/agro/plants/application/useCases/ListPlants.js';
+} from '../../Contexts/Auth/application/index.js';
+import { MongoPlantRepository } from '../../Contexts/Agro/Plants/infrastructure/persistence/MongoPlantRepository.js';
+import { CreatePlant } from '../../Contexts/Agro/Plants/application/useCases/CreatePlant.js';
+import { GetPlant } from '../../Contexts/Agro/Plants/application/useCases/GetPlant.js';
+import { UpdatePlant } from '../../Contexts/Agro/Plants/application/useCases/UpdatePlant.js';
+import { ListPlants } from '../../Contexts/Agro/Plants/application/useCases/ListPlants.js';
 
 /* eslint-disable
   @typescript-eslint/no-unsafe-argument,

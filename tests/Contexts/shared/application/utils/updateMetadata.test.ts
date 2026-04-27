@@ -1,4 +1,4 @@
-import { Username } from '../../../../../src/Contexts/agroApi/Auth/domain/Username.js';
+import { Username } from '../../../../../src/Contexts/Auth/domain/value-objects/Username.js';
 import { updateMetadata } from '../../../../../src/Contexts/shared/application/utils/updateMetadata.js';
 
 describe('updateMetadata', () => {

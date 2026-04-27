@@ -2,8 +2,8 @@ import { type NextFunction, type Request, type Response } from 'express';
 import type {
   LoginUserLocal,
   LoginUserRequest
-} from '../../../../Contexts/agroApi/Auth/application/index.js';
-import { HttpController } from '../../shared/controllers/HttpController.js';
+} from '../../../../Contexts/Auth/application/index.js';
+import { HttpController } from '../../shared/HttpController.js';
 
 export class LoginUserLocalController extends HttpController {
   constructor(protected readonly loginUser: LoginUserLocal) {

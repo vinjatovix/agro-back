@@ -1,6 +1,6 @@
 import { type NextFunction, type Request, type Response } from 'express';
 import httpStatus from 'http-status';
-import type { CheckHealth } from '../../../../Contexts/agroApi/health/application/index.js';
+import type { CheckHealth } from '../../../../Contexts/health/application/index.js';
 
 export class HealthController {
   constructor(protected readonly checkHealth: CheckHealth) {}

@@ -8,10 +8,10 @@ import { AgroBackApp } from '../../../../../src/apps/agroApi/AgroBackApp.js';
 import { API_PREFIXES } from '../../../../../src/apps/agroApi/routes/shared/apiPrefixes.js';
 import type { Nullable } from '../../../../../src/shared/domain/types/Nullable.js';
 import { Uuid } from '../../../../../src/Contexts/shared/domain/valueObject/index.js';
-import { UserMother } from '../../../../Contexts/agroApi/Auth/domain/mothers/UserMother.js';
+import { UserMother } from '../../../../Contexts/Auth/domain/mothers/UserMother.js';
 import type { EncrypterTool } from '../../../../../src/Contexts/shared/plugins/index.js';
 import type { UnknownRecord } from '../../../../../src/shared/domain/types/UnknownRecord.js';
-import type { PlantPrimitives } from '../../../../../src/Contexts/agroApi/agro/plants/domain/entities/types/PlantPrimitives.js';
+import type { PlantPrimitives } from '../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantPrimitives.js';
 
 const container = createAppContainer();
 

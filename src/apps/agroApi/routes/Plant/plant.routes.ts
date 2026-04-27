@@ -1,0 +1,25 @@
+import type { Router } from 'express';
+import {
+  auth,
+  isAdmin,
+  validateBody,
+  validateReqSchema
+} from '../../middlewares/index.js';
+import type { RegisterRoutes } from '../route.types.js';
+import { API_PREFIXES } from '../shared/apiPrefixes.js';
+import { plantApiInvoker } from './plantApiInvoker.js';
+import { createPlantReqSchema } from './reqSchemas.js';
+
+const prefix = API_PREFIXES.plants;
+
+export const registerRoutes: RegisterRoutes = (router: Router): void => {
+  router.post(
+    `${prefix}/`,
+    auth,
+    isAdmin,
+    validateBody,
+    createPlantReqSchema,
+    validateReqSchema,
+    plantApiInvoker('createPlant')
+  );
+};

@@ -1,4 +1,4 @@
-import { PasswordHash } from '../../../../../src/Contexts/shared/domain/valueObject/PasswordHash.js';
+import { PasswordHash } from '../../../../../src/Contexts/Auth/domain/value-objects/PasswordHash.js';
 
 describe('PasswordHash', () => {
   // Valid bcrypt hashes for testing - all with exactly 53 chars in the body

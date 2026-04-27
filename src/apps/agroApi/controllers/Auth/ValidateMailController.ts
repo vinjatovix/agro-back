@@ -1,7 +1,7 @@
 import { type NextFunction, type Request, type Response } from 'express';
-import type { ValidateMail } from '../../../../Contexts/agroApi/Auth/application/index.js';
+import type { ValidateMail } from '../../../../Contexts/Auth/application/index.js';
 import { createError } from '../../../../shared/errors/index.js';
-import { HttpController } from '../../shared/controllers/HttpController.js';
+import { HttpController } from '../../shared/HttpController.js';
 
 export class ValidateMailController extends HttpController {
   constructor(protected readonly validateMail: ValidateMail) {

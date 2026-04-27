@@ -1,6 +1,6 @@
 import { makeInvoker } from 'awilix-express';
-import type { CheckHealth } from '../../../../Contexts/agroApi/health/application/index.js';
-import { HealthController } from '../../controllers/health/index.js';
+import type { CheckHealth } from '../../../../Contexts/health/application/index.js';
+import { HealthController } from '../../controllers/health/HealthController.js';
 import { bindRun } from '../shared/index.js';
 
 const api = (checkHealth: CheckHealth) => {

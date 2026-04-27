@@ -1,4 +1,4 @@
-import type { Username } from '../../../agroApi/Auth/domain/Username.js';
+import type { Username } from '../../../Auth/domain/value-objects/Username.js';
 
 interface UpdateMetadata {
   'metadata.updatedBy': string;

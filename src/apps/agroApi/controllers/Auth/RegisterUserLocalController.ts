@@ -3,8 +3,8 @@ import httpStatus from 'http-status';
 import type {
   RegisterUserLocal,
   RegisterUserRequest
-} from '../../../../Contexts/agroApi/Auth/application/index.js';
-import { HttpController } from '../../shared/controllers/HttpController.js';
+} from '../../../../Contexts/Auth/application/index.js';
+import { HttpController } from '../../shared/HttpController.js';
 
 export class RegisterUserLocalController extends HttpController {
   constructor(protected readonly registerUser: RegisterUserLocal) {

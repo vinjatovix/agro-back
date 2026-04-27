@@ -6,7 +6,7 @@ import type {
   RegisterUserLocal,
   UpdatePasswordLocal,
   ValidateMail
-} from '../../../../Contexts/agroApi/Auth/application/index.js';
+} from '../../../../Contexts/Auth/application/index.js';
 import {
   AuthenticateWithGoogleController,
   LoginUserLocalController,
