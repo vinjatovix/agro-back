@@ -1,6 +1,5 @@
 import { scopePerRequest } from 'awilix-express';
 import cors from 'cors';
-import errorHandler from 'errorhandler';
 import express from 'express';
 import type { NextFunction, Request, Response } from 'express';
 import Router from 'express-promise-router';
@@ -66,9 +65,6 @@ export class Server {
     const router = Router();
     await registerRoutes(router);
     this.express.use(router);
-    if (process.env.NODE_ENV === 'development') {
-      this.express.use(errorHandler());
-    }
     this.express.use(
       (err: Error, _req: Request, res: Response, _next: NextFunction): void => {
         if (err instanceof HttpError) {
