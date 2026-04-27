@@ -11,6 +11,7 @@ import { Uuid } from '../../../../../src/Contexts/shared/domain/valueObject/inde
 import { UserMother } from '../../../../Contexts/agroApi/Auth/domain/mothers/UserMother.js';
 import type { EncrypterTool } from '../../../../../src/Contexts/shared/plugins/index.js';
 import type { UnknownRecord } from '../../../../../src/shared/domain/types/UnknownRecord.js';
+import type { PlantPrimitives } from '../../../../../src/Contexts/agroApi/agro/plants/domain/entities/types/PlantPrimitives.js';
 
 const container = createAppContainer();
 
@@ -156,7 +157,7 @@ Then('the response body should be', async (docString: string) => {
 
 Then('the response body should contain', async (docString: string) => {
   const response = await _request;
-  const expectedResponseBody = JSON.parse(docString);
+  const expectedResponseBody: Partial<PlantPrimitives> = JSON.parse(docString);
 
   const matches = compareResponseObject(response.body, expectedResponseBody);
 

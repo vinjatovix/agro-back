@@ -2,6 +2,7 @@ import type { PlantRepository } from '../../domain/repositories/PlantRepository.
 import type { CreatePlantDto } from './interfaces/CreatePlantDto.js';
 import type { Plant } from '../../domain/entities/Plant.js';
 import { plantMapper } from '../../mappers/plantMapper.js';
+import { createError } from '../../../../../../shared/errors/index.js';
 
 export class CreatePlant {
   constructor(private readonly plantRepository: PlantRepository) {}
@@ -10,7 +11,7 @@ export class CreatePlant {
     const exists = await this.plantRepository.exists(dto.id);
 
     if (exists) {
-      throw new Error(`Plant already exists: ${dto.id}`);
+      throw createError.conflict(`Plant already exists: ${dto.id}`);
     }
 
     const plant = plantMapper.fromCreateDtoToDomain(dto, user);

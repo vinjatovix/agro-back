@@ -43,9 +43,9 @@ export class EnsureAuthentication {
   ): Promise<void> {
     try {
       const token: string = req.headers.authorization ?? '';
-      if (!token.startsWith('Bearer ')) {
+      if (!token || !token.startsWith('Bearer ')) {
         logger.warn(`[auth] missing_bearer ${getRequestContext(req)}`);
-        throw createError.auth('Invalid token');
+        return next(createError.auth('Invalid token'));
       }
 
       const trimmedToken = token.replace('Bearer ', '');
@@ -53,7 +53,7 @@ export class EnsureAuthentication {
       const userData = await encrypter.verifyToken(trimmedToken);
       if (!userData) {
         logger.warn(`[auth] invalid_token ${getRequestContext(req)}`);
-        throw createError.auth('Invalid token');
+        return next(createError.auth('Invalid token'));
       }
 
       res.locals.user = { ...userData, token: trimmedToken };
@@ -80,7 +80,7 @@ export class EnsureAuthentication {
 
     if (denyReason) {
       logger.warn(`[auth] ${denyReason} ${getRequestContext(req)}`);
-      throw createError.auth('Insufficient permissions');
+      throw createError.forbidden('Insufficient permissions');
     }
 
     return next();

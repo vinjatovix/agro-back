@@ -1,4 +1,5 @@
 import { applyPatch } from '../../../../../../shared/domain/patch/applyPatch.js';
+import { createError } from '../../../../../../shared/errors/index.js';
 import type { PlantRepository } from '../../domain/repositories/PlantRepository.js';
 import { plantMapper } from '../../mappers/plantMapper.js';
 import type { UpdatePlantDto } from './interfaces/UpdatePlantDto.js';
@@ -10,7 +11,7 @@ export class UpdatePlant {
     const plant = await this.plantRepository.findById(dto.id);
 
     if (!plant) {
-      throw new Error(`Plant not found: ${dto.id}`);
+      throw createError.notFound(`Plant not found: ${dto.id}`);
     }
 
     const current = plantMapper.toPrimitives(plant);

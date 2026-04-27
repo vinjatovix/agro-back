@@ -1,3 +1,5 @@
+import { createError } from '../../errors/index.js';
+
 export class MonthSet {
   private readonly months: Set<number>;
 
@@ -9,7 +11,7 @@ export class MonthSet {
     const normalized = months
       .map((m) => {
         if (!Number.isInteger(m) || m < 1 || m > 12) {
-          throw new Error(`Invalid month: ${m}`);
+          throw createError.badRequest(`Invalid month: ${m}`);
         }
         return m;
       })

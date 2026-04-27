@@ -1,4 +1,5 @@
 import { deepFreeze } from '../../../../../../shared/domain/utils/deepFreeze.js';
+import { createError } from '../../../../../../shared/errors/index.js';
 import { AggregateRoot } from '../../../../../shared/domain/AggregateRoot.js';
 import {
   Metadata,
@@ -22,10 +23,10 @@ export class Plant extends AggregateRoot<Uuid> {
 
   private validateProps(props: PlantProps) {
     if (props.status === PlantStatus.ACTIVE && props.deletedAt) {
-      throw new Error('Active plant cannot have deletedAt');
+      throw createError.badRequest('Active plant cannot have deletedAt');
     }
     if (props.status === PlantStatus.DELETED && !props.deletedAt) {
-      throw new Error('Deleted plant must have deletedAt');
+      throw createError.badRequest('Deleted plant must have deletedAt');
     }
   }
 

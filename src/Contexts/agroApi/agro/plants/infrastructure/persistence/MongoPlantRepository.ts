@@ -13,6 +13,7 @@ import type { PlantPrimitives } from '../../domain/entities/types/PlantPrimitive
 import type { RangePrimitives } from '../../../../../../shared/domain/value-objects/interfaces/RangePrimitives.js';
 import type { PlantSowingPrimitives } from '../../domain/entities/types/PlantSowingPrimitives.js';
 import type { PlantKnowledgePrimitives } from '../../domain/entities/types/PlantKnowledgePrimitives.js';
+import { createError } from '../../../../../../shared/errors/index.js';
 
 type PlantDocument = {
   _id: string | Binary | UUID;
@@ -72,7 +73,7 @@ export class MongoPlantRepository
     });
 
     if (!document) {
-      throw new Error(`Plant not found: ${id}`);
+      throw createError.notFound(`Plant not found: ${id}`);
     }
 
     return this.mapDocumentToPlant(document);
@@ -129,7 +130,7 @@ export class MongoPlantRepository
     const result = await collection.updateOne({ _id: mongoId }, updateQuery);
 
     if (result.matchedCount === 0) {
-      throw new Error(`Plant not found: ${current.id}`);
+      throw createError.notFound(`Plant not found: ${current.id}`);
     }
   }
 

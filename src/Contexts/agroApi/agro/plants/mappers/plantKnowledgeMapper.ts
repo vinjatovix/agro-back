@@ -1,3 +1,4 @@
+import { createError } from '../../../../../shared/errors/index.js';
 import type { PlantKnowledgePrimitives } from '../domain/entities/types/PlantKnowledgePrimitives.js';
 import type { PlantKnowledgeProps } from '../domain/value-objects/interfaces/PlantKnowledgeProps.js';
 import { PlantKnowledge } from '../domain/value-objects/PlantKnowledge.js';
@@ -54,7 +55,7 @@ export const plantKnowledgeMapper = {
   },
   fromPrimitives(primitives?: PlantKnowledgePrimitives): PlantKnowledge {
     if (!primitives) {
-      throw new Error(
+      throw createError.badRequest(
         'PlantKnowledgePrimitives is required to create PlantKnowledge'
       );
     }
