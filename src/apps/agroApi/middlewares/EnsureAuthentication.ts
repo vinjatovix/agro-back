@@ -41,7 +41,7 @@ export class EnsureAuthentication {
   ): Promise<void> {
     try {
       const token: string = req.headers.authorization ?? '';
-      if (!token || !token.startsWith('Bearer ')) {
+      if (!token?.startsWith('Bearer ')) {
         logger.warn(`[auth] missing_bearer ${getRequestContext(req)}`);
         return next(createError.auth('Invalid token'));
       }

@@ -53,7 +53,7 @@ describe('EnsureAuthentication.run', () => {
   });
 
   it('should fail when no token', async () => {
-    const req = makeReq(undefined);
+    const req = makeReq();
 
     await EnsureAuthentication.run({ logger, encrypter }, req, res, next);
 

@@ -68,7 +68,7 @@ describe('plantKnowledgeMapper', () => {
     });
 
     it('should throw on undefined input', () => {
-      expect(() => plantKnowledgeMapper.fromPrimitives(undefined)).toThrow();
+      expect(() => plantKnowledgeMapper.fromPrimitives()).toThrow();
     });
   });
 

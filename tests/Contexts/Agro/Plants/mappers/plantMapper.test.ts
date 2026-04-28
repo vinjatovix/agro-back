@@ -140,7 +140,7 @@ describe('PlantMapper', () => {
 
   it('mapKnowledge should return empty when null or empty', () => {
     expect(plantMapper.mapKnowledge(null)).toBeDefined();
-    expect(plantMapper.mapKnowledge(undefined)).toBeDefined();
+    expect(plantMapper.mapKnowledge()).toBeDefined();
     expect(plantMapper.mapKnowledge({})).toBeDefined();
   });
 

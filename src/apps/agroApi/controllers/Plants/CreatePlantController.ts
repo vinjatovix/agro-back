@@ -8,7 +8,7 @@ import httpStatus from 'http-status';
 import { plantMapper } from '../../../../Contexts/Agro/Plants/mappers/plantMapper.js';
 
 export class CreatePlantController extends HttpController {
-  constructor(private useCase: CreatePlant) {
+  constructor(private readonly useCase: CreatePlant) {
     super();
   }
 
