@@ -14,27 +14,24 @@ Feature: Create a new plant
         Then the response body should be
             """
             {
-            "message": "Validation error",
-            "errors": {
-            "identity.familyId": "Invalid value at body. Value: undefined",
-            "identity.name.primary": "Invalid value at body. Value: undefined",
-            "phenology.flowering.months": "Invalid value at body. Value: undefined",
-            "phenology.harvest.months": "Invalid value at body. Value: undefined",
-            "phenology.sowing.germinationDays.max": "Invalid value at body. Value: undefined",
-            "phenology.sowing.germinationDays.min": "Invalid value at body. Value: undefined",
-            "phenology.sowing.methods.direct.depthCm.max": "Invalid value at body. Value: undefined",
-            "phenology.sowing.methods.direct.depthCm.min": "Invalid value at body. Value: undefined",
-            "phenology.sowing.months": "Invalid value at body. Value: undefined",
-            "phenology.sowing.seedsPerHole.max": "Invalid value at body. Value: undefined",
-            "phenology.sowing.seedsPerHole.min": "Invalid value at body. Value: undefined",
-            "traits.lifecycle": "Invalid value at body. Value: undefined",
-            "traits.size.height.max": "Invalid value at body. Value: undefined",
-            "traits.size.height.min": "Invalid value at body. Value: undefined",
-            "traits.size.spread.max": "Invalid value at body. Value: undefined",
-            "traits.size.spread.min": "Invalid value at body. Value: undefined",
-            "traits.spacingCm.max": "Invalid value at body. Value: undefined",
-            "traits.spacingCm.min": "Invalid value at body. Value: undefined"
-            }
+                "message": "Validation error",
+                "errors": {
+                    "identity.familyId": "Invalid value at body. Value: undefined",
+                    "identity.name.primary": "Invalid value at body. Value: undefined",
+                    "phenology.flowering.months": "Invalid value at body. Value: undefined",
+                    "phenology.harvest.months": "Invalid value at body. Value: undefined",
+                    "phenology.sowing.germinationDays.max": "Invalid value at body. Value: undefined",
+                    "phenology.sowing.germinationDays.min": "Invalid value at body. Value: undefined",
+                    "phenology.sowing.methods.direct.depthCm.max": "Invalid value at body. Value: undefined",
+                    "phenology.sowing.methods.direct.depthCm.min": "Invalid value at body. Value: undefined",
+                    "phenology.sowing.months": "Invalid value at body. Value: undefined",
+                    "phenology.sowing.seedsPerHole.max": "Invalid value at body. Value: undefined",
+                    "phenology.sowing.seedsPerHole.min": "Invalid value at body. Value: undefined",
+                    "traits.lifecycle": "Invalid value at body. Value: undefined",
+                    "traits.size.height": "Invalid value at body. Value: undefined",
+                    "traits.size.spread": "Invalid value at body. Value: undefined",
+                    "traits.spacingCm": "Invalid value at body. Value: undefined"
+                }
             }
             """
 

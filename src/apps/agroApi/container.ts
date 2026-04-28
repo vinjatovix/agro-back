@@ -49,7 +49,8 @@ import { HealthController } from './controllers/health/HealthController.js';
 import {
   CreatePlantController,
   GetAllPlantsController,
-  GetPlantByIdController
+  GetPlantByIdController,
+  UpdatePlantController
 } from './controllers/Plants/index.js';
 
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
@@ -126,6 +127,15 @@ const registerAuthUseCases = (container: AppContainer): void => {
   });
 };
 
+const registerPlantControllers = (container: AppContainer): void => {
+  container.register({
+    createPlantController: asClass(CreatePlantController).scoped(),
+    getAllPlantsController: asClass(GetAllPlantsController).scoped(),
+    getPlantController: asClass(GetPlantByIdController).scoped(),
+    updatePlantController: asClass(UpdatePlantController).scoped()
+  });
+};
+
 const registerPlantUseCases = (container: AppContainer): void => {
   container.register({
     createPlant: asFunction(
@@ -140,14 +150,6 @@ const registerPlantUseCases = (container: AppContainer): void => {
     updatePlant: asFunction(
       (plantRepository) => new UpdatePlant(plantRepository)
     ).scoped()
-  });
-};
-
-const registerPlantControllers = (container: AppContainer): void => {
-  container.register({
-    createPlantController: asClass(CreatePlantController).scoped(),
-    getAllPlantsController: asClass(GetAllPlantsController).scoped(),
-    getPlantController: asClass(GetPlantByIdController).scoped()
   });
 };
 

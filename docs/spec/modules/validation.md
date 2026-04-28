@@ -25,6 +25,7 @@ Validation is a **schema enforcement layer**, not a business logic layer.
 * MUST NOT enforce business rules
 * MUST be aligned with OpenAPI schemas
 * MUST produce structured errors
+* MUST allow partial payload validation (PATCH semantics)
 
 ---
 
@@ -47,6 +48,7 @@ Validation errors MUST:
 * be deterministic across environments
 * include a stable string message
 * MAY include raw invalid value inside message string
+* MUST NOT require full object presence for PATCH requests
 
 Example:
 

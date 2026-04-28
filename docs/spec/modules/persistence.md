@@ -64,14 +64,37 @@ Used for partial updates.
 
 ---
 
-## 4.2 Diff / Patch Pipeline
+Sí, ahora mismo está confuso porque mezcla pasos duplicados y da a entender dos pipelines distintos.
 
-Update flow:
+Te lo dejo corregido **mínimo y coherente con tu código real**:
+
+---
+
+# 4.2 Diff / Patch Pipeline
+
+## Update flow
 
 1. current persisted state is loaded
-2. diff is calculated against update payload
-3. patch is applied deterministically
-4. resulting state is validated before persistence
+2. patch is applied to create "next state"
+3. resulting state is validated against domain rules
+4. ONLY if validation passes → persistence update is executed
+5. persistence layer applies deterministic diff between states
+
+---
+
+## CRITICAL RULE
+
+Domain validation MUST occur **before any persistence side effect**.
+
+Persistence MUST ONLY receive a **validated final state transition**.
+
+---
+
+## NOTE
+
+- Patch application is a **transformation step**, not a persistence action
+- Diff calculation is **internal to persistence layer**, not part of domain flow
+- The system MUST NOT persist unvalidated intermediate states
 
 ---
 
@@ -152,6 +175,7 @@ Plant domain conversion is handled via:
 - stored data MUST always be valid domain-compatible structure
 - partial updates MUST NOT break structural integrity
 - invalid updates MUST be rejected before persistence
+- domain validation MUST run on fully reconstructed state AFTER patch
 
 ---
 

@@ -107,6 +107,7 @@ Features:
 * use semantic matching only
 * avoid brittle snapshots unless stable contract (OpenAPI)
 * asserting raw error strings is allowed ONLY when explicitly defined by validation contract
+* PATCH responses MUST be treated as full aggregate snapshots (not partial fragments)
 
 ---
 

@@ -69,7 +69,7 @@ The system exposes the following domain resources:
 
 * POST /plants (implemented)
 * GET /plants (implemented)
-* PUT /plants/:id (pending)
+* PATCH /plants/:id (implemented)
 * DELETE /plants/:id (pending)
 
 ### 4.1.1 Plant by ID
@@ -77,9 +77,18 @@ The system exposes the following domain resources:
 * GET /plants/:id (implemented)
 
 Behavior:
+
 * returns a Plant aggregate by UUID
 * returns 404 if not found
 * returns 400 if invalid UUID
+
+* PATCH /plants/:id (implemented)
+
+Behavior:
+
+* supports partial updates (deep merge semantics)
+* only provided fields are modified
+* returns full updated PlantPrimitives
 
 ---
 

@@ -5,7 +5,7 @@ import { HttpController } from '../../shared/HttpController.js';
 import { createError } from '../../../../shared/errors/index.js';
 
 export class GetPlantByIdController extends HttpController {
-  constructor(private getPlant: GetPlant) {
+  constructor(private readonly getPlant: GetPlant) {
     super();
   }
 

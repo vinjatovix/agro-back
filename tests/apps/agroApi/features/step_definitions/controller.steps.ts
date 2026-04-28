@@ -31,6 +31,8 @@ class TestWorldImpl extends World implements TestWorld {
   plantId?: string;
   bedId?: string;
   token?: string;
+
+  [key: string]: unknown;
 }
 
 setWorldConstructor(TestWorldImpl);
@@ -85,6 +87,77 @@ const compareResponseObject = <T extends Record<string, unknown>>(
 
   return compare(responseObj, expectedObj);
 };
+
+type Primitive = string | number | boolean;
+
+const interpolateRoute = <T extends Record<string, unknown>>(
+  route: string,
+  world: T
+): string => {
+  return route.replaceAll(/{(.*?)}/g, (_, key: string) => {
+    const value = world[key];
+
+    if (value === undefined || value === null) {
+      throw new Error(`Missing value for route param: ${key}`);
+    }
+
+    if (!isPrimitive(value)) {
+      throw new Error(
+        `Invalid type for route param "${key}". Expected primitive, got ${typeof value}`
+      );
+    }
+
+    return String(value);
+  });
+};
+
+const interpolateJson = <T extends Record<string, unknown>>(
+  body: string,
+  world: T
+): string => {
+  const resolvedRoute = JSON.parse(body);
+
+  const replace = (value: unknown): unknown => {
+    if (typeof value === 'string') {
+      return value.replaceAll(/{(.*?)}/g, (_, key: string) => {
+        const replacement = world[key];
+
+        if (replacement === undefined || replacement === null) {
+          throw new Error(`Missing value for json param: ${key}`);
+        }
+
+        if (!isPrimitive(replacement)) {
+          throw new Error(
+            `Invalid type for json param "${key}". Expected primitive, got ${typeof replacement}`
+          );
+        }
+
+        return String(replacement);
+      });
+    }
+
+    if (Array.isArray(value)) {
+      return value.map(replace);
+    }
+
+    if (isRecord(value)) {
+      const out: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(value)) {
+        out[k] = replace(v);
+      }
+      return out;
+    }
+
+    return value;
+  };
+
+  return JSON.stringify(replace(resolvedRoute));
+};
+
+const isPrimitive = (value: unknown): value is Primitive =>
+  typeof value === 'string' ||
+  typeof value === 'number' ||
+  typeof value === 'boolean';
 
 BeforeAll(async () => {
   app = new AgroBackApp({
@@ -194,6 +267,42 @@ When('I get the plant', async function (this: CucumberWorld) {
 
   _request = request(httpServer).get(`/api/v1/plants/${this.plantId}`);
 });
+
+When(
+  'I send a PATCH admin request to {string} with body',
+  async function (this: CucumberWorld, route: string, body: string) {
+    const normalizedRoute = interpolateRoute(route, this);
+    const interpolatedBody = interpolateJson(body, this);
+
+    _request = request(httpServer)
+      .patch(normalizedRoute)
+      .set('Authorization', `Bearer ${validAdminBearerToken}`)
+      .send(JSON.parse(interpolatedBody));
+  }
+);
+
+When(
+  'I send a PATCH user request to {string} with body',
+  async function (this: CucumberWorld, route: string, body: string) {
+    const normalizedRoute = interpolateRoute(route, this);
+
+    _request = request(httpServer)
+      .patch(normalizedRoute)
+      .set('Authorization', `Bearer ${validUserBearerToken}`)
+      .send(JSON.parse(interpolateJson(body, this)));
+  }
+);
+
+When(
+  'I send a PATCH request to {string} with body',
+  async function (this: CucumberWorld, route: string, body: string) {
+    const normalizedRoute = interpolateRoute(route, this);
+
+    _request = request(httpServer)
+      .patch(normalizedRoute)
+      .send(JSON.parse(interpolateJson(body, this)));
+  }
+);
 
 Then(
   'the response status code should be {int}',

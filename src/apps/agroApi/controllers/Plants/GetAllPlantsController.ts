@@ -4,7 +4,7 @@ import { HttpController } from '../../shared/HttpController.js';
 import type { ListPlants } from '../../../../Contexts/Agro/Plants/application/useCases/ListPlants.js';
 
 export class GetAllPlantsController extends HttpController {
-  constructor(private listPlants: ListPlants) {
+  constructor(private readonly listPlants: ListPlants) {
     super();
   }
 
