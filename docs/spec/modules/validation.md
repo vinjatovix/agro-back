@@ -1,4 +1,4 @@
-## MODULE: VALIDATION
+# MODULE: VALIDATION
 
 version: 1.1.0
 source-spec: v1.0.0
@@ -39,14 +39,34 @@ type ApiErrorResponse = {
 
 ---
 
-# 5. VALIDATION OUTPUT RULES (NEW CONTRACT BEHAVIOR)
+# 5. VALIDATION ERROR BEHAVIOR
 
-* errors MUST be Record<string, string>
-* error values MUST be deterministic strings
-* FieldValidationError.value is ignored at API boundary
-* validation output MUST match ApiErrorResponse exactly
+Validation errors MUST:
+
+* use field path as key
+* be deterministic across environments
+* include a stable string message
+* MAY include raw invalid value inside message string
+
+Example:
+
+```json
+{
+  "message": "Validation error",
+  "errors": {
+    "id": "Invalid value at params. Value: invalid-id"
+  }
+}
+```
 
 ---
+
+# 6. CHECK EXACT RULE
+
+checkExact() MUST:
+
+* prevent unknown fields
+* enforce strict schema matching
 
 # 7. FUTURE EVOLUTION
 

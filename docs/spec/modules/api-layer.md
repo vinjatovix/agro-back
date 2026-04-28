@@ -68,10 +68,18 @@ The system exposes the following domain resources:
 ## 4.1 Plants
 
 * POST /plants (implemented)
-* GET /plants/:id (pending)
 * GET /plants (pending)
 * PUT /plants/:id (pending)
 * DELETE /plants/:id (pending)
+
+### 4.1.1 Plant by ID
+
+* GET /plants/:id (implemented)
+
+Behavior:
+* returns a Plant aggregate by UUID
+* returns 404 if not found
+* returns 400 if invalid UUID
 
 ---
 
@@ -229,6 +237,7 @@ type ApiErrorResponse = {
 ## Implemented
 
 * POST /plants
+* GET /plants/:id
 * authentication system (partial)
 * validation middleware (partial)
 * base error handling

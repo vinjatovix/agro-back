@@ -8,7 +8,7 @@ import {
 import type { RegisterRoutes } from '../route.types.js';
 import { API_PREFIXES } from '../shared/apiPrefixes.js';
 import { plantApiInvoker } from './plantApiInvoker.js';
-import { createPlantReqSchema } from './reqSchemas.js';
+import { createPlantReqSchema, getPlantByIdReqSchema } from './reqSchemas.js';
 
 const prefix = API_PREFIXES.plants;
 
@@ -21,5 +21,12 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
     createPlantReqSchema,
     validateReqSchema,
     plantApiInvoker('createPlant')
+  );
+
+  router.get(
+    `${prefix}/:id`,
+    getPlantByIdReqSchema,
+    validateReqSchema,
+    plantApiInvoker('getPlantById')
   );
 };

@@ -1,4 +1,4 @@
-## MODULE: TESTING
+# MODULE: TESTING
 
 version: 1.1.0
 source-spec: v1.0.0
@@ -77,6 +77,22 @@ Rules:
 
 ---
 
+## 2.5 BDD / Cucumber Tests
+
+Scope:
+
+* feature-based system tests
+* shared world state
+* scenario-driven API behavior
+
+Features:
+
+* Given/When/Then DSL
+* stateful execution via World
+* reusable fixtures (seeders)
+
+---
+
 # 3. COVERAGE RULES
 
 * minimum coverage: 80%
@@ -103,7 +119,38 @@ Rules:
 
 ---
 
-# 6. FUTURE EVOLUTION
+# 6. SEEDERS
+
+Test utilities MAY include:
+
+* API-driven seeders (HTTP-based setup)
+* domain factories (pure object creation)
+
+Seeders are allowed to:
+
+* interact with real HTTP server in E2E tests
+* create deterministic test fixtures
+
+---
+
+# 7. WORLD MODEL (BDD)
+
+Cucumber tests MAY define:
+
+```ts
+class TestWorld {
+  plantId?: string;
+  bedId?: string;
+  token?: string;
+}
+```
+
+Rules:
+
+* state is isolated per scenario
+* no cross-scenario leakage
+
+# 8. FUTURE EVOLUTION
 
 * mutation testing
 * contract-driven test generation
@@ -111,7 +158,7 @@ Rules:
 
 ---
 
-# 7. ANTI-PATTERNS
+# 9. ANTI-PATTERNS
 
 * testing implementation details instead of behavior
 * coupling tests to Express internals

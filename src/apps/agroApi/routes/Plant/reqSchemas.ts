@@ -1,4 +1,4 @@
-import { body, checkExact } from 'express-validator';
+import { body, checkExact, param } from 'express-validator';
 import { PollinationType } from '../../../../Contexts/Agro/Plants/domain/entities/types/PollinationType.js';
 import { rangeSchema } from '../../middlewares/helpers/rangeSchema.js';
 
@@ -58,5 +58,10 @@ export const createPlantReqSchema = [
   // =====================
   // FINAL SAFETY CHECK
   // =====================
+  checkExact()
+];
+
+export const getPlantByIdReqSchema = [
+  param('id').exists().isUUID(),
   checkExact()
 ];
