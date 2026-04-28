@@ -48,6 +48,7 @@ import {
 import { HealthController } from './controllers/health/HealthController.js';
 import {
   CreatePlantController,
+  GetAllPlantsController,
   GetPlantByIdController
 } from './controllers/Plants/index.js';
 
@@ -145,6 +146,7 @@ const registerPlantUseCases = (container: AppContainer): void => {
 const registerPlantControllers = (container: AppContainer): void => {
   container.register({
     createPlantController: asClass(CreatePlantController).scoped(),
+    getAllPlantsController: asClass(GetAllPlantsController).scoped(),
     getPlantController: asClass(GetPlantByIdController).scoped()
   });
 };

@@ -68,7 +68,7 @@ The system exposes the following domain resources:
 ## 4.1 Plants
 
 * POST /plants (implemented)
-* GET /plants (pending)
+* GET /plants (implemented)
 * PUT /plants/:id (pending)
 * DELETE /plants/:id (pending)
 

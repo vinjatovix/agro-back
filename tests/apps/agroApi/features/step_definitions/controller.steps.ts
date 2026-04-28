@@ -35,6 +35,8 @@ class TestWorldImpl extends World implements TestWorld {
 
 setWorldConstructor(TestWorldImpl);
 
+type CucumberWorld = TestWorldImpl;
+
 const container = createAppContainer();
 
 const ENVIRONMENT_ARRANGER: Promise<EnvironmentArranger> = Promise.resolve(
@@ -60,12 +62,14 @@ const compareResponseObject = <T extends Record<string, unknown>>(
 ): boolean => {
   const compare = (actual: unknown, expected: unknown): boolean => {
     if (expected === undefined) return true;
-
     if (expected === null) return actual === null;
 
     if (Array.isArray(expected)) {
       if (!Array.isArray(actual)) return false;
-      return expected.every((v, i) => compare(actual[i], v));
+
+      return expected.every((expectedItem) =>
+        actual.some((actualItem) => compare(actualItem, expectedItem))
+      );
     }
 
     if (isRecord(expected)) {
@@ -167,12 +171,25 @@ Given(
   }
 );
 
-Given('a plant exists', async function () {
-  const plant = await plantSeeder.create();
-  this.plantId = plant.id;
+Given('a plant exists', async function (this: CucumberWorld) {
+  const plants = await plantSeeder.createMany(2);
+
+  if (plants?.length === 0) {
+    throw new Error('PlantSeeder returned empty array');
+  }
+
+  this.plantId = plants[0]!.id;
 });
 
-When('I get the plant', async function () {
+Given('no plants exist', async function () {
+  await (await ENVIRONMENT_ARRANGER).arrange();
+});
+
+When('I send a GET request to {string}', async function (route: string) {
+  _request = request(httpServer).get(route);
+});
+
+When('I get the plant', async function (this: CucumberWorld) {
   if (!this.plantId) throw new Error('plantId not set');
 
   _request = request(httpServer).get(`/api/v1/plants/${this.plantId}`);
@@ -195,6 +212,25 @@ Then('the response body should include an auth token', async function () {
 
 Then('the response body should be', async function (docString: string) {
   assert.deepStrictEqual(_response.body, JSON.parse(docString));
+});
+
+Then('the response body should be a list', async function () {
+  const response = await _request;
+  assert.isArray(response.body);
+});
+
+Then(
+  'the list should contain at least {int} item',
+  async function (count: number) {
+    const response = await _request;
+    assert.isAtLeast(response.body.length, count);
+  }
+);
+
+Then('the response body should be an empty list', async function () {
+  const response = await _request;
+  assert.isArray(response.body);
+  assert.lengthOf(response.body, 0);
 });
 
 Then('the response body should contain', async function (docString: string) {

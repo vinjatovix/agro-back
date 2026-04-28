@@ -41,6 +41,14 @@ export const PlantSeeder = (httpServer: Server, token: string) => {
         .send(body);
 
       return res.body as PlantPrimitives;
+    },
+    async createMany(count: number, overrides = {}) {
+      const plants: PlantPrimitives[] = [];
+      for (let i = 0; i < count; i++) {
+        const plant = await this.create(overrides);
+        plants.push(plant);
+      }
+      return plants;
     }
   };
 };
