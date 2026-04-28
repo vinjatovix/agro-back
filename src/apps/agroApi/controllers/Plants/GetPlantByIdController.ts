@@ -4,8 +4,8 @@ import type { GetPlant } from '../../../../Contexts/Agro/Plants/application/useC
 import { HttpController } from '../../shared/HttpController.js';
 import { createError } from '../../../../shared/errors/index.js';
 
-export class GetPlantController extends HttpController {
-  constructor(private useCase: GetPlant) {
+export class GetPlantByIdController extends HttpController {
+  constructor(private getPlant: GetPlant) {
     super();
   }
 
@@ -17,7 +17,7 @@ export class GetPlantController extends HttpController {
         throw createError.badRequest('Plant ID is required');
       }
 
-      const plant = await this.useCase.execute(plantId);
+      const plant = await this.getPlant.execute(plantId);
 
       res.status(this.status()).json(plant);
     } catch (error) {

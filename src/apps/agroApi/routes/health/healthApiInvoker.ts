@@ -1,11 +1,8 @@
 import { makeInvoker } from 'awilix-express';
-import type { CheckHealth } from '../../../../Contexts/health/application/index.js';
 import { HealthController } from '../../controllers/health/HealthController.js';
 import { bindRun } from '../shared/index.js';
 
-const api = (checkHealth: CheckHealth) => {
-  const healthController = new HealthController(checkHealth);
-
+const api = (healthController: HealthController) => {
   return {
     getHealth: bindRun(healthController)
   };

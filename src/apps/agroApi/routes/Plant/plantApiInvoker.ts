@@ -1,17 +1,17 @@
 import { makeInvoker } from 'awilix-express';
-import { CreatePlant } from '../../../../Contexts/Agro/Plants/application/useCases/CreatePlant.js';
 import { bindRun } from '../shared/bindRun.js';
-import { CreatePlantController } from '../../controllers/Plants/CreatePlantController.js';
-import type { GetPlant } from '../../../../Contexts/Agro/Plants/application/useCases/GetPlant.js';
-import { GetPlantController } from '../../controllers/Plants/GetPlantController.js';
+import {
+  CreatePlantController,
+  GetPlantByIdController
+} from '../../controllers/Plants/index.js';
 
-const api = (createPlant: CreatePlant, getPlant: GetPlant) => {
-  const createPlantCtrl = new CreatePlantController(createPlant);
-  const getPlantByIdCtrl = new GetPlantController(getPlant);
-
+const api = (
+  createPlantController: CreatePlantController,
+  getPlantController: GetPlantByIdController
+) => {
   return {
-    createPlant: bindRun(createPlantCtrl),
-    getPlantById: bindRun(getPlantByIdCtrl)
+    createPlant: bindRun(createPlantController),
+    getPlantById: bindRun(getPlantController)
   };
 };
 

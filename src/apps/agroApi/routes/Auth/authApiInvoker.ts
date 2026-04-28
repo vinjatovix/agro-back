@@ -1,12 +1,4 @@
 import { makeInvoker } from 'awilix-express';
-import type {
-  AuthenticateWithGoogle,
-  LoginUserLocal,
-  RefreshToken,
-  RegisterUserLocal,
-  UpdatePasswordLocal,
-  ValidateMail
-} from '../../../../Contexts/Auth/application/index.js';
 import {
   AuthenticateWithGoogleController,
   LoginUserLocalController,
@@ -18,29 +10,20 @@ import {
 import { bindRun } from '../shared/index.js';
 
 const api = (
-  registerUser: RegisterUserLocal,
-  loginUser: LoginUserLocal,
-  authenticateWithGoogle: AuthenticateWithGoogle,
-  validateMail: ValidateMail,
-  refreshToken: RefreshToken,
-  updatePassword: UpdatePasswordLocal
+  registerUserController: RegisterUserLocalController,
+  loginUserController: LoginUserLocalController,
+  authenticateWithGoogleController: AuthenticateWithGoogleController,
+  validateMailController: ValidateMailController,
+  refreshTokenController: RefreshTokenController,
+  updatePasswordController: UpdatePasswordLocalController
 ) => {
-  const registerUserCtrl = new RegisterUserLocalController(registerUser);
-  const loginUserCtrl = new LoginUserLocalController(loginUser);
-  const authenticateWithGoogleCtrl = new AuthenticateWithGoogleController(
-    authenticateWithGoogle
-  );
-  const validateMailCtrl = new ValidateMailController(validateMail);
-  const refreshTokenCtrl = new RefreshTokenController(refreshToken);
-  const updatePasswordCtrl = new UpdatePasswordLocalController(updatePassword);
-
   return {
-    registerUser: bindRun(registerUserCtrl),
-    login: bindRun(loginUserCtrl),
-    authenticateWithGoogle: bindRun(authenticateWithGoogleCtrl),
-    validateMail: bindRun(validateMailCtrl),
-    refreshToken: bindRun(refreshTokenCtrl),
-    updatePassword: bindRun(updatePasswordCtrl)
+    registerUser: bindRun(registerUserController),
+    login: bindRun(loginUserController),
+    authenticateWithGoogle: bindRun(authenticateWithGoogleController),
+    validateMail: bindRun(validateMailController),
+    refreshToken: bindRun(refreshTokenController),
+    updatePassword: bindRun(updatePasswordController)
   };
 };
 

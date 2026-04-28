@@ -8,7 +8,7 @@ import httpStatus from 'http-status';
 import { plantMapper } from '../../../../Contexts/Agro/Plants/mappers/plantMapper.js';
 
 export class CreatePlantController extends HttpController {
-  constructor(private readonly useCase: CreatePlant) {
+  constructor(private readonly createPlant: CreatePlant) {
     super();
   }
 
@@ -17,7 +17,7 @@ export class CreatePlantController extends HttpController {
       const dto = req.body as CreatePlantDto;
       const user = res.locals.user as UserSessionInfo;
 
-      const plant = await this.useCase.execute(dto, user.username);
+      const plant = await this.createPlant.execute(dto, user.username);
       const result = plantMapper.toPrimitives(plant);
 
       res.status(httpStatus.CREATED).json(result);

@@ -12,6 +12,7 @@ import { CheckHealth } from '../../Contexts/health/application/index.js';
 import {
   GoogleIdTokenVerifierAdapter,
   buildLogger,
+  CryptAdapter,
   type AppLogger
 } from '../../Contexts/shared/plugins/index.js';
 import {
@@ -20,7 +21,6 @@ import {
   DBEnvironmentArranger,
   type DBConfig
 } from '../../shared/infrastructure/persistence/index.js';
-import { CryptAdapter } from '../../Contexts/shared/plugins/CryptAdapter.js';
 import { MongoAuthRepository } from '../../Contexts/Auth/infrastructure/persistence/index.js';
 import {
   AuthenticateWithGoogle,
@@ -31,14 +31,27 @@ import {
   ValidateMail
 } from '../../Contexts/Auth/application/index.js';
 import { MongoPlantRepository } from '../../Contexts/Agro/Plants/infrastructure/persistence/MongoPlantRepository.js';
-import { CreatePlant } from '../../Contexts/Agro/Plants/application/useCases/CreatePlant.js';
-import { GetPlant } from '../../Contexts/Agro/Plants/application/useCases/GetPlant.js';
-import { UpdatePlant } from '../../Contexts/Agro/Plants/application/useCases/UpdatePlant.js';
-import { ListPlants } from '../../Contexts/Agro/Plants/application/useCases/ListPlants.js';
+import {
+  CreatePlant,
+  GetPlant,
+  UpdatePlant,
+  ListPlants
+} from '../../Contexts/Agro/Plants/application/useCases/index.js';
+import {
+  AuthenticateWithGoogleController,
+  LoginUserLocalController,
+  RefreshTokenController,
+  RegisterUserLocalController,
+  UpdatePasswordLocalController,
+  ValidateMailController
+} from './controllers/Auth/index.js';
+import { HealthController } from './controllers/health/HealthController.js';
+import {
+  CreatePlantController,
+  GetPlantByIdController
+} from './controllers/Plants/index.js';
 
-/* eslint-disable
-  @typescript-eslint/no-unsafe-argument,
-*/
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 
 const pkg = JSON.parse(
   readFileSync(resolve(process.cwd(), 'package.json'), 'utf-8')
@@ -50,6 +63,7 @@ const registerCoreDependencies = (container: AppContainer): void => {
   container.register({
     appVersion: asValue(pkg.version),
     logger: asValue<AppLogger>(buildLogger('agroApi')),
+    healthController: asClass(HealthController).scoped(),
     checkHealth: asClass(CheckHealth).scoped()
   });
 };
@@ -65,6 +79,18 @@ const registerInfrastructureDependencies = (container: AppContainer): void => {
     googleIdTokenVerifier: asClass(GoogleIdTokenVerifierAdapter).singleton(),
     authRepository: asClass(MongoAuthRepository).singleton(),
     plantRepository: asClass(MongoPlantRepository).singleton()
+  });
+};
+const registerAuthControllers = (container: AppContainer): void => {
+  container.register({
+    registerUserController: asClass(RegisterUserLocalController).scoped(),
+    loginUserController: asClass(LoginUserLocalController).scoped(),
+    authenticateWithGoogleController: asClass(
+      AuthenticateWithGoogleController
+    ).scoped(),
+    validateMailController: asClass(ValidateMailController).scoped(),
+    refreshTokenController: asClass(RefreshTokenController).scoped(),
+    updatePasswordController: asClass(UpdatePasswordLocalController).scoped()
   });
 };
 
@@ -116,6 +142,13 @@ const registerPlantUseCases = (container: AppContainer): void => {
   });
 };
 
+const registerPlantControllers = (container: AppContainer): void => {
+  container.register({
+    createPlantController: asClass(CreatePlantController).scoped(),
+    getPlantController: asClass(GetPlantByIdController).scoped()
+  });
+};
+
 export const createAppContainer = (): AppContainer => {
   const container = createContainer({
     injectionMode: InjectionMode.CLASSIC
@@ -123,7 +156,10 @@ export const createAppContainer = (): AppContainer => {
 
   registerCoreDependencies(container);
   registerInfrastructureDependencies(container);
+  registerAuthControllers(container);
   registerAuthUseCases(container);
+  registerPlantControllers(container);
   registerPlantUseCases(container);
+
   return container;
 };
