@@ -94,7 +94,7 @@ const interpolateRoute = <T extends Record<string, unknown>>(
   route: string,
   world: T
 ): string => {
-  return route.replaceAll(/{(.*?)}/g, (_, key: string) => {
+  return route.replaceAll(/{([^{}]+)}/g, (_, key: string) => {
     const value = world[key];
 
     if (value === undefined || value === null) {
@@ -119,7 +119,7 @@ const interpolateJson = <T extends Record<string, unknown>>(
 
   const replace = (value: unknown): unknown => {
     if (typeof value === 'string') {
-      return value.replaceAll(/{(.*?)}/g, (_, key: string) => {
+      return value.replaceAll(/{([^{}]+)}/g, (_, key: string) => {
         const replacement = world[key];
 
         if (replacement === undefined || replacement === null) {
