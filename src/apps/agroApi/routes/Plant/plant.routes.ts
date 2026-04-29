@@ -44,4 +44,12 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
     validateReqSchema,
     plantApiInvoker('updatePlant')
   );
+  router.delete(
+    `${prefix}/:id`,
+    auth,
+    isAdmin,
+    getPlantByIdReqSchema,
+    validateReqSchema,
+    plantApiInvoker('deletePlant')
+  );
 };

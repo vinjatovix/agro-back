@@ -38,3 +38,9 @@ Feature: Get Plant
                 "message": "Validation error"
             }
             """
+
+    Scenario: Admin can access deleted plant
+        Given a plant exists
+        When I send a DELETE admin request to "/api/v1/plants/{plantId}"
+        And I send a GET admin request to "/api/v1/plants/{plantId}"
+        Then the response status code should be 200

@@ -48,10 +48,12 @@ import {
 import { HealthController } from './controllers/health/HealthController.js';
 import {
   CreatePlantController,
+  DeletePlantController,
   GetAllPlantsController,
   GetPlantByIdController,
   UpdatePlantController
 } from './controllers/Plants/index.js';
+import { DeletePlant } from '../../Contexts/Agro/Plants/application/useCases/DeletePlant.js';
 
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 
@@ -132,7 +134,8 @@ const registerPlantControllers = (container: AppContainer): void => {
     createPlantController: asClass(CreatePlantController).scoped(),
     getAllPlantsController: asClass(GetAllPlantsController).scoped(),
     getPlantController: asClass(GetPlantByIdController).scoped(),
-    updatePlantController: asClass(UpdatePlantController).scoped()
+    updatePlantController: asClass(UpdatePlantController).scoped(),
+    deletePlantController: asClass(DeletePlantController).scoped()
   });
 };
 
@@ -149,6 +152,9 @@ const registerPlantUseCases = (container: AppContainer): void => {
     ).scoped(),
     updatePlant: asFunction(
       (plantRepository) => new UpdatePlant(plantRepository)
+    ).scoped(),
+    deletePlant: asFunction(
+      (plantRepository) => new DeletePlant(plantRepository)
     ).scoped()
   });
 };

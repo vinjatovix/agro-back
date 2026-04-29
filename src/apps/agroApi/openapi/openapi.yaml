@@ -12,7 +12,6 @@ info:
     name: MIT
     url: https://opensource.org/licenses/MIT
 
-
 servers:
   - url: http://localhost:3000
 
@@ -206,6 +205,25 @@ paths:
       responses:
         '200':
           description: Updated
+
+    delete:
+      tags: [Plants]
+      summary: Delete plant
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: No content
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '400':
+          $ref: '#/components/responses/ValidationError'
 
 components:
   securitySchemes:

@@ -3,21 +3,24 @@ import { bindRun } from '../shared/bindRun.js';
 import {
   CreatePlantController,
   GetPlantByIdController,
-  GetAllPlantsController
+  GetAllPlantsController,
+  UpdatePlantController,
+  DeletePlantController
 } from '../../controllers/Plants/index.js';
-import type { UpdatePlantController } from '../../controllers/Plants/UpdatePlantController.js';
 
 const api = (
   createPlantController: CreatePlantController,
   getAllPlantsController: GetAllPlantsController,
   getPlantController: GetPlantByIdController,
-  updatePlantController: UpdatePlantController
+  updatePlantController: UpdatePlantController,
+  deletePlantController: DeletePlantController
 ) => {
   return {
     createPlant: bindRun(createPlantController),
     getAllPlants: bindRun(getAllPlantsController),
     getPlantById: bindRun(getPlantController),
-    updatePlant: bindRun(updatePlantController)
+    updatePlant: bindRun(updatePlantController),
+    deletePlant: bindRun(deletePlantController)
   };
 };
 

@@ -252,6 +252,8 @@ Given('a plant exists', async function (this: CucumberWorld) {
   }
 
   this.plantId = plants[0]!.id;
+
+  console.log('SET plantId:', this.plantId);
 });
 
 Given('no plants exist', async function () {
@@ -261,6 +263,17 @@ Given('no plants exist', async function () {
 When('I send a GET request to {string}', async function (route: string) {
   _request = request(httpServer).get(route);
 });
+
+When(
+  'I send a GET admin request to {string}',
+  async function (this: CucumberWorld, route: string) {
+    const normalizedRoute = interpolateRoute(route, this);
+
+    _request = request(httpServer)
+      .get(normalizedRoute)
+      .set('Authorization', `Bearer ${validAdminBearerToken}`);
+  }
+);
 
 When('I get the plant', async function (this: CucumberWorld) {
   if (!this.plantId) throw new Error('plantId not set');
@@ -301,6 +314,17 @@ When(
     _request = request(httpServer)
       .patch(normalizedRoute)
       .send(JSON.parse(interpolateJson(body, this)));
+  }
+);
+
+When(
+  'I send a DELETE admin request to {string}',
+  async function (this: CucumberWorld, route: string) {
+    const normalizedRoute = interpolateRoute(route, this);
+
+    _request = request(httpServer)
+      .delete(normalizedRoute)
+      .set('Authorization', `Bearer ${validAdminBearerToken}`);
   }
 );
 
@@ -355,3 +379,12 @@ Then('the response body should contain', async function (docString: string) {
 
   assert.isTrue(matches, 'Expected response body to match expected');
 });
+
+Then(
+  'GET {string} returns 404',
+  async function (this: CucumberWorld, route: string) {
+    const normalizedRoute = interpolateRoute(route, this);
+
+    await request(httpServer).get(normalizedRoute).expect(404);
+  }
+);

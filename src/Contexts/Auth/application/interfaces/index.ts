@@ -23,4 +23,5 @@ export interface UserSessionInfo {
   username: string;
   id: string;
   email: string;
+  roles: string[];
 }
