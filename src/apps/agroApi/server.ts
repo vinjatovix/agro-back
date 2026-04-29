@@ -14,6 +14,7 @@ import {
 } from './middlewares/index.js';
 import { registerRoutes } from './routes/registerRoutes.js';
 import { errorHandler } from './middlewares/errorHandler.js';
+import { setupSwagger } from './openapi/setupSwagger.js';
 
 const allowedOrigins = envs.ALLOWED_ORIGINS.split(',')
   .map((origin) => origin.trim())
@@ -57,6 +58,8 @@ export class Server {
     this.express.use(createRequestLoggerMiddleware(this.logger));
 
     this.express.use(scopePerRequest(this.container));
+
+    setupSwagger(this.express);
   }
 
   async listen(): Promise<void> {
@@ -88,8 +91,8 @@ export class Server {
         const host = ['local', 'development', 'test'].includes(env)
           ? `${this.host}:${resolvedPort}`
           : this.host;
-        const message = `Backend running at ${host} in ${env} mode`;
-        this.logger.info(message);
+        this.logger.info(`Backend running at ${host} in ${env} mode`);
+        this.logger.info(`Swagger available at ${host}/docs`);
         resolve();
       });
     });
@@ -112,6 +115,7 @@ export class Server {
           reject(error);
           return;
         }
+
         this.logger.info('Server stopped');
         resolve();
       });

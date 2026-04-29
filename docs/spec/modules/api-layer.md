@@ -52,6 +52,7 @@ The system exposes the following domain resources:
 * login
 * token refresh
 * email validation
+* password update
 
 ## 3.3 Pending infrastructure
 
@@ -67,14 +68,14 @@ The system exposes the following domain resources:
 
 ## 4.1 Plants
 
-* POST /plants (implemented)
-* GET /plants (implemented)
-* PATCH /plants/:id (implemented)
-* DELETE /plants/:id (pending)
+* POST /api/v1/plants (implemented)
+* GET /api/v1/plants (implemented)
+* GET /api/v1/plants/:id (implemented)
+* PATCH /api/v1/plants/:id (implemented)
 
 ### 4.1.1 Plant by ID
 
-* GET /plants/:id (implemented)
+* GET /api/v1/plants/:id (implemented)
 
 Behavior:
 
@@ -90,6 +91,13 @@ Behavior:
 * only provided fields are modified
 * returns full updated PlantPrimitives
 
+* DELETE /api/v1/plants/:id (pending)
+
+Decision:
+
+* PATCH is the only update method
+* PUT is not used
+
 ---
 
 ## 4.2 PlantInstances
@@ -98,11 +106,13 @@ Represents a real instance of a Plant placed in a Bed.
 
 ### Endpoints
 
-* POST /plant-instances
-* GET /plant-instances/:id
-* GET /plant-instances?bedId=
-* PUT /plant-instances/:id
-* DELETE /plant-instances/:id
+pending implementation
+
+* POST /api/v1/plant-instances
+* GET /api/v1/plant-instances/:id
+* GET /api/v1/plant-instances?bedId=
+* PUT /api/v1/plant-instances/:id
+* DELETE /api/v1/plant-instances/:id
 
 ### Concept
 
@@ -113,11 +123,13 @@ Represents a real instance of a Plant placed in a Bed.
 
 ## 4.3 Beds
 
-* POST /beds
-* GET /beds/:id
-* GET /beds
-* PUT /beds/:id
-* DELETE /beds/:id
+pending implementation
+
+* POST /api/v1/beds
+* GET /api/v1/beds/:id
+* GET /api/v1/beds
+* PUT /api/v1/beds/:id
+* DELETE /api/v1/beds/:id
 
 ---
 
@@ -127,11 +139,13 @@ Lifecycle events associated with PlantInstances.
 
 ### Endpoints
 
-* POST /events
-* GET /events
-* GET /events/:id
-* GET /events?plantInstanceId=
-* DELETE /events/:id
+pending implementation
+
+* POST /appi/v1/events
+* GET /appi/v1/events
+* GET /appi/v1/events/:id
+* GET /appi/v1/events?plantInstanceId=
+* DELETE /appi/v1/events/:id
 
 ### Event types
 
@@ -147,12 +161,12 @@ Lifecycle events associated with PlantInstances.
 
 ## 4.5 Users
 
-* POST /auth/register
-* POST /auth/login
-* POST /auth/google
-* POST /auth/refresh
-* POST /auth/update-password
-* GET /auth/validate/:token
+* POST /api/v1/auth/register
+* POST /api/v1/auth/login
+* POST /api/v1/auth/google
+* POST /api/v1/auth/refresh
+* POST /api/v1/auth/update 🆕
+* GET /api/v1/auth/validate/:token
 
 ### Roles
 
@@ -164,36 +178,36 @@ Lifecycle events associated with PlantInstances.
 
 ## 4.6 Pests
 
-* GET /pests
-* GET /pests/:id
+* GET /api/v1/pests
+* GET /api/v1/pests/:id
 
 ---
 
 ## 4.7 Diseases
 
-* GET /diseases
-* GET /diseases/:id
+* GET /api/v1/diseases
+* GET /api/v1/diseases/:id
 
 ---
 
 ## 4.8 Remedies
 
-* GET /remedies
-* GET /remedies/:id
+* GET /api/v1/remedies
+* GET /api/v1/remedies/:id
 
 ---
 
 ## 4.9 Fertilizers
 
-* GET /fertilizers
-* GET /fertilizers/:id
+* GET /api/v1/fertilizers
+* GET /api/v1/fertilizers/:id
 
 ---
 
 ## 4.10 Families
 
-* GET /families
-* GET /families/:id
+* GET /api/v1/families
+* GET /api/v1/families/:id
 
 ---
 
@@ -201,9 +215,9 @@ Lifecycle events associated with PlantInstances.
 
 Represents companion planting relationships.
 
-* GET /plant-relations
-* POST /plant-relations
-* GET /plant-relations/:id
+* GET /api/v1/plant-relations
+* POST /api/v1/plant-relations
+* GET /api/v1/plant-relations/:id
 
 ---
 
@@ -216,7 +230,13 @@ type ApiErrorResponse = {
   message: string;
   errors?: Record<string, string>;
 };
-```
+````
+
+Validation errors:
+
+* dot-notation paths
+* deterministic messages
+* aligned with EPIC 13
 
 ---
 
@@ -245,11 +265,10 @@ type ApiErrorResponse = {
 
 ## Implemented
 
-* POST /plants
-* GET /plants/:id
-* authentication system (partial)
-* validation middleware (partial)
-* base error handling
+* Plants: READ + CREATE + PATCH
+* Auth system (functional end-to-end, Swagger tested)
+* validation middleware (partial → evolving)
+* error handling (structured)
 
 ## Partially designed
 
@@ -259,10 +278,9 @@ type ApiErrorResponse = {
 
 ## Missing
 
-* full CRUD coverage
-* OpenAPI specification
+* DELETE plants
+* full OpenAPI enforcement in tests
 * email provider integration
-* unified DTO enforcement
 
 ---
 

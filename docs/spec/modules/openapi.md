@@ -48,10 +48,29 @@ Hybrid model:
 * optionally extended via tooling (future)
 
 ---
+## 4.2 Versioning strategy
 
-## 4.2 Tools (future options)
+Current:
 
-* swagger / OpenAPI 3.0
+* versioning handled via URL prefix (/api/v1)
+* OpenAPI server block does not enforce versioning
+
+Future:
+
+* possible migration to server-based versioning if v2 diverges
+* potential introduction of semantic API versions per domain
+
+--- 
+
+## 4.3 Tooling
+
+Current:
+
+* OpenAPI 3.0 specification
+* Swagger UI for documentation and manual testing
+
+Future:
+
 * tsoa (TypeScript decorators)
 * zod-openapi bridge (if schema migration happens)
 
@@ -62,10 +81,10 @@ Hybrid model:
 ## 5.1 Plants
 
 * POST /plants
-* GET /plants/:id
 * GET /plants
-* PUT /plants/:id
-* DELETE /plants/:id
+* GET /plants/:id
+* PATCH /plants/:id
+* DELETE /plants/:id (pending implementation)
 
 ---
 
@@ -115,7 +134,7 @@ OpenAPI MUST define:
 Validation errors MUST be represented as:
 
 * deterministic
-* field-path based
+* errors MUST use dot notation keys
 * structured under `errors`
 
 ```json

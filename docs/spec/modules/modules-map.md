@@ -173,12 +173,14 @@ Rules:
 * single source of truth for API
 * schema definitions for requests/responses
 * error contract definition
+* actively used via Swagger UI
 
 Rules:
 
 * implementation MUST follow spec
 * contract drift is critical failure
-* used by tests as validation source
+* used by tests as validation source (pending full enforcement)
+
 
 ---
 
