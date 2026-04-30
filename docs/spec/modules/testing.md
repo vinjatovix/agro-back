@@ -139,10 +139,14 @@ Seeders are allowed to:
 Cucumber tests MAY define:
 
 ```ts
-class TestWorld {
+class TestWorldImpl extends World implements TestWorld {
   plantId?: string;
   bedId?: string;
   token?: string;
+  route?: string;
+  method?: string;
+  status?: number;
+  response?: unknown;
 }
 ```
 

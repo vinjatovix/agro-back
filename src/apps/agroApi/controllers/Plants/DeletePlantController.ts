@@ -20,7 +20,7 @@ export class DeletePlantController extends HttpController {
 
       await this.deletePlant.execute(plantId);
 
-      res.status(httpStatus.NO_CONTENT).send();
+      res.status(httpStatus.NO_CONTENT).end();
     } catch (error) {
       next(error);
     }

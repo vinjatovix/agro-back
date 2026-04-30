@@ -12,6 +12,7 @@ Feature: Authenticate with Google
       """
     Then the response status code should be 200
     Then the response body should include an auth token
+    And response matches OpenAPI contract
 
   Scenario: Link Google auth method to an existing local account
     # 1) First we create a LOCAL account (password-based auth only).
@@ -27,6 +28,7 @@ Feature: Authenticate with Google
       """
     Then the response status code should be 201
     Then the response body should be empty
+    And response matches OpenAPI contract
 
     # 2) First Google sign-in for that same email:
     #    there is no google auth method yet, so backend links Google -> local account.
@@ -38,7 +40,7 @@ Feature: Authenticate with Google
       """
     Then the response status code should be 200
     Then the response body should include an auth token
-
+    And response matches OpenAPI contract
     # 3) Second Google sign-in with same sub:
     #    now the account is already linked, so this is pure Google login (idempotency check).
     Given a POST request to "/api/v1/Auth/google" with body
@@ -49,6 +51,7 @@ Feature: Authenticate with Google
       """
     Then the response status code should be 200
     Then the response body should include an auth token
+    And response matches OpenAPI contract
 
   Scenario: Invalid Google token
     Given a POST request to "/api/v1/Auth/google" with body
@@ -64,6 +67,7 @@ Feature: Authenticate with Google
         "message": "Invalid Google token"
       }
       """
+    And response matches OpenAPI contract
 
   Scenario: Google token with unverified email
     Given a POST request to "/api/v1/Auth/google" with body
@@ -79,3 +83,4 @@ Feature: Authenticate with Google
         "message": "Invalid Google token"
       }
       """
+    And response matches OpenAPI contract

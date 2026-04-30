@@ -72,10 +72,9 @@ The system exposes the following domain resources:
 * GET /api/v1/plants (implemented)
 * GET /api/v1/plants/:id (implemented)
 * PATCH /api/v1/plants/:id (implemented)
+* DELETE /api/v1/plants/:id (implemented)
 
 ### 4.1.1 Plant by ID
-
-* GET /api/v1/plants/:id (implemented)
 
 Behavior:
 
@@ -83,20 +82,15 @@ Behavior:
 * returns 404 if not found
 * returns 400 if invalid UUID
 
-* PATCH /plants/:id (implemented)
+---
+
+### PATCH /api/v1/plants/:id (implemented)
 
 Behavior:
 
 * supports partial updates (deep merge semantics)
 * only provided fields are modified
-* returns full updated PlantPrimitives
-
-* DELETE /api/v1/plants/:id (pending)
-
-Decision:
-
-* PATCH is the only update method
-* PUT is not used
+* returns full Plant resource after update
 
 ---
 
@@ -141,11 +135,11 @@ Lifecycle events associated with PlantInstances.
 
 pending implementation
 
-* POST /appi/v1/events
-* GET /appi/v1/events
-* GET /appi/v1/events/:id
-* GET /appi/v1/events?plantInstanceId=
-* DELETE /appi/v1/events/:id
+* POST /api/v1/events
+* GET /api/v1/events
+* GET /api/v1/events/:id
+* GET /api/v1/events?plantInstanceId=
+* DELETE /api/v1/events/:id
 
 ### Event types
 
@@ -265,7 +259,7 @@ Validation errors:
 
 ## Implemented
 
-* Plants: READ + CREATE + PATCH
+* Plants: READ + CREATE + PATCH + DELETE
 * Auth system (functional end-to-end, Swagger tested)
 * validation middleware (partial → evolving)
 * error handling (structured)
@@ -278,8 +272,6 @@ Validation errors:
 
 ## Missing
 
-* DELETE plants
-* full OpenAPI enforcement in tests
 * email provider integration
 
 ---

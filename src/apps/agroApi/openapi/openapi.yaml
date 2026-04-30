@@ -20,9 +20,27 @@ tags:
     description: Endpoints for user authentication and management.
   - name: Plants
     description: Endpoints for managing plant data.
+  - name: Health
+    description: Endpoint for health checks.
 
 paths:
-  /api/v1/auth/register:
+  /api/v1/health:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+
+  /api/v1/Auth/register:
     post:
       tags: [Auth]
       summary: Register user
@@ -35,10 +53,17 @@ paths:
       responses:
         '201':
           description: User created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {}
         '409':
           $ref: '#/components/responses/ConflictError'
+        '400':
+          $ref: '#/components/responses/ValidationError'
 
-  /api/v1/auth/login:
+  /api/v1/Auth/login:
     post:
       tags: [Auth]
       summary: Login user
@@ -62,7 +87,7 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
-  /api/v1/auth/google:
+  /api/v1/Auth/google:
     post:
       tags: [Auth]
       summary: Authenticate with Google
@@ -83,8 +108,10 @@ paths:
                 properties:
                   token:
                     type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
 
-  /api/v1/auth/validate/{token}:
+  /api/v1/Auth/validate/{token}:
     get:
       tags: [Auth]
       summary: Validate email
@@ -97,10 +124,17 @@ paths:
       responses:
         '200':
           description: Email validated
-        '400':
-          $ref: '#/components/responses/ValidationError'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
 
-  /api/v1/auth/refresh:
+  /api/v1/Auth/refresh:
     post:
       tags: [Auth]
       summary: Refresh token
@@ -117,8 +151,10 @@ paths:
                 properties:
                   token:
                     type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
 
-  /api/v1/auth/update:
+  /api/v1/Auth/update:
     post:
       tags: [Auth]
       summary: Update password
@@ -133,8 +169,17 @@ paths:
       responses:
         '200':
           description: Password updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
         '400':
           $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
 
   /api/v1/plants:
     get:
@@ -164,6 +209,18 @@ paths:
       responses:
         '201':
           description: Plant created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plant'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
 
   /api/v1/plants/{id}:
     get:
@@ -182,6 +239,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Plant'
+        '400':
+          $ref: '#/components/responses/ValidationError'
         '404':
           $ref: '#/components/responses/NotFoundError'
 
@@ -205,6 +264,18 @@ paths:
       responses:
         '200':
           description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plant'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
 
     delete:
       tags: [Plants]
@@ -220,6 +291,10 @@ paths:
       responses:
         '204':
           description: No content
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
         '404':
           $ref: '#/components/responses/NotFoundError'
         '400':
@@ -597,6 +672,17 @@ components:
   responses:
     UnauthorizedError:
       description: Unauthorized
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [message]
+            properties:
+              message:
+                type: string
+
+    ForbiddenError:
+      description: Forbidden
       content:
         application/json:
           schema:

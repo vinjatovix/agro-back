@@ -45,7 +45,7 @@ describe('RegisterUserLocal', () => {
 
     await expect(async () => {
       await registerUser.run(request);
-    }).rejects.toThrow(`User <${request.email}> already exists`);
+    }).rejects.toThrow(`User with id <${request.id}> already exists`);
   });
 
   it('should throw an error when password confirmation does not match', async () => {

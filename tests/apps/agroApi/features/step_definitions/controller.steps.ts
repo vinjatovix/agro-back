@@ -20,18 +20,26 @@ import { UserMother } from '../../../../Contexts/Auth/domain/mothers/UserMother.
 import type { EncrypterTool } from '../../../../../src/Contexts/shared/plugins/index.js';
 import type { PlantPrimitives } from '../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantPrimitives.js';
 import { PlantSeeder } from '../shared/seeders/PlantSeeder.js';
+import { assertResponseMatchesOpenAPI } from '../../../../shared/contract/assertResponseMatchesOpenAPI.js';
 
 export interface TestWorld {
   plantId?: string;
   bedId?: string;
   token?: string;
+  route?: string;
+  method?: string;
+  status?: number;
+  response?: unknown;
 }
 
 class TestWorldImpl extends World implements TestWorld {
   plantId?: string;
   bedId?: string;
   token?: string;
-
+  route?: string;
+  method?: string;
+  status?: number;
+  response?: unknown;
   [key: string]: unknown;
 }
 
@@ -46,6 +54,11 @@ const ENVIRONMENT_ARRANGER: Promise<EnvironmentArranger> = Promise.resolve(
 );
 
 const ENCRYPTER: EncrypterTool = container.resolve<EncrypterTool>('encrypter');
+
+const setRequestContext = (world: any, method: string, route: string) => {
+  world.route = route;
+  world.method = method;
+};
 
 let _request: request.Test;
 let _response: request.Response;
@@ -201,13 +214,21 @@ Given('a GET request to {string}', async function (route: string) {
     ? route.replace('current-user-token', validUserBearerToken ?? '')
     : route;
 
+  this.route = normalizedRoute;
+  this.method = 'GET';
+
   _request = request(httpServer).get(normalizedRoute);
 });
 
 Given(
   'a POST request to {string} with body',
   async function (route: string, body: string) {
-    _request = request(httpServer).post(route).send(JSON.parse(body));
+    const normalizedRoute = interpolateRoute(route, this);
+
+    this.route = normalizedRoute;
+    this.method = 'POST';
+
+    _request = request(httpServer).post(normalizedRoute).send(JSON.parse(body));
   }
 );
 
@@ -227,8 +248,13 @@ Given('an authentication with body', async function (docString: string) {
 Given(
   'a POST admin request to {string} with body',
   async function (route: string, body: string) {
+    const normalizedRoute = interpolateRoute(route, this);
+
+    this.route = normalizedRoute;
+    this.method = 'POST';
+
     _request = request(httpServer)
-      .post(route)
+      .post(normalizedRoute)
       .set('Authorization', `Bearer ${validAdminBearerToken}`)
       .send(JSON.parse(body));
   }
@@ -237,8 +263,13 @@ Given(
 Given(
   'a POST user request to {string} with body',
   async function (route: string, body: string) {
+    const normalizedRoute = interpolateRoute(route, this);
+
+    this.route = normalizedRoute;
+    this.method = 'POST';
+
     _request = request(httpServer)
-      .post(route)
+      .post(normalizedRoute)
       .set('Authorization', `Bearer ${validUserBearerToken}`)
       .send(JSON.parse(body));
   }
@@ -261,6 +292,7 @@ Given('no plants exist', async function () {
 });
 
 When('I send a GET request to {string}', async function (route: string) {
+  setRequestContext(this, 'get', route);
   _request = request(httpServer).get(route);
 });
 
@@ -268,6 +300,8 @@ When(
   'I send a GET admin request to {string}',
   async function (this: CucumberWorld, route: string) {
     const normalizedRoute = interpolateRoute(route, this);
+
+    setRequestContext(this, 'get', normalizedRoute);
 
     _request = request(httpServer)
       .get(normalizedRoute)
@@ -278,13 +312,20 @@ When(
 When('I get the plant', async function (this: CucumberWorld) {
   if (!this.plantId) throw new Error('plantId not set');
 
-  _request = request(httpServer).get(`/api/v1/plants/${this.plantId}`);
+  const route = `/api/v1/plants/${this.plantId}`;
+
+  setRequestContext(this, 'get', route);
+
+  _request = request(httpServer).get(route);
 });
 
 When(
   'I send a PATCH admin request to {string} with body',
   async function (this: CucumberWorld, route: string, body: string) {
     const normalizedRoute = interpolateRoute(route, this);
+
+    setRequestContext(this, 'patch', normalizedRoute);
+
     const interpolatedBody = interpolateJson(body, this);
 
     _request = request(httpServer)
@@ -299,6 +340,8 @@ When(
   async function (this: CucumberWorld, route: string, body: string) {
     const normalizedRoute = interpolateRoute(route, this);
 
+    setRequestContext(this, 'patch', normalizedRoute);
+
     _request = request(httpServer)
       .patch(normalizedRoute)
       .set('Authorization', `Bearer ${validUserBearerToken}`)
@@ -311,6 +354,8 @@ When(
   async function (this: CucumberWorld, route: string, body: string) {
     const normalizedRoute = interpolateRoute(route, this);
 
+    setRequestContext(this, 'patch', normalizedRoute);
+
     _request = request(httpServer)
       .patch(normalizedRoute)
       .send(JSON.parse(interpolateJson(body, this)));
@@ -322,16 +367,45 @@ When(
   async function (this: CucumberWorld, route: string) {
     const normalizedRoute = interpolateRoute(route, this);
 
+    setRequestContext(this, 'delete', normalizedRoute);
+
     _request = request(httpServer)
       .delete(normalizedRoute)
       .set('Authorization', `Bearer ${validAdminBearerToken}`);
   }
 );
 
+When(
+  'I send a DELETE user request to {string}',
+  async function (this: CucumberWorld, route: string) {
+    const normalizedRoute = interpolateRoute(route, this);
+
+    setRequestContext(this, 'delete', normalizedRoute);
+
+    _request = request(httpServer)
+      .delete(normalizedRoute)
+      .set('Authorization', `Bearer ${validUserBearerToken}`);
+  }
+);
+
+When(
+  'I send a DELETE request to {string}',
+  async function (this: CucumberWorld, route: string) {
+    const normalizedRoute = interpolateRoute(route, this);
+
+    setRequestContext(this, 'delete', normalizedRoute);
+
+    _request = request(httpServer).delete(normalizedRoute);
+  }
+);
+
 Then(
   'the response status code should be {int}',
   async function (status: number) {
+    this.status = status;
+
     _response = await _request.expect(status);
+    this.response = _response;
   }
 );
 
@@ -388,3 +462,12 @@ Then(
     await request(httpServer).get(normalizedRoute).expect(404);
   }
 );
+
+Then('response matches OpenAPI contract', async function () {
+  await assertResponseMatchesOpenAPI({
+    path: this.route,
+    method: this.method,
+    status: this.status,
+    body: this.response.body
+  });
+});

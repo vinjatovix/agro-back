@@ -38,6 +38,7 @@ export class RegisterUserLocal {
     email,
     id
   }: RegisterUserRequest): Promise<void> {
+    await this.ensureIdDoesNotExist(id);
     await this.ensureUserDoesNotExist(email);
     this.validatePasswordConfirmation(password, repeatPassword);
 
@@ -60,6 +61,12 @@ export class RegisterUserLocal {
 
     await this.repository.save(user);
     logger.info(`User <${user.username.value}> registered`);
+  }
+  private async ensureIdDoesNotExist(id: string): Promise<void> {
+    const storedUser = await this.repository.findByQuery({ id });
+    if (storedUser.length > 0) {
+      throw createError.conflict(`User with id <${id}> already exists`);
+    }
   }
 
   private async ensureUserDoesNotExist(email: string): Promise<void> {

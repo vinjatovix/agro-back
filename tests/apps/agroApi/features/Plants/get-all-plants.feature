@@ -6,9 +6,11 @@ Feature: Get All Plants
         Then the response status code should be 200
         And the response body should be a list
         And the list should contain at least 1 item
+        And response matches OpenAPI contract
 
     Scenario: Get all plants when no plants exist
         Given no plants exist
         When I send a GET request to "/api/v1/plants"
         Then the response status code should be 200
         And the response body should be an empty list
+        And response matches OpenAPI contract

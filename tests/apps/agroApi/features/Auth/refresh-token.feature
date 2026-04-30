@@ -32,6 +32,7 @@ Feature: Refresh token
       """
     Then the response status code should be 200
     Then the response body should include an auth token
+    And response matches OpenAPI contract
 
   Scenario: Refresh without authentication token
     Given a POST request to "/api/v1/Auth/refresh" with body
@@ -45,3 +46,4 @@ Feature: Refresh token
         "message": "Invalid token"
       }
       """
+    And response matches OpenAPI contract

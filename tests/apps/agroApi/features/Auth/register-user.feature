@@ -14,7 +14,40 @@ Feature: Register a new user
       }
       """
     Then the response status code should be 201
-    Then the response body should be empty
+    And the response body should be empty
+    And response matches OpenAPI contract
+
+  Scenario: Existing id
+    Given a POST request to "/api/v1/Auth/register" with body
+      """
+      {
+        "id": "f7b8fce8-0a57-431a-b81e-4f1cc196412b",
+        "username": "register",
+        "email": "patatas@aa.com",
+        "password": "#aD3fe2.0%",
+        "repeatPassword": "#aD3fe2.0%"
+      }
+      """
+    Then the response status code should be 201
+    Given a POST request to "/api/v1/Auth/register" with body
+      """
+      {
+        "id": "f7b8fce8-0a57-431a-b81e-4f1cc196412b",
+        "username": "patatillas",
+        "email": "patatillas@aa.com",
+        "password": "#aD3fe2.0%",
+        "repeatPassword": "#aD3fe2.0%"
+      }
+      """
+    Then the response status code should be 409
+    Then the response body should be
+      """
+      {
+        "message": "User with id <f7b8fce8-0a57-431a-b81e-4f1cc196412b> already exists"
+      }
+      """
+    And response matches OpenAPI contract
+
 
   Scenario: Existing email
     Given a POST request to "/api/v1/Auth/register" with body
@@ -34,6 +67,7 @@ Feature: Register a new user
         "message": "User <register@aa.com> already exists"
       }
       """
+    And response matches OpenAPI contract
 
   Scenario: Password and repeat password are different
     Given a POST request to "/api/v1/Auth/register" with body
@@ -56,6 +90,7 @@ Feature: Register a new user
         }
       }
       """
+    And response matches OpenAPI contract
 
   Scenario: Invalid arguments
     Given a POST request to "/api/v1/Auth/register" with body
@@ -80,3 +115,4 @@ Feature: Register a new user
         }
       }
       """
+    And response matches OpenAPI contract

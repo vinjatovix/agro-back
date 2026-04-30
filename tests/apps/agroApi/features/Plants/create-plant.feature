@@ -34,6 +34,7 @@ Feature: Create a new plant
                 }
             }
             """
+        And response matches OpenAPI contract
 
     Scenario: Fail to create a plant with an invalid Uuid
         Given a POST admin request to "/api/v1/plants" with body
@@ -114,6 +115,7 @@ Feature: Create a new plant
                 }
             }
             """
+        And response matches OpenAPI contract
 
     Scenario: Create a minimal new plant with valid data
         Given a POST admin request to "/api/v1/plants" with body
@@ -185,6 +187,7 @@ Feature: Create a new plant
             }
             """
         Then the response status code should be 201
+        And response matches OpenAPI contract
 
     Scenario: Create a new plant with all fields filled
         Given a POST admin request to "/api/v1/plants" with body
@@ -397,6 +400,7 @@ Feature: Create a new plant
             }
             """
         Then the response status code should be 201
+        And response matches OpenAPI contract
 
     Scenario: Fail to create a plant without authentication
         Given a POST request to "/api/v1/plants" with body
@@ -406,6 +410,7 @@ Feature: Create a new plant
             }
             """
         Then the response status code should be 401
+        And response matches OpenAPI contract
 
     Scenario: Fail to create a plant with invalid roles
         Given a POST user request to "/api/v1/plants" with body
@@ -415,7 +420,7 @@ Feature: Create a new plant
             }
             """
         Then the response status code should be 403
-
+        And response matches OpenAPI contract
 
     Scenario: Fail to create a plant that already exists
         Given a POST admin request to "/api/v1/plants" with body
@@ -487,6 +492,7 @@ Feature: Create a new plant
             }
             """
         Then the response status code should be 409
+        And response matches OpenAPI contract
 
     Scenario: Fail to create a plant with invalid range values
         Given a POST admin request to "/api/v1/plants" with body
@@ -558,7 +564,7 @@ Feature: Create a new plant
                 "message": "Range min cannot be greater than max"
             }
             """
-
+        And response matches OpenAPI contract
 
     Scenario: Fail to create a plant with invalid months
         Given a POST admin request to "/api/v1/plants" with body
@@ -631,3 +637,4 @@ Feature: Create a new plant
                 "message": "Invalid month: 0"
             }
             """
+        And response matches OpenAPI contract

@@ -17,6 +17,7 @@ Feature: Update Password
       """
     Then the response status code should be 201
     Then the response body should be empty
+    And response matches OpenAPI contract
 
   Scenario: Login with valid credentials
     Given an authentication with body
@@ -26,7 +27,7 @@ Feature: Update Password
         "password": "#aD3fe2.0%"
       }
       """
-    Given a POST user request to "/api/v1/Auth/update" with body
+    And a POST user request to "/api/v1/Auth/update" with body
       """
       {
         "oldPassword": "#aD3fe2.0%",
@@ -35,12 +36,13 @@ Feature: Update Password
       }
       """
     Then the response status code should be 200
-    Then the response body should be
+    And the response body should be
       """
       {
         "message": "User updated successfully"
       }
       """
+    And response matches OpenAPI contract
 
   Scenario: Fail when old password is incorrect
     Given an authentication with body
@@ -50,7 +52,7 @@ Feature: Update Password
         "password": "Sup3rSecretPassword!"
       }
       """
-    Given a POST user request to "/api/v1/Auth/update" with body
+    And a POST user request to "/api/v1/Auth/update" with body
       """
       {
         "oldPassword": "Wr0ngPassw0rd!",
@@ -59,12 +61,13 @@ Feature: Update Password
       }
       """
     Then the response status code should be 401
-    Then the response body should be
+    And the response body should be
       """
       {
         "message": "Invalid credentials"
       }
       """
+    And response matches OpenAPI contract
 
   Scenario: Fail when repeat password does not match
     Given an authentication with body
@@ -74,7 +77,7 @@ Feature: Update Password
         "password": "Sup3rSecretPassword!"
       }
       """
-    Given a POST user request to "/api/v1/Auth/update" with body
+    And a POST user request to "/api/v1/Auth/update" with body
       """
       {
         "oldPassword": "#aD3fe2.0%",
@@ -83,7 +86,7 @@ Feature: Update Password
       }
       """
     Then the response status code should be 400
-    Then the response body should be
+    And the response body should be
       """
       {
         "message": "Validation error",
@@ -92,6 +95,7 @@ Feature: Update Password
         }
       }
       """
+    And response matches OpenAPI contract
 
   Scenario: Fail when new password equals old password
     Given an authentication with body
@@ -101,7 +105,7 @@ Feature: Update Password
         "password": "Sup3rSecretPassword!"
       }
       """
-    Given a POST user request to "/api/v1/Auth/update" with body
+    And a POST user request to "/api/v1/Auth/update" with body
       """
       {
         "oldPassword": "Sup3rSecretPassword!",
@@ -110,10 +114,11 @@ Feature: Update Password
       }
       """
     Then the response status code should be 401
-    Then the response body should be
+    And the response body should be
       """
       {
         "message": "New password must be different from old password"
       }
       """
+    And response matches OpenAPI contract
 

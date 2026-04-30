@@ -4,7 +4,7 @@ Feature: Get Plant
         Given a plant exists
         When I get the plant
         Then the response status code should be 200
-        Then the response body should contain
+        And the response body should contain
             """
             {
                 "id": "<plantId>",
@@ -15,6 +15,7 @@ Feature: Get Plant
                 }
             }
             """
+        And response matches OpenAPI contract
 
     Scenario: Get a non-existing plant
         Given a GET request to "/api/v1/plants/12384ea3-e55d-4f69-8b0c-b54cccb9f443"
@@ -25,6 +26,7 @@ Feature: Get Plant
                 "message": "Plant not found: 12384ea3-e55d-4f69-8b0c-b54cccb9f443"
             }
             """
+        And response matches OpenAPI contract
 
     Scenario: Get a plant with invalid ID
         Given a GET request to "/api/v1/plants/invalid-id"
@@ -38,9 +40,11 @@ Feature: Get Plant
                 "message": "Validation error"
             }
             """
+        And response matches OpenAPI contract
 
     Scenario: Admin can access deleted plant
         Given a plant exists
         When I send a DELETE admin request to "/api/v1/plants/{plantId}"
         And I send a GET admin request to "/api/v1/plants/{plantId}"
         Then the response status code should be 200
+        And response matches OpenAPI contract

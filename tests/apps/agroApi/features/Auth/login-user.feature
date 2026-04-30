@@ -16,8 +16,8 @@ Feature: Login
       }
       """
     Then the response status code should be 201
-    Then the response body should be empty
-
+    And the response body should be empty
+    And response matches OpenAPI contract
 
   Scenario: Login with valid credentials
     Given a POST request to "/api/v1/Auth/login" with body
@@ -28,7 +28,8 @@ Feature: Login
       }
       """
     Then the response status code should be 200
-    Then the response body should include an auth token
+    And the response body should include an auth token
+    And response matches OpenAPI contract
 
   Scenario: Fail with invalid credentials
     Given a POST request to "/api/v1/Auth/login" with body
@@ -39,12 +40,13 @@ Feature: Login
       }
       """
     Then the response status code should be 401
-    Then the response body should be
+    And the response body should be
       """
       {
         "message": "Invalid credentials"
       }
       """
+    And response matches OpenAPI contract
 
   Scenario: Fail with non-existent user
     Given a POST request to "/api/v1/Auth/login" with body
@@ -55,9 +57,10 @@ Feature: Login
       }
       """
     Then the response status code should be 401
-    Then the response body should be
+    And the response body should be
       """
       {
         "message": "Invalid credentials"
       }
       """
+    And response matches OpenAPI contract

@@ -48,6 +48,7 @@ Hybrid model:
 * optionally extended via tooling (future)
 
 ---
+
 ## 4.2 Versioning strategy
 
 Current:
@@ -60,7 +61,7 @@ Future:
 * possible migration to server-based versioning if v2 diverges
 * potential introduction of semantic API versions per domain
 
---- 
+---
 
 ## 4.3 Tooling
 
@@ -80,15 +81,17 @@ Future:
 
 ## 5.1 Plants
 
-* POST /plants
-* GET /plants
-* GET /plants/:id
-* PATCH /plants/:id
-* DELETE /plants/:id (pending implementation)
+### Endpoints
+
+* POST /api/v1/plants
+* GET /api/v1/plants
+* GET /api/v1/plants/:id
+* PATCH /api/v1/plants/:id
+* DELETE /api/v1/plants/:id
 
 ---
 
-## 5.2 Beds
+## 5.2 Beds (pending)
 
 * CRUD full set
 
@@ -96,22 +99,23 @@ Future:
 
 ## 5.3 Auth / Users
 
-* register
-* login
-* refresh token
-* google auth
-* email validation
+* POST /api/v1/Auth/register
+* POST /api/v1/Auth/login
+* POST /api/v1/Auth/refresh
+* POST /api/v1/Auth/google
+* GET /api/v1/Auth/validate/{token}
+* POST /api/v1/Auth/update
 
 ---
 
-## 5.4 Events (future)
+## 5.4 Events (pending)
 
 * event ingestion API
 * filtering by plantInstance / bed / type
 
 ---
 
-## 5.5 Knowledge (read-only)
+## 5.5 Knowledge (pending)
 
 * pests
 * diseases
@@ -152,6 +156,17 @@ Rules:
 * error messages MUST be deterministic across environments
 * runtime value leakage format is part of current system behavior and MUST be reflected in contract tests if enforced
 * OpenAPI MUST define this structure exactly once stabilized
+
+---
+
+### 6.2 Empty response handling (204)
+
+For endpoints returning **204 No Content**:
+
+* response body MUST be empty
+* OpenAPI SHOULD NOT define a response schema for 204 OR MUST define `content: {}`
+
+(This aligns with current contract validator behavior in tests)
 
 ---
 

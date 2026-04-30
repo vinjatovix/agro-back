@@ -17,7 +17,7 @@ Feature: Update a plant
             }
             """
         Then the response status code should be 200
-        Then the response body should contain
+        And the response body should contain
             """
             {
                 "identity": {
@@ -27,6 +27,7 @@ Feature: Update a plant
                 }
             }
             """
+        And response matches OpenAPI contract
 
     Scenario: Update nested range field
         Given a plant exists
@@ -43,7 +44,7 @@ Feature: Update a plant
             }
             """
         Then the response status code should be 200
-        Then the response body should contain
+        And the response body should contain
             """
             {
                 "traits": {
@@ -54,6 +55,7 @@ Feature: Update a plant
                 }
             }
             """
+        And response matches OpenAPI contract
 
     Scenario: Fail to update with invalid UUID
         When I send a PATCH admin request to "/api/v1/plants/invalid-uuid" with body
@@ -79,6 +81,9 @@ Feature: Update a plant
             }
             """
         Then the response status code should be 400
+        And response matches OpenAPI contract
+
+
 
     Scenario: Fail to update a non-existing plant
         When I send a PATCH admin request to "/api/v1/plants/0ccd23ae-4ac5-4dbe-84b1-fc0e8dac26e3" with body
@@ -93,6 +98,8 @@ Feature: Update a plant
             }
             """
         Then the response status code should be 404
+        And response matches OpenAPI contract
+
 
     Scenario: Fail to update with invalid range values
         Given a plant exists
@@ -117,6 +124,7 @@ Feature: Update a plant
                 "message": "Range min cannot be greater than max"
             }
             """
+        And response matches OpenAPI contract
 
     Scenario: Fail to update with invalid months
         Given a plant exists
@@ -141,6 +149,7 @@ Feature: Update a plant
                 "message": "Invalid month: 0"
             }
             """
+        And response matches OpenAPI contract
 
     Scenario: Fail to update a plant without authentication
         Given a plant exists
@@ -156,6 +165,7 @@ Feature: Update a plant
             }
             """
         Then the response status code should be 401
+        And response matches OpenAPI contract
 
     Scenario: Fail to update a plant with invalid role
         Given a plant exists
@@ -171,3 +181,4 @@ Feature: Update a plant
             }
             """
         Then the response status code should be 403
+        And response matches OpenAPI contract
