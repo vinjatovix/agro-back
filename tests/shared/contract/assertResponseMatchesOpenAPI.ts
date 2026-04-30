@@ -85,40 +85,41 @@ function getResponseSchema(
   return content?.['application/json']?.schema ?? null;
 }
 
+type SchemaObject = {
+  type?: string;
+  properties?: Record<string, SchemaObject>;
+};
+
+const isObjectType = (schema: SchemaObject): boolean =>
+  schema.type === 'object';
+
+const isValidPrimitive = (
+  expectedType: string | undefined,
+  value: unknown
+): boolean => {
+  if (expectedType === 'string') return typeof value === 'string';
+  if (expectedType === 'number') return typeof value === 'number';
+  if (expectedType === 'boolean') return typeof value === 'boolean';
+  return true;
+};
+
 function validateShape(body: unknown, schema: unknown): boolean {
   if (!schema || typeof schema !== 'object') return true;
 
-  type SchemaObject = {
-    type?: string;
-    properties?: Record<string, SchemaObject>;
-  };
-
   const s = schema as SchemaObject;
 
-  if (s.type === 'object') {
-    if (typeof body !== 'object' || body === null) return false;
+  if (!isObjectType(s)) return true;
 
-    const props = s.properties ?? {};
+  if (typeof body !== 'object' || body === null) return false;
 
-    for (const key of Object.keys(props)) {
-      const expected = props[key];
-      const value = (body as Record<string, unknown>)[key];
+  const props = s.properties ?? {};
 
-      if (expected?.type === 'string' && typeof value !== 'string') {
-        return false;
-      }
+  return Object.keys(props).every((key) => {
+    const expected = props[key];
+    const value = (body as Record<string, unknown>)[key];
 
-      if (expected?.type === 'number' && typeof value !== 'number') {
-        return false;
-      }
-
-      if (expected?.type === 'boolean' && typeof value !== 'boolean') {
-        return false;
-      }
-    }
-  }
-
-  return true;
+    return isValidPrimitive(expected?.type, value);
+  });
 }
 
 export async function assertResponseMatchesOpenAPI({
