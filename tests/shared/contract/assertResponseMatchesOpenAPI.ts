@@ -17,6 +17,8 @@ const OPENAPI_PATH = path.resolve(
 
 let cachedSpec: OpenAPIV3.Document | null = null;
 
+const normalizePath = (path: string) => path.replace(/\/+$/, ''); // elimina trailing slash
+
 async function loadSpec(): Promise<OpenAPIV3.Document> {
   if (cachedSpec) return cachedSpec;
 
@@ -40,10 +42,11 @@ async function loadSpec(): Promise<OpenAPIV3.Document> {
 }
 
 function matchPath(spec: OpenAPIV3.Document, path: string): string | null {
+  const normalizedPath = normalizePath(path);
   return (
     Object.keys(spec.paths).find((p) => {
-      const regex = new RegExp('^' + p.replace(/{[^}]+}/g, '[^/]+') + '$');
-      return regex.test(path);
+      const regex = new RegExp('^' + p.replaceAll(/{[^}]+}/g, '[^/]+') + '$');
+      return regex.test(normalizedPath);
     }) ?? null
   );
 }

@@ -109,6 +109,8 @@ Features:
 * asserting raw error strings is allowed ONLY when explicitly defined by validation contract
 * PATCH responses MUST be treated as full aggregate snapshots (not partial fragments)
 
+Contract tests enforce full-response strict equality against OpenAPI. BDD tests MAY use partial matching for readability.
+
 ---
 
 # 5. SONAR RULES
@@ -154,6 +156,8 @@ Rules:
 
 * state is isolated per scenario
 * no cross-scenario leakage
+
+---
 
 # 8. FUTURE EVOLUTION
 

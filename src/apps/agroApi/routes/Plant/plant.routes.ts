@@ -2,6 +2,7 @@ import type { Router } from 'express';
 import {
   auth,
   isAdmin,
+  optionalAuth,
   validateBody,
   validateReqSchema
 } from '../../middlewares/index.js';
@@ -27,10 +28,11 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
     plantApiInvoker('createPlant')
   );
 
-  router.get(`${prefix}/`, plantApiInvoker('getAllPlants'));
+  router.get(`${prefix}/`, optionalAuth, plantApiInvoker('getAllPlants'));
 
   router.get(
     `${prefix}/:id`,
+    optionalAuth,
     getPlantByIdReqSchema,
     validateReqSchema,
     plantApiInvoker('getPlantById')

@@ -5,3 +5,4 @@ export * from './isAdmin.js';
 export * from './validateBody.js';
 export * from './EnsureAuthentication.js';
 export * from './validateReqSchema.js';
+export * from './optionalAuth.js';

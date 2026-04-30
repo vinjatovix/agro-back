@@ -11,11 +11,21 @@ type ErrorHandlerDeps = {
 
 export const errorHandler =
   ({ logger }: ErrorHandlerDeps) =>
-  (err: Error, _req: Request, res: Response, _next: NextFunction): void => {
+  (err: Error, req: Request, res: Response, _next: NextFunction): void => {
     if (err instanceof HttpError) {
       res.status(err.statusCode).json({
         message: err.message,
         ...(err.errors && { errors: err.errors })
+      } satisfies ApiErrorResponse);
+      return;
+    }
+
+    if (err instanceof URIError) {
+      res.status(httpStatus.BAD_REQUEST).json({
+        message: 'Validation error',
+        errors: {
+          id: 'Invalid URL encoding in request path'
+        }
       } satisfies ApiErrorResponse);
       return;
     }

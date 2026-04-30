@@ -292,8 +292,9 @@ Given('no plants exist', async function () {
 });
 
 When('I send a GET request to {string}', async function (route: string) {
-  setRequestContext(this, 'get', route);
-  _request = request(httpServer).get(route);
+  const normalizedRoute = interpolateRoute(route, this);
+  setRequestContext(this, 'get', normalizedRoute);
+  _request = request(httpServer).get(normalizedRoute);
 });
 
 When(

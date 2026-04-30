@@ -57,3 +57,17 @@ Feature: Delete a plant
             }
             """
         And response matches OpenAPI contract
+
+    Scenario: Deleting an already deleted plant returns 204
+        Given a plant exists
+        When I send a DELETE admin request to "/api/v1/plants/{plantId}"
+        Then the response status code should be 204
+        When I send a DELETE admin request to "/api/v1/plants/{plantId}"
+        Then the response status code should be 204
+        And response matches OpenAPI contract
+
+    Scenario: Delete plant with trailing slash
+        Given a plant exists
+        When I send a DELETE admin request to "/api/v1/plants/{plantId}/"
+        Then the response status code should be 204
+        And response matches OpenAPI contract

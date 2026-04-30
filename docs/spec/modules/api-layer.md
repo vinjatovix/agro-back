@@ -1,4 +1,4 @@
-# MODULE: APPLICATION CONTRACT (API SURFACE)
+# 📄 APPLICATION CONTRACT (API SURFACE)
 
 version: 1.0.0
 source-spec: v1.0.0
@@ -73,6 +73,15 @@ The system exposes the following domain resources:
 * GET /api/v1/plants/:id (implemented)
 * PATCH /api/v1/plants/:id (implemented)
 * DELETE /api/v1/plants/:id (implemented)
+
+### Access control
+
+* GET /api/v1/plants → public (no authentication required)
+* POST /api/v1/plants → admin only
+* PATCH /api/v1/plants/:id → admin only
+* DELETE /api/v1/plants/:id → admin only
+
+---
 
 ### 4.1.1 Plant by ID
 
@@ -224,13 +233,14 @@ type ApiErrorResponse = {
   message: string;
   errors?: Record<string, string>;
 };
-````
+```
 
 Validation errors:
 
 * dot-notation paths
 * deterministic messages
 * aligned with EPIC 13
+* must handle invalid URI encoding safely (no raw URIError leaks)
 
 ---
 

@@ -83,11 +83,11 @@ Future:
 
 ### Endpoints
 
-* POST /api/v1/plants
-* GET /api/v1/plants
-* GET /api/v1/plants/:id
-* PATCH /api/v1/plants/:id
-* DELETE /api/v1/plants/:id
+* POST /api/v1/plants (admin only)
+* GET /api/v1/plants (public)
+* GET /api/v1/plants/:id (public)
+* PATCH /api/v1/plants/:id (admin only)
+* DELETE /api/v1/plants/:id (admin only)
 
 ---
 
@@ -133,13 +133,18 @@ OpenAPI MUST define:
 * status code mapping
 * field-level validation errors
 
-### 6.1 Validation error behavior (EPIC 13 alignment)
+---
+
+## 6.1 Validation error behavior (EPIC 13 alignment)
 
 Validation errors MUST be represented as:
 
-* deterministic
-* errors MUST use dot notation keys
-* structured under `errors`
+Rules:
+
+* error keys MUST be full field paths
+* error messages MUST be deterministic across environments
+* runtime value leakage format is part of current system behavior and MUST be reflected in contract tests if enforced
+* system MUST safely handle invalid URI encoding without exposing raw URIError stack traces
 
 ```json
 {
@@ -156,10 +161,11 @@ Rules:
 * error messages MUST be deterministic across environments
 * runtime value leakage format is part of current system behavior and MUST be reflected in contract tests if enforced
 * OpenAPI MUST define this structure exactly once stabilized
+* system MUST safely handle invalid URI encoding without exposing raw URIError stack traces
 
 ---
 
-### 6.2 Empty response handling (204)
+## 6.2 Empty response handling (204)
 
 For endpoints returning **204 No Content**:
 

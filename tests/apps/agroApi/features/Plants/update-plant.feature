@@ -182,3 +182,12 @@ Feature: Update a plant
             """
         Then the response status code should be 403
         And response matches OpenAPI contract
+
+    Scenario: Fail to update with empty body
+        Given a plant exists
+        When I send a PATCH admin request to "/api/v1/plants/{plantId}" with body
+            """
+            {}
+            """
+        Then the response status code should be 400
+        And response matches OpenAPI contract

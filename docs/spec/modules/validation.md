@@ -36,7 +36,7 @@ type ApiErrorResponse = {
   message: string;
   errors?: Record<string, string>;
 };
-````
+```
 
 ---
 
@@ -70,7 +70,31 @@ checkExact() MUST:
 * prevent unknown fields
 * enforce strict schema matching
 
-# 7. FUTURE EVOLUTION
+---
+
+# 7. PATCH VALIDATION SEMANTICS (ADDED)
+
+PATCH endpoints MUST:
+
+* validate only provided fields
+* NOT require full entity payload
+* allow partial nested object validation
+* NOT invalidate missing sibling fields
+* preserve OpenAPI PATCH semantics consistency
+
+---
+
+# 8. OPENAPI ALIGNMENT RULE (ADDED)
+
+Validation layer MUST:
+
+* align error shape with OpenAPI contract
+* ensure field paths match OpenAPI schema structure
+* ensure validation errors can be asserted in contract tests when defined
+
+---
+
+# 9. FUTURE EVOLUTION
 
 * schema generation from OpenAPI
 * optional Zod migration layer
