@@ -3,31 +3,35 @@ import { PlantSowing } from '../../../../../../src/Contexts/Agro/Plants/domain/v
 import { random } from '../../../../shared/fixtures/random.js';
 
 describe('PlantSowing (value object)', () => {
+  const randomRange = (
+    minRange: [number, number],
+    maxRange: [number, number]
+  ) => ({
+    min: random.integer({ min: minRange[0], max: minRange[1] }),
+    max: random.integer({ min: maxRange[0], max: maxRange[1] })
+  });
+
+  const buildBase = () => ({
+    months: [randomInt(1, 13)],
+    seedsPerHole: randomRange([1, 5], [6, 10]),
+    germinationDays: randomRange([1, 5], [6, 15])
+  });
+
+  const directMethod = () => ({
+    depthCm: randomRange([1, 5], [6, 10])
+  });
+
+  const starterMethod = () => ({
+    depthCm: randomRange([2, 3], [4, 5])
+  });
+
   it('should throw if months is empty', () => {
     expect(() =>
       PlantSowing.fromPrimitives({
+        ...buildBase(),
         months: [],
-        seedsPerHole: {
-          min: random.integer({
-            min: 1,
-            max: 10
-          }),
-          max: random.integer({
-            min: 11,
-            max: 20
-          })
-        },
-        germinationDays: {
-          min: random.integer({ min: 1, max: 5 }),
-          max: random.integer({ min: 6, max: 15 })
-        },
         methods: {
-          direct: {
-            depthCm: {
-              min: random.integer({ min: 1, max: 5 }),
-              max: random.integer({ min: 6, max: 10 })
-            }
-          }
+          direct: directMethod()
         }
       })
     ).toThrow('PlantSowing.months must have at least one month');
@@ -35,9 +39,7 @@ describe('PlantSowing (value object)', () => {
 
   it('should throw if direct method is missing', () => {
     const input = {
-      months: [3],
-      seedsPerHole: { min: 1, max: 2 },
-      germinationDays: { min: 1, max: 2 },
+      ...buildBase(),
       methods: {
         direct: undefined
       }
@@ -50,13 +52,9 @@ describe('PlantSowing (value object)', () => {
 
   it('should throw if starter exists but depth is missing', () => {
     const input = {
-      months: [3],
-      seedsPerHole: { min: 1, max: 2 },
-      germinationDays: { min: 1, max: 2 },
+      ...buildBase(),
       methods: {
-        direct: {
-          depthCm: { min: 1, max: 2 }
-        },
+        direct: directMethod(),
         starter: {} // inválido
       }
     } as unknown as Parameters<typeof PlantSowing.fromPrimitives>[0];
@@ -68,23 +66,12 @@ describe('PlantSowing (value object)', () => {
 
   it('should build correctly from valid primitives', () => {
     const sowingMonths = [randomInt(7, 12), randomInt(1, 6)];
+
     const sowing = PlantSowing.fromPrimitives({
+      ...buildBase(),
       months: sowingMonths,
-      seedsPerHole: {
-        min: random.integer({ min: 1, max: 5 }),
-        max: random.integer({ min: 6, max: 10 })
-      },
-      germinationDays: {
-        min: random.integer({ min: 1, max: 5 }),
-        max: random.integer({ min: 6, max: 15 })
-      },
       methods: {
-        direct: {
-          depthCm: {
-            min: random.integer({ min: 1, max: 5 }),
-            max: random.integer({ min: 6, max: 10 })
-          }
-        }
+        direct: directMethod()
       }
     });
 
@@ -95,28 +82,10 @@ describe('PlantSowing (value object)', () => {
 
   it('should preserve optional starter method', () => {
     const sowing = PlantSowing.fromPrimitives({
-      months: [randomInt(1, 13)],
-      seedsPerHole: {
-        min: random.integer({ min: 1, max: 5 }),
-        max: random.integer({ min: 6, max: 10 })
-      },
-      germinationDays: {
-        min: random.integer({ min: 1, max: 5 }),
-        max: random.integer({ min: 6, max: 15 })
-      },
+      ...buildBase(),
       methods: {
-        direct: {
-          depthCm: {
-            min: random.integer({ min: 1, max: 5 }),
-            max: random.integer({ min: 6, max: 10 })
-          }
-        },
-        starter: {
-          depthCm: {
-            min: random.integer({ min: 2, max: 3 }),
-            max: random.integer({ min: 4, max: 5 })
-          }
-        }
+        direct: directMethod(),
+        starter: starterMethod()
       }
     });
 

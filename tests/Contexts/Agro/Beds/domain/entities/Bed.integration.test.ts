@@ -33,19 +33,26 @@ describe('Bed + SpatialService (integration)', () => {
     spacingCm
   });
 
-  it('accepts multiple non-colliding plant placements', () => {
-    const bed = createBed();
-
-    const { existing, newPlant } = SpatialTestScenarioBuilder.safePlacement(
-      bed,
-      SPACING_CM
-    );
-
-    const p1 = existing(PlantInstanceMother, CROP);
-    const p2 = newPlant(PlantInstanceMother, CROP);
+  const setupTwoPlants = (
+    builder:
+      | ReturnType<typeof SpatialTestScenarioBuilder.safePlacement>
+      | ReturnType<typeof SpatialTestScenarioBuilder.colliding>,
+    bed?: Bed
+  ) => {
+    const context = builder;
+    const p1 = context.existing(PlantInstanceMother, CROP);
+    const p2 = context.newPlant(PlantInstanceMother, CROP);
 
     const s1 = createSpatialPlant(p1);
     const s2 = createSpatialPlant(p2);
+
+    return { p1, p2, s1, s2, bed: bed ?? createBed() };
+  };
+
+  it('accepts multiple non-colliding plant placements', () => {
+    const { bed, p1, p2, s1, s2 } = setupTwoPlants(
+      SpatialTestScenarioBuilder.safePlacement(createBed(), SPACING_CM)
+    );
 
     bed.addPlant(p1, s1, []);
     bed.addPlant(p2, s2, [s1]);
@@ -54,21 +61,13 @@ describe('Bed + SpatialService (integration)', () => {
   });
 
   it('prevents adding a colliding plant', () => {
-    const bed = createBed();
-
-    const { existing, newPlant } =
-      SpatialTestScenarioBuilder.colliding(SPACING_CM);
-
-    const p1 = existing(PlantInstanceMother, CROP);
-    const p2 = newPlant(PlantInstanceMother, CROP);
-
-    const s1 = createSpatialPlant(p1);
-    const s2 = createSpatialPlant(p2);
+    const { bed, p1, p2, s1, s2 } = setupTwoPlants(
+      SpatialTestScenarioBuilder.colliding(SPACING_CM)
+    );
 
     bed.addPlant(p1, s1, []);
 
     expect(() => bed.addPlant(p2, s2, [s1])).toThrow('Collision detected');
-
     expect(bed.plants).toHaveLength(1);
   });
 
@@ -90,18 +89,9 @@ describe('Bed + SpatialService (integration)', () => {
   });
 
   it('allows plants exactly touching boundaries', () => {
-    const bed = createBed();
-
-    const { existing, newPlant } = SpatialTestScenarioBuilder.safePlacement(
-      bed,
-      SPACING_CM
+    const { bed, p1, p2, s1, s2 } = setupTwoPlants(
+      SpatialTestScenarioBuilder.safePlacement(createBed(), SPACING_CM)
     );
-
-    const p1 = existing(PlantInstanceMother, CROP);
-    const p2 = newPlant(PlantInstanceMother, CROP);
-
-    const s1 = createSpatialPlant(p1);
-    const s2 = createSpatialPlant(p2);
 
     bed.addPlant(p1, s1, []);
     bed.addPlant(p2, s2, [s1]);
@@ -113,9 +103,7 @@ describe('Bed + SpatialService (integration)', () => {
     const bed = createBed();
 
     const center = SPACING_CM / 2;
-
     const plant = PlantInstanceMother.fromPlantAtPosition(CROP, center, center);
-
     const spatial = createSpatialPlant(plant);
 
     bed.addPlant(plant, spatial, []);
@@ -124,24 +112,14 @@ describe('Bed + SpatialService (integration)', () => {
   });
 
   it('continues working after removing a plant', () => {
-    const bed = createBed();
-
-    const { existing, newPlant } = SpatialTestScenarioBuilder.safePlacement(
-      bed,
-      SPACING_CM
+    const { bed, p1, p2, s1, s2 } = setupTwoPlants(
+      SpatialTestScenarioBuilder.safePlacement(createBed(), SPACING_CM)
     );
-
-    const p1 = existing(PlantInstanceMother, CROP);
-    const p2 = newPlant(PlantInstanceMother, CROP);
-
-    const s1 = createSpatialPlant(p1);
-    const s2 = createSpatialPlant(p2);
 
     bed.addPlant(p1, s1, []);
     bed.removePlant(p1.id);
 
     expect(() => bed.addPlant(p2, s2, [])).not.toThrow();
-
     expect(bed.plants).toHaveLength(1);
   });
 
@@ -149,7 +127,6 @@ describe('Bed + SpatialService (integration)', () => {
     const bed = createBed();
 
     const base = PlantInstanceMother.fromPlantAtPosition(CROP, 100, 100);
-
     const near = PlantInstanceMother.fromPlantAtPosition(
       CROP,
       100 + SPACING_CM,
@@ -168,29 +145,9 @@ describe('Bed + SpatialService (integration)', () => {
     const bed = createBed();
 
     const plant = PlantInstanceMother.fromPlantAtPosition(CROP, 100, 100);
-
     const spatial = createSpatialPlant(plant);
 
     bed.addPlant(plant, spatial, [spatial]);
-
-    expect(bed.plants).toHaveLength(1);
-  });
-
-  it('does not mutate state when validation fails', () => {
-    const bed = createBed();
-
-    const { existing, newPlant } =
-      SpatialTestScenarioBuilder.colliding(SPACING_CM);
-
-    const p1 = existing(PlantInstanceMother, CROP);
-    const p2 = newPlant(PlantInstanceMother, CROP);
-
-    const s1 = createSpatialPlant(p1);
-    const s2 = createSpatialPlant(p2);
-
-    bed.addPlant(p1, s1, []);
-
-    expect(() => bed.addPlant(p2, s2, [s1])).toThrow('Collision detected');
 
     expect(bed.plants).toHaveLength(1);
   });
@@ -202,9 +159,9 @@ describe('Bed + SpatialService (integration)', () => {
     const plant2 = PlantInstanceMother.fromPlantAtPosition(CROP, 150, 50);
     const newPlant = PlantInstanceMother.fromPlantAtPosition(CROP, 100, 50);
 
-    const s1 = createSpatialPlant(plant1, SPACING_CM);
-    const s2 = createSpatialPlant(plant2, SPACING_CM);
-    const sNew = createSpatialPlant(newPlant, SPACING_CM);
+    const s1 = createSpatialPlant(plant1);
+    const s2 = createSpatialPlant(plant2);
+    const sNew = createSpatialPlant(newPlant);
 
     bed.addPlant(plant1, s1, []);
     bed.addPlant(plant2, s2, [s1]);
