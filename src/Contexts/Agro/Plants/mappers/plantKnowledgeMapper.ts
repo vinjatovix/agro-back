@@ -104,6 +104,6 @@ export const plantKnowledgeMapper = {
       props.notes = primitives.notes;
     }
 
-    return new PlantKnowledge(props as PlantKnowledgeProps);
+    return new PlantKnowledge(props);
   }
 };

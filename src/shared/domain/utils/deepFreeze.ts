@@ -4,7 +4,7 @@ export function deepFreeze<T>(obj: T): T {
 
   const props = [
     ...Object.getOwnPropertyNames(obj),
-    ...Object.getOwnPropertySymbols(obj as object)
+    ...Object.getOwnPropertySymbols(obj)
   ] as Array<keyof T>;
 
   for (const prop of props) {

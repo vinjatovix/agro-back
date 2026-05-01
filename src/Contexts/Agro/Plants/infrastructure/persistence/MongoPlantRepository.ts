@@ -46,10 +46,7 @@ export class MongoPlantRepository
 
     const mongoId = toMongoId(current.id);
 
-    const diff = diffObjects(
-      current as unknown as UnknownRecord,
-      updated as unknown as UnknownRecord
-    );
+    const diff = diffObjects(current, updated);
 
     const patch = this.normalizePatch(diff);
     const hasSet = Object.keys(patch.set ?? {}).length > 0;
