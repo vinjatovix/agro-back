@@ -26,6 +26,7 @@ Definition-only aggregate.
 - knowledge (optional reference)
 
 Invariant rules:
+
 - ranges valid (min ≤ max)
 - months [1..12]
 - UUID identity
@@ -37,6 +38,7 @@ Invariant rules:
 Runtime representation of a Plant in a Bed.
 
 Responsibilities:
+
 - spatial position
 - lifecycle state
 - link to Plant definition
@@ -48,6 +50,7 @@ Responsibilities:
 Spatial container for PlantInstances.
 
 Responsibilities:
+
 - grid anchor
 - spatial constraints
 - grouping context
@@ -59,11 +62,13 @@ Responsibilities:
 System actor.
 
 Roles:
+
 - admin
 - collaborator
 - user
 
 Responsible for:
+
 - ownership
 - permissions
 - audit trail
@@ -79,9 +84,19 @@ Responsible for:
 - Metadata
 
 Rules:
+
 - immutable
 - self-validating
 - no infrastructure dependency
+
+- PositiveNumber
+
+Rules:
+
+- represents strictly positive numeric values
+- MUST be finite
+- MUST be > 0
+- used in domain-critical numeric fields (events, measurements)
 
 ---
 
@@ -98,6 +113,7 @@ All transformations:
 MUST be handled by dedicated mapper modules.
 
 IMPORTANT:
+
 - NO business logic inside primitives
 - NO persistence logic
 

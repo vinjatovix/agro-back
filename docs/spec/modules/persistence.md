@@ -168,6 +168,44 @@ Plant domain conversion is handled via:
 
 ---
 
+## 6.4 Event Mapping
+
+Persistence layer now includes **EventDocument ↔ DomainEvent mapping**.
+
+### Rules
+
+- MUST use dedicated mapper (`EventMapper`)
+- MUST NOT perform inline transformation in repositories
+- MUST preserve discriminated union structure
+
+---
+
+### EventDocument Contract
+
+Persistence defines a **typed union**:
+
+```ts
+type EventDocument =
+  | WateringEventDocument
+  | FertilizationEventDocument
+  | PruningEventDocument
+  | HarvestEventDocument
+  | TransplantEventDocument
+  | TreatmentEventDocument;
+```
+
+---
+
+### Critical Rule
+
+Persistence MUST:
+
+- store only primitives (string, number, ISO date)
+- never store domain value objects
+- never bypass mapper
+
+---
+
 # 7. INVARIANTS
 
 ## 7.1 Persistence invariants
