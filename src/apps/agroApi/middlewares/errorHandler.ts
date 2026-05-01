@@ -30,6 +30,16 @@ export const errorHandler =
       return;
     }
 
+    if (err instanceof SyntaxError && 'body' in err) {
+      res.status(httpStatus.BAD_REQUEST).json({
+        message: err.message || 'Validation error',
+        errors: {
+          body: 'Invalid JSON in request body'
+        }
+      } satisfies ApiErrorResponse);
+      return;
+    }
+
     logger.error('Unexpected error at error handler', err);
 
     res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
