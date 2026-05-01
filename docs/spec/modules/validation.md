@@ -67,9 +67,10 @@ Example:
 
 checkExact() MUST:
 
-* prevent unknown fields
-* enforce strict schema matching
-
+* enforce validation on explicitly declared fields
+* detect unknown fields at the top-level validation layer
+* NOT be considered a full deep schema enforcement mechanism for nested objects
+* be complemented with explicit strict validation for nested payloads when required
 ---
 
 # 7. PATCH VALIDATION SEMANTICS (ADDED)
