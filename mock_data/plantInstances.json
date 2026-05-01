@@ -1,0 +1,41 @@
+ [
+      {
+        "id": "pi_1",
+        "userId": "user_1",
+        "plantId": "plant_calendula",
+
+        "position": {
+          "x": 50,
+          "y": 30
+        },
+
+        "growthStatus": "planted",
+        "instanceStatus": "active",
+
+        "plantedAt": "2026-03-10T09:00:00Z",
+        "removedAt": null,
+
+        "variety": "standard",
+        "notes": "Zona con bastante sol"
+      },
+
+      {
+        "id": "pi_2",
+        "userId": "user_1",
+        "plantId": "plant_calendula",
+
+        "position": {
+          "x": 120,
+          "y": 60
+        },
+
+        "growthStatus": "growing",
+        "instanceStatus": "active",
+
+        "plantedAt": "2026-03-12T09:00:00Z",
+        "removedAt": null,
+
+        "variety": null,
+        "notes": null
+      }
+    ]

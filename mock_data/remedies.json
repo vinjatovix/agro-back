@@ -1,0 +1,16 @@
+{
+  "_id": "remedy_potassium_soap",
+  "name": "Jabón potásico",
+
+  "type": "organic",
+
+  "application": {
+    "method": "spray",
+    "frequency": "weekly",
+    "dosage": "diluir en agua"
+  },
+
+  "effectiveAgainst": ["pest_aphids"],
+
+  "createdAt": "2026-04-18T10:00:00Z"
+}

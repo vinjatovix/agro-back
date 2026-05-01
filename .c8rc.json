@@ -1,0 +1,29 @@
+{
+  "all": true,
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "src/index.ts",
+    "src/**/types/**",
+    "src/**/interfaces/**",
+    "**/*.d.ts",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/node_modules/**",
+    "**/tests/**",
+    "**/dist/**",
+    "**/coverage/**",
+    "setupTests.ts"
+  ],
+  "extension": [
+    ".ts"
+  ],
+  "reporter": [
+    "lcov",
+    "text-summary"
+  ],
+  "sourceMap": true,
+  "instrument": true,
+  "temp-dir": ".c8_output"
+}

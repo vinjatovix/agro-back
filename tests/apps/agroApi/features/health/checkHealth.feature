@@ -12,6 +12,8 @@ Feature: Api Health Check
         "status": "OK"
       }
       """
+    And response matches OpenAPI contract
+
 
   Scenario: Performing a health check with wrong route
     Given a GET request to "/api/v1/whatever"

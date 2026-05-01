@@ -1,14 +1,16 @@
-import dotenv from 'dotenv';
-import { AgroBackApp } from './apps/backend/AgroBackApp.js';
-import { buildLogger } from './Contexts/shared/plugins/loggerPlugin.js';
-
-dotenv.config();
+import { AgroBackApp } from './apps/agroApi/AgroBackApp.js';
+import { envs } from './apps/agroApi/config/plugins/envs.plugin.js';
+import { buildLogger } from './Contexts/shared/plugins/logger.plugin.js';
 
 const logger = buildLogger('agroAPI');
+const config = {
+  host: envs.HOST,
+  port: String(envs.PORT)
+};
 
 async function startServer() {
   try {
-    await new AgroBackApp().start(logger);
+    await new AgroBackApp(config).start(logger);
   } catch (err) {
     logger.error('Error starting the application:', err);
     process.exit(1);

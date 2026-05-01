@@ -16,6 +16,9 @@ const compat = new FlatCompat({
 
 module.exports = defineConfig([
   {
+    linterOptions: {
+      reportUnusedDisableDirectives: false
+    },
     languageOptions: {
       globals: {
         ...globals.node

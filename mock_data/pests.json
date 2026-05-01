@@ -1,0 +1,8 @@
+{
+  "_id": "pest_aphids",
+  "name": "Pulgón",
+  "affects": ["plant_calendula", "plant_tomato"],
+  "symptoms": ["Hojas pegajosas", "Deformación"],
+  "remedies": ["remedyId"],
+  "createdAt": "2026-04-18T10:00:00Z"
+}

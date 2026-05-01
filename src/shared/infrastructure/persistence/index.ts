@@ -1,11 +1,4 @@
-import { MongoClientFactory } from './mongo/MongoClientFactory.js';
-import { MongoConfigFactory } from './mongo/MongoConfigFactory.js';
-import type { MongoConfig } from './mongo/MongoConfig.js';
-import { MongoEnvironmentArranger } from './mongo/MongoEnvironmentArranger.js';
-
-export type { MongoConfig as DBConfig };
-export {
-  MongoConfigFactory as DBConfigFactory,
-  MongoClientFactory as DBClientFactory,
-  MongoEnvironmentArranger as DBEnvironmentArranger
-};
+export type { MongoConfig as DBConfig } from './mongo/MongoConfig.js';
+export { MongoConfigFactory as DBConfigFactory } from './mongo/MongoConfigFactory.js';
+export { MongoClientFactory as DBClientFactory } from './mongo/MongoClientFactory.js';
+export { MongoEnvironmentArranger as DBEnvironmentArranger } from './mongo/MongoEnvironmentArranger.js';

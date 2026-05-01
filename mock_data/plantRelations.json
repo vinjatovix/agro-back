@@ -1,0 +1,17 @@
+[
+  {
+    "_id": "rel_1",
+    "plantA": "plant_calendula",
+    "plantB": "plant_tomato",
+
+    "type": "beneficial",
+    "strength": 3,
+
+    "minDistance": 0,
+    "maxDistance": 100,
+
+    "reason": "Atrae polinizadores",
+
+    "createdAt": "2026-04-18T10:00:00Z"
+  }
+]
