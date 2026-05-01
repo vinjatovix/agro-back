@@ -1,0 +1,17 @@
+{
+  "_id": "fert_compost",
+  "name": "Compost",
+
+  "npk": {
+    "n": 1,
+    "p": 1,
+    "k": 1
+  },
+
+  "application": {
+    "frequency": "monthly",
+    "amount": "moderate"
+  },
+
+  "createdAt": "2026-04-18T10:00:00Z"
+}

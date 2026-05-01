@@ -1,0 +1,95 @@
+[
+  {
+    "_id": "0a9852cb-c6cd-4f5b-9c64-b6ab638d7875",
+    "plantInstanceId": "832b1ab4-5555-4729-b9b3-c327b9b3f192",
+    "bedId": "a4073945-f0d9-4b3a-ab19-90d50c3c7553",
+    "userId": "8c69c37d-5da0-49be-917f-1f75782cd4f4",
+    "date": "2026-05-01T03:01:17.316Z",
+    "metadata": {
+      "createdAt": "2026-05-01T03:01:17.316Z"
+    },
+    "type": "watering",
+    "data": {
+      "amountLiters": 3
+    },
+    "notes": "some note"
+  },
+  {
+    "_id": "116773bf-2519-476d-bc28-13d98e68b430",
+    "plantInstanceId": "e17ef574-ec63-4b88-b71c-a1471356d084",
+    "bedId": "03977796-c73d-4054-8d51-c174c09d9bdc",
+    "userId": "ceeb93f1-a3c0-46d0-879f-29b39a876717",
+    "date": "2026-05-01T02:59:53.915Z",
+    "metadata": {
+      "createdAt": "2026-05-01T02:59:53.915Z"
+    },
+    "type": "fertilization",
+    "data": {
+      "fertilizerId": "d20a61d6-0873-423e-a0e4-6f9f5a644223",
+      "fertilizerType": "mineral",
+      "method": "soil",
+      "amount": 9,
+      "concentration": 4
+    }
+  },
+  {
+    "_id": "03c5fb0e-4ad6-4cd5-8796-6e293647567d",
+    "plantInstanceId": "a587ff74-1c4b-4b33-bace-7013d6b5efb5",
+    "bedId": "be5acd51-56ef-4e11-abf7-f1ac6773badd",
+    "userId": "910536cc-6bba-45c8-9624-d9432ee734b9",
+    "date": "2026-05-01T03:00:07.995Z",
+    "metadata": {
+      "createdAt": "2026-05-01T03:00:07.995Z"
+    },
+    "type": "pruning",
+    "data": {
+      "type": "maintenance",
+      "intensity": "moderate"
+    }
+  },
+  {
+    "_id": "1e178ab9-5693-4d5b-87c2-32c57c568f04",
+    "plantInstanceId": "899b2b7a-0b1e-45fa-9792-097d309fc9be",
+    "bedId": "0f28430f-5a0e-4e73-a8a8-923330ed5f06",
+    "userId": "7893fe36-5ef9-4fea-88f9-7af63ee7789a",
+    "date": "2026-05-01T03:00:31.980Z",
+    "metadata": {
+      "createdAt": "2026-05-01T03:00:31.980Z"
+    },
+    "type": "harvest",
+    "data": {
+      "yieldGrams": 455
+    }
+  },
+  {
+    "_id": "ebf6628d-2e7f-46bb-8485-065d27389ada",
+    "plantInstanceId": "9ff21308-c34e-41fe-b310-88234b369f85",
+    "bedId": "450db1ac-dd16-471b-8df0-f2f3ae2b591a",
+    "userId": "293b14dd-5c28-4086-9ef5-0e9bda820d44",
+    "date": "2026-05-01T03:00:45.243Z",
+    "metadata": {
+      "createdAt": "2026-05-01T03:00:45.243Z"
+    },
+    "type": "transplant",
+    "data": {
+      "fromBedId": "e624ed98-3758-4b4a-88f4-9fcd5ecb53f0",
+      "toBedId": "cc4c50b9-8751-4505-a52b-428bbf1de537"
+    }
+  },
+  {
+    "_id": "13c6c718-c2ef-442e-bf18-e5dcfaf03ccb",
+    "plantInstanceId": "431714d1-d9c9-4127-8cb5-1a9883e1b0f1",
+    "bedId": "aace4193-58bf-4e88-8f07-7de9f51bb929",
+    "userId": "3c5e3af5-f5f6-415b-8317-a4b3bb879df4",
+    "date": "2026-05-01T03:00:59.080Z",
+    "metadata": {
+      "createdAt": "2026-05-01T03:00:59.080Z"
+    },
+    "type": "treatment",
+    "data": {
+      "target": "disease",
+      "productId": "f5ef7147-471a-407a-871d-fe1e2b121af9",
+      "dosage": 3
+    }
+  }
+]
