@@ -1,4 +1,4 @@
-import type { PlantInstance } from '../../../../../../src/Contexts/Agro/Beds/domain/entities/PlantInstance.js';
+import type { PlantInstance } from '../../../../../../src/Contexts/Agro/PlantInstances/domain/entities/PlantInstance.js';
 import type { Plant } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/Plant.js';
 
 type PlantFactory = {

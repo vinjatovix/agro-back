@@ -6,8 +6,8 @@ import type {
   SpatialPlantModel,
   SpatialService
 } from '../services/spatial/interfaces/index.js';
-import type { BedPrimitives } from './types/index.js';
-import type { PlantInstance } from './PlantInstance.js';
+import type { PlantInstance } from '../../../PlantInstances/domain/entities/PlantInstance.js';
+import type { BedPrimitives } from './types/BedPrimitives.js';
 
 export type BedProps = {
   width: number;

@@ -1,5 +1,5 @@
 import { addPlantToBed } from '../../../../../../src/Contexts/Agro/Beds/application/useCases/addPlantToBed.js';
-import type { PlantInstance } from '../../../../../../src/Contexts/Agro/Beds/domain/entities/PlantInstance.js';
+import type { PlantInstance } from '../../../../../../src/Contexts/Agro/PlantInstances/domain/entities/PlantInstance.js';
 import type { Plant } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/Plant.js';
 import { PlantRepositoryMock } from '../../../Plants/__mocks__/PlantRepositoryMock.js';
 import { PlantFactory } from '../../../Plants/domain/mothers/PlantFactory.js';

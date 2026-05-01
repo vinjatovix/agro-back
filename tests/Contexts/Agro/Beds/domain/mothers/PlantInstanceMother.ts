@@ -1,7 +1,7 @@
-import { CropGrowthStatus } from '../../../../../../src/Contexts/Agro/Beds/domain/entities/types/CropGrowthStatus.js';
-import type { PlantInstanceProps } from '../../../../../../src/Contexts/Agro/Beds/domain/entities/types/PlantInstanceProps.js';
-import { PlantInstanceLifecycleStatus } from '../../../../../../src/Contexts/Agro/Beds/domain/entities/types/PlantLifeCicleStatus.js';
-import { PlantInstance } from '../../../../../../src/Contexts/Agro/Beds/domain/entities/PlantInstance.js';
+import { CropGrowthStatus } from '../../../../../../src/Contexts/Agro/PlantInstances/domain/entities/types/CropGrowthStatus.js';
+import type { PlantInstanceProps } from '../../../../../../src/Contexts/Agro/PlantInstances/domain/entities/types/PlantInstanceProps.js';
+import { PlantInstanceLifecycleStatus } from '../../../../../../src/Contexts/Agro/PlantInstances/domain/entities/types/PlantLifeCicleStatus.js';
+import { PlantInstance } from '../../../../../../src/Contexts/Agro/PlantInstances/domain/entities/PlantInstance.js';
 import type { Plant } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/Plant.js';
 import { Coordinates } from '../../../../../../src/shared/domain/value-objects/Coordinates.js';
 import { UuidMother } from '../../../../shared/fixtures/index.js';

@@ -1,6 +1,6 @@
 import type { PlantRepository } from '../../../Plants/domain/repositories/interfaces/PlantRepository.js';
 import type { Bed } from '../../domain/entities/Bed.js';
-import type { PlantInstance } from '../../domain/entities/PlantInstance.js';
+import type { PlantInstance } from '../../../PlantInstances/domain/entities/PlantInstance.js';
 import type { SpatialPlantModel } from '../../domain/services/spatial/interfaces/SpatialPlantModel.js';
 
 export async function addPlantToBed(

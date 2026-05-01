@@ -1,4 +1,4 @@
-import type { PlantInstance } from '../PlantInstance.js';
+import type { PlantInstance } from '../../../../PlantInstances/domain/entities/PlantInstance.js';
 
 export type BedProps = {
   width: number;

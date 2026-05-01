@@ -1,4 +1,4 @@
-import type { PlantInstancePrimitives } from './PlantInstancePrimitives.js';
+import type { PlantInstancePrimitives } from '../../../../PlantInstances/domain/entities/types/PlantInstancePrimitives.js';
 
 export type BedPrimitives = {
   id: string;

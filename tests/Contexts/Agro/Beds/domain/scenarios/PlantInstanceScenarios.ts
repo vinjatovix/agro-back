@@ -1,4 +1,4 @@
-import { CropGrowthStatus } from '../../../../../../src/Contexts/Agro/Beds/domain/entities/types/CropGrowthStatus.js';
+import { CropGrowthStatus } from '../../../../../../src/Contexts/Agro/PlantInstances/domain/entities/types/CropGrowthStatus.js';
 import { PlantInstanceMother } from '../mothers/PlantInstanceMother.js';
 
 export const PlantInstanceScenarios = {

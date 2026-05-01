@@ -1,5 +1,5 @@
 import type { Bed } from '../../../../../src/Contexts/Agro/Beds/domain/entities/Bed.js';
-import type { PlantInstance } from '../../../../../src/Contexts/Agro/Beds/domain/entities/PlantInstance.js';
+import type { PlantInstance } from '../../../../../src/Contexts/Agro/PlantInstances/domain/entities/PlantInstance.js';
 import type { SpatialPlantModel } from '../../../../../src/Contexts/Agro/Beds/domain/services/spatial/interfaces/SpatialPlantModel.js';
 
 type AddPlantCall = [PlantInstance, SpatialPlantModel, SpatialPlantModel[]];
