@@ -21,6 +21,7 @@ export abstract class MongoRepository {
   constructor(private readonly DBClient: Promise<MongoClient>) {}
 
   protected abstract collectionName(): string;
+  protected abstract entityName(): string;
 
   protected client(): Promise<MongoClient> {
     return this.DBClient;
@@ -127,5 +128,30 @@ export abstract class MongoRepository {
       ...baseOptions,
       filter
     };
+  }
+
+  protected normalizePatch(diff: UnknownRecord): {
+    set: UnknownRecord;
+    unset: Record<string, ''>;
+  } {
+    const set: UnknownRecord = {};
+    const unset: Record<string, ''> = {};
+
+    for (const [key, value] of Object.entries(diff.set ?? {})) {
+      if (value === undefined) continue;
+
+      if (value === null) {
+        unset[key] = '';
+        continue;
+      }
+
+      set[key] = value;
+    }
+
+    for (const key of Object.keys(diff.unset ?? {})) {
+      unset[key] = '';
+    }
+
+    return { set, unset };
   }
 }

@@ -54,6 +54,17 @@ import {
   UpdatePlantController
 } from './controllers/Plants/index.js';
 import { DeletePlant } from '../../Contexts/Agro/Plants/application/useCases/DeletePlant.js';
+import { MongoBedRepository } from '../../Contexts/Agro/Beds/infrastructure/persistence/MongoBedRepository.js';
+import { CreateBedController } from './controllers/Beds/CreateBedController.js';
+import { CreateBed } from '../../Contexts/Agro/Beds/application/useCases/CreateBed.js';
+import { GetUserBedsController } from './controllers/Beds/GetUserBedsController.js';
+import { GetBedByIdController } from './controllers/Beds/GetBedByIdController.js';
+import { UpdateBedController } from './controllers/Beds/UpdateBedController.js';
+import { ListUserBeds } from '../../Contexts/Agro/Beds/application/useCases/ListUserBeds.js';
+import { UpdateBed } from '../../Contexts/Agro/Beds/application/useCases/UpdateBed.js';
+import { DeleteBedController } from './controllers/Beds/DeleteBedController.js';
+import { DeleteBed } from '../../Contexts/Agro/Beds/application/useCases/DeleteBed.js';
+import { GetBedById } from '../../Contexts/Agro/Beds/application/useCases/GetBedById.js';
 
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 
@@ -82,7 +93,8 @@ const registerInfrastructureDependencies = (container: AppContainer): void => {
     encrypter: asClass(CryptAdapter).singleton(),
     googleIdTokenVerifier: asClass(GoogleIdTokenVerifierAdapter).singleton(),
     authRepository: asClass(MongoAuthRepository).singleton(),
-    plantRepository: asClass(MongoPlantRepository).singleton()
+    plantRepository: asClass(MongoPlantRepository).singleton(),
+    bedRepository: asClass(MongoBedRepository).singleton()
   });
 };
 const registerAuthControllers = (container: AppContainer): void => {
@@ -131,11 +143,21 @@ const registerAuthUseCases = (container: AppContainer): void => {
 
 const registerPlantControllers = (container: AppContainer): void => {
   container.register({
-    createPlantController: asClass(CreatePlantController).scoped(),
-    getAllPlantsController: asClass(GetAllPlantsController).scoped(),
-    getPlantController: asClass(GetPlantByIdController).scoped(),
-    updatePlantController: asClass(UpdatePlantController).scoped(),
-    deletePlantController: asClass(DeletePlantController).scoped()
+    createPlantController: asFunction(
+      (createPlant) => new CreatePlantController(createPlant)
+    ).scoped(),
+    getAllPlantsController: asFunction(
+      (listPlants) => new GetAllPlantsController(listPlants)
+    ).scoped(),
+    getPlantController: asFunction(
+      (getPlant) => new GetPlantByIdController(getPlant)
+    ).scoped(),
+    updatePlantController: asFunction(
+      (updatePlant) => new UpdatePlantController(updatePlant)
+    ).scoped(),
+    deletePlantController: asFunction(
+      (deletePlant) => new DeletePlantController(deletePlant)
+    ).scoped()
   });
 };
 
@@ -159,6 +181,46 @@ const registerPlantUseCases = (container: AppContainer): void => {
   });
 };
 
+const registerBedControllers = (container: AppContainer): void => {
+  container.register({
+    createBedController: asFunction(
+      (createBed) => new CreateBedController(createBed)
+    ).scoped(),
+    getUserBedsController: asFunction(
+      (listUserBeds) => new GetUserBedsController(listUserBeds)
+    ).scoped(),
+    getBedController: asFunction(
+      (getBed) => new GetBedByIdController(getBed)
+    ).scoped(),
+    updateBedController: asFunction(
+      (updateBed) => new UpdateBedController(updateBed)
+    ).scoped(),
+    deleteBedController: asFunction(
+      (deleteBed) => new DeleteBedController(deleteBed)
+    ).scoped()
+  });
+};
+
+const registerBedUseCases = (container: AppContainer): void => {
+  container.register({
+    createBed: asFunction(
+      (bedRepository) => new CreateBed(bedRepository)
+    ).scoped(),
+    listUserBeds: asFunction(
+      (bedRepository) => new ListUserBeds(bedRepository)
+    ).scoped(),
+    getBed: asFunction(
+      (bedRepository) => new GetBedById(bedRepository)
+    ).scoped(),
+    updateBed: asFunction(
+      (bedRepository) => new UpdateBed(bedRepository)
+    ).scoped(),
+    deleteBed: asFunction(
+      (bedRepository) => new DeleteBed(bedRepository)
+    ).scoped()
+  });
+};
+
 export const createAppContainer = (): AppContainer => {
   const container = createContainer({
     injectionMode: InjectionMode.CLASSIC
@@ -170,6 +232,8 @@ export const createAppContainer = (): AppContainer => {
   registerAuthUseCases(container);
   registerPlantControllers(container);
   registerPlantUseCases(container);
+  registerBedControllers(container);
+  registerBedUseCases(container);
 
   return container;
 };

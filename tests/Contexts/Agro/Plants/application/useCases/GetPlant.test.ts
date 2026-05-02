@@ -1,46 +1,63 @@
-import { CreatePlant } from '../../../../../../src/Contexts/Agro/Plants/application/useCases/CreatePlant.js';
 import { GetPlant } from '../../../../../../src/Contexts/Agro/Plants/application/useCases/GetPlant.js';
+import type { UserSessionInfo } from '../../../../../../src/Contexts/Auth/application/index.js';
+import { random } from '../../../../shared/fixtures/random.js';
 import { PlantRepositoryMock } from '../../__mocks__/PlantRepositoryMock.js';
-import { CreatePlantDtoMother } from './mothers/CreatePlantDtoMother.js';
+import { PlantFactory } from '../../domain/mothers/PlantFactory.js';
 
 describe('GetPlant', () => {
   let repository: PlantRepositoryMock;
-  let createPlant: CreatePlant;
   let getPlant: GetPlant;
+  const USER = {
+    roles: ['user']
+  } as UserSessionInfo;
+  const ADMIN = {
+    roles: ['admin']
+  } as UserSessionInfo;
 
   beforeEach(() => {
     repository = new PlantRepositoryMock();
-    createPlant = new CreatePlant(repository);
     getPlant = new GetPlant(repository);
   });
 
-  it('should return a plant when it exists', async () => {
-    const dto = CreatePlantDtoMother.tomato();
+  it('should search plant in repository using the provided id', async () => {
+    const plant = PlantFactory.tomato();
+    repository.addToStorage(plant);
 
-    await createPlant.execute(dto);
+    await getPlant.execute(plant.id.value, USER);
 
-    const result = await getPlant.execute(dto.id);
-
-    expect(result.id).toBe(dto.id);
-    expect(result.identity.name.primary).toBe(dto.identity.name.primary);
-    repository.assertFindByIdHasBeenCalledWith(dto.id);
+    repository.assertFindByIdHasBeenCalledWith(plant.id.value);
   });
 
   it('should throw error when plant does not exist', async () => {
-    await expect(getPlant.execute('non-existent')).rejects.toThrow(
-      'Plant not found: non-existent'
+    const id = random.uuid();
+    await expect(getPlant.execute(id, USER)).rejects.toThrow(
+      `Plant not found: ${id}`
     );
 
-    repository.assertFindByIdHasBeenCalledWith('non-existent');
+    repository.assertFindByIdHasBeenCalledWith(id);
   });
 
-  it('should call repository with correct id', async () => {
-    const dto = CreatePlantDtoMother.lettuce();
+  it('should throw error if plant is deleted and user tries to access it', async () => {
+    const plant = PlantFactory.tomato();
+    plant.markAsDeleted();
+    repository.addToStorage(plant);
 
-    await createPlant.execute(dto);
+    await expect(getPlant.execute(plant.id.value, USER)).rejects.toThrow(
+      `Plant not found: ${plant.id.value}`
+    );
 
-    await getPlant.execute(dto.id);
+    repository.assertFindByIdHasBeenCalledWith(plant.id.value);
+  });
 
-    repository.assertFindByIdHasBeenCalledWith(dto.id);
+  it('should return plant if it is deleted but user has admin role', async () => {
+    const plant = PlantFactory.tomato();
+    plant.markAsDeleted();
+    repository.addToStorage(plant);
+
+    await expect(getPlant.execute(plant.id.value, ADMIN)).resolves.toEqual(
+      plant
+    );
+
+    repository.assertFindByIdHasBeenCalledWith(plant.id.value);
   });
 });

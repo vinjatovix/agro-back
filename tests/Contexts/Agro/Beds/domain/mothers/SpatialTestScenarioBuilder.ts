@@ -1,5 +1,6 @@
 import type { PlantInstance } from '../../../../../../src/Contexts/Agro/PlantInstances/domain/entities/PlantInstance.js';
 import type { Plant } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/Plant.js';
+import type { PositiveNumber } from '../../../../../../src/Contexts/shared/domain/valueObject/PositiveNumber.js';
 
 type PlantFactory = {
   fromPlantAtPosition: (plant: Plant, x: number, y: number) => PlantInstance;
@@ -17,10 +18,16 @@ const spacingToStep = (spacing: number) => ({
 });
 
 export const SpatialTestScenarioBuilder = {
-  safePlacement(context: { width: number; height: number }, spacing: number) {
+  safePlacement(
+    context: { width: PositiveNumber; height: PositiveNumber },
+    spacing: number
+  ) {
     const { center, safeDistance } = spacingToStep(spacing);
 
-    const clampX = Math.min(center + safeDistance, context.width - center);
+    const clampX = Math.min(
+      center + safeDistance,
+      context.width.value - center
+    );
 
     const origin: Position = { x: center, y: center };
     const target: Position = { x: clampX, y: center };
@@ -57,14 +64,17 @@ export const SpatialTestScenarioBuilder = {
       factory.fromPlantAtPosition(plant, -1, -1);
   },
 
-  outOfBoundsMax(context: { width: number; height: number }, spacing: number) {
+  outOfBoundsMax(
+    context: { width: PositiveNumber; height: PositiveNumber },
+    spacing: number
+  ) {
     const { center } = spacingToStep(spacing);
 
     return (factory: PlantFactory, plant: Plant) =>
       factory.fromPlantAtPosition(
         plant,
-        context.width - center + 1,
-        context.height - center + 1
+        context.width.value - center + 1,
+        context.height.value - center + 1
       );
   },
 

@@ -24,8 +24,10 @@ It MUST NOT contain business logic.
 
 This module includes:
 
-- MongoRepository base abstraction
+- MongoCrudRepository base abstraction (shared CRUD layer for aggregates)
+- MongoRepository specialized base abstraction
 - PlantRepository implementation
+- BedRepository implementation
 - Patch/diff system
 - DeepPartial update model
 - DTO mapping layer
@@ -64,12 +66,6 @@ Used for partial updates.
 
 ---
 
-Sí, ahora mismo está confuso porque mezcla pasos duplicados y da a entender dos pipelines distintos.
-
-Te lo dejo corregido **mínimo y coherente con tu código real**:
-
----
-
 # 4.2 Diff / Patch Pipeline
 
 ## Update flow
@@ -100,19 +96,44 @@ Persistence MUST ONLY receive a **validated final state transition**.
 
 # 5. REPOSITORY CONTRACT
 
-## 5.1 MongoRepository
+## 5.1 MongoCrudRepository (NEW)
+
+Shared abstraction for CRUD repositories across aggregates.
+
+Used by:
+
+- PlantRepository
+- BedRepository
+
+### Responsibilities
+
+- generic CRUD operations
+- query normalization
+- common Mongo access patterns
+- eliminating duplicated repository logic between aggregates
+
+### Rules
+
+- MUST NOT contain domain logic
+- MUST remain aggregate-agnostic
+- MUST operate only on primitives or DTOs
+- MUST be extended, not bypassed, by concrete repositories
+
+---
+
+## 5.2 MongoRepository
 
 Base abstraction for Mongo persistence.
 
 Responsibilities:
 
-- CRUD operations
 - serialization/deserialization
 - ensuring domain <-> persistence mapping integrity
+- shared persistence utilities not covered by Crud layer
 
 ---
 
-## 5.2 PlantRepository
+## 5.3 PlantRepository
 
 Specialized repository for Plant aggregate.
 
@@ -121,6 +142,20 @@ Responsibilities:
 - persistence of PlantPrimitives
 - enforcing updateWithDiff contract
 - ensuring id consistency
+- uses MongoCrudRepository as base abstraction
+
+---
+
+## 5.4 BedRepository
+
+Specialized repository for Bed aggregate.
+
+Responsibilities:
+
+- persistence of BedPrimitives
+- CRUD operations via MongoCrudRepository
+- ensuring spatial + identity consistency
+- uses shared diff/patch pipeline
 
 ---
 
@@ -170,7 +205,7 @@ Plant domain conversion is handled via:
 
 ## 6.4 Event Mapping
 
-Persistence layer now includes **EventDocument ↔ DomainEvent mapping**.
+Persistence layer includes **EventDocument ↔ DomainEvent mapping**.
 
 ### Rules
 
@@ -229,8 +264,10 @@ Persistence MUST:
 
 ## Implemented
 
+- MongoCrudRepository abstraction (shared across Plants and Beds)
 - MongoRepository abstraction
 - PlantRepository implementation
+- BedRepository implementation
 - diffObjects + applyPatch system
 - updateWithDiff pipeline
 - PlantDtoMapper

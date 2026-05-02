@@ -5,7 +5,7 @@ import type { UpdatePlant } from '../../../../Contexts/Agro/Plants/application/u
 import type { UpdatePlantDto } from '../../../../Contexts/Agro/Plants/application/useCases/interfaces/UpdatePlantDto.js';
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
 import { createError } from '../../../../shared/errors/index.js';
-import httpStatus from 'http-status';
+import { plantMapper } from '../../../../Contexts/Agro/Plants/mappers/plantMapper.js';
 
 export class UpdatePlantController extends HttpController {
   constructor(private readonly updatePlant: UpdatePlant) {
@@ -23,8 +23,9 @@ export class UpdatePlantController extends HttpController {
       const user = res.locals.user as UserSessionInfo;
 
       const result = await this.updatePlant.execute(dto, user.username);
+      const mappedResult = plantMapper.toPrimitives(result);
 
-      res.status(httpStatus.OK).json(result);
+      res.status(this.status()).json(mappedResult);
     } catch (error) {
       next(error);
     }

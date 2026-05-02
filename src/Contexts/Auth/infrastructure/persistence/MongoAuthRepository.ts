@@ -30,8 +30,11 @@ export class MongoAuthRepository
   extends MongoRepository
   implements UserRepository
 {
+  protected entityName(): string {
+    return 'User';
+  }
   protected collectionName(): string {
-    return 'users';
+    return `${this.entityName().toLowerCase()}s`;
   }
 
   async save(user: User): Promise<void> {

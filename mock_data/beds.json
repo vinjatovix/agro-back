@@ -1,9 +1,11 @@
 [
   {
     "id": "bed_1",
+    "userId": "user_1",
 
     "width": 300,
     "height": 120,
+    "depth": 30,
 
     "plantInstances": [
       {
@@ -45,6 +47,13 @@
         "variety": null,
         "notes": null
       }
-    ]
+    ],
+    "metadata": {
+      "createdAt": "2026-05-02T17:04:22.172Z",
+      "createdBy": "register1",
+      "updatedAt": "2026-05-02T17:04:22.172Z",
+      "updatedBy": "register1"
+    },
+    "deleted": false
   }
 ]

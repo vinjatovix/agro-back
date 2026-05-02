@@ -4,12 +4,14 @@ import type { Plant } from '../../../../../../src/Contexts/Agro/Plants/domain/en
 import { PlantRepositoryMock } from '../../../Plants/__mocks__/PlantRepositoryMock.js';
 import { PlantFactory } from '../../../Plants/domain/mothers/PlantFactory.js';
 import { BedMock } from '../../__mocks__/BedMock.js';
-import { PlantInstanceMother } from '../../domain/mothers/PlantInstanceMother.js';
+import { PlantInstanceMother } from '../../../PlantInstances/domain/mothers/PlantInstanceMother.js';
+import { BedRepositoryMock } from '../../__mocks__/BedRepositoryMock.js';
 
 const DEFAULT_PLANT_SPACING = 50;
 
 describe('addPlantToBed', () => {
   let plantRepository: PlantRepositoryMock;
+  let bedRepository: BedRepositoryMock;
   let plant: Plant;
   let bedMock: BedMock;
 
@@ -18,17 +20,25 @@ describe('addPlantToBed', () => {
     plant = PlantFactory.tomato();
     plantRepository.addToStorage(plant);
     bedMock = new BedMock();
+    bedRepository = new BedRepositoryMock();
   });
 
   it('builds spatial model and calls bed.addPlant with correct arguments', async () => {
     const bed = bedMock.toBed();
+    bedRepository.addToStorage(bed);
     const plantInstance = PlantInstanceMother.fromPlantAtPosition(
       plant,
       10,
       20
     );
 
-    await addPlantToBed(bed, plantInstance, plantRepository);
+    await addPlantToBed({
+      bed,
+      plantInstance,
+      plantRepository,
+      bedRepository,
+      user: 'test-user'
+    });
 
     bedMock.assertAddPlantCalledTimes(1);
     bedMock.assertAddPlantCalledWith(
@@ -49,10 +59,17 @@ describe('addPlantToBed', () => {
   it('maps existing bed plants into spatial models', async () => {
     const bed = bedMock.toBed();
     const existing = PlantInstanceMother.fromPlantAtPosition(plant, 30, 40);
-    (bed.plants as PlantInstance[]) = [existing];
+    (bed.plantInstances as PlantInstance[]) = [existing];
+    bedRepository.addToStorage(bed);
     const newPlant = PlantInstanceMother.fromPlantAtPosition(plant, 10, 20);
 
-    await addPlantToBed(bed, newPlant, plantRepository);
+    await addPlantToBed({
+      bed,
+      plantInstance: newPlant,
+      plantRepository,
+      bedRepository,
+      user: 'test-user'
+    });
 
     const existingSpatial = bedMock.getLastExistingSpatialPlant();
     expect(existingSpatial).toHaveLength(1);
@@ -66,13 +83,20 @@ describe('addPlantToBed', () => {
 
   it('uses spacingCm from plant repository', async () => {
     const bed = bedMock.toBed();
+    bedRepository.addToStorage(bed);
     const plantInstance = PlantInstanceMother.fromPlantAtPosition(
       plant,
       10,
       20
     );
 
-    await addPlantToBed(bed, plantInstance, plantRepository);
+    await addPlantToBed({
+      bed,
+      plantInstance,
+      plantRepository,
+      bedRepository,
+      user: 'test-user'
+    });
 
     const newSpatial = bedMock.getLastNewSpatialPlant();
     expect(newSpatial.spacingCm).toBe(DEFAULT_PLANT_SPACING);
@@ -82,10 +106,17 @@ describe('addPlantToBed', () => {
     const bed = bedMock.toBed();
     const p1 = PlantInstanceMother.fromPlantAtPosition(plant, 0, 0);
     const p2 = PlantInstanceMother.fromPlantAtPosition(plant, 10, 10);
-    (bed.plants as PlantInstance[]) = [p1, p2];
-    const newPlant = PlantInstanceMother.fromPlantAtPosition(plant, 20, 20);
+    (bed.plantInstances as PlantInstance[]) = [p1, p2];
+    bedRepository.addToStorage(bed);
 
-    await addPlantToBed(bed, newPlant, plantRepository);
+    const newPlant = PlantInstanceMother.fromPlantAtPosition(plant, 20, 20);
+    await addPlantToBed({
+      bed,
+      plantInstance: newPlant,
+      plantRepository,
+      bedRepository,
+      user: 'test-user'
+    });
 
     const existingSpatial = bedMock.getLastExistingSpatialPlant();
     expect(existingSpatial).toHaveLength(2);

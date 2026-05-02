@@ -122,6 +122,8 @@ pending implementation
 * Plant = definition (species template)
 * PlantInstance = physical/virtual occurrence in space
 
+Note: PlantInstance schema is reused in Bed-related OpenAPI responses as a read-model embedding. This does not imply ownership coupling.
+
 ---
 
 ## 4.3 Beds
@@ -291,3 +293,48 @@ Validation errors:
 This document defines the external contract of the system.
 
 Any change affecting this module is a breaking change and MUST be versioned.
+
+---
+
+# 10. DEPENDENCY INJECTION STRATEGY (FUTURE EVOLUTION)
+
+The system currently uses Awilix in CLASSIC mode.
+
+## Current state
+
+* Controllers are manually bound using `bindRun`
+* Container resolution is explicit via invoker functions
+* Controller methods are accessed through runtime binding
+
+## Known limitation
+
+* Classic mode causes inconsistencies between:
+  * test execution context
+  * production build resolution
+* manual binding introduces fragility (`this` context issues)
+* scalability issues in large controller graphs
+
+## Target evolution
+
+Migration to Awilix PROXY MODE:
+
+* automatic dependency resolution via property access
+* removal of manual binding (`bindRun`)
+* controllers resolved lazily through proxy container
+* reduced boilerplate in API wiring layer
+
+## Risks
+
+* existing `makeInvoker` patterns will break
+* `bindRun` pattern becomes obsolete
+* controller interface assumptions must change
+* significant refactor required in API composition layer
+
+## Migration constraint
+
+This change MUST be performed as a controlled refactor phase:
+
+1. introduce proxy container in parallel
+2. keep classic mode for legacy routes
+3. migrate controllers incrementally
+4. remove manual binding layer once stable

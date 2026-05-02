@@ -55,6 +55,7 @@ Scope:
 
 * API endpoints
 * full request → domain → persistence → response cycle
+* Beds module flows
 
 Rules:
 
@@ -74,6 +75,7 @@ Rules:
 * response MUST match OpenAPI schema
 * no drift between implementation and spec
 * failures block deployment
+* includes Beds endpoints validation
 
 ---
 
@@ -90,6 +92,11 @@ Features:
 * Given/When/Then DSL
 * stateful execution via World
 * reusable fixtures (seeders)
+
+Added coverage:
+
+* Beds feature scenarios (CRUD flows)
+* cross-entity ownership rules (user/bed isolation)
 
 ---
 
@@ -129,6 +136,12 @@ Test utilities MAY include:
 * API-driven seeders (HTTP-based setup)
 * domain factories (pure object creation)
 
+Added seeders:
+
+* BedSeeder for Beds module setup
+* PlantSeeder for Plants module setup
+* cross-user seeders for ownership validation scenarios
+
 Seeders are allowed to:
 
 * interact with real HTTP server in E2E tests
@@ -157,6 +170,11 @@ Rules:
 * state is isolated per scenario
 * no cross-scenario leakage
 
+Extended state usage:
+
+* bedId used in Beds scenarios
+* plantId used in Plants scenarios
+
 ---
 
 # 8. FUTURE EVOLUTION
@@ -164,6 +182,11 @@ Rules:
 * mutation testing
 * contract-driven test generation
 * scenario-based DSL expansion
+* BDD step definition modularization (Cucumber scalability layer)
+  * current step file structure is becoming too large
+  * steps MUST be split by bounded context (Plant, Bed, Auth, etc.)
+  * shared steps MUST be extracted into reusable step utilities
+  * step definition organization MUST follow domain-aligned structure rather than feature dump files
 
 ---
 

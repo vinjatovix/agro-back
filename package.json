@@ -8,7 +8,7 @@
     "docker:mongo": "docker-compose -f ./docker/docker-compose.yml up --build -d",
     "restoreDB": "./docker/mongo/scripts/restoreDB.sh",
     "restoreDump": "./docker/mongo/scripts/restoreDump.sh",
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch --clear-screen=false src/index.ts",
     "check-circular": "skott --displayMode=raw --showCircularDependencies --tsconfig ./tsconfig.json",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix --fix-type problem,layout,suggestion",

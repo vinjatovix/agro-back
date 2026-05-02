@@ -1,9 +1,10 @@
 import { BasicSpatialService } from '../../../../../../../src/Contexts/Agro/Beds/domain/services/spatial/BasicSpatialService.js';
 import type { SpatialPlantModel } from '../../../../../../../src/Contexts/Agro/Beds/domain/services/spatial/interfaces/SpatialPlantModel.js';
 import { createPlantCatalog } from '../../../helpers/InMemoryPlantRepository.js';
-import { PlantInstanceMother } from '../../mothers/PlantInstanceMother.js';
+import { PlantInstanceMother } from '../../../../PlantInstances/domain/mothers/PlantInstanceMother.js';
 import { SpatialTestScenarioBuilder } from '../../mothers/SpatialTestScenarioBuilder.js';
 import { convertToSpatialPlant } from '../../../helpers/convertToSpatialPlant.js';
+import { PositiveNumber } from '../../../../../../../src/Contexts/shared/domain/valueObject/PositiveNumber.js';
 
 const { fixtures } = createPlantCatalog();
 
@@ -11,8 +12,8 @@ describe('BasicSpatialService', () => {
   const service = new BasicSpatialService();
 
   const bed = {
-    width: 200,
-    height: 200,
+    width: PositiveNumber.create(200),
+    height: PositiveNumber.create(200),
     plants: [] as SpatialPlantModel[]
   };
 
@@ -50,8 +51,8 @@ describe('BasicSpatialService', () => {
     it('rejects out of bounds (max limit)', () => {
       const plant = PlantInstanceMother.fromPlantAtPosition(
         CROP,
-        bed.width + 1,
-        bed.height + 1
+        bed.width.value + 1,
+        bed.height.value + 1
       );
 
       const spatial = convertToSpatialPlant(plant, SPACING_CM);

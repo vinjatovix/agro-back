@@ -95,7 +95,18 @@ Validation layer MUST:
 
 ---
 
-# 9. FUTURE EVOLUTION
+# 9. CURRENT IMPACT AREAS
+
+Validation system currently includes rules affecting:
+
+* Plants endpoints
+* Beds endpoints (new full CRUD coverage)
+
+All MUST maintain consistent error structure and PATCH behavior semantics.
+
+---
+
+# 10. FUTURE EVOLUTION
 
 * schema generation from OpenAPI
 * optional Zod migration layer

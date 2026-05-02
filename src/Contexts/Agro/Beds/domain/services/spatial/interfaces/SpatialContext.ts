@@ -1,7 +1,8 @@
+import type { PositiveNumber } from '../../../../../../shared/domain/valueObject/PositiveNumber.js';
 import type { SpatialPlantModel } from './SpatialPlantModel.js';
 
 export interface SpatialContext {
-  width: number;
-  height: number;
+  width: PositiveNumber;
+  height: PositiveNumber;
   plants: SpatialPlantModel[];
 }

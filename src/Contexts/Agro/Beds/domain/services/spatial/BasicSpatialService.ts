@@ -22,7 +22,7 @@ export class BasicSpatialService implements SpatialService {
       throw createError.badRequest('Plant out of bounds (min limit)');
     }
 
-    if (x > context.width || y > context.height) {
+    if (x > context.width.value || y > context.height.value) {
       throw createError.badRequest('Plant out of bounds (max limit)');
     }
   }

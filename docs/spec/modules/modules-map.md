@@ -136,6 +136,7 @@ Rules:
 * routing
 * middleware
 * request/response shaping
+* dependency injection strategy (Awilix classic/proxy composition)
 
 Rules:
 
@@ -181,7 +182,6 @@ Rules:
 * contract drift is critical failure
 * used by tests as validation source (pending full enforcement)
 
-
 ---
 
 ## 3.9 Testing System
@@ -212,7 +212,7 @@ Rules:
 
 * runtime plant placement
 * spatial linkage
-* lifecycle tracking inside beds
+* lifecycle tracking in relation to Beds
 
 Rules:
 

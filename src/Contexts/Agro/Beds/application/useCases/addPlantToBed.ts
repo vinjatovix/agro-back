@@ -2,28 +2,40 @@ import type { PlantRepository } from '../../../Plants/domain/repositories/interf
 import type { Bed } from '../../domain/entities/Bed.js';
 import type { PlantInstance } from '../../../PlantInstances/domain/entities/PlantInstance.js';
 import type { SpatialPlantModel } from '../../domain/services/spatial/interfaces/SpatialPlantModel.js';
+import type { BedRepository } from '../../domain/repositories/interfaces/BedRepository.js';
+import { bedMapper } from '../../mappers/bedMapper.js';
 
-export async function addPlantToBed(
-  bed: Bed,
-  plant: PlantInstance,
-  plantRepository: PlantRepository
-): Promise<void> {
-  const plantData = await plantRepository.findById(plant.plantId.value);
+export type AddPlantToBedParams = {
+  bed: Bed;
+  plantInstance: PlantInstance;
+  plantRepository: PlantRepository;
+  bedRepository: BedRepository;
+  user: string;
+};
+
+export async function addPlantToBed({
+  bed,
+  plantInstance,
+  plantRepository,
+  bedRepository,
+  user
+}: AddPlantToBedParams): Promise<void> {
+  const plantData = await plantRepository.findById(plantInstance.plantId.value);
 
   const spacingCm = plantData.traits.spacingCm.max;
 
   const newPlantSpatial: SpatialPlantModel = {
-    id: plant.id.value,
-    plantId: plant.plantId.value,
+    id: plantInstance.id.value,
+    plantId: plantInstance.plantId.value,
     position: {
-      x: plant.position.x,
-      y: plant.position.y
+      x: plantInstance.position.x,
+      y: plantInstance.position.y
     },
     spacingCm
   };
 
   const existingSpatialPlants: SpatialPlantModel[] = await Promise.all(
-    bed.plants.map(async (p) => {
+    bed.plantInstances.map(async (p) => {
       const data = await plantRepository.findById(p.plantId.value);
 
       return {
@@ -38,5 +50,10 @@ export async function addPlantToBed(
     })
   );
 
-  bed.addPlant(plant, newPlantSpatial, existingSpatialPlants);
+  const current = bedMapper.toPrimitives(bed);
+
+  bed.addPlant(plantInstance, newPlantSpatial, existingSpatialPlants);
+  const updated = bedMapper.toPrimitives(bed);
+
+  await bedRepository.updateWithDiff(current, updated, user);
 }

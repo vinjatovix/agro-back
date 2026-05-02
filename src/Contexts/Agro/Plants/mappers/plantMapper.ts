@@ -19,6 +19,15 @@ import {
 } from '../domain/value-objects/index.js';
 import { plantKnowledgeMapper } from './plantKnowledgeMapper.js';
 
+export interface PlantMapper {
+  toPrimitives(plant: Plant): PlantPrimitives;
+  fromPrimitives(primitives: PlantPrimitives): Plant;
+  fromCreateDtoToDomain(dto: CreatePlantDto, user: string): Plant;
+  fromUpdateDtoToPrimitivesPatch(
+    dto: UpdatePlantDto
+  ): DeepPartial<PlantPrimitives>;
+}
+
 export const plantMapper = {
   toPrimitives(plant: Plant): PlantPrimitives {
     const phenology: PlantPrimitives['phenology'] = {

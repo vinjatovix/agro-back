@@ -1,6 +1,10 @@
 import type { Bed } from '../../../../../src/Contexts/Agro/Beds/domain/entities/Bed.js';
 import type { PlantInstance } from '../../../../../src/Contexts/Agro/PlantInstances/domain/entities/PlantInstance.js';
 import type { SpatialPlantModel } from '../../../../../src/Contexts/Agro/Beds/domain/services/spatial/interfaces/SpatialPlantModel.js';
+import { UuidMother } from '../../../shared/fixtures/UuidMother.js';
+import { Metadata } from '../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
+import { PositiveNumber } from '../../../../../src/Contexts/shared/domain/valueObject/PositiveNumber.js';
+import { StringValueObject } from '../../../../../src/Contexts/shared/domain/valueObject/StringValueObject.js';
 
 type AddPlantCall = [PlantInstance, SpatialPlantModel, SpatialPlantModel[]];
 
@@ -12,7 +16,14 @@ export class BedMock {
 
   toBed(): Bed {
     return {
-      plants: [],
+      id: UuidMother.random(),
+      userId: UuidMother.random(),
+      name: new StringValueObject('Test Bed'),
+      width: PositiveNumber.create(100),
+      height: PositiveNumber.create(100),
+      depth: PositiveNumber.create(30),
+      metadata: Metadata.create('test'),
+      plantInstances: [],
       addPlant: this.addPlantMock
     } as unknown as Bed;
   }

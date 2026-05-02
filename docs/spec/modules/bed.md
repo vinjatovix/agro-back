@@ -1,6 +1,6 @@
 # MODULE: BED
 
-version: 1.0.0
+version: 1.1.0
 source-spec: v1.0.0
 status: evolving
 
@@ -22,6 +22,7 @@ The Bed aggregate is responsible for:
 * acting as anchor for spatial computations
 * grouping PlantInstances logically
 * providing spatial context for placement validation
+* enforcing ownership boundaries for access control
 
 ---
 
@@ -32,6 +33,7 @@ Bed is:
 * a spatial aggregate root
 * a structural container
 * a boundary for spatial rules
+* an ownership-scoped resource
 
 Bed is NOT:
 
@@ -54,6 +56,12 @@ Bed is NOT:
 * Bed provides spatial context
 * Bed defines coordinate space assumptions
 * Bed is input for SpatialService validation
+
+## 4.3 Bed → User
+
+* Bed is scoped to a single User
+* Access is enforced per user ownership
+* Cross-user access is forbidden
 
 ---
 
@@ -81,6 +89,7 @@ Bed is NOT:
 * Bed MUST NOT handle events
 * Bed MUST NOT depend on persistence layer
 * Bed MUST remain independent of API layer
+* Bed MUST NOT allow ownership (userId) modification once created
 
 ---
 
@@ -91,12 +100,16 @@ Bed is NOT:
 * Bed aggregate structure
 * basic spatial anchoring concept
 * integration with SpatialService (logical)
+* full REST lifecycle coverage (create, read, update, delete)
+* ownership enforcement in API layer
+* partial validation contract enforcement (OpenAPI-driven tests)
 
 ## Partial
 
 * persistence layer (CRUD not fully defined)
 * spatial indexing not implemented
 * grid abstraction not formalized in domain
+* PATCH semantics validation rules still evolving
 
 ## Pending
 
@@ -141,6 +154,7 @@ Bed MUST remain:
 * persistence-agnostic
 * API-agnostic
 * deterministic
+* ownership-immutable after creation
 
 ---
 

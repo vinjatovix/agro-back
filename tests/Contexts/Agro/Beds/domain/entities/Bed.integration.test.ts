@@ -1,20 +1,27 @@
 import { Bed } from '../../../../../../src/Contexts/Agro/Beds/domain/entities/Bed.js';
 import { UuidMother } from '../../../../shared/fixtures/UuidMother.js';
 import { createPlantCatalog } from '../../helpers/InMemoryPlantRepository.js';
-import {
-  PlantInstanceMother,
-  SpatialTestScenarioBuilder
-} from '../mothers/index.js';
+import { SpatialTestScenarioBuilder } from '../mothers/index.js';
 import type { SpatialPlantModel } from '../../../../../../src/Contexts/Agro/Beds/domain/services/spatial/interfaces/SpatialPlantModel.js';
+import { Metadata } from '../../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
+import { PlantInstanceMother } from '../../../PlantInstances/domain/mothers/PlantInstanceMother.js';
+import { PositiveNumber } from '../../../../../../src/Contexts/shared/domain/valueObject/PositiveNumber.js';
+import { StringValueObject } from '../../../../../../src/Contexts/shared/domain/valueObject/StringValueObject.js';
 
 const { fixtures } = createPlantCatalog();
 
 describe('Bed + SpatialService (integration)', () => {
   const createBed = () =>
-    new Bed(UuidMother.random(), {
-      width: 200,
-      height: 200,
-      plantInstances: []
+    new Bed({
+      id: UuidMother.random(),
+      userId: UuidMother.random(),
+      name: new StringValueObject('Test Bed'),
+      width: PositiveNumber.create(200),
+      height: PositiveNumber.create(200),
+      depth: PositiveNumber.create(40),
+      plantInstances: [],
+      metadata: Metadata.create('system'),
+      deleted: false
     });
 
   const CROP = fixtures.tomato;
@@ -57,7 +64,7 @@ describe('Bed + SpatialService (integration)', () => {
     bed.addPlant(p1, s1, []);
     bed.addPlant(p2, s2, [s1]);
 
-    expect(bed.plants).toHaveLength(2);
+    expect(bed.plantInstances).toHaveLength(2);
   });
 
   it('prevents adding a colliding plant', () => {
@@ -68,7 +75,7 @@ describe('Bed + SpatialService (integration)', () => {
     bed.addPlant(p1, s1, []);
 
     expect(() => bed.addPlant(p2, s2, [s1])).toThrow('Collision detected');
-    expect(bed.plants).toHaveLength(1);
+    expect(bed.plantInstances).toHaveLength(1);
   });
 
   it('rejects plant positioned outside minimum bounds', () => {
@@ -85,7 +92,7 @@ describe('Bed + SpatialService (integration)', () => {
       'Plant out of bounds (min limit)'
     );
 
-    expect(bed.plants).toHaveLength(0);
+    expect(bed.plantInstances).toHaveLength(0);
   });
 
   it('allows plants exactly touching boundaries', () => {
@@ -96,7 +103,7 @@ describe('Bed + SpatialService (integration)', () => {
     bed.addPlant(p1, s1, []);
     bed.addPlant(p2, s2, [s1]);
 
-    expect(bed.plants).toHaveLength(2);
+    expect(bed.plantInstances).toHaveLength(2);
   });
 
   it('allows planting exactly at minimum boundary radius', () => {
@@ -108,7 +115,7 @@ describe('Bed + SpatialService (integration)', () => {
 
     bed.addPlant(plant, spatial, []);
 
-    expect(bed.plants).toHaveLength(1);
+    expect(bed.plantInstances).toHaveLength(1);
   });
 
   it('continues working after removing a plant', () => {
@@ -120,7 +127,7 @@ describe('Bed + SpatialService (integration)', () => {
     bed.removePlant(p1.id);
 
     expect(() => bed.addPlant(p2, s2, [])).not.toThrow();
-    expect(bed.plants).toHaveLength(1);
+    expect(bed.plantInstances).toHaveLength(1);
   });
 
   it('rejects plants at exact collision distance threshold', () => {
@@ -149,7 +156,7 @@ describe('Bed + SpatialService (integration)', () => {
 
     bed.addPlant(plant, spatial, [spatial]);
 
-    expect(bed.plants).toHaveLength(1);
+    expect(bed.plantInstances).toHaveLength(1);
   });
 
   it('validates collisions against full existing spatial context', () => {
@@ -170,6 +177,6 @@ describe('Bed + SpatialService (integration)', () => {
       'Collision detected'
     );
 
-    expect(bed.plants).toHaveLength(2);
+    expect(bed.plantInstances).toHaveLength(2);
   });
 });

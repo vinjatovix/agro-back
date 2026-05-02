@@ -49,6 +49,8 @@ function applyObjectPatch<T extends UnknownRecord>(
   return result as T;
 }
 
+export type ApplyPatch = typeof applyPatch;
+
 export function applyPatch<T>(target: T, patch: DeepPartial<T>): T {
   if (patch === null || patch === undefined) {
     return target;

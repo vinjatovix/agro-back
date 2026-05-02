@@ -1,51 +1,51 @@
-import { CreatePlant } from '../../../../../../src/Contexts/Agro/Plants/application/useCases/CreatePlant.js';
 import { ListPlants } from '../../../../../../src/Contexts/Agro/Plants/application/useCases/ListPlants.js';
+import type { UserSessionInfo } from '../../../../../../src/Contexts/Auth/application/index.js';
 import { PlantRepositoryMock } from '../../__mocks__/PlantRepositoryMock.js';
-import { CreatePlantDtoMother } from './mothers/CreatePlantDtoMother.js';
+import { PlantFactory } from '../../domain/mothers/PlantFactory.js';
 
 describe('ListPlants', () => {
   let repository: PlantRepositoryMock;
-  let createPlant: CreatePlant;
   let listPlants: ListPlants;
+  const USER = {
+    roles: ['user']
+  } as UserSessionInfo;
+  const ADMIN = {
+    roles: ['admin']
+  } as UserSessionInfo;
 
   beforeEach(() => {
     repository = new PlantRepositoryMock();
-    createPlant = new CreatePlant(repository);
     listPlants = new ListPlants(repository);
   });
 
   it('should return empty list when no plants exist', async () => {
-    const result = await listPlants.execute();
+    const result = await listPlants.execute(ADMIN);
 
     expect(result).toEqual([]);
   });
 
   it('should return all plants', async () => {
-    const tomato = CreatePlantDtoMother.tomato();
-    const lettuce = CreatePlantDtoMother.lettuce();
+    const plant1 = PlantFactory.random();
+    plant1.markAsDeleted();
+    const plant2 = PlantFactory.random();
+    repository.addToStorage(plant1);
+    repository.addToStorage(plant2);
 
-    await createPlant.execute(tomato);
-    await createPlant.execute(lettuce);
-
-    const result = await listPlants.execute();
+    const result = await listPlants.execute(ADMIN);
 
     expect(result).toHaveLength(2);
-
-    const ids = result.map((p) => p.id);
-
-    expect(ids).toContain(tomato.id);
-    expect(ids).toContain(lettuce.id);
   });
 
-  it('should return plants in primitive format', async () => {
-    const dto = CreatePlantDtoMother.tomato();
+  it('should not return deleted plants for non-admin users', async () => {
+    const plant1 = PlantFactory.random();
+    plant1.markAsDeleted();
+    const plant2 = PlantFactory.random();
+    repository.addToStorage(plant1);
+    repository.addToStorage(plant2);
 
-    await createPlant.execute(dto);
+    const result = await listPlants.execute(USER);
 
-    const result = await listPlants.execute();
-
-    expect(result[0]).toMatchObject({
-      id: dto.id
-    });
+    expect(result).toHaveLength(1);
+    expect(result[0]?.id.value).toBe(plant2.id.value);
   });
 });

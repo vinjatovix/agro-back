@@ -38,6 +38,27 @@ describe('MongoPlantRepository', () => {
       expect(found.knowledge).toEqual(plant.knowledge);
       expect(found.status).toBe('ACTIVE');
     });
+
+    it('should throw not found error if plant does not exist', async () => {
+      await expect(repository.findById('non-existing-id')).rejects.toThrow(
+        'Plant not found: non-existing-id'
+      );
+    });
+
+    it('should return the correct plant among multiple entries', async () => {
+      const plant1 = PlantFactory.random();
+
+      const plant2 = PlantFactory.random();
+
+      await repository.save(plant1);
+      await repository.save(plant2);
+
+      const found1 = await repository.findById(plant1.id.value);
+      const found2 = await repository.findById(plant2.id.value);
+
+      expect(found1.id.value).toBe(plant1.id.value);
+      expect(found2.id.value).toBe(plant2.id.value);
+    });
   });
 
   describe('updateWithDiff', () => {
@@ -147,29 +168,6 @@ describe('MongoPlantRepository', () => {
       expect(result.traits.size.spread.max).toBe(plant.traits.size.spread.max);
     });
 
-    it('should return true if plant exists', async () => {
-      const plant = PlantFactory.random();
-
-      await repository.save(plant);
-
-      const exists = await repository.exists(plant.id.value);
-
-      expect(exists).toBe(true);
-    });
-
-    it('should return all plants', async () => {
-      const plant1 = PlantFactory.random();
-
-      const plant2 = PlantFactory.random();
-
-      await repository.save(plant1);
-      await repository.save(plant2);
-
-      const all = await repository.findAll();
-
-      expect(all).toHaveLength(2);
-    });
-
     it('should update metadata on every update', async () => {
       const plant = PlantFactory.random();
       const current = plantMapper.toPrimitives(plant);
@@ -249,6 +247,38 @@ describe('MongoPlantRepository', () => {
       await expect(
         repository.updateWithDiff(current, updated, 'user-1')
       ).rejects.toThrow(`Plant not found: ${plant.id.value}`);
+    });
+  });
+  describe('exists', () => {
+    it('should return true if plant exists', async () => {
+      const plant = PlantFactory.random();
+
+      await repository.save(plant);
+
+      const exists = await repository.exists(plant.id.value);
+
+      expect(exists).toBe(true);
+    });
+
+    it("should return false if plant doesn't exist", async () => {
+      const exists = await repository.exists('non-existing-id');
+
+      expect(exists).toBe(false);
+    });
+  });
+
+  describe('findAll', () => {
+    it('should return all plants', async () => {
+      const plant1 = PlantFactory.random();
+
+      const plant2 = PlantFactory.random();
+
+      await repository.save(plant1);
+      await repository.save(plant2);
+
+      const all = await repository.findAll();
+
+      expect(all).toHaveLength(2);
     });
   });
 });

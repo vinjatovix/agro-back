@@ -38,7 +38,7 @@ export class Server {
     this.port = port;
     this.host = host;
     this.express = express();
-    this.express.set('trust proxy', true);
+    this.express.set('trust proxy', false);
     this.container = createAppContainer();
     this.logger = logger;
 

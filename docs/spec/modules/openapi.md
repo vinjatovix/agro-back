@@ -91,13 +91,43 @@ Future:
 
 ---
 
-## 5.2 Beds (pending)
+## 5.2 Beds
 
-* CRUD full set
+### Endpoints
+
+* POST /api/v1/beds
+* GET /api/v1/beds
+* GET /api/v1/beds/:id
+* PATCH /api/v1/beds/:id
+* DELETE /api/v1/beds/:id
+
+### Schemas
+
+* Bed
+* CreateBedRequest
+* UpdateBedRequest
+* BedResponse
 
 ---
 
-## 5.3 Auth / Users
+## 5.3 PlantInstances (FUTURE)
+
+### Endpoints
+
+* POST /api/v1/plant-instances
+* GET /api/v1/plant-instances/:id
+* DELETE /api/v1/plant-instances/:id
+* PATCH /api/v1/plant-instances/:id
+
+### Schemas
+
+* PlantInstance
+* CreatePlantInstanceRequest
+* PlantInstanceResponse
+
+---
+
+## 5.4 Auth / Users
 
 * POST /api/v1/Auth/register
 * POST /api/v1/Auth/login
@@ -108,14 +138,14 @@ Future:
 
 ---
 
-## 5.4 Events (pending)
+## 5.5 Events (pending)
 
 * event ingestion API
 * filtering by plantInstance / bed / type
 
 ---
 
-## 5.5 Knowledge (pending)
+## 5.6 Knowledge (pending)
 
 * pests
 * diseases

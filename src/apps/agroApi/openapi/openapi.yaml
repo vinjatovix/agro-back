@@ -16,12 +16,14 @@ servers:
   - url: http://localhost:3000
 
 tags:
+  - name: Health
+    description: Endpoint for health checks.
   - name: Auth
     description: Endpoints for user authentication and management.
   - name: Plants
     description: Endpoints for managing plant data.
-  - name: Health
-    description: Endpoint for health checks.
+  - name: Beds
+    description: Endpoints for managing garden beds.
 
 paths:
   /api/v1/health:
@@ -300,6 +302,131 @@ paths:
         '400':
           $ref: '#/components/responses/ValidationError'
 
+  /api/v1/beds:
+    get:
+      tags: [Beds]
+      summary: Get user beds
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of beds
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Bed'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    post:
+      tags: [Beds]
+      summary: Create bed
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBed'
+      responses:
+        '201':
+          description: Bed created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bed'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+  /api/v1/beds/{id}:
+    get:
+      tags: [Beds]
+      summary: Get bed by id
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Bed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bed'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    patch:
+      tags: [Beds]
+      summary: Update bed
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBed'
+      responses:
+        '200':
+          description: Updated bed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bed'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    delete:
+      tags: [Beds]
+      summary: Delete bed
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: No content
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -308,6 +435,25 @@ components:
       bearerFormat: JWT
 
   schemas:
+    Metadata:
+      type: object
+      required:
+        - createdAt
+        - createdBy
+        - updatedAt
+        - updatedBy
+      properties:
+        createdAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+        updatedBy:
+          type: string
+
     # ================= AUTH =================
 
     LoginUserRequest:
@@ -668,6 +814,124 @@ components:
           type: array
           items:
             type: string
+
+    # ================= BEDS =================
+
+    Bed:
+      type: object
+      required: [id, userId, width, height, plantInstances, metadata, deleted]
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        name:
+          type: string
+        width:
+          type: number
+        height:
+          type: number
+        depth:
+          type: number
+        plantInstances:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlantInstance'
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+        deleted:
+          type: boolean
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    CreateBed:
+      type: object
+      required: [id, width, height]
+      properties:
+        id:
+          type: string
+        width:
+          type: number
+        height:
+          type: number
+        plantInstances:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlantInstance'
+
+    UpdateBed:
+      type: object
+      properties:
+        width:
+          type: number
+        height:
+          type: number
+        plantInstances:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlantInstance'
+
+    #  ================= PLANT INSTANCES =================
+
+    PlantInstance:
+      type: object
+      required:
+        - id
+        - userId
+        - plantId
+        - position
+        - growthStatus
+        - instanceStatus
+        - plantedAt
+      properties:
+        id:
+          type: string
+          format: string
+
+        userId:
+          type: string
+          format: string
+
+        plantId:
+          type: string
+          format: string
+
+        position:
+          type: object
+          required: [x, y]
+          properties:
+            x:
+              type: number
+            y:
+              type: number
+
+        growthStatus:
+          type: string
+
+        instanceStatus:
+          type: string
+          enum:
+            - ACTIVE
+            - REMOVED
+
+        plantedAt:
+          type: string
+          format: date-time
+
+        removedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+        variety:
+          type: string
+          nullable: true
+
+        notes:
+          type: string
+          nullable: true
 
   responses:
     UnauthorizedError:

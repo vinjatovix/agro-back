@@ -52,7 +52,7 @@ Represents environment state required for spatial calculations.
 
 Includes:
 
-- bed geometry
+- bed geometry (all dimensional values use `PositiveNumber` value objects)
 - existing plant positions
 - spacing constraints
 
@@ -74,11 +74,15 @@ Responsible for:
 
 Two plants must not overlap based on spacingCm.
 
+All dimensional comparisons rely on `PositiveNumber` value objects.
+
 ---
 
 ## 5.2 Distance rule
 
 Distance between plants must respect minimum spacing constraints.
+
+All spatial measurements are handled via `PositiveNumber` value objects.
 
 ---
 

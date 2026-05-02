@@ -4,6 +4,7 @@ import type { GetPlant } from '../../../../Contexts/Agro/Plants/application/useC
 import { HttpController } from '../../shared/HttpController.js';
 import { createError } from '../../../../shared/errors/index.js';
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
+import { plantMapper } from '../../../../Contexts/Agro/Plants/mappers/plantMapper.js';
 
 export class GetPlantByIdController extends HttpController {
   constructor(private readonly getPlant: GetPlant) {
@@ -20,8 +21,9 @@ export class GetPlantByIdController extends HttpController {
       }
 
       const plant = await this.getPlant.execute(plantId, user);
+      const mappedPlant = plantMapper.toPrimitives(plant);
 
-      res.status(this.status()).json(plant);
+      res.status(this.status()).json(mappedPlant);
     } catch (error) {
       next(error);
     }

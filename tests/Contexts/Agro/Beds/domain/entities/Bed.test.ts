@@ -1,10 +1,14 @@
 import { Bed } from '../../../../../../src/Contexts/Agro/Beds/domain/entities/Bed.js';
 import { UuidMother } from '../../../../shared/fixtures/UuidMother.js';
-import { PlantInstanceMother } from '../mothers/PlantInstanceMother.js';
+import { PlantInstanceMother } from '../../../PlantInstances/domain/mothers/PlantInstanceMother.js';
 import type {
   SpatialService,
   SpatialPlantModel
 } from '../../../../../../src/Contexts/Agro/Beds/domain/services/spatial/interfaces/index.js';
+import { Metadata } from '../../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
+import { bedMapper } from '../../../../../../src/Contexts/Agro/Beds/mappers/bedMapper.js';
+import { PositiveNumber } from '../../../../../../src/Contexts/shared/domain/valueObject/PositiveNumber.js';
+import { StringValueObject } from '../../../../../../src/Contexts/shared/domain/valueObject/StringValueObject.js';
 
 describe('Bed (unit)', () => {
   let validatePlacement: jest.Mock;
@@ -14,6 +18,8 @@ describe('Bed (unit)', () => {
 
   const BED_DIMENSION = 200;
   const DEFAULT_SPACING = 50;
+  const BED_DEPTH = 40;
+  const BED_NAME = 'Test Bed';
 
   const POSITION_A = { x: 10, y: 10 };
   const POSITION_B = { x: 20, y: 20 };
@@ -43,11 +49,16 @@ describe('Bed (unit)', () => {
     jest.clearAllMocks();
 
     bed = new Bed(
-      UuidMother.random(),
       {
-        width: BED_DIMENSION,
-        height: BED_DIMENSION,
-        plantInstances: []
+        id: UuidMother.random(),
+        userId: UuidMother.random(),
+        name: new StringValueObject(BED_NAME),
+        width: PositiveNumber.create(BED_DIMENSION),
+        height: PositiveNumber.create(BED_DIMENSION),
+        depth: PositiveNumber.create(BED_DEPTH),
+        plantInstances: [],
+        metadata: Metadata.create('system'),
+        deleted: false
       },
       spatialService
     );
@@ -55,12 +66,13 @@ describe('Bed (unit)', () => {
 
   it('should expose correct dimensions and id', () => {
     expect(bed.id).toBeDefined();
-    expect(bed.width).toBe(BED_DIMENSION);
-    expect(bed.height).toBe(BED_DIMENSION);
+    expect(bed.width.value).toBe(BED_DIMENSION);
+    expect(bed.height.value).toBe(BED_DIMENSION);
+    expect(bed.depth.value).toBe(BED_DEPTH);
   });
 
   it('should start with empty plant list', () => {
-    expect(bed.plants).toHaveLength(0);
+    expect(bed.plantInstances).toHaveLength(0);
   });
 
   it('should call spatial service before adding plant', () => {
@@ -74,8 +86,8 @@ describe('Bed (unit)', () => {
 
     expect(validatePlacement).toHaveBeenCalledWith(
       {
-        width: BED_DIMENSION,
-        height: BED_DIMENSION,
+        width: bed.width,
+        height: bed.height,
         plants: []
       },
       spatial
@@ -91,7 +103,7 @@ describe('Bed (unit)', () => {
 
     expect(() => bed.addPlant(plant, toSpatial(plant), [])).toThrow('invalid');
 
-    expect(bed.plants).toHaveLength(0);
+    expect(bed.plantInstances).toHaveLength(0);
   });
 
   it('should add plant when spatial service allows it', () => {
@@ -99,48 +111,58 @@ describe('Bed (unit)', () => {
 
     bed.addPlant(plant, toSpatial(plant), []);
 
-    expect(bed.plants).toHaveLength(1);
-    expect(bed.plants[0]).toBe(plant);
+    expect(bed.plantInstances).toHaveLength(1);
+    expect(bed.plantInstances[0]).toBe(plant);
   });
 
   it('should remove plant by id', () => {
     const plant = PlantInstanceMother.atPosition(POSITION_C.x, POSITION_C.y);
 
     bed = new Bed(
-      bed.id,
       {
-        width: BED_DIMENSION,
-        height: BED_DIMENSION,
-        plantInstances: [plant]
+        id: bed.id,
+        userId: UuidMother.random(),
+        name: new StringValueObject(BED_NAME),
+        width: PositiveNumber.create(BED_DIMENSION),
+        height: PositiveNumber.create(BED_DIMENSION),
+        depth: PositiveNumber.create(BED_DEPTH),
+        plantInstances: [plant],
+        metadata: Metadata.create('system'),
+        deleted: false
       },
       spatialService
     );
 
     bed.removePlant(plant.id);
 
-    expect(bed.plants).toHaveLength(0);
+    expect(bed.plantInstances).toHaveLength(0);
   });
 
   it('should do nothing when removing non-existent plant', () => {
     bed.removePlant(UuidMother.random());
 
-    expect(bed.plants).toHaveLength(0);
+    expect(bed.plantInstances).toHaveLength(0);
   });
 
   it('should serialize to primitives correctly', () => {
     const plant = PlantInstanceMother.atPosition(POSITION_C.x, POSITION_C.y);
 
     bed = new Bed(
-      bed.id,
       {
-        width: BED_DIMENSION,
-        height: BED_DIMENSION,
-        plantInstances: [plant]
+        id: bed.id,
+        userId: UuidMother.random(),
+        name: new StringValueObject(BED_NAME),
+        width: PositiveNumber.create(BED_DIMENSION),
+        height: PositiveNumber.create(BED_DIMENSION),
+        depth: PositiveNumber.create(BED_DEPTH),
+        plantInstances: [plant],
+        metadata: Metadata.create('system'),
+        deleted: false
       },
       spatialService
     );
 
-    const result = bed.toPrimitives();
+    const result = bedMapper.toPrimitives(bed);
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -169,8 +191,8 @@ describe('Bed (unit)', () => {
 
     expect(validatePlacement).toHaveBeenLastCalledWith(
       {
-        width: BED_DIMENSION,
-        height: BED_DIMENSION,
+        width: bed.width,
+        height: bed.height,
         plants: [spatial1]
       },
       spatial2
@@ -189,5 +211,58 @@ describe('Bed (unit)', () => {
     bed.addPlant(plant, toSpatial(plant), []);
 
     expect(capturedPlants).toHaveLength(0);
+  });
+
+  it('should mark bed as deleted', () => {
+    expect(bed.isDeleted).toBe(false);
+    expect(bed.deletedAt).toBeUndefined();
+
+    bed.markAsDeleted();
+
+    expect(bed.isDeleted).toBe(true);
+    expect(bed.deletedAt).toBeInstanceOf(Date);
+  });
+
+  it('should not allow mark as deleted if there are plants in the bed', () => {
+    const plant = PlantInstanceMother.atPosition(POSITION_A.x, POSITION_A.y);
+
+    bed = new Bed(
+      {
+        id: bed.id,
+        userId: UuidMother.random(),
+        name: new StringValueObject(BED_NAME),
+        width: PositiveNumber.create(BED_DIMENSION),
+        height: PositiveNumber.create(BED_DIMENSION),
+        depth: PositiveNumber.create(BED_DEPTH),
+        plantInstances: [plant],
+        metadata: Metadata.create('system'),
+        deleted: false
+      },
+      spatialService
+    );
+
+    expect(() => bed.markAsDeleted()).toThrow(
+      'Cannot delete a bed that has plants'
+    );
+
+    expect(bed.isDeleted).toBe(false);
+  });
+
+  it('should not allow adding plants to deleted bed', () => {
+    const plant = PlantInstanceMother.atPosition(POSITION_A.x, POSITION_A.y);
+
+    bed.markAsDeleted();
+
+    expect(() => bed.addPlant(plant, toSpatial(plant), [])).toThrow(
+      'Cannot add a plant to a deleted bed'
+    );
+
+    expect(bed.plantInstances).toHaveLength(0);
+  });
+
+  it('should not allow marking as deleted an already deleted bed', () => {
+    bed.markAsDeleted();
+
+    expect(() => bed.markAsDeleted()).toThrow('Bed is already deleted');
   });
 });
