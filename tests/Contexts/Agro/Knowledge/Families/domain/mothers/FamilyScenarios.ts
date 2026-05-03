@@ -91,5 +91,15 @@ export const FamilyScenarios = {
       ...buildRandomPrimitives(),
       ...overrides
     };
-  }
+  },
+
+  createDtoBase: () => ({
+    id: UuidMother.random().value,
+    ...FAMILY_BASE_VALUES
+  }),
+
+  createDtoBaseWithExtra: (extra?: FamilyExtraPrimitives) => ({
+    ...FamilyScenarios.createDtoBase(),
+    extra: extra ?? commonExtra
+  })
 };
