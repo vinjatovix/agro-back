@@ -1,7 +1,6 @@
 import { scopePerRequest } from 'awilix-express';
 import cors from 'cors';
-import express from 'express';
-import Router from 'express-promise-router';
+import express, { Router } from 'express';
 import helmet from 'helmet';
 import * as http from 'node:http';
 

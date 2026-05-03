@@ -12,7 +12,7 @@ async function startServer() {
   try {
     await new AgroBackApp(config).start(logger);
   } catch (err) {
-    logger.error('Error starting the application:', err);
+    console.error('Error starting the application:', err);
     process.exit(1);
   }
 }
@@ -20,7 +20,7 @@ async function startServer() {
 void startServer();
 
 process.on('uncaughtException', (err: Error) => {
-  logger.error(`Uncaught Exception: ${err.message}, ${err.stack}`);
+  console.error(`Uncaught Exception: ${err.message}, ${err.stack}`);
   process.exit(1);
 });
 
@@ -28,11 +28,11 @@ process.on(
   'unhandledRejection',
   (reason: unknown, promise: Promise<unknown>) => {
     if (reason instanceof Error) {
-      logger.error(
+      console.error(
         `Unhandled Rejection: ${reason.name} - ${reason.message}, ${reason.stack} ${JSON.stringify(promise)}`
       );
     } else {
-      logger.error(`Unhandled Rejection:  ${JSON.stringify(reason)}`);
+      console.error(`Unhandled Rejection:  ${JSON.stringify(reason)}`);
     }
     process.exit(1);
   }
