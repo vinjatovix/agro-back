@@ -3,8 +3,18 @@ import { globSync } from 'glob';
 import type { RouteModule } from './route.types.js';
 import { getRegisterRouteOrThrow } from './routeModuleValidation.js';
 
-const ROUTE_FILES_GLOB = './src/apps/agroApi/routes/**/*.routes.ts';
-const CURRENT_FILE_GLOB = './src/apps/agroApi/routes/registerRoutes.ts';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const ROUTES_BASE = path.resolve(__dirname, '../routes');
+
+const ROUTE_FILES_GLOB = path.join(ROUTES_BASE, '**/*.routes.{ts,js}');
+
+const CURRENT_FILE_GLOB = path.join(ROUTES_BASE, 'registerRoutes.{ts,js}');
+
 const WINDOWS_PATH_SEPARATOR_REGEX = /\\/g;
 
 const toUnixPath = (file: string): string =>
