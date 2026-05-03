@@ -14,22 +14,22 @@ A PlantInstance is the operational entity that evolves over time within the syst
 
 It is the bridge between:
 
-* Plant (definition / biology template)
-* Bed (spatial container)
-* Events (lifecycle history)
+- Plant (definition / biology template)
+- Bed (spatial container)
+- Events (lifecycle history)
 
 ---
 
 # 2. CORE CONCEPT
 
-* Plant = species definition
-* PlantInstance = living occurrence of that species in a specific Bed and position
+- Plant = species definition
+- PlantInstance = living occurrence of that species in a specific Bed and position
 
 A PlantInstance is:
 
-* spatial
-* temporal
-* stateful
+- spatial
+- temporal
+- stateful
 
 ---
 
@@ -37,11 +37,11 @@ A PlantInstance is:
 
 A PlantInstance is responsible for:
 
-* representing a planted Plant in a Bed
-* maintaining spatial position
-* tracking lifecycle state
-* linking to events history
-* storing instance-specific overrides
+- representing a planted Plant in a Bed
+- maintaining spatial position
+- tracking lifecycle state
+- linking to events history
+- storing instance-specific overrides
 
 ---
 
@@ -49,15 +49,15 @@ A PlantInstance is responsible for:
 
 PlantInstance is:
 
-* a domain entity
-* stateful over time
-* spatially constrained
+- a domain entity
+- stateful over time
+- spatially constrained
 
 PlantInstance is NOT:
 
-* a Plant definition
-* a Bed manager
-* an event processor
+- a Plant definition
+- a Bed manager
+- an event processor
 
 ---
 
@@ -67,13 +67,13 @@ PlantInstance is NOT:
 
 A PlantInstance includes:
 
-* id
-* plantId (reference to Plant)
-* bedId (reference to Bed)
-* position (x, y)
-* status (alive, dormant, removed)
-* plantedAt
-* metadata
+- id
+- plantId (reference to Plant)
+- bedId (reference to Bed)
+- position (x, y)
+- status (alive, dormant, removed)
+- plantedAt
+- metadata
 
 ---
 
@@ -81,11 +81,11 @@ A PlantInstance includes:
 
 Typical states:
 
-* planted
-* growing
-* mature
-* harvested
-* removed
+- planted
+- growing
+- mature
+- harvested
+- removed
 
 (These may later be enriched by Events system)
 
@@ -95,9 +95,9 @@ Typical states:
 
 PlantInstance participates in spatial rules:
 
-* must not collide with other PlantInstances
-* must respect spacing constraints defined by Plant
-* must fit within Bed boundaries
+- must not collide with other PlantInstances
+- must respect spacing constraints defined by Plant
+- must fit within Bed boundaries
 
 Spatial validation is delegated to SpatialService.
 
@@ -107,31 +107,31 @@ Spatial validation is delegated to SpatialService.
 
 ## 7.1 PlantInstance → Plant
 
-* defines biological rules
-* spacing constraints
-* growth expectations
+- defines biological rules
+- spacing constraints
+- growth expectations
 
 ## 7.2 PlantInstance → Bed
 
-* defines spatial container
-* defines coordinate system
-* defines collision domain
+- defines spatial container
+- defines coordinate system
+- defines collision domain
 
 ## 7.3 PlantInstance → Events (future)
 
-* events modify or annotate state over time
-* PlantInstance does not own event logic
+- events modify or annotate state over time
+- PlantInstance does not own event logic
 
 ---
 
 # 8. RULES
 
-* MUST have valid Plant reference
-* MUST belong to a Bed
-* MUST have valid spatial position
-* MUST be validated through SpatialService before placement
-* MUST NOT contain plant definition logic
-* MUST NOT contain persistence logic
+- MUST have valid Plant reference
+- MUST belong to a Bed
+- MUST have valid spatial position
+- MUST be validated through SpatialService before placement
+- MUST NOT contain plant definition logic
+- MUST NOT contain persistence logic
 
 ---
 
@@ -139,29 +139,29 @@ Spatial validation is delegated to SpatialService.
 
 ## Implemented
 
-* PlantInstance entity structure
-* basic spatial representation
-* integration with SpatialService validation
-* linkage to Plant and Bed identifiers
+- PlantInstance entity structure
+- basic spatial representation
+- integration with SpatialService validation
+- linkage to Plant and Bed identifiers
 
 ---
 
 ## Partial
 
-* lifecycle state machine not formalized
-* event integration missing
-* persistence contract incomplete
-* validation rules still evolving
+- lifecycle state machine not formalized
+- event integration missing
+- persistence contract incomplete
+- validation rules still evolving
 
 ---
 
 ## Pending
 
-* full lifecycle model (event-driven evolution)
-* PlantInstanceRepository
-* event history integration
-* growth simulation rules
-* temporal state transitions
+- full lifecycle model (event-driven evolution)
+- PlantInstanceRepository
+- event history integration
+- growth simulation rules
+- temporal state transitions
 
 ---
 
@@ -171,10 +171,10 @@ Spatial validation is delegated to SpatialService.
 
 PlantInstance will evolve based on Events:
 
-* watering affects growth
-* fertilization affects health
-* pruning affects structure
-* pest control affects survival
+- watering affects growth
+- fertilization affects health
+- pruning affects structure
+- pest control affects survival
 
 ---
 
@@ -182,9 +182,9 @@ PlantInstance will evolve based on Events:
 
 Future capability:
 
-* growth over time simulation
-* health decay or improvement
-* predictive yield estimation
+- growth over time simulation
+- health decay or improvement
+- predictive yield estimation
 
 ---
 
@@ -192,9 +192,9 @@ Future capability:
 
 PlantInstance becomes:
 
-* spatial entity (position)
-* temporal entity (state over time)
-* event-driven entity (history-based evolution)
+- spatial entity (position)
+- temporal entity (state over time)
+- event-driven entity (history-based evolution)
 
 ---
 
@@ -202,11 +202,11 @@ PlantInstance becomes:
 
 PlantInstance MUST:
 
-* remain domain-only
-* not depend on API
-* not depend on persistence
-* not contain spatial logic implementation
-* delegate spatial validation externally
+- remain domain-only
+- not depend on API
+- not depend on persistence
+- not contain spatial logic implementation
+- delegate spatial validation externally
 
 ---
 
@@ -214,14 +214,14 @@ PlantInstance MUST:
 
 Depends on:
 
-* Plant module
-* Bed module
-* Spatial module
+- Plant module
+- Bed module
+- Spatial module
 
 Will depend on (future):
 
-* Events module
-* Growth simulation module
+- Events module
+- Growth simulation module
 
 ---
 

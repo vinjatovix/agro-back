@@ -26,7 +26,7 @@ jobs:
       MONGO_DB: test
       MONGO_USERNAME: localUser
       MONGO_PASSWORD: localPassword
-      MONGO_APP_NAME: "Cluster0"
+      MONGO_APP_NAME: 'Cluster0'
       JWT_SECRET: secret
       JWT_DEFAULT_DURATION: 2h
       BCRYPT_SALT_ROUNDS: 12

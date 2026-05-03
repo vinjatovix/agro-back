@@ -1,5 +1,8 @@
 import { Binary, UUID } from 'bson';
-import { toMongoId, fromMongoId } from '../../../../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoId.js';
+import {
+  toMongoId,
+  fromMongoId
+} from '../../../../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoId.js';
 
 describe('MongoId helpers', () => {
   const validUuid = '550e8400-e29b-41d4-a716-446655440000';

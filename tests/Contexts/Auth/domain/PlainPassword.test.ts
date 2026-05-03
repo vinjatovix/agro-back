@@ -31,7 +31,9 @@ describe('PlainPassword', () => {
 
   describe('validation', () => {
     it('should throw if shorter than MIN_LENGTH', () => {
-      const short = PlainPasswordMother.withLength(PlainPassword.MIN_LENGTH - 1);
+      const short = PlainPasswordMother.withLength(
+        PlainPassword.MIN_LENGTH - 1
+      );
       expect(() => PlainPasswordMother.create(short)).toThrow(
         `<PlainPassword> must be at least ${PlainPassword.MIN_LENGTH} characters long`
       );

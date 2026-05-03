@@ -1,6 +1,6 @@
-import { User } from "../../../../src/Contexts/Auth/domain/entities/User.js";
-import type { MetadataPrimitives } from "../../../../src/Contexts/shared/infrastructure/persistence/mongo/types/MetadataPrimitives.js";
-import { UserMother } from "./mothers/UserMother.js";
+import { User } from '../../../../src/Contexts/Auth/domain/entities/User.js';
+import type { MetadataPrimitives } from '../../../../src/Contexts/shared/infrastructure/persistence/mongo/types/MetadataPrimitives.js';
+import { UserMother } from './mothers/UserMother.js';
 
 describe('User', () => {
   it('should create a valid user', () => {
@@ -95,4 +95,3 @@ describe('User', () => {
     });
   });
 });
-

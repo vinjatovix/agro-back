@@ -18,11 +18,11 @@ This is the **single source of truth for external consumers**.
 
 Includes:
 
-* endpoints specification
-* request schemas
-* response schemas
-* error contracts
-* authentication schemes
+- endpoints specification
+- request schemas
+- response schemas
+- error contracts
+- authentication schemes
 
 ---
 
@@ -32,9 +32,9 @@ OpenAPI is the **contract boundary of the system**.
 
 Rules:
 
-* implementation MUST follow spec
-* spec MUST NOT depend on implementation
-* contract drift is a critical failure
+- implementation MUST follow spec
+- spec MUST NOT depend on implementation
+- contract drift is a critical failure
 
 ---
 
@@ -44,8 +44,8 @@ Rules:
 
 Hybrid model:
 
-* manually defined base spec
-* optionally extended via tooling (future)
+- manually defined base spec
+- optionally extended via tooling (future)
 
 ---
 
@@ -53,13 +53,13 @@ Hybrid model:
 
 Current:
 
-* versioning handled via URL prefix (/api/v1)
-* OpenAPI server block does not enforce versioning
+- versioning handled via URL prefix (/api/v1)
+- OpenAPI server block does not enforce versioning
 
 Future:
 
-* possible migration to server-based versioning if v2 diverges
-* potential introduction of semantic API versions per domain
+- possible migration to server-based versioning if v2 diverges
+- potential introduction of semantic API versions per domain
 
 ---
 
@@ -67,13 +67,13 @@ Future:
 
 Current:
 
-* OpenAPI 3.0 specification
-* Swagger UI for documentation and manual testing
+- OpenAPI 3.0 specification
+- Swagger UI for documentation and manual testing
 
 Future:
 
-* tsoa (TypeScript decorators)
-* zod-openapi bridge (if schema migration happens)
+- tsoa (TypeScript decorators)
+- zod-openapi bridge (if schema migration happens)
 
 ---
 
@@ -83,11 +83,11 @@ Future:
 
 ### Endpoints
 
-* POST /api/v1/plants (admin only)
-* GET /api/v1/plants (public)
-* GET /api/v1/plants/:id (public)
-* PATCH /api/v1/plants/:id (admin only)
-* DELETE /api/v1/plants/:id (admin only)
+- POST /api/v1/plants (admin only)
+- GET /api/v1/plants (public)
+- GET /api/v1/plants/:id (public)
+- PATCH /api/v1/plants/:id (admin only)
+- DELETE /api/v1/plants/:id (admin only)
 
 ---
 
@@ -95,18 +95,18 @@ Future:
 
 ### Endpoints
 
-* POST /api/v1/beds
-* GET /api/v1/beds
-* GET /api/v1/beds/:id
-* PATCH /api/v1/beds/:id
-* DELETE /api/v1/beds/:id
+- POST /api/v1/beds
+- GET /api/v1/beds
+- GET /api/v1/beds/:id
+- PATCH /api/v1/beds/:id
+- DELETE /api/v1/beds/:id
 
 ### Schemas
 
-* Bed
-* CreateBedRequest
-* UpdateBedRequest
-* BedResponse
+- Bed
+- CreateBedRequest
+- UpdateBedRequest
+- BedResponse
 
 ---
 
@@ -114,44 +114,44 @@ Future:
 
 ### Endpoints
 
-* POST /api/v1/plant-instances
-* GET /api/v1/plant-instances/:id
-* DELETE /api/v1/plant-instances/:id
-* PATCH /api/v1/plant-instances/:id
+- POST /api/v1/plant-instances
+- GET /api/v1/plant-instances/:id
+- DELETE /api/v1/plant-instances/:id
+- PATCH /api/v1/plant-instances/:id
 
 ### Schemas
 
-* PlantInstance
-* CreatePlantInstanceRequest
-* PlantInstanceResponse
+- PlantInstance
+- CreatePlantInstanceRequest
+- PlantInstanceResponse
 
 ---
 
 ## 5.4 Auth / Users
 
-* POST /api/v1/Auth/register
-* POST /api/v1/Auth/login
-* POST /api/v1/Auth/refresh
-* POST /api/v1/Auth/google
-* GET /api/v1/Auth/validate/{token}
-* POST /api/v1/Auth/update
+- POST /api/v1/Auth/register
+- POST /api/v1/Auth/login
+- POST /api/v1/Auth/refresh
+- POST /api/v1/Auth/google
+- GET /api/v1/Auth/validate/{token}
+- POST /api/v1/Auth/update
 
 ---
 
 ## 5.5 Events (pending)
 
-* event ingestion API
-* filtering by plantInstance / bed / type
+- event ingestion API
+- filtering by plantInstance / bed / type
 
 ---
 
 ## 5.6 Knowledge (pending)
 
-* pests
-* diseases
-* fertilizers
-* remedies
-* plant relations graph
+- pests
+- diseases
+- fertilizers
+- remedies
+- plant relations graph
 
 ---
 
@@ -159,9 +159,9 @@ Future:
 
 OpenAPI MUST define:
 
-* ApiErrorResponse
-* status code mapping
-* field-level validation errors
+- ApiErrorResponse
+- status code mapping
+- field-level validation errors
 
 ---
 
@@ -171,10 +171,10 @@ Validation errors MUST be represented as:
 
 Rules:
 
-* error keys MUST be full field paths
-* error messages MUST be deterministic across environments
-* runtime value leakage format is part of current system behavior and MUST be reflected in contract tests if enforced
-* system MUST safely handle invalid URI encoding without exposing raw URIError stack traces
+- error keys MUST be full field paths
+- error messages MUST be deterministic across environments
+- runtime value leakage format is part of current system behavior and MUST be reflected in contract tests if enforced
+- system MUST safely handle invalid URI encoding without exposing raw URIError stack traces
 
 ```json
 {
@@ -187,11 +187,11 @@ Rules:
 
 Rules:
 
-* error keys MUST be full field paths
-* error messages MUST be deterministic across environments
-* runtime value leakage format is part of current system behavior and MUST be reflected in contract tests if enforced
-* OpenAPI MUST define this structure exactly once stabilized
-* system MUST safely handle invalid URI encoding without exposing raw URIError stack traces
+- error keys MUST be full field paths
+- error messages MUST be deterministic across environments
+- runtime value leakage format is part of current system behavior and MUST be reflected in contract tests if enforced
+- OpenAPI MUST define this structure exactly once stabilized
+- system MUST safely handle invalid URI encoding without exposing raw URIError stack traces
 
 ---
 
@@ -199,8 +199,8 @@ Rules:
 
 For endpoints returning **204 No Content**:
 
-* response body MUST be empty
-* OpenAPI SHOULD NOT define a response schema for 204 OR MUST define `content: {}`
+- response body MUST be empty
+- OpenAPI SHOULD NOT define a response schema for 204 OR MUST define `content: {}`
 
 (This aligns with current contract validator behavior in tests)
 
@@ -208,18 +208,18 @@ For endpoints returning **204 No Content**:
 
 # 7. TESTING INTEGRATION
 
-* contract tests validate OpenAPI compliance
-* E2E tests MUST match spec
-* no endpoint exists without OpenAPI definition
-* validation error shape MUST be covered by contract tests when finalized
+- contract tests validate OpenAPI compliance
+- E2E tests MUST match spec
+- no endpoint exists without OpenAPI definition
+- validation error shape MUST be covered by contract tests when finalized
 
 ---
 
 # 8. EVOLUTION RULES
 
-* every new endpoint MUST first exist in OpenAPI
-* breaking changes require version bump
-* backward compatibility preferred
+- every new endpoint MUST first exist in OpenAPI
+- breaking changes require version bump
+- backward compatibility preferred
 
 ---
 

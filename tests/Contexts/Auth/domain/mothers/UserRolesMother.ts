@@ -1,5 +1,5 @@
-import { UserRoles } from "../../../../../src/Contexts/Auth/domain/value-objects/UserRoles.js";
-import { random } from "../../../shared/fixtures/index.js";
+import { UserRoles } from '../../../../../src/Contexts/Auth/domain/value-objects/UserRoles.js';
+import { random } from '../../../shared/fixtures/index.js';
 
 export class UserRolesMother {
   static create(value: string[]) {

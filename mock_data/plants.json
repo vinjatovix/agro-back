@@ -140,10 +140,7 @@
               "min": 3,
               "max": 5
             },
-            "bestPractices": [
-              "Use semi-hardwood cuttings",
-              "Maintain humidity"
-            ]
+            "bestPractices": ["Use semi-hardwood cuttings", "Maintain humidity"]
           }
         }
       },
@@ -180,10 +177,7 @@
         }
       ],
 
-      "notes": [
-        "Self-sows easily",
-        "May require thinning after germination"
-      ]
+      "notes": ["Self-sows easily", "May require thinning after germination"]
     },
 
     "metadata": {

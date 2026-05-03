@@ -77,5 +77,4 @@ describe('Email', () => {
 
     expect(a.equals(b)).toBe(false);
   });
-
 });

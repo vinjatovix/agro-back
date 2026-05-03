@@ -4,7 +4,8 @@ describe('PasswordHash', () => {
   // Valid bcrypt hashes for testing - all with exactly 53 chars in the body
   const VALID_HASH_1 = `$2b$10$${'a'.repeat(53)}`;
   const VALID_HASH_2 = `$2b$10$${'b'.repeat(53)}`;
-  const VALID_HASH_3 = '$2a$12$mZgfH4D7z4dZcZHDKyogqOOnEWS6XHLdczPJktzD88djpvlr3Bq1C';
+  const VALID_HASH_3 =
+    '$2a$12$mZgfH4D7z4dZcZHDKyogqOOnEWS6XHLdczPJktzD88djpvlr3Bq1C';
 
   describe('constructor', () => {
     it('should create a valid password hash', () => {
@@ -35,14 +36,16 @@ describe('PasswordHash', () => {
     });
 
     it('should throw when value has incorrect hash format (wrong prefix)', () => {
-      const invalidPrefix = '$1a$10$vI8aWBYW2BTqis90nFmNfe9T9sxiJee0B6Lolq8oC20PZLQArI8nK';
+      const invalidPrefix =
+        '$1a$10$vI8aWBYW2BTqis90nFmNfe9T9sxiJee0B6Lolq8oC20PZLQArI8nK';
       expect(() => new PasswordHash(invalidPrefix)).toThrow(
         `<PasswordHash> does not allow the value <${invalidPrefix}>`
       );
     });
 
     it('should throw when value has incorrect cost format', () => {
-      const invalidCost = '$2a$5$vI8aWBYW2BTqis90nFmNfe9T9sxiJee0B6Lolq8oC20PZLQArI8nK';
+      const invalidCost =
+        '$2a$5$vI8aWBYW2BTqis90nFmNfe9T9sxiJee0B6Lolq8oC20PZLQArI8nK';
       expect(() => new PasswordHash(invalidCost)).toThrow(
         `<PasswordHash> does not allow the value <${invalidCost}>`
       );

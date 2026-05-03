@@ -78,7 +78,9 @@ describe('MongoErrorHandler', () => {
 
       expect(() => {
         MongoErrorHandler.formatError(duplicateKeyError);
-      }).toThrow('Duplicate document with {"email":"test@example.com","username":"testuser"}');
+      }).toThrow(
+        'Duplicate document with {"email":"test@example.com","username":"testuser"}'
+      );
     });
 
     it('should throw BadRequestError for VALIDATION_ERROR', () => {

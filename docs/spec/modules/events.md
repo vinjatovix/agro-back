@@ -14,10 +14,10 @@ It represents all time-based actions and state changes that occur in PlantInstan
 
 Events are the foundation for:
 
-* lifecycle tracking
-* historical analysis
-* simulation
-* future prediction
+- lifecycle tracking
+- historical analysis
+- simulation
+- future prediction
 
 ---
 
@@ -27,10 +27,10 @@ An Event is an immutable record of something that happened in the system.
 
 Events are:
 
-* append-only
-* time-based
-* contextual
-* linked to PlantInstances and Beds
+- append-only
+- time-based
+- contextual
+- linked to PlantInstances and Beds
 
 ---
 
@@ -38,16 +38,16 @@ Events are:
 
 Events are NOT:
 
-* business logic executors
-* state mutators
-* computation engines
+- business logic executors
+- state mutators
+- computation engines
 
 Events ARE:
 
-* history records
-* inputs for derived state systems
-* simulation primitives
-* audit trail foundation
+- history records
+- inputs for derived state systems
+- simulation primitives
+- audit trail foundation
 
 ---
 
@@ -57,15 +57,15 @@ Events ARE:
 
 Each event includes:
 
-* id (UUID value object)
-* userId (UUID)
-* plantInstanceId (UUID)
-* bedId (UUID)
-* type (discriminated union)
-* date
-* data (type-specific payload)
-* notes (optional)
-* metadata (audit fields, e.g. createdAt)
+- id (UUID value object)
+- userId (UUID)
+- plantInstanceId (UUID)
+- bedId (UUID)
+- type (discriminated union)
+- date
+- data (type-specific payload)
+- notes (optional)
+- metadata (audit fields, e.g. createdAt)
 
 ---
 
@@ -73,10 +73,10 @@ Each event includes:
 
 Events are implemented as a **fully discriminated union type system**:
 
-* DomainEvent = union of typed events
-* Event<T> generic base
-* EventDataMap for payload typing
-* strict mapping in EventMapper (domain ↔ persistence)
+- DomainEvent = union of typed events
+- Event<T> generic base
+- EventDataMap for payload typing
+- strict mapping in EventMapper (domain ↔ persistence)
 
 ---
 
@@ -84,28 +84,28 @@ Events are implemented as a **fully discriminated union type system**:
 
 ### Core lifecycle events (IMPLEMENTED)
 
-* watering
-* fertilization
-* pruning
-* harvest
-* transplant
-* treatment
+- watering
+- fertilization
+- pruning
+- harvest
+- transplant
+- treatment
 
 ---
 
 ### Future agronomic/health events
 
-* pest_detection
-* disease_detection
-* stress_signal
-* recovery
+- pest_detection
+- disease_detection
+- stress_signal
+- recovery
 
 ---
 
 ### Future simulation events
 
-* growth_update
-* stage_transition
+- growth_update
+- stage_transition
 
 ---
 
@@ -117,7 +117,7 @@ The `data` field is strictly typed per event.
 
 ```ts
 {
-  amountLiters: PositiveNumber
+  amountLiters: PositiveNumber;
 }
 ```
 
@@ -125,11 +125,11 @@ The `data` field is strictly typed per event.
 
 ```ts
 {
-  fertilizerId: Uuid
-  fertilizerType: FertilizerType
-  method: FertilizationMethod
-  amount: PositiveNumber
-  concentration: PositiveNumber
+  fertilizerId: Uuid;
+  fertilizerType: FertilizerType;
+  method: FertilizationMethod;
+  amount: PositiveNumber;
+  concentration: PositiveNumber;
 }
 ```
 
@@ -137,8 +137,8 @@ The `data` field is strictly typed per event.
 
 ```ts
 {
-  type: PruningType
-  intensity: PruningIntensity
+  type: PruningType;
+  intensity: PruningIntensity;
 }
 ```
 
@@ -146,7 +146,7 @@ The `data` field is strictly typed per event.
 
 ```ts
 {
-  yieldGrams: PositiveNumber
+  yieldGrams: PositiveNumber;
 }
 ```
 
@@ -154,8 +154,8 @@ The `data` field is strictly typed per event.
 
 ```ts
 {
-  fromBedId: Uuid
-  toBedId: Uuid
+  fromBedId: Uuid;
+  toBedId: Uuid;
 }
 ```
 
@@ -163,9 +163,9 @@ The `data` field is strictly typed per event.
 
 ```ts
 {
-  target: TreatmentTarget
-  productId: Uuid
-  dosage: PositiveNumber
+  target: TreatmentTarget;
+  productId: Uuid;
+  dosage: PositiveNumber;
 }
 ```
 
@@ -189,9 +189,9 @@ Given the same event sequence, derived state MUST be reproducible.
 
 Every event MUST be traceable to:
 
-* user (actor)
-* PlantInstance
-* Bed
+- user (actor)
+- PlantInstance
+- Bed
 
 ---
 
@@ -199,30 +199,30 @@ Every event MUST be traceable to:
 
 ## Implemented
 
-* Strongly typed discriminated union (`DomainEvent`)
-* Domain ↔ persistence mapper (`EventMapper`)
-* Persistence document model (`EventDocument`)
-* Value objects:
+- Strongly typed discriminated union (`DomainEvent`)
+- Domain ↔ persistence mapper (`EventMapper`)
+- Persistence document model (`EventDocument`)
+- Value objects:
+  - `Uuid`
+  - `PositiveNumber`
 
-  * `Uuid`
-  * `PositiveNumber`
-* Domain factories (test mothers)
-* Unit tests covering full mapping roundtrip
+- Domain factories (test mothers)
+- Unit tests covering full mapping roundtrip
 
 ---
 
 ## Partial / evolving
 
-* repository layer (not defined yet)
-* query model for time-series access
-* validation layer per event type (beyond TS + VO constraints)
-* No dedicated event processing layer beyond persistence + mapping
+- repository layer (not defined yet)
+- query model for time-series access
+- validation layer per event type (beyond TS + VO constraints)
+- No dedicated event processing layer beyond persistence + mapping
 
 ---
 
 ## Missing / future
 
-* EventRepository abstraction
+- EventRepository abstraction
 
 ---
 
@@ -230,25 +230,25 @@ Every event MUST be traceable to:
 
 ## 8.1 Event → PlantInstance
 
-* Events are linked to PlantInstance via `plantInstanceId`
-* Used for historical traceability
-* PlantInstance is NOT derived from events in current architecture
+- Events are linked to PlantInstance via `plantInstanceId`
+- Used for historical traceability
+- PlantInstance is NOT derived from events in current architecture
 
 ## 8.2 Event → Bed
 
-* Events reference Bed via `bedId`
-* Bed acts as a contextual location reference for the event
+- Events reference Bed via `bedId`
+- Bed acts as a contextual location reference for the event
 
 This means:
 Events are tagged with where they happened, not that Bed has behavior here.
 
 ## 8.3 Event → Plant
 
-* Indirect relationship through PlantInstance
+- Indirect relationship through PlantInstance
 
 ## 8.4 ### Event → User
 
-* Every event is attributable to a user (actor)
+- Every event is attributable to a user (actor)
 
 ---
 
@@ -256,37 +256,36 @@ Events are tagged with where they happened, not that Bed has behavior here.
 
 ## Implemented (actual state)
 
-* Fully typed event system (discriminated unions)
-* strict EventMapper (domain ↔ persistence)
-* persistence schema aligned with domain model
-* value objects enforcing invariants
-* test coverage for mapping correctness
+- Fully typed event system (discriminated unions)
+- strict EventMapper (domain ↔ persistence)
+- persistence schema aligned with domain model
+- value objects enforcing invariants
+- test coverage for mapping correctness
 
 ---
 
 ## Partial
 
-* event validation layer per type not formalize
+- event validation layer per type not formalize
 
 ---
 
 ## Missing
 
-* repository abstraction
-* Improve querying of event history (filters, ranges)
-* Add aggregation helpers for analytics (optional)
-
+- repository abstraction
+- Improve querying of event history (filters, ranges)
+- Add aggregation helpers for analytics (optional)
 
 ---
 
 # 10. RULES
 
-* Events MUST be immutable
-* Events MUST NOT contain business logic
-* Events MUST NOT directly modify state
-* Events MUST be append-only
-* Events MUST reference PlantInstance and Bed
-* Event payload MUST be type-safe per event type
+- Events MUST be immutable
+- Events MUST NOT contain business logic
+- Events MUST NOT directly modify state
+- Events MUST be append-only
+- Events MUST reference PlantInstance and Bed
+- Event payload MUST be type-safe per event type
 
 ---
 
@@ -294,11 +293,11 @@ Events are tagged with where they happened, not that Bed has behavior here.
 
 Events module:
 
-* MUST NOT depend on API layer
-* MUST NOT depend on UI layer
-* MUST NOT depend on infrastructure specifics (DB engines, frameworks)
-* MUST remain domain-level only
-* MUST only expose domain contracts and types
+- MUST NOT depend on API layer
+- MUST NOT depend on UI layer
+- MUST NOT depend on infrastructure specifics (DB engines, frameworks)
+- MUST remain domain-level only
+- MUST only expose domain contracts and types
 
 ---
 
@@ -306,17 +305,17 @@ Events module:
 
 ## Depends on
 
-* PlantInstance module
-* Bed module
-* User module
-* Shared kernel (Value Objects, Errors)
+- PlantInstance module
+- Bed module
+- User module
+- Shared kernel (Value Objects, Errors)
 
 ## Feeds into (future systems)
 
-* Simulation system
-* Analytics system
-* Recommendation engine
-* Time-series query layer
+- Simulation system
+- Analytics system
+- Recommendation engine
+- Time-series query layer
 
 ---
 

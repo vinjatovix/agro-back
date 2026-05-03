@@ -54,10 +54,13 @@ describe('MongoFetchService', () => {
     });
 
     expect(result).toEqual(documents);
-    expect(findMock).toHaveBeenCalledWith({
-      _id: expect.anything(),
-      status: 'active'
-    }, {});
+    expect(findMock).toHaveBeenCalledWith(
+      {
+        _id: expect.anything(),
+        status: 'active'
+      },
+      {}
+    );
     expect(findToArrayMock).toHaveBeenCalledTimes(1);
   });
 

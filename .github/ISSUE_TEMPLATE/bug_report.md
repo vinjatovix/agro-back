@@ -1,38 +1,82 @@
 ---
 name: Bug report
-about: Create a report to help us improve
-title: ''
-labels: ''
+about: Report a bug in the API or domain logic
+title: '[BUG] '
+labels: bug
 assignees: ''
+---
+
+## Description
+
+Clear and concise description of the issue.
 
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+## Steps to reproduce
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+Provide a minimal reproducible scenario.
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+Example:
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+1. Send request:
 
-**Desktop (please complete the following information):**
- - OS: [e.g. iOS]
- - Browser [e.g. chrome, safari]
- - Version [e.g. 22]
+```
 
-**Smartphone (please complete the following information):**
- - Device: [e.g. iPhone6]
- - OS: [e.g. iOS8.1]
- - Browser [e.g. stock browser, safari]
- - Version [e.g. 22]
+POST /plants
+{
+    "name": ""
+}
 
-**Additional context**
-Add any other context about the problem here.
+```
+
+1. Observe response
+
+---
+
+## Expected behavior
+
+What should happen according to:
+
+- business rules
+- OpenAPI spec
+- existing behavior
+
+---
+
+## Actual behavior
+
+What is currently happening.
+
+Include:
+
+- HTTP status
+- response body
+
+---
+
+## Environment
+
+- Node version:
+- Execution mode: (local / docker)
+- Branch / commit:
+
+---
+
+## Logs / Errors
+
+Paste relevant logs or stack traces.
+
+```bash
+# example
+Unexpected error at error handler...
+```
+
+---
+
+## Additional context
+
+Anything else that may help:
+
+- related PRs
+- related issues
+- edge cases

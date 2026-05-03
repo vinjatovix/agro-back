@@ -20,16 +20,16 @@ Ensures correctness, regression safety, and architectural compliance.
 
 Scope:
 
-* Domain Core
-* Value Objects
-* Pure functions
-* Spatial logic (pure computation)
+- Domain Core
+- Value Objects
+- Pure functions
+- Spatial logic (pure computation)
 
 Rules:
 
-* no IO
-* no persistence
-* no API coupling
+- no IO
+- no persistence
+- no API coupling
 
 ---
 
@@ -37,15 +37,15 @@ Rules:
 
 Scope:
 
-* Application use cases
-* Persistence layer
-* Repository behavior
-* Patch system
+- Application use cases
+- Persistence layer
+- Repository behavior
+- Patch system
 
 Rules:
 
-* real infrastructure allowed (test DB or mocks)
-* no HTTP layer dependency
+- real infrastructure allowed (test DB or mocks)
+- no HTTP layer dependency
 
 ---
 
@@ -53,14 +53,14 @@ Rules:
 
 Scope:
 
-* API endpoints
-* full request → domain → persistence → response cycle
-* Beds module flows
+- API endpoints
+- full request → domain → persistence → response cycle
+- Beds module flows
 
 Rules:
 
-* validate real system behavior
-* must reflect API contract
+- validate real system behavior
+- must reflect API contract
 
 ---
 
@@ -68,14 +68,14 @@ Rules:
 
 Scope:
 
-* API contract validation against OpenAPI spec
+- API contract validation against OpenAPI spec
 
 Rules:
 
-* response MUST match OpenAPI schema
-* no drift between implementation and spec
-* failures block deployment
-* includes Beds endpoints validation
+- response MUST match OpenAPI schema
+- no drift between implementation and spec
+- failures block deployment
+- includes Beds endpoints validation
 
 ---
 
@@ -83,38 +83,38 @@ Rules:
 
 Scope:
 
-* feature-based system tests
-* shared world state
-* scenario-driven API behavior
+- feature-based system tests
+- shared world state
+- scenario-driven API behavior
 
 Features:
 
-* Given/When/Then DSL
-* stateful execution via World
-* reusable fixtures (seeders)
+- Given/When/Then DSL
+- stateful execution via World
+- reusable fixtures (seeders)
 
 Added coverage:
 
-* Beds feature scenarios (CRUD flows)
-* cross-entity ownership rules (user/bed isolation)
+- Beds feature scenarios (CRUD flows)
+- cross-entity ownership rules (user/bed isolation)
 
 ---
 
 # 3. COVERAGE RULES
 
-* minimum coverage: 80%
-* enforced at CI level
-* PRs failing coverage MUST be rejected
+- minimum coverage: 80%
+- enforced at CI level
+- PRs failing coverage MUST be rejected
 
 ---
 
 # 4. ASSERTION RULES
 
-* NO dependency on exact error strings
-* use semantic matching only
-* avoid brittle snapshots unless stable contract (OpenAPI)
-* asserting raw error strings is allowed ONLY when explicitly defined by validation contract
-* PATCH responses MUST be treated as full aggregate snapshots (not partial fragments)
+- NO dependency on exact error strings
+- use semantic matching only
+- avoid brittle snapshots unless stable contract (OpenAPI)
+- asserting raw error strings is allowed ONLY when explicitly defined by validation contract
+- PATCH responses MUST be treated as full aggregate snapshots (not partial fragments)
 
 Contract tests enforce full-response strict equality against OpenAPI. BDD tests MAY use partial matching for readability.
 
@@ -122,10 +122,10 @@ Contract tests enforce full-response strict equality against OpenAPI. BDD tests 
 
 # 5. SONAR RULES
 
-* PRs MUST pass Sonar checks
-* no critical vulnerabilities allowed
-* no duplicated logic above threshold
-* maintainability rating enforced
+- PRs MUST pass Sonar checks
+- no critical vulnerabilities allowed
+- no duplicated logic above threshold
+- maintainability rating enforced
 
 ---
 
@@ -133,19 +133,19 @@ Contract tests enforce full-response strict equality against OpenAPI. BDD tests 
 
 Test utilities MAY include:
 
-* API-driven seeders (HTTP-based setup)
-* domain factories (pure object creation)
+- API-driven seeders (HTTP-based setup)
+- domain factories (pure object creation)
 
 Added seeders:
 
-* BedSeeder for Beds module setup
-* PlantSeeder for Plants module setup
-* cross-user seeders for ownership validation scenarios
+- BedSeeder for Beds module setup
+- PlantSeeder for Plants module setup
+- cross-user seeders for ownership validation scenarios
 
 Seeders are allowed to:
 
-* interact with real HTTP server in E2E tests
-* create deterministic test fixtures
+- interact with real HTTP server in E2E tests
+- create deterministic test fixtures
 
 ---
 
@@ -167,31 +167,31 @@ class TestWorldImpl extends World implements TestWorld {
 
 Rules:
 
-* state is isolated per scenario
-* no cross-scenario leakage
+- state is isolated per scenario
+- no cross-scenario leakage
 
 Extended state usage:
 
-* bedId used in Beds scenarios
-* plantId used in Plants scenarios
+- bedId used in Beds scenarios
+- plantId used in Plants scenarios
 
 ---
 
 # 8. FUTURE EVOLUTION
 
-* mutation testing
-* contract-driven test generation
-* scenario-based DSL expansion
-* BDD step definition modularization (Cucumber scalability layer)
-  * current step file structure is becoming too large
-  * steps MUST be split by bounded context (Plant, Bed, Auth, etc.)
-  * shared steps MUST be extracted into reusable step utilities
-  * step definition organization MUST follow domain-aligned structure rather than feature dump files
+- mutation testing
+- contract-driven test generation
+- scenario-based DSL expansion
+- BDD step definition modularization (Cucumber scalability layer)
+  - current step file structure is becoming too large
+  - steps MUST be split by bounded context (Plant, Bed, Auth, etc.)
+  - shared steps MUST be extracted into reusable step utilities
+  - step definition organization MUST follow domain-aligned structure rather than feature dump files
 
 ---
 
 # 9. ANTI-PATTERNS
 
-* testing implementation details instead of behavior
-* coupling tests to Express internals
-* missing contract alignment with OpenAPI
+- testing implementation details instead of behavior
+- coupling tests to Express internals
+- missing contract alignment with OpenAPI

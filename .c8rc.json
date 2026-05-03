@@ -1,8 +1,6 @@
 {
   "all": true,
-  "include": [
-    "src/**/*.ts"
-  ],
+  "include": ["src/**/*.ts"],
   "exclude": [
     "src/index.ts",
     "src/**/types/**",
@@ -16,13 +14,8 @@
     "**/coverage/**",
     "setupTests.ts"
   ],
-  "extension": [
-    ".ts"
-  ],
-  "reporter": [
-    "lcov",
-    "text-summary"
-  ],
+  "extension": [".ts"],
+  "reporter": ["lcov", "text-summary"],
   "sourceMap": true,
   "instrument": true,
   "temp-dir": ".c8_output"

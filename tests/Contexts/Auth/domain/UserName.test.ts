@@ -1,5 +1,5 @@
-import { Username } from "../../../../src/Contexts/Auth/domain/value-objects/Username.js";
-import { random } from "../../shared/fixtures/index.js";
+import { Username } from '../../../../src/Contexts/Auth/domain/value-objects/Username.js';
+import { random } from '../../shared/fixtures/index.js';
 
 describe('UserName', () => {
   it('should create a valid username', () => {

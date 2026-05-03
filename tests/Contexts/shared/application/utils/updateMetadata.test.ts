@@ -18,7 +18,9 @@ describe('updateMetadata', () => {
 
     const after = Date.now();
     expect(result['metadata.updatedAt']).toBeInstanceOf(Date);
-    expect(result['metadata.updatedAt'].getTime()).toBeGreaterThanOrEqual(before);
+    expect(result['metadata.updatedAt'].getTime()).toBeGreaterThanOrEqual(
+      before
+    );
     expect(result['metadata.updatedAt'].getTime()).toBeLessThanOrEqual(after);
   });
 });

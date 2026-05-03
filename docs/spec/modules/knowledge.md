@@ -22,11 +22,11 @@ Knowledge is a **shared ecological dataset**, not ownership data.
 
 Rules:
 
-* NOT part of Plant aggregate
-* NOT part of Bed aggregate
-* referenced via IDs only
-* globally consistent across the system
-* extensible without affecting domain invariants
+- NOT part of Plant aggregate
+- NOT part of Bed aggregate
+- referenced via IDs only
+- globally consistent across the system
+- extensible without affecting domain invariants
 
 ---
 
@@ -38,16 +38,16 @@ Represents organisms that negatively affect plants.
 
 ### Fields
 
-* id
-* name
-* affects: Plant IDs
-* symptoms: string[]
+- id
+- name
+- affects: Plant IDs
+- symptoms: string[]
 
 ### Rules
 
-* can affect multiple plants
-* symptoms are descriptive only
-* no behavioral logic
+- can affect multiple plants
+- symptoms are descriptive only
+- no behavioral logic
 
 ---
 
@@ -57,11 +57,11 @@ Represents plant pathology conditions.
 
 ### Fields
 
-* id
-* name
-* affectedPlants
-* symptoms
-* severity (optional)
+- id
+- name
+- affectedPlants
+- symptoms
+- severity (optional)
 
 ---
 
@@ -71,15 +71,15 @@ Represents treatments for pests and diseases.
 
 ### Fields
 
-* id
-* name
-* type: organic | chemical | biological
-* application:
+- id
+- name
+- type: organic | chemical | biological
+- application:
+  - method
+  - frequency
+  - dosage
 
-  * method
-  * frequency
-  * dosage
-* effectiveAgainst: Pest | Disease IDs
+- effectiveAgainst: Pest | Disease IDs
 
 ---
 
@@ -89,17 +89,16 @@ Represents nutrient inputs for plant growth.
 
 ### Fields
 
-* id
-* name
-* npk:
+- id
+- name
+- npk:
+  - n
+  - p
+  - k
 
-  * n
-  * p
-  * k
-* application:
-
-  * frequency
-  * amount
+- application:
+  - frequency
+  - amount
 
 ---
 
@@ -109,14 +108,14 @@ Represents ecological or functional properties of plants.
 
 ### Categories
 
-* benefits
-* strategies
+- benefits
+- strategies
 
 ### Examples
 
-* attract_pollinators
-* trap_crop
-* nematode_control
+- attract_pollinators
+- trap_crop
+- nematode_control
 
 ---
 
@@ -128,26 +127,26 @@ This is a **global directed weighted graph**.
 
 ### Fields
 
-* plantA
-* plantB
-* type:
+- plantA
+- plantB
+- type:
+  - beneficial
+  - harmful
+  - neutral
 
-  * beneficial
-  * harmful
-  * neutral
-* strength: 1–5
-* distance constraints:
+- strength: 1–5
+- distance constraints:
+  - minDistance
+  - maxDistance
 
-  * minDistance
-  * maxDistance
-* reason (human-readable explanation)
+- reason (human-readable explanation)
 
 ### Rules
 
-* graph is global (not per plant)
-* relationships are directional
-* distance constraints affect spatial system indirectly
-* used for recommendations and planning, NOT enforcement
+- graph is global (not per plant)
+- relationships are directional
+- distance constraints affect spatial system indirectly
+- used for recommendations and planning, NOT enforcement
 
 ---
 
@@ -155,20 +154,20 @@ This is a **global directed weighted graph**.
 
 ## 4.1 What Knowledge System DOES
 
-* models ecological relationships
-* provides agronomic intelligence
-* supports decision-making systems
-* feeds simulation layers
+- models ecological relationships
+- provides agronomic intelligence
+- supports decision-making systems
+- feeds simulation layers
 
 ---
 
 ## 4.2 What Knowledge System DOES NOT DO
 
-* does not enforce planting rules
-* does not validate Plant aggregates
-* does not manage persistence
-* does not handle spatial placement
-* does not execute events
+- does not enforce planting rules
+- does not validate Plant aggregates
+- does not manage persistence
+- does not handle spatial placement
+- does not execute events
 
 ---
 
@@ -195,10 +194,10 @@ No embedded knowledge objects allowed.
 
 Events may reference:
 
-* pests
-* diseases
-* remedies
-* fertilizers
+- pests
+- diseases
+- remedies
+- fertilizers
 
 But NEVER embed logic from them.
 
@@ -208,8 +207,8 @@ But NEVER embed logic from them.
 
 Indirect influence only:
 
-* plant relations may affect recommended spacing
-* no direct enforcement rules
+- plant relations may affect recommended spacing
+- no direct enforcement rules
 
 ---
 
@@ -217,21 +216,21 @@ Indirect influence only:
 
 The graph is:
 
-* global
-* weighted
-* directional
-* non-deterministic in enforcement (recommendation-only)
+- global
+- weighted
+- directional
+- non-deterministic in enforcement (recommendation-only)
 
 Used for:
 
-* companion planting suggestions
-* pest prevention strategies
-* ecological optimization
+- companion planting suggestions
+- pest prevention strategies
+- ecological optimization
 
 Not used for:
 
-* collision detection
-* placement validation
+- collision detection
+- placement validation
 
 ---
 
@@ -239,15 +238,15 @@ Not used for:
 
 New knowledge types MUST:
 
-* be independent modules
-* NOT modify Plant aggregate
-* NOT introduce circular dependencies
+- be independent modules
+- NOT modify Plant aggregate
+- NOT introduce circular dependencies
 
 Allowed extensions:
 
-* pollinators
-* soil microbiome models
-* climate interaction datasets
+- pollinators
+- soil microbiome models
+- climate interaction datasets
 
 ---
 
@@ -255,18 +254,18 @@ Allowed extensions:
 
 ## Implemented
 
-* pest model (partial)
-* fertilizer model (partial)
-* plant attributes (basic)
-* relation graph concept defined
+- pest model (partial)
+- fertilizer model (partial)
+- plant attributes (basic)
+- relation graph concept defined
 
 ## Pending
 
-* full normalization of IDs across knowledge entities
-* consistent schema enforcement
-* separation from domain types currently leaking
-* validation layer for knowledge integrity
-* recommendation engine (future layer)
+- full normalization of IDs across knowledge entities
+- consistent schema enforcement
+- separation from domain types currently leaking
+- validation layer for knowledge integrity
+- recommendation engine (future layer)
 
 ---
 
@@ -274,11 +273,11 @@ Allowed extensions:
 
 The following are forbidden:
 
-* embedding knowledge inside Plant aggregate
-* using knowledge for domain validation
-* coupling knowledge with persistence schema
-* enforcing spatial rules through knowledge graph
-* duplicating knowledge inside events or beds
+- embedding knowledge inside Plant aggregate
+- using knowledge for domain validation
+- coupling knowledge with persistence schema
+- enforcing spatial rules through knowledge graph
+- duplicating knowledge inside events or beds
 
 ---
 
@@ -286,11 +285,11 @@ The following are forbidden:
 
 Planned extensions:
 
-* recommendation engine
-* ecological simulation system
-* seasonal behavior modeling
-* pest outbreak prediction
-* AI-assisted planting planner
+- recommendation engine
+- ecological simulation system
+- seasonal behavior modeling
+- pest outbreak prediction
+- AI-assisted planting planner
 
 ---
 
@@ -300,9 +299,8 @@ The Knowledge System is the **intelligence layer of AgroApp**.
 
 It must remain:
 
-* independent
-* extensible
-* non-invasive to core domain logic
+- independent
+- extensible
+- non-invasive to core domain logic
 
 Any coupling introduced here will propagate architectural instability across the system.
-

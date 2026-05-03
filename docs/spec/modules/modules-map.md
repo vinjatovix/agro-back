@@ -20,13 +20,13 @@ It is the highest-level architectural contract of the system.
 
 AgroApp follows a **modular layered architecture with strict boundaries**:
 
-* Domain modules are isolated
-* Application layer orchestrates use cases
-* Infrastructure implements persistence and external systems
-* Knowledge system is external to core domain
-* Spatial system is pure computation layer
-* API is transport boundary
-* OpenAPI is contract authority layer
+- Domain modules are isolated
+- Application layer orchestrates use cases
+- Infrastructure implements persistence and external systems
+- Knowledge system is external to core domain
+- Spatial system is pure computation layer
+- API is transport boundary
+- OpenAPI is contract authority layer
 
 ---
 
@@ -38,17 +38,17 @@ AgroApp follows a **modular layered architecture with strict boundaries**:
 /modules/domain-core.md
 ```
 
-* Plant aggregate
-* Bed aggregate
-* PlantInstance entity
-* Value Objects
-* invariants
+- Plant aggregate
+- Bed aggregate
+- PlantInstance entity
+- Value Objects
+- invariants
 
 Rules:
 
-* no IO
-* no persistence
-* no external dependencies
+- no IO
+- no persistence
+- no external dependencies
 
 ---
 
@@ -58,17 +58,17 @@ Rules:
 /modules/knowledge.md
 ```
 
-* pests
-* diseases
-* remedies
-* fertilizers
-* plant relations graph
+- pests
+- diseases
+- remedies
+- fertilizers
+- plant relations graph
 
 Rules:
 
-* global dataset
-* no domain ownership
-* referenced by ID only
+- global dataset
+- no domain ownership
+- referenced by ID only
 
 ---
 
@@ -78,16 +78,16 @@ Rules:
 /modules/spatial.md
 ```
 
-* collision detection
-* spacing validation
-* placement rules
-* spatial context evaluation
+- collision detection
+- spacing validation
+- placement rules
+- spatial context evaluation
 
 Rules:
 
-* pure computation
-* no persistence
-* no domain mutation
+- pure computation
+- no persistence
+- no domain mutation
 
 ---
 
@@ -97,14 +97,14 @@ Rules:
 /modules/events.md
 ```
 
-* temporal record of agronomic actions
-* watering, fertilization, pruning, etc.
+- temporal record of agronomic actions
+- watering, fertilization, pruning, etc.
 
 Rules:
 
-* append-only model (future)
-* references PlantInstance + Bed
-* no domain mutation
+- append-only model (future)
+- references PlantInstance + Bed
+- no domain mutation
 
 ---
 
@@ -114,15 +114,15 @@ Rules:
 /modules/persistence.md
 ```
 
-* repositories
-* DTO mapping
-* patch/diff system
+- repositories
+- DTO mapping
+- patch/diff system
 
 Rules:
 
-* domain is source of truth
-* persistence is projection
-* no business logic
+- domain is source of truth
+- persistence is projection
+- no business logic
 
 ---
 
@@ -132,17 +132,17 @@ Rules:
 /modules/api-layer.md
 ```
 
-* HTTP controllers
-* routing
-* middleware
-* request/response shaping
-* dependency injection strategy (Awilix classic/proxy composition)
+- HTTP controllers
+- routing
+- middleware
+- request/response shaping
+- dependency injection strategy (Awilix classic/proxy composition)
 
 Rules:
 
-* no domain logic
-* no persistence logic
-* no spatial logic
+- no domain logic
+- no persistence logic
+- no spatial logic
 
 ---
 
@@ -152,15 +152,15 @@ Rules:
 /modules/validation.md
 ```
 
-* request validation
-* DTO schema enforcement
-* structured error formatting
+- request validation
+- DTO schema enforcement
+- structured error formatting
 
 Rules:
 
-* no domain logic
-* MUST align with OpenAPI contract
-* transport-only layer
+- no domain logic
+- MUST align with OpenAPI contract
+- transport-only layer
 
 ---
 
@@ -170,17 +170,17 @@ Rules:
 /modules/openapi.md
 ```
 
-* external API specification
-* single source of truth for API
-* schema definitions for requests/responses
-* error contract definition
-* actively used via Swagger UI
+- external API specification
+- single source of truth for API
+- schema definitions for requests/responses
+- error contract definition
+- actively used via Swagger UI
 
 Rules:
 
-* implementation MUST follow spec
-* contract drift is critical failure
-* used by tests as validation source (pending full enforcement)
+- implementation MUST follow spec
+- contract drift is critical failure
+- used by tests as validation source (pending full enforcement)
 
 ---
 
@@ -190,17 +190,17 @@ Rules:
 /modules/testing.md
 ```
 
-* unit tests (domain, spatial)
-* integration tests (application, persistence)
-* e2e tests (API)
-* contract tests (OpenAPI validation)
+- unit tests (domain, spatial)
+- integration tests (application, persistence)
+- e2e tests (API)
+- contract tests (OpenAPI validation)
 
 Rules:
 
-* no implementation coupling
-* 80% minimum coverage
-* Sonar quality gate required
-* MUST validate OpenAPI contract compliance
+- no implementation coupling
+- 80% minimum coverage
+- Sonar quality gate required
+- MUST validate OpenAPI contract compliance
 
 ---
 
@@ -210,15 +210,15 @@ Rules:
 /modules/plant-instance.md
 ```
 
-* runtime plant placement
-* spatial linkage
-* lifecycle tracking in relation to Beds
+- runtime plant placement
+- spatial linkage
+- lifecycle tracking in relation to Beds
 
 Rules:
 
-* depends on Plant
-* interacts with Spatial System
-* no business rules
+- depends on Plant
+- interacts with Spatial System
+- no business rules
 
 ---
 
@@ -228,21 +228,21 @@ Rules:
 /modules/bed.md
 ```
 
-* spatial container
-* grouping of PlantInstances
-* grid alignment anchor
+- spatial container
+- grouping of PlantInstances
+- grid alignment anchor
 
 Rules:
 
-* no plant logic
-* no event logic
-* no knowledge logic
+- no plant logic
+- no event logic
+- no knowledge logic
 
 ---
 
 # 4. DEPENDENCY RULES
 
-```sh  
+```sh
 API → Application → Domain
 API → Validation
 API → OpenAPI (contract source)
@@ -259,15 +259,15 @@ Testing → ALL MODULES (read-only, contract-aware)
 
 ## 5.1 Plant ↔ Knowledge
 
-* Plant references knowledge IDs
-* Knowledge does not depend on Plant
+- Plant references knowledge IDs
+- Knowledge does not depend on Plant
 
 ---
 
 ## 5.2 Plant ↔ Spatial
 
-* Spatial evaluates PlantInstances only
-* Plant is definition, not position
+- Spatial evaluates PlantInstances only
+- Plant is definition, not position
 
 ---
 
@@ -275,9 +275,9 @@ Testing → ALL MODULES (read-only, contract-aware)
 
 Events reference:
 
-* PlantInstance
-* Bed
-* Knowledge entities (optional)
+- PlantInstance
+- Bed
+- Knowledge entities (optional)
 
 But do not modify them directly
 
@@ -302,10 +302,10 @@ But do not modify them directly
 
 Any new module MUST:
 
-* declare dependencies explicitly
-* avoid circular references
-* respect domain isolation
-* be added here before implementation
+- declare dependencies explicitly
+- avoid circular references
+- respect domain isolation
+- be added here before implementation
 
 ---
 

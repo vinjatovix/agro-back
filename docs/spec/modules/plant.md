@@ -14,10 +14,10 @@ It represents a plant as a **species-level aggregate**, not a spatial or tempora
 
 Plant is the **source of agronomic truth** used by:
 
-* PlantInstance (runtime occurrence)
-* Knowledge System (ecological context)
-* Spatial System (indirect spacing rules)
-* Events System (context enrichment)
+- PlantInstance (runtime occurrence)
+- Knowledge System (ecological context)
+- Spatial System (indirect spacing rules)
+- Events System (context enrichment)
 
 ---
 
@@ -27,23 +27,23 @@ Plant is a **definition aggregate root**.
 
 It is responsible for describing:
 
-* identity (what it is)
-* traits (how it behaves biologically)
-* phenology (how it develops over time)
-* knowledge references (ecological context)
+- identity (what it is)
+- traits (how it behaves biologically)
+- phenology (how it develops over time)
+- knowledge references (ecological context)
 
 ---
 
 # 3. CORE PRINCIPLE
 
-> Plant defines *what a plant is*, not *what happens to it in space or time*
+> Plant defines _what a plant is_, not _what happens to it in space or time_
 
 Rules:
 
-* Plant is NOT spatial
-* Plant is NOT temporal
-* Plant is NOT lifecycle runtime
-* Plant is NOT event-driven
+- Plant is NOT spatial
+- Plant is NOT temporal
+- Plant is NOT lifecycle runtime
+- Plant is NOT event-driven
 
 ---
 
@@ -66,9 +66,9 @@ Plant is composed of 4 core subdomains:
 
 ### Rules
 
-* primary name is required semantic identifier
-* aliases are optional semantic enrichments
-* familyId links to taxonomy layer (external bounded context)
+- primary name is required semantic identifier
+- aliases are optional semantic enrichments
+- familyId links to taxonomy layer (external bounded context)
 
 ---
 
@@ -80,16 +80,16 @@ Plant is composed of 4 core subdomains:
   size: {
     height: Range;
     spread: Range;
-  };
+  }
   spacingCm: Range;
 }
 ```
 
 ### Meaning
 
-* lifecycle → biological growth pattern
-* size → expected physical bounds
-* spacingCm → **indirect spatial constraint (NOT enforcement)**
+- lifecycle → biological growth pattern
+- size → expected physical bounds
+- spacingCm → **indirect spatial constraint (NOT enforcement)**
 
 ### Important boundary rule
 
@@ -105,32 +105,32 @@ Spacing is:
 
 Encapsulated as:
 
-* seedsPerHole
-* germinationDays
-* months
-* methods (direct / starter)
+- seedsPerHole
+- germinationDays
+- months
+- methods (direct / starter)
 
 👉 This is a **structured sub-aggregate (PlantSowing)**
 
 Rules:
 
-* validation is strict at construction time
-* months must not be empty
-* depth constraints must exist
+- validation is strict at construction time
+- months must not be empty
+- depth constraints must exist
 
 ---
 
 ### Flowering
 
-* months
-* pollination (optional)
+- months
+- pollination (optional)
 
 ---
 
 ### Harvest
 
-* months
-* description (optional)
+- months
+- description (optional)
 
 ---
 
@@ -142,10 +142,10 @@ knowledge?: PlantKnowledge
 
 Rules:
 
-* optional
-* may default to empty object
-* never embedded logic
-* pure reference layer only
+- optional
+- may default to empty object
+- never embedded logic
+- pure reference layer only
 
 ---
 
@@ -156,14 +156,14 @@ Rules:
 Plant supports soft deletion:
 
 ```ts
-markAsDeleted()
+markAsDeleted();
 ```
 
 Rules:
 
-* idempotent
-* sets status = DELETED
-* sets deletedAt timestamp
+- idempotent
+- sets status = DELETED
+- sets deletedAt timestamp
 
 ---
 
@@ -171,8 +171,8 @@ Rules:
 
 ### Status consistency
 
-* ACTIVE → cannot have deletedAt
-* DELETED → must have deletedAt
+- ACTIVE → cannot have deletedAt
+- DELETED → must have deletedAt
 
 This is enforced in constructor.
 
@@ -180,9 +180,9 @@ This is enforced in constructor.
 
 ## 5.3 Immutability principle
 
-* props are deeply frozen
-* domain state cannot be mutated externally
-* only controlled mutations via explicit methods
+- props are deeply frozen
+- domain state cannot be mutated externally
+- only controlled mutations via explicit methods
 
 ---
 
@@ -192,9 +192,9 @@ This is enforced in constructor.
 
 Plant MAY depend on:
 
-* Value Objects (Range, MonthSet, Metadata)
-* Sub-aggregates (PlantSowing)
-* Knowledge references
+- Value Objects (Range, MonthSet, Metadata)
+- Sub-aggregates (PlantSowing)
+- Knowledge references
 
 ---
 
@@ -202,11 +202,11 @@ Plant MAY depend on:
 
 Plant MUST NOT depend on:
 
-* API layer
-* persistence layer
-* spatial logic
-* event system
-* validation middleware
+- API layer
+- persistence layer
+- spatial logic
+- event system
+- validation middleware
 
 ---
 
@@ -214,8 +214,8 @@ Plant MUST NOT depend on:
 
 ## 7.1 Plant → PlantInstance
 
-* Plant defines blueprint
-* PlantInstance is runtime instantiation
+- Plant defines blueprint
+- PlantInstance is runtime instantiation
 
 No bidirectional coupling.
 
@@ -223,22 +223,22 @@ No bidirectional coupling.
 
 ## 7.2 Plant → Knowledge System
 
-* Plant references knowledge IDs
-* Knowledge system remains external
+- Plant references knowledge IDs
+- Knowledge system remains external
 
 ---
 
 ## 7.3 Plant → Spatial System
 
-* Plant defines spacingCm (advisory)
-* Spatial system enforces actual placement
+- Plant defines spacingCm (advisory)
+- Spatial system enforces actual placement
 
 ---
 
 ## 7.4 Plant → Events (indirect future link)
 
-* Plant does not consume events
-* Events may reference Plant metadata
+- Plant does not consume events
+- Events may reference Plant metadata
 
 ---
 
@@ -248,9 +248,9 @@ Plant is not self-serializable.
 
 All transformations must go through:
 
-* PlantMapper
-* DTO layer
-* Repository mapping layer
+- PlantMapper
+- DTO layer
+- Repository mapping layer
 
 ---
 
@@ -260,10 +260,10 @@ From codebase analysis:
 
 ## 9.1 PlantMapper responsibilities
 
-* Plant ↔ PlantPrimitives
-* DTO → Plant
-* Patch → Partial PlantPrimitives
-* Knowledge mapping delegation
+- Plant ↔ PlantPrimitives
+- DTO → Plant
+- Patch → Partial PlantPrimitives
+- Knowledge mapping delegation
 
 ---
 
@@ -281,11 +281,11 @@ From your implementation:
 
 ## 10.1 Strengths
 
-* strong value object usage
-* clear separation of phenology subdomain
-* good immutability via deepFreeze
-* explicit validation rules
-* proper aggregate boundary usage
+- strong value object usage
+- clear separation of phenology subdomain
+- good immutability via deepFreeze
+- explicit validation rules
+- proper aggregate boundary usage
 
 ---
 
@@ -295,11 +295,11 @@ From your implementation:
 
 It contains:
 
-* biology
-* partial lifecycle
-* knowledge reference
-* deletion lifecycle
-* validation rules
+- biology
+- partial lifecycle
+- knowledge reference
+- deletion lifecycle
+- validation rules
 
 risk: gradual expansion into god-aggregate
 
@@ -309,8 +309,8 @@ risk: gradual expansion into god-aggregate
 
 PlantSowing is already:
 
-* mini-aggregate inside aggregate
-* full validation + serialization + factory
+- mini-aggregate inside aggregate
+- full validation + serialization + factory
 
 acceptable, but must remain isolated
 
@@ -318,8 +318,8 @@ acceptable, but must remain isolated
 
 ### 3. Knowledge coupling is still loose
 
-* PlantKnowledge is embedded but optional
-* risk of hidden coupling increasing over time
+- PlantKnowledge is embedded but optional
+- risk of hidden coupling increasing over time
 
 ---
 
@@ -327,12 +327,12 @@ acceptable, but must remain isolated
 
 Forbidden in Plant:
 
-* spatial logic
-* event handling
-* persistence awareness
-* DTO awareness
-* business workflows
-* cross-aggregate mutation
+- spatial logic
+- event handling
+- persistence awareness
+- DTO awareness
+- business workflows
+- cross-aggregate mutation
 
 ---
 
@@ -340,9 +340,9 @@ Forbidden in Plant:
 
 ## 12.1 Likely future stabilizations
 
-* PlantLifecycle may become full state machine module
-* Phenology may split further (GrowthModel module)
-* Knowledge may become external query system only
+- PlantLifecycle may become full state machine module
+- Phenology may split further (GrowthModel module)
+- Knowledge may become external query system only
 
 ---
 
@@ -350,13 +350,13 @@ Forbidden in Plant:
 
 If Plant grows beyond:
 
-* identity + traits + phenology + references
+- identity + traits + phenology + references
 
 → it should be split into:
 
-* PlantIdentity
-* PlantBiology
-* PlantPhenology
+- PlantIdentity
+- PlantBiology
+- PlantPhenology
 
 (But NOT yet needed)
 

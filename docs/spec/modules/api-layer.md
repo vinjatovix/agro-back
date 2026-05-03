@@ -12,9 +12,9 @@ This module defines the external HTTP contract of AgroApp.
 
 It specifies the resources exposed to clients, including:
 
-* endpoints
-* request/response shapes
-* domain boundaries visible through HTTP
+- endpoints
+- request/response shapes
+- domain boundaries visible through HTTP
 
 This module is the formal agreement between the backend and any external consumer.
 
@@ -24,18 +24,18 @@ This module is the formal agreement between the backend and any external consume
 
 The system exposes the following domain resources:
 
-* Plants
-* PlantInstances
-* Beds
-* Events
-* Users / Auth
-* Families
-* Pests
-* Diseases
-* Remedies
-* Fertilizers
-* Plant Relations (companion system)
-* Ecological Attributes
+- Plants
+- PlantInstances
+- Beds
+- Events
+- Users / Auth
+- Families
+- Pests
+- Diseases
+- Remedies
+- Fertilizers
+- Plant Relations (companion system)
+- Ecological Attributes
 
 ---
 
@@ -43,22 +43,22 @@ The system exposes the following domain resources:
 
 ## 3.1 Providers
 
-* local (email/password)
-* google OAuth
+- local (email/password)
+- google OAuth
 
 ## 3.2 Features
 
-* user registration
-* login
-* token refresh
-* email validation
-* password update
+- user registration
+- login
+- token refresh
+- email validation
+- password update
 
 ## 3.3 Pending infrastructure
 
-* email delivery service integration (e.g. SendGrid)
-* enforcement of email verification flow
-* full Google OAuth validation hardening
+- email delivery service integration (e.g. SendGrid)
+- enforcement of email verification flow
+- full Google OAuth validation hardening
 
 ---
 
@@ -68,18 +68,18 @@ The system exposes the following domain resources:
 
 ## 4.1 Plants
 
-* POST /api/v1/plants (implemented)
-* GET /api/v1/plants (implemented)
-* GET /api/v1/plants/:id (implemented)
-* PATCH /api/v1/plants/:id (implemented)
-* DELETE /api/v1/plants/:id (implemented)
+- POST /api/v1/plants (implemented)
+- GET /api/v1/plants (implemented)
+- GET /api/v1/plants/:id (implemented)
+- PATCH /api/v1/plants/:id (implemented)
+- DELETE /api/v1/plants/:id (implemented)
 
 ### Access control
 
-* GET /api/v1/plants → public (no authentication required)
-* POST /api/v1/plants → admin only
-* PATCH /api/v1/plants/:id → admin only
-* DELETE /api/v1/plants/:id → admin only
+- GET /api/v1/plants → public (no authentication required)
+- POST /api/v1/plants → admin only
+- PATCH /api/v1/plants/:id → admin only
+- DELETE /api/v1/plants/:id → admin only
 
 ---
 
@@ -87,9 +87,9 @@ The system exposes the following domain resources:
 
 Behavior:
 
-* returns a Plant aggregate by UUID
-* returns 404 if not found
-* returns 400 if invalid UUID
+- returns a Plant aggregate by UUID
+- returns 404 if not found
+- returns 400 if invalid UUID
 
 ---
 
@@ -97,9 +97,9 @@ Behavior:
 
 Behavior:
 
-* supports partial updates (deep merge semantics)
-* only provided fields are modified
-* returns full Plant resource after update
+- supports partial updates (deep merge semantics)
+- only provided fields are modified
+- returns full Plant resource after update
 
 ---
 
@@ -111,16 +111,16 @@ Represents a real instance of a Plant placed in a Bed.
 
 pending implementation
 
-* POST /api/v1/plant-instances
-* GET /api/v1/plant-instances/:id
-* GET /api/v1/plant-instances?bedId=
-* PUT /api/v1/plant-instances/:id
-* DELETE /api/v1/plant-instances/:id
+- POST /api/v1/plant-instances
+- GET /api/v1/plant-instances/:id
+- GET /api/v1/plant-instances?bedId=
+- PUT /api/v1/plant-instances/:id
+- DELETE /api/v1/plant-instances/:id
 
 ### Concept
 
-* Plant = definition (species template)
-* PlantInstance = physical/virtual occurrence in space
+- Plant = definition (species template)
+- PlantInstance = physical/virtual occurrence in space
 
 Note: PlantInstance schema is reused in Bed-related OpenAPI responses as a read-model embedding. This does not imply ownership coupling.
 
@@ -130,11 +130,11 @@ Note: PlantInstance schema is reused in Bed-related OpenAPI responses as a read-
 
 pending implementation
 
-* POST /api/v1/beds
-* GET /api/v1/beds/:id
-* GET /api/v1/beds
-* PUT /api/v1/beds/:id
-* DELETE /api/v1/beds/:id
+- POST /api/v1/beds
+- GET /api/v1/beds/:id
+- GET /api/v1/beds
+- PUT /api/v1/beds/:id
+- DELETE /api/v1/beds/:id
 
 ---
 
@@ -146,73 +146,73 @@ Lifecycle events associated with PlantInstances.
 
 pending implementation
 
-* POST /api/v1/events
-* GET /api/v1/events
-* GET /api/v1/events/:id
-* GET /api/v1/events?plantInstanceId=
-* DELETE /api/v1/events/:id
+- POST /api/v1/events
+- GET /api/v1/events
+- GET /api/v1/events/:id
+- GET /api/v1/events?plantInstanceId=
+- DELETE /api/v1/events/:id
 
 ### Event types
 
-* watering
-* fertilization
-* pruning
-* pest_control
-* harvest
-* transplant
-* growth_update
+- watering
+- fertilization
+- pruning
+- pest_control
+- harvest
+- transplant
+- growth_update
 
 ---
 
 ## 4.5 Users
 
-* POST /api/v1/auth/register
-* POST /api/v1/auth/login
-* POST /api/v1/auth/google
-* POST /api/v1/auth/refresh
-* POST /api/v1/auth/update 🆕
-* GET /api/v1/auth/validate/:token
+- POST /api/v1/auth/register
+- POST /api/v1/auth/login
+- POST /api/v1/auth/google
+- POST /api/v1/auth/refresh
+- POST /api/v1/auth/update 🆕
+- GET /api/v1/auth/validate/:token
 
 ### Roles
 
-* admin
-* collaborator
-* user
+- admin
+- collaborator
+- user
 
 ---
 
 ## 4.6 Pests
 
-* GET /api/v1/pests
-* GET /api/v1/pests/:id
+- GET /api/v1/pests
+- GET /api/v1/pests/:id
 
 ---
 
 ## 4.7 Diseases
 
-* GET /api/v1/diseases
-* GET /api/v1/diseases/:id
+- GET /api/v1/diseases
+- GET /api/v1/diseases/:id
 
 ---
 
 ## 4.8 Remedies
 
-* GET /api/v1/remedies
-* GET /api/v1/remedies/:id
+- GET /api/v1/remedies
+- GET /api/v1/remedies/:id
 
 ---
 
 ## 4.9 Fertilizers
 
-* GET /api/v1/fertilizers
-* GET /api/v1/fertilizers/:id
+- GET /api/v1/fertilizers
+- GET /api/v1/fertilizers/:id
 
 ---
 
 ## 4.10 Families
 
-* GET /api/v1/families
-* GET /api/v1/families/:id
+- GET /api/v1/families
+- GET /api/v1/families/:id
 
 ---
 
@@ -220,9 +220,9 @@ pending implementation
 
 Represents companion planting relationships.
 
-* GET /api/v1/plant-relations
-* POST /api/v1/plant-relations
-* GET /api/v1/plant-relations/:id
+- GET /api/v1/plant-relations
+- POST /api/v1/plant-relations
+- GET /api/v1/plant-relations/:id
 
 ---
 
@@ -239,31 +239,31 @@ type ApiErrorResponse = {
 
 Validation errors:
 
-* dot-notation paths
-* deterministic messages
-* aligned with EPIC 13
-* must handle invalid URI encoding safely (no raw URIError leaks)
+- dot-notation paths
+- deterministic messages
+- aligned with EPIC 13
+- must handle invalid URI encoding safely (no raw URIError leaks)
 
 ---
 
 # 6. STATUS CODES
 
-* 400 → validation error
-* 401 → unauthenticated
-* 403 → forbidden (role mismatch)
-* 404 → resource not found
-* 409 → conflict (duplicate resource)
+- 400 → validation error
+- 401 → unauthenticated
+- 403 → forbidden (role mismatch)
+- 404 → resource not found
+- 409 → conflict (duplicate resource)
 
 ---
 
 # 7. GENERAL RULES
 
-* No business logic in API layer
-* No direct domain exposure
-* DTOs are mandatory at boundary
-* Plant and PlantInstance are strictly separated concepts
-* Events are append-only by design
-* API acts as translation layer only
+- No business logic in API layer
+- No direct domain exposure
+- DTOs are mandatory at boundary
+- Plant and PlantInstance are strictly separated concepts
+- Events are append-only by design
+- API acts as translation layer only
 
 ---
 
@@ -271,20 +271,20 @@ Validation errors:
 
 ## Implemented
 
-* Plants: READ + CREATE + PATCH + DELETE
-* Auth system (functional end-to-end, Swagger tested)
-* validation middleware (partial → evolving)
-* error handling (structured)
+- Plants: READ + CREATE + PATCH + DELETE
+- Auth system (functional end-to-end, Swagger tested)
+- validation middleware (partial → evolving)
+- error handling (structured)
 
 ## Partially designed
 
-* PlantInstances
-* Events system
-* Pest/Disease/Remedy system
+- PlantInstances
+- Events system
+- Pest/Disease/Remedy system
 
 ## Missing
 
-* email provider integration
+- email provider integration
 
 ---
 
@@ -302,33 +302,33 @@ The system currently uses Awilix in CLASSIC mode.
 
 ## Current state
 
-* Controllers are manually bound using `bindRun`
-* Container resolution is explicit via invoker functions
-* Controller methods are accessed through runtime binding
+- Controllers are manually bound using `bindRun`
+- Container resolution is explicit via invoker functions
+- Controller methods are accessed through runtime binding
 
 ## Known limitation
 
-* Classic mode causes inconsistencies between:
-  * test execution context
-  * production build resolution
-* manual binding introduces fragility (`this` context issues)
-* scalability issues in large controller graphs
+- Classic mode causes inconsistencies between:
+  - test execution context
+  - production build resolution
+- manual binding introduces fragility (`this` context issues)
+- scalability issues in large controller graphs
 
 ## Target evolution
 
 Migration to Awilix PROXY MODE:
 
-* automatic dependency resolution via property access
-* removal of manual binding (`bindRun`)
-* controllers resolved lazily through proxy container
-* reduced boilerplate in API wiring layer
+- automatic dependency resolution via property access
+- removal of manual binding (`bindRun`)
+- controllers resolved lazily through proxy container
+- reduced boilerplate in API wiring layer
 
 ## Risks
 
-* existing `makeInvoker` patterns will break
-* `bindRun` pattern becomes obsolete
-* controller interface assumptions must change
-* significant refactor required in API composition layer
+- existing `makeInvoker` patterns will break
+- `bindRun` pattern becomes obsolete
+- controller interface assumptions must change
+- significant refactor required in API composition layer
 
 ## Migration constraint
 

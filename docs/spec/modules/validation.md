@@ -20,12 +20,12 @@ Validation is a **schema enforcement layer**, not a business logic layer.
 
 # 3. RULES
 
-* express-validator is transport-only
-* MUST NOT contain domain logic
-* MUST NOT enforce business rules
-* MUST be aligned with OpenAPI schemas
-* MUST produce structured errors
-* MUST allow partial payload validation (PATCH semantics)
+- express-validator is transport-only
+- MUST NOT contain domain logic
+- MUST NOT enforce business rules
+- MUST be aligned with OpenAPI schemas
+- MUST produce structured errors
+- MUST allow partial payload validation (PATCH semantics)
 
 ---
 
@@ -44,11 +44,11 @@ type ApiErrorResponse = {
 
 Validation errors MUST:
 
-* use field path as key
-* be deterministic across environments
-* include a stable string message
-* MAY include raw invalid value inside message string
-* MUST NOT require full object presence for PATCH requests
+- use field path as key
+- be deterministic across environments
+- include a stable string message
+- MAY include raw invalid value inside message string
+- MUST NOT require full object presence for PATCH requests
 
 Example:
 
@@ -67,21 +67,22 @@ Example:
 
 checkExact() MUST:
 
-* enforce validation on explicitly declared fields
-* detect unknown fields at the top-level validation layer
-* NOT be considered a full deep schema enforcement mechanism for nested objects
-* be complemented with explicit strict validation for nested payloads when required
+- enforce validation on explicitly declared fields
+- detect unknown fields at the top-level validation layer
+- NOT be considered a full deep schema enforcement mechanism for nested objects
+- be complemented with explicit strict validation for nested payloads when required
+
 ---
 
 # 7. PATCH VALIDATION SEMANTICS (ADDED)
 
 PATCH endpoints MUST:
 
-* validate only provided fields
-* NOT require full entity payload
-* allow partial nested object validation
-* NOT invalidate missing sibling fields
-* preserve OpenAPI PATCH semantics consistency
+- validate only provided fields
+- NOT require full entity payload
+- allow partial nested object validation
+- NOT invalidate missing sibling fields
+- preserve OpenAPI PATCH semantics consistency
 
 ---
 
@@ -89,9 +90,9 @@ PATCH endpoints MUST:
 
 Validation layer MUST:
 
-* align error shape with OpenAPI contract
-* ensure field paths match OpenAPI schema structure
-* ensure validation errors can be asserted in contract tests when defined
+- align error shape with OpenAPI contract
+- ensure field paths match OpenAPI schema structure
+- ensure validation errors can be asserted in contract tests when defined
 
 ---
 
@@ -99,8 +100,8 @@ Validation layer MUST:
 
 Validation system currently includes rules affecting:
 
-* Plants endpoints
-* Beds endpoints (new full CRUD coverage)
+- Plants endpoints
+- Beds endpoints (new full CRUD coverage)
 
 All MUST maintain consistent error structure and PATCH behavior semantics.
 
@@ -108,6 +109,6 @@ All MUST maintain consistent error structure and PATCH behavior semantics.
 
 # 10. FUTURE EVOLUTION
 
-* schema generation from OpenAPI
-* optional Zod migration layer
-* shared validation + documentation contract
+- schema generation from OpenAPI
+- optional Zod migration layer
+- shared validation + documentation contract

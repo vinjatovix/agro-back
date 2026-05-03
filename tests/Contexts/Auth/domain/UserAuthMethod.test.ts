@@ -29,30 +29,33 @@ describe('UserAuthMethod', () => {
   });
 
   it('should throw when local provider has no password', () => {
-    expect(() =>
-      new UserAuthMethod({
-        provider: 'local',
-        linkedAt: new Date()
-      })
+    expect(
+      () =>
+        new UserAuthMethod({
+          provider: 'local',
+          linkedAt: new Date()
+        })
     ).toThrow('<UserAuthMethod> local provider requires a password hash');
   });
 
   it('should throw when external provider has no providerUserId', () => {
-    expect(() =>
-      new UserAuthMethod({
-        provider: 'github',
-        linkedAt: new Date()
-      })
+    expect(
+      () =>
+        new UserAuthMethod({
+          provider: 'github',
+          linkedAt: new Date()
+        })
     ).toThrow('<UserAuthMethod> provider <github> requires a providerUserId');
   });
 
   it('should throw when provider is unsupported', () => {
-    expect(() =>
-      new UserAuthMethod({
-        provider: 'twitter' as unknown as 'local',
-        linkedAt: new Date(),
-        providerUserId: 'x'
-      })
+    expect(
+      () =>
+        new UserAuthMethod({
+          provider: 'twitter' as unknown as 'local',
+          linkedAt: new Date(),
+          providerUserId: 'x'
+        })
     ).toThrow('<UserAuthMethod> does not allow provider <twitter>');
   });
 
@@ -67,12 +70,17 @@ describe('UserAuthMethod', () => {
 
     expect(restored.provider).toBe('facebook');
     expect(restored.providerUserId).toBe('fb-123');
-    expect(restored.linkedAt.toISOString()).toBe(original.linkedAt.toISOString());
+    expect(restored.linkedAt.toISOString()).toBe(
+      original.linkedAt.toISOString()
+    );
   });
 
   it('withPassword should keep linkedAt for local provider', () => {
     const linkedAt = new Date('2026-01-01T00:00:00.000Z');
-    const method = UserAuthMethod.local(new PasswordHash(VALID_PASSWORD_HASH), linkedAt);
+    const method = UserAuthMethod.local(
+      new PasswordHash(VALID_PASSWORD_HASH),
+      linkedAt
+    );
     const newPassword = new PasswordHash(`$2b$10$${'b'.repeat(53)}`);
 
     const updatedMethod = method.withPassword(newPassword);
@@ -88,8 +96,8 @@ describe('UserAuthMethod', () => {
       linkedAt: new Date()
     });
 
-    expect(() => method.withPassword(new PasswordHash(VALID_PASSWORD_HASH))).toThrow(
-      'Provider <google> does not support local passwords'
-    );
+    expect(() =>
+      method.withPassword(new PasswordHash(VALID_PASSWORD_HASH))
+    ).toThrow('Provider <google> does not support local passwords');
   });
 });
