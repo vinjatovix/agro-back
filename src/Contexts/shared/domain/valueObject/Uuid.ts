@@ -35,4 +35,8 @@ export class Uuid {
   static equals(a: Uuid, b: Uuid): boolean {
     return a.value === b.value;
   }
+
+  static create(value: string): Uuid {
+    return new Uuid(value);
+  }
 }
