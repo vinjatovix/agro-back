@@ -1,6 +1,6 @@
 # MODULE: PERSISTENCE + PATCH SYSTEM CORE
 
-version: 1.0.0
+version: 1.1.0
 source-spec: v1.0.0
 status: stable
 
@@ -66,9 +66,9 @@ Used for partial updates.
 
 ---
 
-# 4.2 Diff / Patch Pipeline
+## 4.2 Diff / Patch Pipeline
 
-## Update flow
+### Update flow
 
 1. current persisted state is loaded
 2. patch is applied to create "next state"
@@ -156,6 +156,141 @@ Responsibilities:
 - CRUD operations via MongoCrudRepository
 - ensuring spatial + identity consistency
 - uses shared diff/patch pipeline
+
+---
+
+## 5.5 REPOSITORY RETRIEVAL SEMANTICS (NEW)
+
+### 5.5.1 Retrieval Contract Principle
+
+Repositories MAY return `null` or `undefined` when an entity does not exist in persistence.
+
+Repositories MUST NOT interpret absence as a domain error.
+
+Repositories MUST NOT throw domain-level exceptions (e.g. notFound, forbidden).
+
+---
+
+### 5.5.2 Responsibility Boundary
+
+| Layer       | Responsibility                                            |
+| ----------- | --------------------------------------------------------- |
+| Repository  | Data access only (no semantic interpretation)             |
+| Application | Truth enforcement (notFound, forbidden, validation rules) |
+
+---
+
+### 5.5.3 Truth Enforcement Rule
+
+All semantic decisions regarding entity existence MUST be handled at the Application Layer:
+
+- `notFound` errors
+- `forbidden` access checks
+- ownership validation
+- authorization rules
+
+---
+
+### 5.5.4 Repository Contract Clarity
+
+Repositories are:
+
+> data retrieval mechanisms, not domain interpreters
+
+Therefore:
+
+- `findById` = fetch attempt (nullable result allowed)
+- NOT = guaranteed existence
+- NOT = validation boundary
+
+---
+
+### 5.5.5 Forbidden Behavior in Repositories
+
+Repositories MUST NOT:
+
+- throw `notFound` errors
+- perform authorization checks
+- infer intent from input
+- transform absence into default domain objects
+- validate business rules
+
+---
+
+### 5.5.6 Design Rationale
+
+This separation ensures:
+
+- domain logic remains in application layer
+- persistence stays deterministic and side-effect free
+- testability of use cases is simplified
+- repository implementations remain interchangeable
+
+---
+
+# 5.7 MAPPER RESPONSIBILITY RULE (NEW)
+
+## 5.7.1 Core Rule
+
+All transformations between persistence and domain MUST be handled by dedicated mapper modules.
+
+Repositories MUST NOT contain transformation logic beyond delegation.
+
+---
+
+## 5.7.2 Repository Responsibility
+
+Repositories:
+
+- MUST NOT transform MongoDocuments into domain logic structures
+- MAY delegate transformation to mappers
+- MUST operate on persistence documents and primitives only
+
+---
+
+## 5.7.3 Mapper Responsibility
+
+Mappers:
+
+- are the ONLY layer allowed to transform:
+  - MongoDocument → Domain
+  - Domain → Primitives
+  - DTO → Domain
+
+- MUST be pure functions
+- MUST NOT access persistence layer
+- MUST NOT contain business logic
+
+---
+
+## 5.7.4 Allowed Pattern
+
+✔ correct:
+
+```ts
+return mapper.fromMongoDocumentToDomain(document);
+```
+
+---
+
+## 5.7.5 Forbidden Pattern
+
+✘ incorrect:
+
+```ts
+return new Entity({ ...document, computed: x });
+```
+
+---
+
+## 5.7.6 Design Rationale
+
+This rule ensures:
+
+- repository simplicity and stability
+- separation of transformation concerns
+- prevention of hidden business logic in infrastructure
+- consistent mapping strategy across aggregates
 
 ---
 
@@ -264,7 +399,7 @@ Persistence MUST:
 
 ## Implemented
 
-- MongoCrudRepository abstraction (shared across Plants and Beds)
+- MongoCrudRepository abstraction
 - MongoRepository abstraction
 - PlantRepository implementation
 - BedRepository implementation
@@ -310,9 +445,9 @@ The following are forbidden in this module:
 This module evolves under strict rules:
 
 - patch system changes require explicit version bump
-- semantics of null/undefined MUST NOT change silently
-- repository contract changes must be backward compatible or versioned
-- mapping rules must remain deterministic
+- null/undefined semantics MUST NOT change silently
+- repository contract changes MUST be backward compatible or versioned
+- mapping rules MUST remain deterministic
 
 ---
 
@@ -333,8 +468,8 @@ But:
 
 This module exists to isolate persistence complexity.
 
-It is intentionally strict to prevent:
+It enforces strict separation between:
 
-- implicit state corruption
-- uncontrolled partial updates
-- domain leakage into infrastructure
+- data access (repository)
+- transformation (mapper)
+- business rules (application/domain)
