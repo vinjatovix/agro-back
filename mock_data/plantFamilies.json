@@ -1,6 +1,24 @@
 {
-  "_id": "familyId",
+  "_id": "89db1b59-37db-4a0f-bbb3-5a011d4b63e2",
+  "slug": "asteraceae",
   "name": "Asteraceae",
-  "description": "Family of flowering plants",
-  "characteristics": ["Muchas ornamentales", "Atracción de polinizadores"]
+  "aliases": ["Compositae"],
+  "scientificName": "Asteraceae",
+  "shortDescription": "Large family of flowering plants",
+  "highlights": [
+    "Una de las familias más grandes",
+    "Inflorescencias en capítulo",
+    "Amplia distribución global"
+  ],
+  "extra": {
+    "order": "Asterales",
+    "distribution": "Cosmopolitan",
+    "speciesCount": 32000
+  },
+  "metadata": {
+    "createdAt": "2024-01-01T00:00:00Z",
+    "updatedAt": "2024-01-01T00:00:00Z",
+    "createdBy": "admin",
+    "updatedBy": "admin"
+  }
 }

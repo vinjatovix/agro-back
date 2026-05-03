@@ -1,6 +1,6 @@
 # MODULE: KNOWLEDGE SYSTEM
 
-version: 1.0.0
+version: 1.1.0
 source-spec: v1.0.0
 status: stable
 
@@ -10,7 +10,7 @@ status: stable
 
 The Knowledge System represents the ecological and agronomic intelligence layer of AgroApp.
 
-It is responsible for modeling agricultural relationships, external biological agents, and environmental interactions that influence plants.
+It is responsible for modeling agricultural relationships, external biological agents, taxonomic datasets, and environmental interactions that influence plants.
 
 It is intentionally **decoupled from core domain entities** (Plant, Bed, PlantInstance).
 
@@ -134,7 +134,7 @@ This is a **global directed weighted graph**.
   - harmful
   - neutral
 
-- strength: 1–5
+- strength: 1-5
 - distance constraints:
   - minDistance
   - maxDistance
@@ -150,6 +150,39 @@ This is a **global directed weighted graph**.
 
 ---
 
+## 3.7 Family Taxonomy
+
+Represents botanical classification units used by Plant entities.
+
+Families are part of the Knowledge System because they are **global taxonomic reference data**, not domain behavior.
+
+### Fields
+
+- id
+- slug
+- name
+- aliases: string[]
+- scientificName
+- shortDescription (optional)
+- highlights: string[]
+- extra (optional):
+  - order
+  - distribution
+  - speciesCount
+
+---
+
+### Rules
+
+- Family is a READ-ONLY dataset
+- Family does NOT evolve via domain logic
+- Family is referenced by Plant.familyId
+- Family has no behavior or lifecycle
+- Family is globally consistent across the system
+- Family is NOT part of Plant aggregate
+
+---
+
 # 4. SYSTEM BOUNDARIES
 
 ## 4.1 What Knowledge System DOES
@@ -157,6 +190,7 @@ This is a **global directed weighted graph**.
 - models ecological relationships
 - provides agronomic intelligence
 - supports decision-making systems
+- defines taxonomic datasets (e.g. Family)
 - feeds simulation layers
 
 ---
@@ -186,6 +220,12 @@ plant.knowledgeRefs = {
 }
 ```
 
+And taxonomy:
+
+```ts
+plant.identity.familyId → Knowledge.Family.id
+```
+
 No embedded knowledge objects allowed.
 
 ---
@@ -198,6 +238,7 @@ Events may reference:
 - diseases
 - remedies
 - fertilizers
+- family (optional contextual enrichment)
 
 But NEVER embed logic from them.
 
@@ -208,7 +249,8 @@ But NEVER embed logic from them.
 Indirect influence only:
 
 - plant relations may affect recommended spacing
-- no direct enforcement rules
+- family taxonomy may influence grouping heuristics (future)
+- no direct enforcement
 
 ---
 
@@ -247,6 +289,7 @@ Allowed extensions:
 - pollinators
 - soil microbiome models
 - climate interaction datasets
+- expanded taxonomy layers
 
 ---
 
@@ -258,6 +301,7 @@ Allowed extensions:
 - fertilizer model (partial)
 - plant attributes (basic)
 - relation graph concept defined
+- family taxonomy (NEW - conceptual layer added)
 
 ## Pending
 
@@ -278,6 +322,7 @@ The following are forbidden:
 - coupling knowledge with persistence schema
 - enforcing spatial rules through knowledge graph
 - duplicating knowledge inside events or beds
+- turning Family into behavioral domain logic
 
 ---
 
@@ -290,6 +335,7 @@ Planned extensions:
 - seasonal behavior modeling
 - pest outbreak prediction
 - AI-assisted planting planner
+- expanded taxonomic hierarchy (genus, subfamily, etc.)
 
 ---
 
@@ -303,4 +349,4 @@ It must remain:
 - extensible
 - non-invasive to core domain logic
 
-Any coupling introduced here will propagate architectural instability across the system.
+Family taxonomy is explicitly part of this layer as a **global reference dataset**, not a domain aggregate.
