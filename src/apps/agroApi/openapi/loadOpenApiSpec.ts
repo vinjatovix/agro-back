@@ -3,7 +3,10 @@ import path from 'node:path';
 import yaml from 'js-yaml';
 
 export function loadOpenApiSpec() {
-  const filePath = path.resolve('src/apps/agroApi/openapi/openapi.yaml');
+  const filePath = path.resolve(
+    path.dirname(new URL(import.meta.url).pathname),
+    'openapi.yaml'
+  );
 
   const file = fs.readFileSync(filePath, 'utf8');
 
