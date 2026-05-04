@@ -1,24 +1,24 @@
 # MODULE: VALIDATION
 
-version: 1.1.0
+version: 1.2.0
 source-spec: v1.0.0
 status: stable
 
 ---
 
-# 1. PURPOSE
+## 1. PURPOSE
 
 Validates inbound API requests at transport boundary level.
 
 ---
 
-# 2. CORE PRINCIPLE
+## 2. CORE PRINCIPLE
 
 Validation is a **schema enforcement layer**, not a business logic layer.
 
 ---
 
-# 3. RULES
+## 3. RULES
 
 - express-validator is transport-only
 - MUST NOT contain domain logic
@@ -29,7 +29,7 @@ Validation is a **schema enforcement layer**, not a business logic layer.
 
 ---
 
-# 4. ERROR CONTRACT (CRITICAL)
+## 4. ERROR CONTRACT (CRITICAL)
 
 ```ts
 type ApiErrorResponse = {
@@ -40,7 +40,7 @@ type ApiErrorResponse = {
 
 ---
 
-# 5. VALIDATION ERROR BEHAVIOR
+## 5. VALIDATION ERROR BEHAVIOR
 
 Validation errors MUST:
 
@@ -63,7 +63,7 @@ Example:
 
 ---
 
-# 6. CHECK EXACT RULE
+## 6. CHECK EXACT RULE
 
 checkExact() MUST:
 
@@ -74,7 +74,7 @@ checkExact() MUST:
 
 ---
 
-# 7. PATCH VALIDATION SEMANTICS (ADDED)
+## 7. PATCH VALIDATION SEMANTICS (ADDED)
 
 PATCH endpoints MUST:
 
@@ -86,7 +86,7 @@ PATCH endpoints MUST:
 
 ---
 
-# 8. OPENAPI ALIGNMENT RULE (ADDED)
+## 8. OPENAPI ALIGNMENT RULE (ADDED)
 
 Validation layer MUST:
 
@@ -96,7 +96,7 @@ Validation layer MUST:
 
 ---
 
-# 9. CURRENT IMPACT AREAS
+## 9. CURRENT IMPACT AREAS
 
 Validation system currently includes rules affecting:
 
@@ -107,7 +107,56 @@ All MUST maintain consistent error structure and PATCH behavior semantics.
 
 ---
 
-# 10. FUTURE EVOLUTION
+## 10. QUERY VALIDATION (NEW)
+
+Validation layer MUST validate query parameters used for filtering, sorting, and pagination.
+
+### 10.1 Filter Validation
+
+Filters MUST:
+
+- match the defined filter DSL structure
+- only include allowed operators per field type
+- reject invalid combinations (e.g. eq + gt)
+- reject null values
+- enforce correct data types
+
+Example invalid inputs:
+
+- { name: null }
+- { count: { gt: "abc" } }
+- { name: { eq: "a", contains: "b" } }
+
+These MUST produce validation errors.
+
+---
+
+### 10.2 Sorting Validation
+
+Sorting MUST:
+
+- use valid field names
+- use only allowed directions: 'asc' | 'desc'
+
+---
+
+### 10.3 Pagination Validation
+
+Pagination MUST:
+
+- enforce positive integers
+- apply maximum limits if defined
+
+---
+
+### 10.4 Responsibility Boundary
+
+- Validation layer → strict enforcement
+- Persistence layer → defensive tolerance
+
+---
+
+## 11. FUTURE EVOLUTION
 
 - schema generation from OpenAPI
 - optional Zod migration layer

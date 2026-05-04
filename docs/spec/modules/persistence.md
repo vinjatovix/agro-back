@@ -1,6 +1,6 @@
 # MODULE: PERSISTENCE + PATCH SYSTEM CORE
 
-version: 1.1.0
+version: 1.2.0
 source-spec: v1.0.0
 status: stable
 
@@ -294,7 +294,7 @@ This rule ensures:
 
 ---
 
-# 5.8 MIGRATIONS (NEW)
+# 5.8 MIGRATIONS
 
 ## 5.8.1 Purpose
 
@@ -355,6 +355,94 @@ Migrations MUST NOT:
 - migrations are executed at bootstrap phase
 - persistence layer assumes schema is already up-to-date
 - repositories MUST NOT trigger migrations
+
+---
+
+# 5.10 QUERY SYSTEM (NEW)
+
+## 5.10.1 Purpose
+
+Provides a generic query abstraction for repository read operations.
+
+Includes:
+
+- filtering
+- sorting
+- pagination
+- include (future)
+
+---
+
+## 5.10.2 Query Model
+
+Repositories accept a `QueryOptions<TFilter>` object.
+
+This object MAY include:
+
+- filter
+- sort
+- pagination
+- include
+
+---
+
+## 5.10.3 Filter Model
+
+Filters are expressed using a typed DSL:
+
+- eq
+- contains / startsWith / endsWith
+- in
+- includes / includesSome
+- gt / gte / lt / lte
+
+---
+
+## 5.10.4 Translation Layer
+
+A `MongoQueryTranslator` is responsible for:
+
+- converting filter DSL into Mongo queries
+- ensuring compatibility with Mongo operators
+
+---
+
+## 5.10.5 Defensive Behavior (CRITICAL)
+
+Persistence layer MUST tolerate malformed or partial filter conditions.
+
+Specifically:
+
+- undefined conditions MUST be ignored
+- empty filter objects MUST be ignored
+- invalid operator combinations MUST NOT crash execution
+
+This ensures robustness against imperfect upstream input.
+
+---
+
+## 5.10.6 Responsibility Boundary
+
+- Query DSL definition → shared/domain
+- Query translation → persistence layer
+- Input validation → API/Validation layer
+
+---
+
+### 5.10.7 Invalid Input Handling (NEW)
+
+Persistence layer MUST differentiate between:
+
+- technically empty conditions (e.g. undefined, empty operator objects)
+- structurally invalid input (e.g. null values, invalid operator combinations)
+
+Rules:
+
+- empty conditions MUST be ignored
+- invalid conditions MUST NOT crash execution
+- invalid conditions SHOULD be ignored OR logged (non-blocking)
+
+Persistence MUST NOT enforce validation rules.
 
 ---
 
