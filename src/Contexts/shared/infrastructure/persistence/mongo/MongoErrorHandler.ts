@@ -32,7 +32,7 @@ export class MongoErrorHandler {
       err.code === MONGO_ERROR_CODES.INDEX_KEY_SPECS_CONFLICT ||
       err.code === MONGO_ERROR_CODES.CANNOT_CREATE_INDEX
     ) {
-      throw createError.badRequest(`Index error: ${err.errmsg || err.message}`);
+      throw createError.conflict(`Index error: ${err.errmsg || err.message}`);
     }
   }
 }

@@ -14,6 +14,7 @@ import {
 import { registerRoutes } from './routes/registerRoutes.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { setupSwagger } from './openapi/setupSwagger.js';
+import migrations from '../../../migrations/index.js';
 
 const allowedOrigins = envs.ALLOWED_ORIGINS.split(',')
   .map((origin) => origin.trim())
@@ -62,6 +63,7 @@ export class Server {
   }
 
   async listen(): Promise<void> {
+    await migrations.up();
     const router = Router();
     await registerRoutes(router);
     this.express.use(router);

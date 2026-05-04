@@ -1,6 +1,9 @@
 import type { MongoServerError } from 'mongodb';
 
-import { BadRequestError } from '../../../../../../src/shared/errors/index.js';
+import {
+  BadRequestError,
+  ConflictError
+} from '../../../../../../src/shared/errors/index.js';
 import { MongoErrorHandler } from '../../../../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoErrorHandler.js';
 import { MONGO_ERROR_CODES } from '../../../../../../src/Contexts/shared/infrastructure/persistence/mongo/mongoErrorCodes.js';
 
@@ -123,7 +126,7 @@ describe('MongoErrorHandler', () => {
 
       expect(() => {
         MongoErrorHandler.formatError(duplicateIndexError);
-      }).toThrow(BadRequestError);
+      }).toThrow(ConflictError);
 
       expect(() => {
         MongoErrorHandler.formatError(duplicateIndexError);
@@ -138,7 +141,7 @@ describe('MongoErrorHandler', () => {
 
       expect(() => {
         MongoErrorHandler.formatError(indexConflictError);
-      }).toThrow(BadRequestError);
+      }).toThrow(ConflictError);
 
       expect(() => {
         MongoErrorHandler.formatError(indexConflictError);
@@ -153,7 +156,7 @@ describe('MongoErrorHandler', () => {
 
       expect(() => {
         MongoErrorHandler.formatError(cannotCreateIndexError);
-      }).toThrow(BadRequestError);
+      }).toThrow(ConflictError);
 
       expect(() => {
         MongoErrorHandler.formatError(cannotCreateIndexError);

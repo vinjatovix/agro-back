@@ -294,6 +294,70 @@ This rule ensures:
 
 ---
 
+# 5.8 MIGRATIONS (NEW)
+
+## 5.8.1 Purpose
+
+Migrations are infrastructure lifecycle tools responsible for evolving the MongoDB schema over time.
+
+They are NOT part of domain, application, or repository logic.
+
+---
+
+## 5.8.2 Responsibilities
+
+Migrations are responsible for:
+
+- creating indexes (e.g. unique slug constraints)
+- evolving collection structure
+- backfilling data when necessary
+- ensuring schema consistency across versions
+
+---
+
+## 5.8.3 Execution Context
+
+Migrations:
+
+- run at application startup OR deployment phase
+- are executed once per version
+- MUST be idempotent or tracked via changelog collection
+
+---
+
+## 5.8.4 Storage
+
+Migration state is stored in:
+
+- changelog collection
+
+Each entry tracks:
+
+- fileName
+- appliedAt
+- version block
+
+---
+
+## 5.8.5 Critical Rule
+
+Migrations MUST NOT:
+
+- contain business logic
+- depend on domain layer
+- modify application behavior directly
+
+---
+
+## 5.9 SCHEMA MIGRATION BOUNDARY
+
+- schema evolution is handled via migrations system
+- migrations are executed at bootstrap phase
+- persistence layer assumes schema is already up-to-date
+- repositories MUST NOT trigger migrations
+
+---
+
 # 6. SERIALIZATION CONTRACT
 
 Domain objects MUST NOT be responsible for persistence serialization.
