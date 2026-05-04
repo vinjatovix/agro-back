@@ -3,17 +3,25 @@ import type { Family } from '../../../../../../src/Contexts/Agro/Knowledge/Famil
 import type { FamilyRepository } from '../../../../../../src/Contexts/Agro/Knowledge/Families/domain/repositories/interfaces/FamilyRepository.js';
 import type { FamilyPrimitives } from '../../../../../../src/Contexts/Agro/Knowledge/Families/domain/types/FamilyPrimitives.js';
 import { familyDomainMapper } from '../../../../../../src/Contexts/Agro/Knowledge/Families/mappers/familyDomainMapper.js';
+import { createError } from '../../../../../../src/shared/errors/index.js';
 import { BaseMongoCrudRepositoryMock } from '../../../__mocks__/BaseMongoCrudRepositoryMock.js';
 
 export class FamilyRepositoryMock
   extends BaseMongoCrudRepositoryMock<Family, FamilyPrimitives>
   implements FamilyRepository
 {
+  protected readonly findBySlugMock = jest.fn();
   async findBySlug(slug: string): Promise<Family> {
-    const family = this.storage.get(slug);
+    this.findBySlugMock(slug);
+
+    const family = Array.from(this.storage.values()).find(
+      (f) => f.slug === slug
+    );
+
     if (!family) {
-      throw new Error(`Family with slug ${slug} not found`);
+      throw createError.notFound(`Family not found: ${slug}`);
     }
+
     return family;
   }
 
@@ -23,5 +31,9 @@ export class FamilyRepositoryMock
 
   protected entityName(): string {
     return 'Family';
+  }
+
+  assertFindBySlugHasBeenCalledWith(slug: string) {
+    expect(this.findBySlugMock).toHaveBeenCalledWith(slug);
   }
 }
