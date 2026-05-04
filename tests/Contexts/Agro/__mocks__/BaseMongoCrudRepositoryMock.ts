@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/require-await */
 
+import type { QueryOptions } from '../../../../src/Contexts/shared/domain/query/interfaces/QueryOptions.js';
 import { applyPatch } from '../../../../src/shared/domain/patch/applyPatch.js';
 
 export abstract class BaseMongoCrudRepositoryMock<
@@ -40,9 +41,18 @@ export abstract class BaseMongoCrudRepositoryMock<
     return entity;
   }
 
-  async findAll(): Promise<TEntity[]> {
-    this.findAllMock();
-    return Array.from(this.storage.values());
+  async findAll(options?: QueryOptions<unknown>): Promise<TEntity[]> {
+    this.findAllMock(options);
+
+    let result = Array.from(this.storage.values());
+
+    if (options?.pagination) {
+      const { page, limit } = options.pagination;
+      const start = (page - 1) * limit;
+      result = result.slice(start, start + limit);
+    }
+
+    return result;
   }
 
   async exists(id: string): Promise<boolean> {
@@ -118,6 +128,10 @@ export abstract class BaseMongoCrudRepositoryMock<
 
   assertFindAllCalled(): void {
     expect(this.findAllMock).toHaveBeenCalled();
+  }
+
+  assertFindAllHasBeenCalledWith(options: unknown): void {
+    expect(this.findAllMock).toHaveBeenCalledWith(options);
   }
 
   assertExistsCalledWith(id: string): void {
