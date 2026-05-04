@@ -9,6 +9,7 @@ import { toMongoId } from '../../../../../../../src/Contexts/shared/infrastructu
 
 import { random } from '../../../../../shared/fixtures/random.js';
 import { UuidMother } from '../../../../../shared/fixtures/UuidMother.js';
+import { type CreateFamilyDto } from '../../../../../../../src/Contexts/Agro/Knowledge/Families/application/useCases/interfaces/CreateFamilyDto.js';
 
 const USER = 'test-user';
 
@@ -93,9 +94,10 @@ export const FamilyScenarios = {
     };
   },
 
-  createDtoBase: () => ({
+  createDtoBase: (overrides?: Partial<CreateFamilyDto>) => ({
     id: UuidMother.random().value,
-    ...FAMILY_BASE_VALUES
+    ...FAMILY_BASE_VALUES,
+    ...overrides
   }),
 
   createDtoBaseWithExtra: (extra?: FamilyExtraPrimitives) => ({
