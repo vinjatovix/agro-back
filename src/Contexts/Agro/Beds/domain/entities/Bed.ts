@@ -10,19 +10,7 @@ import type { Metadata } from '../../../../shared/domain/valueObject/Metadata.js
 import { createError } from '../../../../../shared/errors/index.js';
 import type { PositiveNumber } from '../../../../shared/domain/valueObject/PositiveNumber.js';
 import type { StringValueObject } from '../../../../shared/domain/valueObject/StringValueObject.js';
-
-export type BedProps = {
-  id: Uuid;
-  userId: Uuid;
-  name: StringValueObject;
-  width: PositiveNumber;
-  height: PositiveNumber;
-  depth: PositiveNumber;
-  plantInstances?: PlantInstance[];
-  metadata: Metadata;
-  deleted: boolean;
-  deletedAt?: Date;
-};
+import type { BedProps } from './types/BedProps.js';
 
 export class Bed extends AggregateRoot<Uuid> {
   private readonly props: BedProps & { plantInstances: PlantInstance[] };

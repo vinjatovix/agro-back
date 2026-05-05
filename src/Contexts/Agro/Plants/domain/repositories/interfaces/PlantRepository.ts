@@ -11,6 +11,6 @@ export interface PlantRepository {
     updated: PlantPrimitives,
     user: string
   ): Promise<void>;
-  findAll(options: QueryOptions<PlantFilter>): Promise<Plant[]>;
+  findAll(options?: QueryOptions<PlantFilter>): Promise<Plant[]>;
   exists(id: string): Promise<boolean>;
 }
