@@ -1,4 +1,6 @@
+import type { QueryOptions } from '../../../../../../shared/domain/query/interfaces/QueryOptions.js';
 import type { Family } from '../../entities/Family.js';
+import type { FamilyFilter } from '../../types/FamilyFilter.js';
 import type { FamilyPrimitives } from '../../types/FamilyPrimitives.js';
 
 export interface FamilyRepository {
@@ -10,6 +12,6 @@ export interface FamilyRepository {
     updated: FamilyPrimitives,
     user: string
   ): Promise<void>;
-  findAll(): Promise<Family[]>;
+  findAll(options: QueryOptions<FamilyFilter>): Promise<Family[]>;
   exists(id: string): Promise<boolean>;
 }

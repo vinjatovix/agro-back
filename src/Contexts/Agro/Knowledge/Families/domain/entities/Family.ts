@@ -1,3 +1,4 @@
+import { createError } from '../../../../../../shared/errors/index.js';
 import { AggregateRoot } from '../../../../../shared/domain/entities/AggregateRoot.js';
 import { Metadata } from '../../../../../shared/domain/valueObject/Metadata.js';
 import type { Uuid } from '../../../../../shared/domain/valueObject/Uuid.js';
@@ -50,21 +51,21 @@ export class Family extends AggregateRoot<Uuid> {
   }
 
   private validate(props: FamilyProps): void {
-    if (!props.slug) throw new Error('Family.slug is required');
-    if (!props.name) throw new Error('Family.name is required');
+    if (!props.slug) throw createError.badRequest('Family.slug is required');
+    if (!props.name) throw createError.badRequest('Family.name is required');
     if (!props.scientificName)
-      throw new Error('Family.scientificName is required');
+      throw createError.badRequest('Family.scientificName is required');
 
     if (!Array.isArray(props.aliases)) {
-      throw new Error('Family.aliases must be an array');
+      throw createError.badRequest('Family.aliases must be an array');
     }
 
     if (!Array.isArray(props.highlights)) {
-      throw new Error('Family.highlights must be an array');
+      throw createError.badRequest('Family.highlights must be an array');
     }
 
     if (!props.metadata) {
-      throw new Error('Family.metadata is required');
+      throw createError.badRequest('Family.metadata is required');
     }
   }
 
