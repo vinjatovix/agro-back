@@ -30,7 +30,7 @@ import {
   UpdatePasswordLocal,
   ValidateMail
 } from '../../Contexts/Auth/application/index.js';
-import { MongoPlantRepository } from '../../Contexts/Agro/Plants/infrastructure/persistence/MongoPlantRepository.js';
+import { MongoPlantRepository } from '../../Contexts/Agro/Plants/infrastructure/persistence/mongo/MongoPlantRepository.js';
 import {
   CreatePlant,
   GetPlant,

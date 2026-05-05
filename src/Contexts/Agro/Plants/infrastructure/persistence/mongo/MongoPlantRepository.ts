@@ -1,12 +1,18 @@
-import { Plant } from '../../domain/entities/Plant.js';
-import type { PlantRepository } from '../../domain/repositories/interfaces/PlantRepository.js';
-import { plantMapper } from '../../mappers/plantMapper.js';
-import type { PlantPrimitives } from '../../domain/entities/types/PlantPrimitives.js';
-import type { MongoPlantDocument } from './types/MongoPlantDocument.js';
-import { MongoCrudRepository } from '../../../../shared/infrastructure/persistence/mongo/MongoCrudRepository.js';
+import { Plant } from '../../../domain/entities/Plant.js';
+import type { PlantRepository } from '../../../domain/repositories/interfaces/PlantRepository.js';
+import { plantMapper } from '../../../mappers/plantMapper.js';
+import type { PlantPrimitives } from '../../../domain/entities/types/PlantPrimitives.js';
+import type { MongoPlantDocument } from '../types/MongoPlantDocument.js';
+import { MongoCrudRepository } from '../../../../../shared/infrastructure/persistence/mongo/MongoCrudRepository.js';
+import type { PlantFilter } from '../../../domain/entities/types/PlantFilter.js';
 
 export class MongoPlantRepository
-  extends MongoCrudRepository<Plant, PlantPrimitives, MongoPlantDocument>
+  extends MongoCrudRepository<
+    Plant,
+    PlantPrimitives,
+    MongoPlantDocument,
+    PlantFilter
+  >
   implements PlantRepository
 {
   protected entityName(): string {

@@ -1,10 +1,10 @@
-import { createAppContainer } from '../../../../../../src/apps/agroApi/container.js';
-import type { PlantPrimitives } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantPrimitives.js';
-import type { PlantRepository } from '../../../../../../src/Contexts/Agro/Plants/domain/repositories/interfaces/PlantRepository.js';
-import { plantMapper } from '../../../../../../src/Contexts/Agro/Plants/mappers/plantMapper.js';
-import type { EnvironmentArranger } from '../../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
-import { random } from '../../../../shared/fixtures/random.js';
-import { PlantFactory } from '../../domain/mothers/PlantFactory.js';
+import { createAppContainer } from '../../../../../../../src/apps/agroApi/container.js';
+import type { PlantPrimitives } from '../../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantPrimitives.js';
+import type { PlantRepository } from '../../../../../../../src/Contexts/Agro/Plants/domain/repositories/interfaces/PlantRepository.js';
+import { plantMapper } from '../../../../../../../src/Contexts/Agro/Plants/mappers/plantMapper.js';
+import type { EnvironmentArranger } from '../../../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
+import { random } from '../../../../../shared/fixtures/random.js';
+import { PlantFactory } from '../../../domain/mothers/PlantFactory.js';
 
 const container = createAppContainer();
 const repository = container.resolve<PlantRepository>('plantRepository');
@@ -276,7 +276,7 @@ describe('MongoPlantRepository', () => {
       await repository.save(plant1);
       await repository.save(plant2);
 
-      const all = await repository.findAll();
+      const all = await repository.findAll({});
 
       expect(all).toHaveLength(2);
     });

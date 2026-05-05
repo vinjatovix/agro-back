@@ -1,12 +1,13 @@
 import { MongoCrudRepository } from '../../../../shared/infrastructure/persistence/mongo/MongoCrudRepository.js';
 import type { Bed } from '../../domain/entities/Bed.js';
+import type { BedFilter } from '../../domain/entities/types/BedFilter.js';
 import type { BedPrimitives } from '../../domain/entities/types/BedPrimitives.js';
 import type { BedRepository } from '../../domain/repositories/interfaces/BedRepository.js';
 import { bedMapper } from '../../mappers/bedMapper.js';
 import type { MongoBedDocument } from './types/MongoBedDocument.js';
 
 export class MongoBedRepository
-  extends MongoCrudRepository<Bed, BedPrimitives, MongoBedDocument>
+  extends MongoCrudRepository<Bed, BedPrimitives, MongoBedDocument, BedFilter>
   implements BedRepository
 {
   protected entityName(): string {

@@ -1,20 +1,50 @@
+import type { FindCursor } from 'mongodb';
 import { diffObjects } from '../../../../../shared/domain/diff/diffObjects.js';
 import type { UnknownRecord } from '../../../../../shared/domain/types/UnknownRecord.js';
 import { createError } from '../../../../../shared/errors/index.js';
 import { Username } from '../../../../Auth/domain/value-objects/Username.js';
 import { updateMetadata } from '../../../application/utils/updateMetadata.js';
+import type { QueryOptions } from '../../../domain/query/interfaces/QueryOptions.js';
+import type { SortOptions } from '../../../domain/query/interfaces/SortOptions.js';
 import { toMongoId } from './MongoId.js';
+import { MongoQueryTranslator } from './MongoQueryTranslator.js';
 import { MongoRepository } from './MongoRepository.js';
 import type { Entity, WithId } from './types/index.js';
 
 export abstract class MongoCrudRepository<
   TDomain,
   TPrimitives extends WithId,
-  TDocument extends Entity
+  TDocument extends Entity,
+  TFilter
 > extends MongoRepository {
   protected abstract toDomain(doc: TDocument): TDomain;
   protected abstract toPrimitives(entity: TDomain): TPrimitives;
   protected abstract entityName(): string;
+
+  protected applySort(cursor: FindCursor, sort?: SortOptions): void {
+    if (!sort) return;
+
+    const mongoSort: Record<string, 1 | -1> = {};
+
+    for (const field in sort) {
+      mongoSort[field] = sort[field] === 'asc' ? 1 : -1;
+    }
+
+    cursor.sort(mongoSort);
+  }
+
+  protected applyPagination(
+    cursor: FindCursor,
+    pagination?: { page: number; limit: number }
+  ): void {
+    if (!pagination) return;
+
+    const { page, limit } = pagination;
+
+    const skip = (page - 1) * limit;
+
+    cursor.skip(skip).limit(limit);
+  }
 
   async findById(id: string): Promise<TDomain> {
     const collection = await this.collection();
@@ -34,14 +64,24 @@ export abstract class MongoCrudRepository<
     await this.persist(entity.id.value, this.toPrimitives(entity));
   }
 
-  async findAll(): Promise<TDomain[]> {
+  async findAll(options: QueryOptions<TFilter>): Promise<TDomain[]> {
     const collection = await this.collection();
 
-    const docs = await collection.find<TDocument>({}).toArray();
+    const { filter, sort, pagination } = options;
+
+    const mongoFilter = MongoQueryTranslator.toMongo(
+      filter as Record<string, unknown>
+    );
+
+    const cursor = collection.find<TDocument>(mongoFilter);
+
+    this.applySort(cursor, sort);
+    this.applyPagination(cursor, pagination);
+
+    const docs = await cursor.toArray();
 
     return docs.map((doc) => this.toDomain(doc));
   }
-
   async exists(id: string): Promise<boolean> {
     const collection = await this.collection();
 

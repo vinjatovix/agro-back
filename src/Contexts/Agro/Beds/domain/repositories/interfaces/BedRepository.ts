@@ -1,4 +1,6 @@
+import type { QueryOptions } from '../../../../../shared/domain/query/interfaces/QueryOptions.js';
 import type { Bed } from '../../entities/Bed.js';
+import type { BedFilter } from '../../entities/types/BedFilter.js';
 import type { BedPrimitives } from '../../entities/types/BedPrimitives.js';
 
 export interface BedRepository {
@@ -9,7 +11,7 @@ export interface BedRepository {
     updated: BedPrimitives,
     user: string
   ): Promise<void>;
-  findAll(): Promise<Bed[]>;
+  findAll(options: QueryOptions<BedFilter>): Promise<Bed[]>;
   exists(id: string): Promise<boolean>;
   findByUserId(userId: string): Promise<Bed[]>;
 }
