@@ -60,7 +60,8 @@ export const bedMapper: BedMapper = {
       name: new StringValueObject(input.name),
       width: PositiveNumber.create(input.width),
       height: PositiveNumber.create(input.height),
-      depth: PositiveNumber.create(30), // Default depth
+      depth: PositiveNumber.create(input.depth),
+      plantInstances: [],
       metadata: Metadata.create(user),
       deleted: false
     });
