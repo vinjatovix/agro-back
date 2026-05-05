@@ -65,6 +65,7 @@ import { UpdateBed } from '../../Contexts/Agro/Beds/application/useCases/UpdateB
 import { DeleteBedController } from './controllers/Beds/DeleteBedController.js';
 import { DeleteBed } from '../../Contexts/Agro/Beds/application/useCases/DeleteBed.js';
 import { GetBedById } from '../../Contexts/Agro/Beds/application/useCases/GetBedById.js';
+import { MongoFamilyRepository } from '../../Contexts/Agro/Families/infrastructure/persistence/MongoFamilyRepository.js';
 
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 
@@ -94,7 +95,8 @@ const registerInfrastructureDependencies = (container: AppContainer): void => {
     googleIdTokenVerifier: asClass(GoogleIdTokenVerifierAdapter).singleton(),
     authRepository: asClass(MongoAuthRepository).singleton(),
     plantRepository: asClass(MongoPlantRepository).singleton(),
-    bedRepository: asClass(MongoBedRepository).singleton()
+    bedRepository: asClass(MongoBedRepository).singleton(),
+    familyRepository: asClass(MongoFamilyRepository).singleton()
   });
 };
 const registerAuthControllers = (container: AppContainer): void => {
