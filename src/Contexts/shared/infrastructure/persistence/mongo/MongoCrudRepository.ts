@@ -10,6 +10,7 @@ import { toMongoId } from './MongoId.js';
 import { MongoQueryTranslator } from './MongoQueryTranslator.js';
 import { MongoRepository } from './MongoRepository.js';
 import type { Entity, WithId } from './types/index.js';
+import { normalizePagination } from '../../../application/utils/normalizePagination.js';
 
 export abstract class MongoCrudRepository<
   TDomain,
@@ -64,10 +65,11 @@ export abstract class MongoCrudRepository<
     await this.persist(entity.id.value, this.toPrimitives(entity));
   }
 
-  async findAll(options: QueryOptions<TFilter>): Promise<TDomain[]> {
+  async findAll(options: QueryOptions<TFilter> = {}): Promise<TDomain[]> {
     const collection = await this.collection();
 
     const { filter, sort, pagination } = options;
+    const safePagination = normalizePagination(pagination);
 
     const mongoFilter = MongoQueryTranslator.toMongo(
       filter as Record<string, unknown>
@@ -76,7 +78,7 @@ export abstract class MongoCrudRepository<
     const cursor = collection.find<TDocument>(mongoFilter);
 
     this.applySort(cursor, sort);
-    this.applyPagination(cursor, pagination);
+    this.applyPagination(cursor, safePagination);
 
     const docs = await cursor.toArray();
 
