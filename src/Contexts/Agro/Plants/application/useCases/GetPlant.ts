@@ -16,5 +16,6 @@ export class GetPlant {
     return plant;
   }
 }
+
 const canSeeDeleted = (roles?: string[]) =>
   roles?.some((r) => r === 'admin' || r === 'collaborator') ?? false;

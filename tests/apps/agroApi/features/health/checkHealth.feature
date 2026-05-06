@@ -1,3 +1,4 @@
+@health
 Feature: Api Health Check
   In order to verify the application's availability
   As a health check client

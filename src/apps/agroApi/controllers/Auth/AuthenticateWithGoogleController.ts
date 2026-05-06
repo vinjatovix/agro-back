@@ -5,14 +5,20 @@ import type {
 } from '../../../../Contexts/Auth/application/index.js';
 import { HttpController } from '../../shared/HttpController.js';
 
+export type AuthenticateWithGoogleControllerDependencies = {
+  authenticateWithGoogle: AuthenticateWithGoogle;
+};
+
 export class AuthenticateWithGoogleController extends HttpController {
-  constructor(
-    protected readonly authenticateWithGoogle: AuthenticateWithGoogle
-  ) {
+  protected readonly authenticateWithGoogle: AuthenticateWithGoogle;
+  constructor({
+    authenticateWithGoogle
+  }: AuthenticateWithGoogleControllerDependencies) {
     super();
+    this.authenticateWithGoogle = authenticateWithGoogle;
   }
 
-  async run(req: Request, res: Response, next: NextFunction): Promise<void> {
+  run = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const request = req.body as AuthenticateWithGoogleRequest;
       const token = await this.authenticateWithGoogle.run(request);
@@ -20,5 +26,5 @@ export class AuthenticateWithGoogleController extends HttpController {
     } catch (error) {
       next(error);
     }
-  }
+  };
 }

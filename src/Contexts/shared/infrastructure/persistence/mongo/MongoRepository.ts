@@ -1,10 +1,6 @@
 import type { Binary } from 'bson';
-import {
-  Collection,
-  MongoClient,
-  MongoServerError,
-  type Document
-} from 'mongodb';
+import { Collection, Db, MongoServerError, type Document } from 'mongodb';
+
 import type { Username } from '../../../../Auth/domain/value-objects/Username.js';
 import { updateMetadata } from '../../../application/utils/updateMetadata.js';
 import { MongoErrorHandler } from './MongoErrorHandler.js';
@@ -18,38 +14,31 @@ import type { RequestOptions } from '../../../../../apps/agroApi/shared/interfac
 import type { UnknownRecord } from '../../../../../shared/domain/types/UnknownRecord.js';
 
 export abstract class MongoRepository {
-  constructor(private readonly DBClient: Promise<MongoClient>) {}
+  constructor(protected readonly db: Db) {}
 
   protected abstract collectionName(): string;
   protected abstract entityName(): string;
 
-  protected client(): Promise<MongoClient> {
-    return this.DBClient;
-  }
-
-  protected async collection(): Promise<
-    Collection<Document & { _id: string | Binary }>
-  > {
-    return (await this.client())
-      .db()
-      .collection<Document & { _id: string | Binary }>(this.collectionName());
+  protected collection(): Collection<Document & { _id: string | Binary }> {
+    return this.db.collection<Document & { _id: string | Binary }>(
+      this.collectionName()
+    );
   }
 
   protected async persist(
-    id: string,
-    document: unknown,
+    mongoDocument: Document & { _id: string | Binary },
     username?: Username
   ): Promise<void> {
-    const collection = await this.collection();
-    const mongoId = toMongoId(id);
+    const collection = this.collection();
+
     const finalDocument = {
-      ...(document as object),
+      ...mongoDocument,
       ...(username && updateMetadata(username))
     };
 
     await this.handleMongoError(() =>
       collection.updateOne(
-        { _id: mongoId },
+        { _id: mongoDocument._id },
         { $set: finalDocument },
         { upsert: true }
       )
@@ -57,10 +46,10 @@ export abstract class MongoRepository {
   }
 
   protected async delete(id: string): Promise<void> {
-    const collection = await this.collection();
-    await this.handleMongoError(
-      async () => await collection.deleteOne({ _id: toMongoId(id) })
-    );
+    const collection = this.collection();
+    const _id = toMongoId(id);
+
+    await this.handleMongoError(() => collection.deleteOne({ _id }));
   }
 
   protected async handleMongoError<T>(operation: () => Promise<T>): Promise<T> {
@@ -81,18 +70,18 @@ export abstract class MongoRepository {
     id?: string;
     options: MongoFetchOptions;
   }): Promise<T[]> {
-    const collection = await this.collection();
+    const collection = this.collection();
+
     const fetchParams = {
       collection,
       options,
       ...(id !== undefined ? { id } : {})
     };
 
-    return await this.handleMongoError(
-      async () =>
-        await MongoFetchService.fetch<T, Document & { _id: string | Binary }>(
-          fetchParams
-        )
+    return this.handleMongoError(() =>
+      MongoFetchService.fetch<T, Document & { _id: string | Binary }>(
+        fetchParams
+      )
     );
   }
 
@@ -101,22 +90,16 @@ export abstract class MongoRepository {
       ...(options.fields !== undefined ? { fields: options.fields } : {})
     };
 
-    if (!options.filter) {
-      return baseOptions;
-    }
+    if (!options.filter) return baseOptions;
 
     const filter = options.filter.reduce((acc, curr) => {
       const separatorIndex = curr.indexOf(':');
-      if (separatorIndex <= 0) {
-        return acc;
-      }
+      if (separatorIndex <= 0) return acc;
 
       const key = curr.slice(0, separatorIndex).trim();
       const value = curr.slice(separatorIndex + 1).trim();
 
-      if (!key || !value) {
-        return acc;
-      }
+      if (!key || !value) return acc;
 
       return {
         ...acc,

@@ -44,7 +44,7 @@ export class Bed extends AggregateRoot<Uuid> {
   }
 
   get plantInstances(): readonly PlantInstance[] {
-    return [...this.props.plantInstances];
+    return this.props.plantInstances;
   }
 
   get metadata(): Metadata {

@@ -1,3 +1,4 @@
+@auth @login-user
 Feature: Login
   In order to use the application
   As a user

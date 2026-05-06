@@ -28,7 +28,7 @@ export interface PlantMapper {
   ): DeepPartial<PlantPrimitives>;
 }
 
-export const plantMapper = {
+export const plantDomainMapper = {
   toPrimitives(plant: Plant): PlantPrimitives {
     const phenology: PlantPrimitives['phenology'] = {
       sowing: plant.phenology.sowing.toPrimitives(),
@@ -122,120 +122,5 @@ export const plantMapper = {
     }
 
     return plantKnowledgeMapper.fromPrimitives(knowledge);
-  },
-
-  fromCreateDtoToDomain(dto: CreatePlantDto, user = 'system'): Plant {
-    const phenology = {
-      sowing: PlantSowing.fromPrimitives(dto.phenology.sowing),
-      flowering: {
-        months: MonthSet.fromArray(dto.phenology.flowering.months),
-        ...(dto.phenology.flowering.pollination && {
-          pollination: dto.phenology.flowering.pollination
-        })
-      },
-      harvest: {
-        months: MonthSet.fromArray(dto.phenology.harvest.months),
-        ...(dto.phenology.harvest.description && {
-          description: dto.phenology.harvest.description
-        })
-      }
-    };
-
-    const knowledge = dto.knowledge
-      ? plantKnowledgeMapper.fromPrimitives(dto.knowledge)
-      : PlantKnowledge.empty();
-
-    const props: PlantProps = {
-      id: new Uuid(dto.id),
-      identity: dto.identity,
-      traits: {
-        lifecycle: PlantLifecycle.from(dto.traits.lifecycle),
-        size: {
-          height: Range.fromPrimitives(dto.traits.size.height),
-          spread: Range.fromPrimitives(dto.traits.size.spread)
-        },
-        spacingCm: Range.fromPrimitives(dto.traits.spacingCm)
-      },
-      phenology,
-      knowledge,
-      metadata: Metadata.create(user)
-    };
-
-    return Plant.create(props);
-  },
-
-  fromUpdateDtoToPrimitivesPatch(
-    dto: UpdatePlantDto
-  ): DeepPartial<PlantPrimitives> {
-    return {
-      ...(dto.identity && { identity: mapIdentity(dto.identity) }),
-      ...(dto.traits && { traits: mapTraits(dto.traits) }),
-      ...(dto.phenology?.sowing && {
-        phenology: { sowing: mapSowing(dto.phenology.sowing) }
-      }),
-      ...(dto.knowledge && { knowledge: dto.knowledge })
-    };
   }
 };
-
-/* ---------------- HELPERS ---------------- */
-
-function mapIdentity(
-  identity: UpdatePlantDto['identity']
-): DeepPartial<PlantPrimitives['identity']> {
-  return {
-    ...(identity?.name && {
-      name: {
-        ...(identity.name.primary !== undefined && {
-          primary: identity.name.primary
-        }),
-        ...(identity.name.aliases && {
-          aliases: identity.name.aliases
-        })
-      }
-    }),
-    ...(identity?.scientificName !== undefined && {
-      scientificName: identity.scientificName
-    }),
-    ...(identity?.familyId && {
-      familyId: identity.familyId
-    })
-  };
-}
-
-function mapTraits(
-  traits: UpdatePlantDto['traits']
-): DeepPartial<PlantPrimitives['traits']> {
-  return {
-    ...(traits?.lifecycle && { lifecycle: traits.lifecycle }),
-    ...(traits?.spacingCm && { spacingCm: traits.spacingCm }),
-    ...(traits?.size && {
-      size: {
-        ...(traits.size.height && { height: traits.size.height }),
-        ...(traits.size.spread && { spread: traits.size.spread })
-      }
-    })
-  };
-}
-
-function mapSowing(
-  sowing: NonNullable<UpdatePlantDto['phenology']>['sowing']
-): DeepPartial<PlantPrimitives['phenology']['sowing']> {
-  return {
-    ...(sowing?.months && { months: sowing.months }),
-    ...(sowing?.seedsPerHole && { seedsPerHole: sowing.seedsPerHole }),
-    ...(sowing?.germinationDays && {
-      germinationDays: sowing.germinationDays
-    }),
-    ...(sowing?.methods && {
-      methods: {
-        ...(sowing.methods?.direct && {
-          direct: { depthCm: sowing.methods.direct.depthCm }
-        }),
-        ...(sowing.methods?.starter && {
-          starter: { depthCm: sowing.methods.starter.depthCm }
-        })
-      }
-    })
-  };
-}

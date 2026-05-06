@@ -9,7 +9,7 @@ export type MongoBedDocument = {
   width: number;
   height: number;
   depth: number;
-  plantInstances: [PlantInstancePrimitives];
+  plantInstances: PlantInstancePrimitives[];
   metadata: BedPrimitives['metadata'];
   deleted: boolean;
   deletedAt?: string;

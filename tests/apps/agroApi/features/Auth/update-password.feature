@@ -1,3 +1,4 @@
+@auth @update-password
 Feature: Update Password
   In order to use the application
   As a user

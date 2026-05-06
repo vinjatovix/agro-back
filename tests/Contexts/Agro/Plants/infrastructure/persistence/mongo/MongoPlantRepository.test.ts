@@ -1,19 +1,39 @@
-import { createAppContainer } from '../../../../../../../src/apps/agroApi/container.js';
+import type { MongoClient } from 'mongodb';
+import {
+  createAppContainer,
+  type AppContainer
+} from '../../../../../../../src/apps/agroApi/container.js';
 import type { PlantPrimitives } from '../../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantPrimitives.js';
 import type { PlantRepository } from '../../../../../../../src/Contexts/Agro/Plants/domain/repositories/interfaces/PlantRepository.js';
-import { plantMapper } from '../../../../../../../src/Contexts/Agro/Plants/mappers/plantMapper.js';
+import { plantDomainMapper } from '../../../../../../../src/Contexts/Agro/Plants/mappers/plantDomainMapper.js';
 import type { EnvironmentArranger } from '../../../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
+import {
+  DBClientFactory,
+  DBConfigFactory
+} from '../../../../../../../src/shared/infrastructure/persistence/index.js';
 import { random } from '../../../../../shared/fixtures/random.js';
 import { PlantFactory } from '../../../domain/mothers/PlantFactory.js';
 
-const container = createAppContainer();
-const repository = container.resolve<PlantRepository>('plantRepository');
-
-const environmentArranger: Promise<EnvironmentArranger> = Promise.resolve(
-  container.resolve<EnvironmentArranger>('environmentArranger')
-);
+let container: AppContainer;
+let repository: PlantRepository;
+let environmentArranger: Promise<EnvironmentArranger>;
+let client: MongoClient;
 
 describe('MongoPlantRepository', () => {
+  beforeAll(async () => {
+    client = await DBClientFactory.createClient(
+      'agroApi-test',
+      DBConfigFactory.createConfig()
+    );
+
+    const db = client.db();
+
+    container = createAppContainer({ db, client });
+    environmentArranger = Promise.resolve(
+      container.resolve<EnvironmentArranger>('environmentArranger')
+    );
+    repository = container.resolve<PlantRepository>('plantRepository');
+  });
   beforeEach(async () => {
     await (await environmentArranger).arrange();
   });
@@ -21,6 +41,7 @@ describe('MongoPlantRepository', () => {
   afterAll(async () => {
     await (await environmentArranger).arrange();
     await (await environmentArranger).close();
+    await client.close();
   });
 
   describe('save + findById', () => {
@@ -64,7 +85,7 @@ describe('MongoPlantRepository', () => {
   describe('updateWithDiff', () => {
     it('should update plant name', async () => {
       const plant = PlantFactory.random();
-      const current = plantMapper.toPrimitives(plant);
+      const current = plantDomainMapper.toPrimitives(plant);
 
       await repository.save(plant);
 
@@ -89,7 +110,7 @@ describe('MongoPlantRepository', () => {
 
     it('should allow clearing scientificName when set to null', async () => {
       const plant = PlantFactory.full();
-      const current = plantMapper.toPrimitives(plant);
+      const current = plantDomainMapper.toPrimitives(plant);
       await repository.save(plant);
 
       const updated = {
@@ -112,7 +133,7 @@ describe('MongoPlantRepository', () => {
 
     it('should NOT overwrite untouched fields', async () => {
       const plant = PlantFactory.random();
-      const current = plantMapper.toPrimitives(plant);
+      const current = plantDomainMapper.toPrimitives(plant);
       await repository.save(plant);
 
       const originalHeight = plant.traits.size.height;
@@ -140,7 +161,7 @@ describe('MongoPlantRepository', () => {
 
     it('should update nested size partially', async () => {
       const plant = PlantFactory.random();
-      const current = plantMapper.toPrimitives(plant);
+      const current = plantDomainMapper.toPrimitives(plant);
       await repository.save(plant);
 
       const updated = {
@@ -170,7 +191,7 @@ describe('MongoPlantRepository', () => {
 
     it('should update metadata on every update', async () => {
       const plant = PlantFactory.random();
-      const current = plantMapper.toPrimitives(plant);
+      const current = plantDomainMapper.toPrimitives(plant);
       await repository.save(plant);
 
       const updated = {
@@ -190,7 +211,7 @@ describe('MongoPlantRepository', () => {
 
     it("should not update metadata's createdBy on update", async () => {
       const plant = PlantFactory.random();
-      const current = plantMapper.toPrimitives(plant);
+      const current = plantDomainMapper.toPrimitives(plant);
       await repository.save(plant);
 
       const originalCreatedBy = plant.metadata.createdBy;
@@ -212,7 +233,7 @@ describe('MongoPlantRepository', () => {
 
     it('should not update metadata if there are no changes', async () => {
       const plant = PlantFactory.random();
-      const current = plantMapper.toPrimitives(plant);
+      const current = plantDomainMapper.toPrimitives(plant);
       await repository.save(plant);
 
       const originalMetadata = plant.metadata;
@@ -234,7 +255,7 @@ describe('MongoPlantRepository', () => {
 
     it('should handle non-existent plant on update', async () => {
       const plant = PlantFactory.random();
-      const current = plantMapper.toPrimitives(plant);
+      const current = plantDomainMapper.toPrimitives(plant);
 
       const updated = {
         identity: {

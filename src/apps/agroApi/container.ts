@@ -16,8 +16,6 @@ import {
   type AppLogger
 } from '../../Contexts/shared/plugins/index.js';
 import {
-  DBClientFactory,
-  DBConfigFactory,
   DBEnvironmentArranger,
   type DBConfig
 } from '../../shared/infrastructure/persistence/index.js';
@@ -45,7 +43,10 @@ import {
   UpdatePasswordLocalController,
   ValidateMailController
 } from './controllers/Auth/index.js';
-import { HealthController } from './controllers/health/HealthController.js';
+import {
+  HealthController
+  // type HealthControllerDependencies
+} from './controllers/health/HealthController.js';
 import {
   CreatePlantController,
   DeletePlantController,
@@ -55,75 +56,183 @@ import {
 } from './controllers/Plants/index.js';
 import { DeletePlant } from '../../Contexts/Agro/Plants/application/useCases/DeletePlant.js';
 import { MongoBedRepository } from '../../Contexts/Agro/Beds/infrastructure/persistence/MongoBedRepository.js';
-import { CreateBedController } from './controllers/Beds/CreateBedController.js';
+import {
+  CreateBedController,
+  type CreateBedControllerDependencies
+} from './controllers/Beds/CreateBedController.js';
 import { CreateBed } from '../../Contexts/Agro/Beds/application/useCases/CreateBed.js';
-import { GetUserBedsController } from './controllers/Beds/GetUserBedsController.js';
-import { GetBedByIdController } from './controllers/Beds/GetBedByIdController.js';
-import { UpdateBedController } from './controllers/Beds/UpdateBedController.js';
+import {
+  GetUserBedsController,
+  type GetUserBedsControllerDependencies
+} from './controllers/Beds/GetUserBedsController.js';
+import {
+  GetBedByIdController,
+  type GetBedByIdControllerDependencies
+} from './controllers/Beds/GetBedByIdController.js';
+import {
+  UpdateBedController,
+  type UpdateBedControllerDependencies
+} from './controllers/Beds/UpdateBedController.js';
 import { ListUserBeds } from '../../Contexts/Agro/Beds/application/useCases/ListUserBeds.js';
 import { UpdateBed } from '../../Contexts/Agro/Beds/application/useCases/UpdateBed.js';
-import { DeleteBedController } from './controllers/Beds/DeleteBedController.js';
+import {
+  DeleteBedController,
+  type DeleteBedControllerDependencies
+} from './controllers/Beds/DeleteBedController.js';
 import { DeleteBed } from '../../Contexts/Agro/Beds/application/useCases/DeleteBed.js';
 import { GetBedById } from '../../Contexts/Agro/Beds/application/useCases/GetBedById.js';
 import { MongoFamilyRepository } from '../../Contexts/Agro/Families/infrastructure/persistence/MongoFamilyRepository.js';
+import type { Db, MongoClient } from 'mongodb';
+import { bedPersistenceMapper } from '../../Contexts/Agro/Beds/mappers/bedPersistenceMapper.js';
+import { plantPersistenceMapper } from '../../Contexts/Agro/Plants/mappers/plantPersistenceMapper.js';
 
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
+
+type ContainerCradle = {
+  // core dependencies
+  appVersion: string;
+
+  // Infra dependencies
+  DBConfig: DBConfig;
+  DBClient: Promise<MongoClient>;
+  environmentArranger: DBEnvironmentArranger;
+
+  // Health UseCases
+  checkHealth: CheckHealth;
+
+  // Health Controllers
+  healthController: HealthController;
+
+  // Auth Repository
+  authRepository: MongoAuthRepository;
+
+  // Auth UseCases
+  loginUser: LoginUserLocal;
+  registerUser: RegisterUserLocal;
+  authenticateWithGoogle: AuthenticateWithGoogle;
+  validateMail: ValidateMail;
+  refreshToken: RefreshToken;
+  updatePassword: UpdatePasswordLocal;
+
+  // Auth Controllers
+  loginUserController: LoginUserLocalController;
+  registerUserController: RegisterUserLocalController;
+  authenticateWithGoogleController: AuthenticateWithGoogleController;
+  validateMailController: ValidateMailController;
+  refreshTokenController: RefreshTokenController;
+  updatePasswordController: UpdatePasswordLocalController;
+
+  // Plant Repository
+  plantRepository: MongoPlantRepository;
+
+  // Plant UseCases
+  createPlant: CreatePlant;
+  getPlant: GetPlant;
+  listPlants: ListPlants;
+  updatePlant: UpdatePlant;
+  deletePlant: DeletePlant;
+
+  // Plant Controllers
+  createPlantController: CreatePlantController;
+  getAllPlantsController: GetAllPlantsController;
+  getPlantController: GetPlantByIdController;
+  updatePlantController: UpdatePlantController;
+  deletePlantController: DeletePlantController;
+
+  // Bed Repository
+  bedRepository: MongoBedRepository;
+
+  // Bed UseCases
+  createBed: CreateBed;
+  listUserBeds: ListUserBeds;
+  getBedById: GetBedById;
+  updateBed: UpdateBed;
+  deleteBed: DeleteBed;
+
+  // Bed Controllers
+  createBedController: CreateBedController;
+  getUserBedsController: GetUserBedsController;
+  getBedByIdController: GetBedByIdController;
+  updateBedController: UpdateBedController;
+  deleteBedController: DeleteBedController;
+
+  // Family Repository
+  familyRepository: MongoFamilyRepository;
+};
 
 const pkg = JSON.parse(
   readFileSync(resolve(process.cwd(), 'package.json'), 'utf-8')
 ) as { version: string };
 
-export type AppContainer = AwilixContainer;
+export type AppContainer = AwilixContainer<ContainerCradle>;
 
 const registerCoreDependencies = (container: AppContainer): void => {
   container.register({
     appVersion: asValue(pkg.version),
-    logger: asValue<AppLogger>(buildLogger('agroApi')),
-    healthController: asClass(HealthController).scoped(),
-    checkHealth: asClass(CheckHealth).scoped()
+    logger: asValue<AppLogger>(buildLogger('agroApi'))
   });
 };
 
-const registerInfrastructureDependencies = (container: AppContainer): void => {
+const registerHealthUseCase = (container: AppContainer): void => {
   container.register({
-    DBConfig: asFunction(() => DBConfigFactory.createConfig()).singleton(),
-    DBClient: asFunction((DBConfig: DBConfig) =>
-      DBClientFactory.createClient('agroApi', DBConfig)
-    ).singleton(),
+    checkHealth: asFunction(
+      ({ appVersion }) => new CheckHealth(appVersion)
+    ).scoped()
+  });
+};
+
+const registerHealthController = (container: AppContainer): void => {
+  container.register({
+    healthController: asFunction(
+      ({ checkHealth }: ContainerCradle) =>
+        new HealthController({ checkHealth })
+    ).scoped()
+  });
+};
+const registerPersistenceMappers = (container: AppContainer): void => {
+  container.register({
+    bedPersistenceMapper: asValue(bedPersistenceMapper),
+    plantPersistenceMapper: asValue(plantPersistenceMapper)
+  });
+};
+
+const registerInfrastructureDependencies = (
+  container: AppContainer,
+  db: Db,
+  client: MongoClient
+): void => {
+  container.register({
+    DBClient: asValue(client),
+    db: asValue(db),
     environmentArranger: asClass(DBEnvironmentArranger).singleton(),
     encrypter: asClass(CryptAdapter).singleton(),
     googleIdTokenVerifier: asClass(GoogleIdTokenVerifierAdapter).singleton(),
-    authRepository: asClass(MongoAuthRepository).singleton(),
-    plantRepository: asClass(MongoPlantRepository).singleton(),
-    bedRepository: asClass(MongoBedRepository).singleton(),
-    familyRepository: asClass(MongoFamilyRepository).singleton()
-  });
-};
-const registerAuthControllers = (container: AppContainer): void => {
-  container.register({
-    registerUserController: asClass(RegisterUserLocalController).scoped(),
-    loginUserController: asClass(LoginUserLocalController).scoped(),
-    authenticateWithGoogleController: asClass(
-      AuthenticateWithGoogleController
-    ).scoped(),
-    validateMailController: asClass(ValidateMailController).scoped(),
-    refreshTokenController: asClass(RefreshTokenController).scoped(),
-    updatePasswordController: asClass(UpdatePasswordLocalController).scoped()
+
+    authRepository: asValue(new MongoAuthRepository(db)),
+    plantRepository: asFunction(
+      ({ db, plantPersistenceMapper }) =>
+        new MongoPlantRepository(db, plantPersistenceMapper)
+    ).singleton(),
+    bedRepository: asFunction(
+      ({ db, bedPersistenceMapper }) =>
+        new MongoBedRepository(db, bedPersistenceMapper)
+    ).singleton(),
+    familyRepository: asValue(new MongoFamilyRepository(db))
   });
 };
 
 const registerAuthUseCases = (container: AppContainer): void => {
   container.register({
     registerUser: asFunction(
-      (authRepository, encrypter) =>
+      ({ authRepository, encrypter }) =>
         new RegisterUserLocal(authRepository, encrypter)
     ).scoped(),
     loginUser: asFunction(
-      (authRepository, encrypter) =>
+      ({ authRepository, encrypter }) =>
         new LoginUserLocal(authRepository, encrypter)
     ).scoped(),
     authenticateWithGoogle: asFunction(
-      (authRepository, encrypter, googleIdTokenVerifier) =>
+      ({ authRepository, encrypter, googleIdTokenVerifier }) =>
         new AuthenticateWithGoogle(
           authRepository,
           encrypter,
@@ -131,34 +240,50 @@ const registerAuthUseCases = (container: AppContainer): void => {
         )
     ).scoped(),
     validateMail: asFunction(
-      (authRepository, encrypter) => new ValidateMail(authRepository, encrypter)
+      ({ authRepository, encrypter }) =>
+        new ValidateMail(authRepository, encrypter)
     ).scoped(),
     refreshToken: asFunction(
-      (encrypter) => new RefreshToken(encrypter)
+      ({ encrypter }) => new RefreshToken(encrypter)
     ).scoped(),
     updatePassword: asFunction(
-      (authRepository, encrypter) =>
+      ({ authRepository, encrypter }) =>
         new UpdatePasswordLocal(authRepository, encrypter)
     ).scoped()
   });
 };
 
-const registerPlantControllers = (container: AppContainer): void => {
+const registerAuthControllers = (container: AppContainer): void => {
   container.register({
-    createPlantController: asFunction(
-      (createPlant) => new CreatePlantController(createPlant)
+    registerUserController: asFunction(
+      ({ registerUser }: ContainerCradle) =>
+        new RegisterUserLocalController({ registerUser })
     ).scoped(),
-    getAllPlantsController: asFunction(
-      (listPlants) => new GetAllPlantsController(listPlants)
+
+    loginUserController: asFunction(({ loginUser }: ContainerCradle) => {
+      return new LoginUserLocalController({
+        loginUser
+      });
+    }).scoped(),
+
+    authenticateWithGoogleController: asFunction(
+      ({ authenticateWithGoogle }: ContainerCradle) =>
+        new AuthenticateWithGoogleController({ authenticateWithGoogle })
     ).scoped(),
-    getPlantController: asFunction(
-      (getPlant) => new GetPlantByIdController(getPlant)
+
+    validateMailController: asFunction(
+      ({ validateMail }: ContainerCradle) =>
+        new ValidateMailController({ validateMail })
     ).scoped(),
-    updatePlantController: asFunction(
-      (updatePlant) => new UpdatePlantController(updatePlant)
+
+    refreshTokenController: asFunction(
+      ({ refreshToken }: ContainerCradle) =>
+        new RefreshTokenController({ refreshToken })
     ).scoped(),
-    deletePlantController: asFunction(
-      (deletePlant) => new DeletePlantController(deletePlant)
+
+    updatePasswordController: asFunction(
+      ({ updatePassword }: ContainerCradle) =>
+        new UpdatePasswordLocalController({ updatePassword })
     ).scoped()
   });
 };
@@ -166,39 +291,48 @@ const registerPlantControllers = (container: AppContainer): void => {
 const registerPlantUseCases = (container: AppContainer): void => {
   container.register({
     createPlant: asFunction(
-      (plantRepository) => new CreatePlant(plantRepository)
+      ({ plantRepository }) => new CreatePlant(plantRepository)
     ).scoped(),
     getPlant: asFunction(
-      (plantRepository) => new GetPlant(plantRepository)
+      ({ plantRepository }) => new GetPlant(plantRepository)
     ).scoped(),
     listPlants: asFunction(
-      (plantRepository) => new ListPlants(plantRepository)
+      ({ plantRepository }) => new ListPlants(plantRepository)
     ).scoped(),
     updatePlant: asFunction(
-      (plantRepository) => new UpdatePlant(plantRepository)
+      ({ plantRepository }) => new UpdatePlant(plantRepository)
     ).scoped(),
     deletePlant: asFunction(
-      (plantRepository) => new DeletePlant(plantRepository)
+      ({ plantRepository }) => new DeletePlant(plantRepository)
     ).scoped()
   });
 };
 
-const registerBedControllers = (container: AppContainer): void => {
+const registerPlantControllers = (container: AppContainer): void => {
   container.register({
-    createBedController: asFunction(
-      (createBed) => new CreateBedController(createBed)
+    createPlantController: asFunction(
+      ({ createPlant }: ContainerCradle) =>
+        new CreatePlantController({ createPlant })
     ).scoped(),
-    getUserBedsController: asFunction(
-      (listUserBeds) => new GetUserBedsController(listUserBeds)
+
+    getAllPlantsController: asFunction(
+      ({ listPlants }: ContainerCradle) =>
+        new GetAllPlantsController({ listPlants })
     ).scoped(),
-    getBedController: asFunction(
-      (getBed) => new GetBedByIdController(getBed)
+
+    getPlantController: asFunction(
+      ({ getPlant }: ContainerCradle) =>
+        new GetPlantByIdController({ getPlant })
     ).scoped(),
-    updateBedController: asFunction(
-      (updateBed) => new UpdateBedController(updateBed)
+
+    updatePlantController: asFunction(
+      ({ updatePlant }: ContainerCradle) =>
+        new UpdatePlantController({ updatePlant })
     ).scoped(),
-    deleteBedController: asFunction(
-      (deleteBed) => new DeleteBedController(deleteBed)
+
+    deletePlantController: asFunction(
+      ({ deletePlant }: ContainerCradle) =>
+        new DeletePlantController({ deletePlant })
     ).scoped()
   });
 };
@@ -206,30 +340,73 @@ const registerBedControllers = (container: AppContainer): void => {
 const registerBedUseCases = (container: AppContainer): void => {
   container.register({
     createBed: asFunction(
-      (bedRepository) => new CreateBed(bedRepository)
+      ({ bedRepository }) => new CreateBed(bedRepository)
     ).scoped(),
+
     listUserBeds: asFunction(
-      (bedRepository) => new ListUserBeds(bedRepository)
+      ({ bedRepository }) => new ListUserBeds(bedRepository)
     ).scoped(),
-    getBed: asFunction(
-      (bedRepository) => new GetBedById(bedRepository)
+
+    getBedById: asFunction(
+      ({ bedRepository }) => new GetBedById(bedRepository)
     ).scoped(),
+
     updateBed: asFunction(
-      (bedRepository) => new UpdateBed(bedRepository)
+      ({ bedRepository }) => new UpdateBed(bedRepository)
     ).scoped(),
+
     deleteBed: asFunction(
-      (bedRepository) => new DeleteBed(bedRepository)
+      ({ bedRepository }) => new DeleteBed(bedRepository)
     ).scoped()
   });
 };
 
-export const createAppContainer = (): AppContainer => {
-  const container = createContainer({
-    injectionMode: InjectionMode.CLASSIC
+const registerBedControllers = (container: AppContainer): void => {
+  container.register({
+    createBedController: asFunction(
+      ({ createBed }: CreateBedControllerDependencies) =>
+        new CreateBedController({ createBed })
+    ).scoped(),
+
+    getUserBedsController: asFunction(
+      ({ listUserBeds }: GetUserBedsControllerDependencies) =>
+        new GetUserBedsController({ listUserBeds })
+    ).scoped(),
+
+    getBedByIdController: asFunction(
+      ({ getBedById }: GetBedByIdControllerDependencies) =>
+        new GetBedByIdController({ getBedById })
+    ).scoped(),
+
+    updateBedController: asFunction(
+      ({ updateBed }: UpdateBedControllerDependencies) =>
+        new UpdateBedController({ updateBed })
+    ).scoped(),
+
+    deleteBedController: asFunction(
+      ({ deleteBed }: DeleteBedControllerDependencies) =>
+        new DeleteBedController({ deleteBed })
+    ).scoped()
+  });
+};
+
+export const createAppContainer = (deps: {
+  db: Db;
+  client: MongoClient;
+}): AppContainer => {
+  const container: AppContainer = createContainer({
+    injectionMode: InjectionMode.PROXY
+  });
+  container.register({
+    DBClient: asValue(deps.client),
+    db: asValue(deps.db)
   });
 
   registerCoreDependencies(container);
-  registerInfrastructureDependencies(container);
+  registerPersistenceMappers(container);
+  registerInfrastructureDependencies(container, deps.db, deps.client);
+  registerHealthController(container);
+  registerHealthUseCase(container);
   registerAuthControllers(container);
   registerAuthUseCases(container);
   registerPlantControllers(container);

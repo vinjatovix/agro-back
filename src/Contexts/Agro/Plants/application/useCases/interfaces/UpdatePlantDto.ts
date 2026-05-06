@@ -3,8 +3,6 @@ import type { PlantLifecycleValue } from '../../../domain/entities/types/PlantLi
 import type { PlantKnowledgePrimitives } from '../../../domain/entities/types/PlantKnowledgePrimitives.js';
 
 export interface UpdatePlantDto {
-  id: string;
-
   identity?: {
     name?: {
       primary?: string;

@@ -8,10 +8,6 @@ export class DeleteBed {
   async execute(id: string, user: UserSessionInfo): Promise<void> {
     const bed = await this.bedRepository.findById(id);
 
-    if (!bed) {
-      throw createError.notFound(`Bed with ID ${id} not found`);
-    }
-
     if (bed.userId.value !== user.id) {
       throw createError.forbidden(
         `User ${user.username} does not have permission to delete this bed`

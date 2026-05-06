@@ -1,3 +1,4 @@
+@plants @get-all-plants
 Feature: Get All Plants
 
     Scenario: Get all plants when plants exist

@@ -1,19 +1,39 @@
-import { createAppContainer } from '../../../../../../../src/apps/agroApi/container.js';
+import {
+  createAppContainer,
+  type AppContainer
+} from '../../../../../../../src/apps/agroApi/container.js';
 import type { FamilyRepository } from '../../../../../../../src/Contexts/Agro/Families/domain/repositories/interfaces/FamilyRepository.js';
 import type { FamilyPrimitives } from '../../../../../../../src/Contexts/Agro/Families/domain/types/FamilyPrimitives.js';
 import { familyDomainMapper } from '../../../../../../../src/Contexts/Agro/Families/mappers/familyDomainMapper.js';
 import type { EnvironmentArranger } from '../../../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
 import { UuidMother } from '../../../../../shared/fixtures/UuidMother.js';
 import { FamilyScenarios } from '../../../domain/mothers/FamilyScenarios.js';
+import {
+  DBClientFactory,
+  DBConfigFactory
+} from '../../../../../../../src/shared/infrastructure/persistence/index.js';
+import type { MongoClient } from 'mongodb';
 
-const container = createAppContainer();
-const repository = container.resolve<FamilyRepository>('familyRepository');
-
-const environmentArranger: Promise<EnvironmentArranger> = Promise.resolve(
-  container.resolve<EnvironmentArranger>('environmentArranger')
-);
+let container: AppContainer;
+let repository: FamilyRepository;
+let environmentArranger: Promise<EnvironmentArranger>;
+let client: MongoClient;
 
 describe('MongoFamilyRepository', () => {
+  beforeAll(async () => {
+    client = await DBClientFactory.createClient(
+      'agroApi-test',
+      DBConfigFactory.createConfig()
+    );
+
+    const db = client.db();
+
+    container = createAppContainer({ db, client });
+    environmentArranger = Promise.resolve(
+      container.resolve<EnvironmentArranger>('environmentArranger')
+    );
+    repository = container.resolve<FamilyRepository>('familyRepository');
+  });
   beforeEach(async () => {
     await (await environmentArranger).arrange();
   });
@@ -21,6 +41,7 @@ describe('MongoFamilyRepository', () => {
   afterAll(async () => {
     await (await environmentArranger).arrange();
     await (await environmentArranger).close();
+    await client.close();
   });
 
   describe('save + findById', () => {

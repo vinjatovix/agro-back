@@ -32,7 +32,7 @@ describe('UpdateBed', () => {
           width: 150,
           height: 250
         },
-        USER.username
+        USER
       )
     ).rejects.toThrow(`Bed not found: ${id}`);
   });
@@ -52,11 +52,9 @@ describe('UpdateBed', () => {
           width: 150,
           height: 250
         },
-        otherUser.username
+        otherUser
       )
-    ).rejects.toThrow(
-      `User ${otherUser.username} is not allowed to update this bed`
-    );
+    ).rejects.toThrow(`User ${otherUser.id} is not allowed to update this bed`);
   });
 
   it('should update bed width and height', async () => {
@@ -67,7 +65,7 @@ describe('UpdateBed', () => {
         height: bed.height.value + 50,
         depth: bed.depth.value
       },
-      USER.username
+      USER
     );
 
     repository.assertUpdateHasBeenCalledWith(
@@ -93,7 +91,7 @@ describe('UpdateBed', () => {
         width: bed.width.value + 50,
         height: bed.height.value + 50
       },
-      USER.username
+      USER
     );
 
     expect(updated.width.value).toBe(bed.width.value + 50);

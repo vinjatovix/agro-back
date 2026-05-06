@@ -3,7 +3,7 @@ import type { Bed } from '../../domain/entities/Bed.js';
 import type { PlantInstance } from '../../../PlantInstances/domain/entities/PlantInstance.js';
 import type { SpatialPlantModel } from '../../domain/services/spatial/interfaces/SpatialPlantModel.js';
 import type { BedRepository } from '../../domain/repositories/interfaces/BedRepository.js';
-import { bedMapper } from '../../mappers/bedMapper.js';
+import { bedDomainMapper } from '../../mappers/bedDomainMapper.js';
 
 export type AddPlantToBedParams = {
   bed: Bed;
@@ -50,10 +50,10 @@ export async function addPlantToBed({
     })
   );
 
-  const current = bedMapper.toPrimitives(bed);
+  const current = bedDomainMapper.toPrimitives(bed);
 
   bed.addPlant(plantInstance, newPlantSpatial, existingSpatialPlants);
-  const updated = bedMapper.toPrimitives(bed);
+  const updated = bedDomainMapper.toPrimitives(bed);
 
   await bedRepository.updateWithDiff(current, updated, user);
 }

@@ -1,19 +1,39 @@
-import { createAppContainer } from '../../../../../src/apps/agroApi/container.js';
-import type { UserRepository } from '../../../../../src/Contexts/Auth/domain/repositories/interfaces/UserRepository.js';
+import type { MongoClient } from 'mongodb';
+import {
+  createAppContainer,
+  type AppContainer
+} from '../../../../../src/apps/agroApi/container.js';
+import type { AuthRepository } from '../../../../../src/Contexts/Auth/domain/repositories/interfaces/AuthRepository.js';
 import { EnvironmentArranger } from '../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
+import {
+  DBClientFactory,
+  DBConfigFactory
+} from '../../../../../src/shared/infrastructure/persistence/index.js';
 import { UserMother } from '../../domain/mothers/UserMother.js';
 
-const container = createAppContainer();
-
-const repository = container.resolve<UserRepository>('authRepository');
-
-const environmentArranger: Promise<EnvironmentArranger> = Promise.resolve(
-  container.resolve<EnvironmentArranger>('environmentArranger')
-);
+let container: AppContainer;
+let repository: AuthRepository;
+let environmentArranger: Promise<EnvironmentArranger>;
+let client: MongoClient;
 
 const username = UserMother.random().username;
 
 describe('MongoAuthRepository', () => {
+  beforeAll(async () => {
+    client = await DBClientFactory.createClient(
+      'agroApi-test',
+      DBConfigFactory.createConfig()
+    );
+
+    const db = client.db();
+
+    container = createAppContainer({ db, client });
+    environmentArranger = Promise.resolve(
+      container.resolve<EnvironmentArranger>('environmentArranger')
+    );
+    repository = container.resolve<AuthRepository>('authRepository');
+  });
+
   beforeEach(async () => {
     await (await environmentArranger).arrange();
   });
@@ -21,6 +41,7 @@ describe('MongoAuthRepository', () => {
   afterAll(async () => {
     await (await environmentArranger).arrange();
     await (await environmentArranger).close();
+    await client.close();
   });
 
   describe('save', () => {

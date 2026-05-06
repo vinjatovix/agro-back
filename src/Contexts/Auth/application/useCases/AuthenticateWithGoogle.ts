@@ -14,7 +14,7 @@ import {
   Username,
   UserRoles
 } from '../../domain/value-objects/index.js';
-import type { UserRepository } from '../../domain/repositories/interfaces/UserRepository.js';
+import type { AuthRepository } from '../../domain/repositories/interfaces/AuthRepository.js';
 import type { AuthenticateWithGoogleRequest } from '../interfaces/index.js';
 import { User } from '../../domain/entities/User.js';
 import { UserPatch } from '../../domain/entities/UserPatch.js';
@@ -26,7 +26,7 @@ const TOKEN_GENERATION_ERROR_MESSAGE =
 
 export class AuthenticateWithGoogle {
   constructor(
-    private readonly repository: UserRepository,
+    private readonly repository: AuthRepository,
     private readonly encrypter: EncrypterTool,
     private readonly googleIdTokenVerifier: GoogleIdTokenVerifierTool
   ) {}

@@ -1,4 +1,3 @@
-
 import { createError } from '../../../../../shared/errors/index.js';
 import { AggregateRoot } from '../../../../shared/domain/entities/AggregateRoot.js';
 import type { Metadata } from '../../../../shared/domain/valueObject/Metadata.js';

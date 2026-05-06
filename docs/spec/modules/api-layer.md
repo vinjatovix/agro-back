@@ -1,12 +1,12 @@
-# 📄 APPLICATION CONTRACT (API SURFACE)
+# APPLICATION CONTRACT (API SURFACE)
 
-version: 1.0.0
+version: 1.1.0
 source-spec: v1.0.0
 status: evolving
 
 ---
 
-# 1. PURPOSE
+## 1. PURPOSE
 
 This module defines the external HTTP contract of AgroApp.
 
@@ -20,7 +20,7 @@ This module is the formal agreement between the backend and any external consume
 
 ---
 
-# 2. DOMAIN RESOURCES
+## 2. DOMAIN RESOURCES
 
 The system exposes the following domain resources:
 
@@ -39,14 +39,14 @@ The system exposes the following domain resources:
 
 ---
 
-# 3. AUTH SYSTEM
+## 3. AUTH SYSTEM
 
-## 3.1 Providers
+### 3.1 Providers
 
 - local (email/password)
 - google OAuth
 
-## 3.2 Features
+### 3.2 Features
 
 - user registration
 - login
@@ -54,7 +54,7 @@ The system exposes the following domain resources:
 - email validation
 - password update
 
-## 3.3 Pending infrastructure
+### 3.3 Pending infrastructure
 
 - email delivery service integration (e.g. SendGrid)
 - enforcement of email verification flow
@@ -62,11 +62,9 @@ The system exposes the following domain resources:
 
 ---
 
-# 4. RESOURCE CONTRACTS
+## 4. RESOURCE CONTRACTS
 
----
-
-## 4.1 Plants
+### 4.1 Plants
 
 - POST /api/v1/plants (implemented)
 - GET /api/v1/plants (implemented)
@@ -74,7 +72,7 @@ The system exposes the following domain resources:
 - PATCH /api/v1/plants/:id (implemented)
 - DELETE /api/v1/plants/:id (implemented)
 
-### Access control
+#### Access control
 
 - GET /api/v1/plants → public (no authentication required)
 - POST /api/v1/plants → admin only
@@ -83,7 +81,7 @@ The system exposes the following domain resources:
 
 ---
 
-### 4.1.1 Plant by ID
+#### 4.1.1 Plant by ID
 
 Behavior:
 
@@ -93,7 +91,7 @@ Behavior:
 
 ---
 
-### PATCH /api/v1/plants/:id (implemented)
+#### PATCH /api/v1/plants/:id (implemented)
 
 Behavior:
 
@@ -103,11 +101,11 @@ Behavior:
 
 ---
 
-## 4.2 PlantInstances
+### 4.2 PlantInstances
 
 Represents a real instance of a Plant placed in a Bed.
 
-### Endpoints
+#### Endpoints
 
 pending implementation
 
@@ -117,7 +115,7 @@ pending implementation
 - PUT /api/v1/plant-instances/:id
 - DELETE /api/v1/plant-instances/:id
 
-### Concept
+#### Concept
 
 - Plant = definition (species template)
 - PlantInstance = physical/virtual occurrence in space
@@ -126,7 +124,7 @@ Note: PlantInstance schema is reused in Bed-related OpenAPI responses as a read-
 
 ---
 
-## 4.3 Beds
+### 4.3 Beds
 
 pending implementation
 
@@ -138,11 +136,11 @@ pending implementation
 
 ---
 
-## 4.4 Events
+### 4.4 Events
 
 Lifecycle events associated with PlantInstances.
 
-### Endpoints
+#### Endpoints
 
 pending implementation
 
@@ -152,7 +150,7 @@ pending implementation
 - GET /api/v1/events?plantInstanceId=
 - DELETE /api/v1/events/:id
 
-### Event types
+#### Event types
 
 - watering
 - fertilization
@@ -164,16 +162,16 @@ pending implementation
 
 ---
 
-## 4.5 Users
+### 4.5 Users
 
 - POST /api/v1/auth/register
 - POST /api/v1/auth/login
 - POST /api/v1/auth/google
 - POST /api/v1/auth/refresh
-- POST /api/v1/auth/update 🆕
+- POST /api/v1/auth/update
 - GET /api/v1/auth/validate/:token
 
-### Roles
+#### Roles
 
 - admin
 - collaborator
@@ -181,42 +179,42 @@ pending implementation
 
 ---
 
-## 4.6 Pests
+### 4.6 Pests
 
 - GET /api/v1/pests
 - GET /api/v1/pests/:id
 
 ---
 
-## 4.7 Diseases
+### 4.7 Diseases
 
 - GET /api/v1/diseases
 - GET /api/v1/diseases/:id
 
 ---
 
-## 4.8 Remedies
+### 4.8 Remedies
 
 - GET /api/v1/remedies
 - GET /api/v1/remedies/:id
 
 ---
 
-## 4.9 Fertilizers
+### 4.9 Fertilizers
 
 - GET /api/v1/fertilizers
 - GET /api/v1/fertilizers/:id
 
 ---
 
-## 4.10 Families
+### 4.10 Families
 
 - GET /api/v1/families
 - GET /api/v1/families/:id
 
 ---
 
-## 4.11 Plant Relations
+### 4.11 Plant Relations
 
 Represents companion planting relationships.
 
@@ -226,7 +224,7 @@ Represents companion planting relationships.
 
 ---
 
-# 5. ERROR CONTRACT
+## 5. ERROR CONTRACT
 
 All endpoints MUST return a consistent error structure.
 
@@ -246,7 +244,7 @@ Validation errors:
 
 ---
 
-# 6. STATUS CODES
+## 6. STATUS CODES
 
 - 400 → validation error
 - 401 → unauthenticated
@@ -256,7 +254,7 @@ Validation errors:
 
 ---
 
-# 7. GENERAL RULES
+## 7. GENERAL RULES
 
 - No business logic in API layer
 - No direct domain exposure
@@ -267,28 +265,28 @@ Validation errors:
 
 ---
 
-# 8. CURRENT STATUS
+## 8. CURRENT STATUS
 
-## Implemented
+### Implemented
 
 - Plants: READ + CREATE + PATCH + DELETE
 - Auth system (functional end-to-end, Swagger tested)
 - validation middleware (partial → evolving)
 - error handling (structured)
 
-## Partially designed
+### Partially designed
 
 - PlantInstances
 - Events system
 - Pest/Disease/Remedy system
 
-## Missing
+### Missing
 
 - email provider integration
 
 ---
 
-# 9. CONTRACT PRINCIPLE
+## 9. CONTRACT PRINCIPLE
 
 This document defines the external contract of the system.
 
@@ -296,45 +294,30 @@ Any change affecting this module is a breaking change and MUST be versioned.
 
 ---
 
-# 10. DEPENDENCY INJECTION STRATEGY (FUTURE EVOLUTION)
+## 10. DEPENDENCY INJECTION STRATEGY
 
-The system currently uses Awilix in CLASSIC mode.
+The system uses --Awilix PROXY MODE-- as the active dependency injection mechanism.
 
-## Current state
+### Current state
 
-- Controllers are manually bound using `bindRun`
-- Container resolution is explicit via invoker functions
-- Controller methods are accessed through runtime binding
+- Controllers are resolved via proxy container property access
+- No manual binding is required (`bindRun` has been removed)
+- Dependencies are lazily resolved at runtime through the container proxy
+- Controller wiring is simplified and declarative
 
-## Known limitation
+### Impact
 
-- Classic mode causes inconsistencies between:
-  - test execution context
-  - production build resolution
-- manual binding introduces fragility (`this` context issues)
-- scalability issues in large controller graphs
+- Eliminates `this` binding issues from classic mode
+- Removes Classic-mode binding layer (bindRun + manual context binding), but keeps explicit invocation adapters (makeInvoker) as HTTP composition layer.
+- Reduces API composition boilerplate
+- Standardizes dependency resolution across runtime and tests
 
-## Target evolution
+---
 
-Migration to Awilix PROXY MODE:
+## 11. FINAL NOTE
 
-- automatic dependency resolution via property access
-- removal of manual binding (`bindRun`)
-- controllers resolved lazily through proxy container
-- reduced boilerplate in API wiring layer
+This document defines the external contract of the system.
 
-## Risks
+It does NOT describe internal architecture decisions unless they directly affect the HTTP surface or execution contract.
 
-- existing `makeInvoker` patterns will break
-- `bindRun` pattern becomes obsolete
-- controller interface assumptions must change
-- significant refactor required in API composition layer
-
-## Migration constraint
-
-This change MUST be performed as a controlled refactor phase:
-
-1. introduce proxy container in parallel
-2. keep classic mode for legacy routes
-3. migrate controllers incrementally
-4. remove manual binding layer once stable
+---

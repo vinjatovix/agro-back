@@ -6,12 +6,18 @@ import type {
 } from '../../../../Contexts/Auth/application/index.js';
 import { HttpController } from '../../shared/HttpController.js';
 
+export type UpdatePasswordLocalControllerDependencies = {
+  updatePassword: UpdatePasswordLocal;
+};
+
 export class UpdatePasswordLocalController extends HttpController {
-  constructor(protected readonly updatePassword: UpdatePasswordLocal) {
+  protected readonly updatePassword: UpdatePasswordLocal;
+  constructor({ updatePassword }: UpdatePasswordLocalControllerDependencies) {
     super();
+    this.updatePassword = updatePassword;
   }
 
-  async run(req: Request, res: Response, next: NextFunction): Promise<void> {
+  run = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const request = req.body as UpdatePasswordRequest;
       const user = res.locals.user as UserSessionInfo;
@@ -22,5 +28,5 @@ export class UpdatePasswordLocalController extends HttpController {
     } catch (error) {
       next(error);
     }
-  }
+  };
 }

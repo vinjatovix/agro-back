@@ -4,30 +4,39 @@ import { HttpController } from '../../shared/HttpController.js';
 import type { UpdatePlant } from '../../../../Contexts/Agro/Plants/application/useCases/UpdatePlant.js';
 import type { UpdatePlantDto } from '../../../../Contexts/Agro/Plants/application/useCases/interfaces/UpdatePlantDto.js';
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
+import { plantDomainMapper } from '../../../../Contexts/Agro/Plants/mappers/plantDomainMapper.js';
 import { createError } from '../../../../shared/errors/index.js';
-import { plantMapper } from '../../../../Contexts/Agro/Plants/mappers/plantMapper.js';
+
+export type UpdatePlantControllerDependencies = {
+  updatePlant: UpdatePlant;
+};
 
 export class UpdatePlantController extends HttpController {
-  constructor(private readonly updatePlant: UpdatePlant) {
+  protected readonly updatePlant: UpdatePlant;
+  constructor({ updatePlant }: UpdatePlantControllerDependencies) {
     super();
+    this.updatePlant = updatePlant;
   }
 
-  async run(req: Request, res: Response, next: NextFunction): Promise<void> {
+  run = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
-      const dto = req.body as UpdatePlantDto;
-      if (id !== dto.id) {
-        throw createError.badRequest('ID in params does not match ID in body');
+      if (!id) {
+        throw createError.badRequest('Plant ID is required');
       }
+      const dto = req.body as UpdatePlantDto;
 
       const user = res.locals.user as UserSessionInfo;
 
-      const result = await this.updatePlant.execute(dto, user.username);
-      const mappedResult = plantMapper.toPrimitives(result);
+      const result = await this.updatePlant.execute(
+        { ...dto, id },
+        user.username
+      );
+      const mappedResult = plantDomainMapper.toPrimitives(result);
 
       res.status(this.status()).json(mappedResult);
     } catch (error) {
       next(error);
     }
-  }
+  };
 }

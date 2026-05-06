@@ -7,23 +7,29 @@ import {
   UpdatePasswordLocalController,
   ValidateMailController
 } from '../../controllers/Auth/index.js';
-import { bindRun } from '../shared/index.js';
 
-const api = (
-  registerUserController: RegisterUserLocalController,
-  loginUserController: LoginUserLocalController,
-  authenticateWithGoogleController: AuthenticateWithGoogleController,
-  validateMailController: ValidateMailController,
-  refreshTokenController: RefreshTokenController,
-  updatePasswordController: UpdatePasswordLocalController
-) => {
+const api = ({
+  registerUserController,
+  loginUserController,
+  authenticateWithGoogleController,
+  validateMailController,
+  refreshTokenController,
+  updatePasswordController
+}: {
+  registerUserController: RegisterUserLocalController;
+  loginUserController: LoginUserLocalController;
+  authenticateWithGoogleController: AuthenticateWithGoogleController;
+  validateMailController: ValidateMailController;
+  refreshTokenController: RefreshTokenController;
+  updatePasswordController: UpdatePasswordLocalController;
+}) => {
   return {
-    registerUser: bindRun(registerUserController),
-    login: bindRun(loginUserController),
-    authenticateWithGoogle: bindRun(authenticateWithGoogleController),
-    validateMail: bindRun(validateMailController),
-    refreshToken: bindRun(refreshTokenController),
-    updatePassword: bindRun(updatePasswordController)
+    registerUser: registerUserController.run,
+    login: loginUserController.run,
+    authenticateWithGoogle: authenticateWithGoogleController.run,
+    validateMail: validateMailController.run,
+    refreshToken: refreshTokenController.run,
+    updatePassword: updatePasswordController.run
   };
 };
 

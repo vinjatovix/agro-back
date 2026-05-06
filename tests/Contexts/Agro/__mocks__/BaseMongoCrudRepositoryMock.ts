@@ -2,6 +2,7 @@
 
 import type { QueryOptions } from '../../../../src/Contexts/shared/domain/query/interfaces/QueryOptions.js';
 import { applyPatch } from '../../../../src/shared/domain/patch/applyPatch.js';
+import { createError } from '../../../../src/shared/errors/index.js';
 
 export abstract class BaseMongoCrudRepositoryMock<
   TEntity extends { id: { value: string } },
@@ -23,7 +24,7 @@ export abstract class BaseMongoCrudRepositoryMock<
     this.saveMock(entity);
 
     if (this.failOnSave) {
-      throw new Error('Save failed');
+      throw createError.conflict('Save failed');
     }
 
     this.storage.set(entity.id.value, entity);
@@ -35,7 +36,7 @@ export abstract class BaseMongoCrudRepositoryMock<
     const entity = this.storage.get(id);
 
     if (!entity) {
-      throw new Error(`${this.entityName()} not found: ${id}`);
+      throw createError.badRequest(`${this.entityName()} not found: ${id}`);
     }
 
     return entity;
@@ -70,7 +71,7 @@ export abstract class BaseMongoCrudRepositoryMock<
     const id = current.id;
 
     if (!this.storage.has(id)) {
-      throw new Error(`${this.entityName()} not found: ${id}`);
+      throw createError.badRequest(`${this.entityName()} not found: ${id}`);
     }
 
     const patched = applyPatch(current, updated as TPrimitives);

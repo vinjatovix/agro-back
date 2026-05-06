@@ -1,10 +1,9 @@
 import { makeInvoker } from 'awilix-express';
 import { HealthController } from '../../controllers/health/HealthController.js';
-import { bindRun } from '../shared/index.js';
 
-const api = (healthController: HealthController) => {
+const api = ({ healthController }: { healthController: HealthController }) => {
   return {
-    getHealth: bindRun(healthController)
+    getHealth: healthController.run
   };
 };
 

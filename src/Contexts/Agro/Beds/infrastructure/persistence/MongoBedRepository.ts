@@ -1,15 +1,23 @@
+import type { Db } from 'mongodb';
 import { MongoCrudRepository } from '../../../../shared/infrastructure/persistence/mongo/MongoCrudRepository.js';
 import type { Bed } from '../../domain/entities/Bed.js';
 import type { BedFilter } from '../../domain/entities/types/BedFilter.js';
 import type { BedPrimitives } from '../../domain/entities/types/BedPrimitives.js';
 import type { BedRepository } from '../../domain/repositories/interfaces/BedRepository.js';
-import { bedMapper } from '../../mappers/bedMapper.js';
 import type { MongoBedDocument } from './types/MongoBedDocument.js';
+import type { BedPersistenceMapper } from '../../mappers/interfaces/BedPersistenceMapper.js';
+import { toMongoId } from '../../../../shared/infrastructure/persistence/mongo/MongoId.js';
 
 export class MongoBedRepository
   extends MongoCrudRepository<Bed, BedPrimitives, MongoBedDocument, BedFilter>
   implements BedRepository
 {
+  constructor(
+    db: Db,
+    private readonly bedPersistenceMapper: BedPersistenceMapper
+  ) {
+    super(db);
+  }
   protected entityName(): string {
     return 'Bed';
   }
@@ -18,28 +26,19 @@ export class MongoBedRepository
   }
 
   protected toDomain(document: MongoBedDocument): Bed {
-    return bedMapper.fromPrimitives({
-      id: document._id.toString(),
-      userId: document.userId.toString(),
-      name: document.name,
-      width: document.width,
-      height: document.height,
-      depth: document.depth,
-      plantInstances: document.plantInstances,
-      metadata: document.metadata,
-      deleted: document.deleted,
-      ...(document.deletedAt && { deletedAt: new Date(document.deletedAt) })
-    });
+    return this.bedPersistenceMapper.fromMongoDocument(document);
   }
 
-  protected toPrimitives(entity: Bed): BedPrimitives {
-    return bedMapper.toPrimitives(entity);
+  protected toMongoDocument(entity: Bed): MongoBedDocument {
+    return this.bedPersistenceMapper.toMongoDocument(entity);
   }
 
   async findByUserId(userId: string): Promise<Bed[]> {
-    const collection = await this.collection();
+    const collection = this.collection();
 
-    const documents = await collection.find({ userId }).toArray();
+    const documents = await collection
+      .find({ userId: toMongoId(userId) })
+      .toArray();
 
     return documents.map((doc) => this.toDomain(doc as MongoBedDocument));
   }

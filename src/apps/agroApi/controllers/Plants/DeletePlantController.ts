@@ -5,12 +5,18 @@ import { createError } from '../../../../shared/errors/index.js';
 import { HttpController } from '../../shared/HttpController.js';
 import httpStatus from 'http-status';
 
+export type DeletePlantControllerDependencies = {
+  deletePlant: DeletePlant;
+};
+
 export class DeletePlantController extends HttpController {
-  constructor(private readonly deletePlant: DeletePlant) {
+  protected readonly deletePlant: DeletePlant;
+  constructor({ deletePlant }: DeletePlantControllerDependencies) {
     super();
+    this.deletePlant = deletePlant;
   }
 
-  async run(req: Request, res: Response, next: NextFunction): Promise<void> {
+  run = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const plantId = req.params.id;
 
@@ -24,5 +30,5 @@ export class DeletePlantController extends HttpController {
     } catch (error) {
       next(error);
     }
-  }
+  };
 }

@@ -1,3 +1,4 @@
+@auth @validate-token
 Feature: Validate token
   In order to grant access to the application
   As an user

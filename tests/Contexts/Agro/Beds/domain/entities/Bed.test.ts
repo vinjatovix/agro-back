@@ -6,7 +6,7 @@ import type {
   SpatialPlantModel
 } from '../../../../../../src/Contexts/Agro/Beds/domain/services/spatial/interfaces/index.js';
 import { Metadata } from '../../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
-import { bedMapper } from '../../../../../../src/Contexts/Agro/Beds/mappers/bedMapper.js';
+import { bedDomainMapper } from '../../../../../../src/Contexts/Agro/Beds/mappers/bedDomainMapper.js';
 import { PositiveNumber } from '../../../../../../src/Contexts/shared/domain/valueObject/PositiveNumber.js';
 import { StringValueObject } from '../../../../../../src/Contexts/shared/domain/valueObject/StringValueObject.js';
 
@@ -162,7 +162,7 @@ describe('Bed (unit)', () => {
       spatialService
     );
 
-    const result = bedMapper.toPrimitives(bed);
+    const result = bedDomainMapper.toPrimitives(bed);
 
     expect(result).toEqual(
       expect.objectContaining({

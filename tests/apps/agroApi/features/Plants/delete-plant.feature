@@ -1,3 +1,4 @@
+@plants @delete-plant
 Feature: Delete a plant
     In order to remove an existing plant
     As an administrator

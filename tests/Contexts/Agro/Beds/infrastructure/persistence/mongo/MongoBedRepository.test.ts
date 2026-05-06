@@ -1,26 +1,48 @@
-import { createAppContainer } from '../../../../../../src/apps/agroApi/container.js';
-import type { BedPrimitives } from '../../../../../../src/Contexts/Agro/Beds/domain/entities/types/BedPrimitives.js';
-import type { BedRepository } from '../../../../../../src/Contexts/Agro/Beds/domain/repositories/interfaces/BedRepository.js';
-import { bedMapper } from '../../../../../../src/Contexts/Agro/Beds/mappers/bedMapper.js';
-import type { EnvironmentArranger } from '../../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
-import { PlantInstanceMother } from '../../../PlantInstances/domain/mothers/PlantInstanceMother.js';
-import { BedFactory } from '../../domain/mothers/BedFactory.js';
+import type { MongoClient } from 'mongodb';
+import {
+  createAppContainer,
+  type AppContainer
+} from '../../../../../../../src/apps/agroApi/container.js';
+import type { BedPrimitives } from '../../../../../../../src/Contexts/Agro/Beds/domain/entities/types/BedPrimitives.js';
+import type { BedRepository } from '../../../../../../../src/Contexts/Agro/Beds/domain/repositories/interfaces/BedRepository.js';
+import { bedDomainMapper } from '../../../../../../../src/Contexts/Agro/Beds/mappers/bedDomainMapper.js';
+import type { EnvironmentArranger } from '../../../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
+import {
+  DBClientFactory,
+  DBConfigFactory
+} from '../../../../../../../src/shared/infrastructure/persistence/index.js';
+import { PlantInstanceMother } from '../../../../PlantInstances/domain/mothers/PlantInstanceMother.js';
+import { BedFactory } from '../../../domain/mothers/BedFactory.js';
+import { random } from '../../../../../shared/fixtures/random.js';
 
-const container = createAppContainer();
-const repository = container.resolve<BedRepository>('bedRepository');
-
-const environmentArranger: Promise<EnvironmentArranger> = Promise.resolve(
-  container.resolve<EnvironmentArranger>('environmentArranger')
-);
+let container: AppContainer;
+let repository: BedRepository;
+let environmentArranger: Promise<EnvironmentArranger>;
+let client: MongoClient;
 
 describe('MongoBedRepository', () => {
   beforeAll(async () => {
+    client = await DBClientFactory.createClient(
+      'agroApi-test',
+      DBConfigFactory.createConfig()
+    );
+
+    const db = client.db();
+
+    container = createAppContainer({ db, client });
+    environmentArranger = Promise.resolve(
+      container.resolve<EnvironmentArranger>('environmentArranger')
+    );
+    repository = container.resolve<BedRepository>('bedRepository');
+  });
+  beforeEach(async () => {
     await (await environmentArranger).arrange();
   });
 
   afterAll(async () => {
     await (await environmentArranger).arrange();
     await (await environmentArranger).close();
+    await client.close();
   });
 
   describe('save + findById', () => {
@@ -81,7 +103,7 @@ describe('MongoBedRepository', () => {
   describe('updateWithDiff', () => {
     it('should update bed dimensions', async () => {
       const bed = BedFactory.random();
-      const current = bedMapper.toPrimitives(bed);
+      const current = bedDomainMapper.toPrimitives(bed);
 
       await repository.save(bed);
 
@@ -101,7 +123,7 @@ describe('MongoBedRepository', () => {
 
     it('should update plant instances', async () => {
       const bed = BedFactory.create();
-      const current = bedMapper.toPrimitives(bed);
+      const current = bedDomainMapper.toPrimitives(bed);
 
       await repository.save(bed);
 
@@ -128,6 +150,27 @@ describe('MongoBedRepository', () => {
         current.plantInstances.length + 1
       );
       expect(found.plantInstances).toContainEqual(newPlant);
+    });
+  });
+
+  describe('findByUserId', () => {
+    it('should find beds by user id', async () => {
+      const bed1 = BedFactory.create();
+      const bed2 = BedFactory.create();
+
+      await repository.save(bed1);
+      await repository.save(bed2);
+
+      const found = await repository.findByUserId(bed1.userId.value);
+
+      expect(found).toHaveLength(1);
+      expect(found[0]?.id.value).toBe(bed1.id.value);
+    });
+
+    it('should return empty array if user has no beds', async () => {
+      const found = await repository.findByUserId(random.uuid());
+
+      expect(found).toEqual([]);
     });
   });
 });

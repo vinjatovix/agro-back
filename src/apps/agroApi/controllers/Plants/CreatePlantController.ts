@@ -5,24 +5,30 @@ import type { CreatePlantDto } from '../../../../Contexts/Agro/Plants/applicatio
 import { HttpController } from '../../shared/HttpController.js';
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
 import httpStatus from 'http-status';
-import { plantMapper } from '../../../../Contexts/Agro/Plants/mappers/plantMapper.js';
+import { plantDomainMapper } from '../../../../Contexts/Agro/Plants/mappers/plantDomainMapper.js';
+
+export type CreatePlantControllerDependencies = {
+  createPlant: CreatePlant;
+};
 
 export class CreatePlantController extends HttpController {
-  constructor(private readonly createPlant: CreatePlant) {
+  protected readonly createPlant: CreatePlant;
+  constructor({ createPlant }: CreatePlantControllerDependencies) {
     super();
+    this.createPlant = createPlant;
   }
 
-  async run(req: Request, res: Response, next: NextFunction): Promise<void> {
+  run = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const dto = req.body as CreatePlantDto;
       const user = res.locals.user as UserSessionInfo;
 
       const plant = await this.createPlant.execute(dto, user.username);
-      const result = plantMapper.toPrimitives(plant);
+      const result = plantDomainMapper.toPrimitives(plant);
 
       res.status(httpStatus.CREATED).json(result);
     } catch (error) {
       next(error);
     }
-  }
+  };
 }

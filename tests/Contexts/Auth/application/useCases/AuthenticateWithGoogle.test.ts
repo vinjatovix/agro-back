@@ -5,7 +5,7 @@ import type { UserAuthMethod } from '../../../../../src/Contexts/Auth/domain/val
 import {
   CryptAdapterMock,
   GoogleIdTokenVerifierMock,
-  UserRepositoryMock
+  AuthRepositoryMock
 } from '../../__mocks__/index.js';
 import { UserMother } from '../../domain/mothers/UserMother.js';
 
@@ -13,13 +13,13 @@ describe('AuthenticateWithGoogle', () => {
   const request = { idToken: 'google-id-token' };
 
   let encrypter: CryptAdapterMock;
-  let repository: UserRepositoryMock;
+  let repository: AuthRepositoryMock;
   let verifier: GoogleIdTokenVerifierMock;
   let authenticateWithGoogle: AuthenticateWithGoogle;
 
   beforeEach(() => {
     encrypter = new CryptAdapterMock({ login: true });
-    repository = new UserRepositoryMock({ find: false });
+    repository = new AuthRepositoryMock({ find: false });
     verifier = new GoogleIdTokenVerifierMock({
       sub: 'google-sub-1',
       email: 'google-user@aa.com',

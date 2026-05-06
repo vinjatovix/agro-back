@@ -1,7 +1,4 @@
-import {
-  Bed,
-  type BedProps
-} from '../../../../../../src/Contexts/Agro/Beds/domain/entities/Bed.js';
+import { Bed } from '../../../../../../src/Contexts/Agro/Beds/domain/entities/Bed.js';
 import type { UserSessionInfo } from '../../../../../../src/Contexts/Auth/application/index.js';
 import { Metadata } from '../../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
 import { Uuid } from '../../../../../../src/Contexts/shared/domain/valueObject/Uuid.js';
@@ -10,6 +7,7 @@ import { UuidMother } from '../../../../shared/fixtures/UuidMother.js';
 import { PlantInstanceMother } from '../../../PlantInstances/domain/mothers/PlantInstanceMother.js';
 import { PositiveNumber } from '../../../../../../src/Contexts/shared/domain/valueObject/PositiveNumber.js';
 import { StringValueObject } from '../../../../../../src/Contexts/shared/domain/valueObject/StringValueObject.js';
+import type { BedProps } from '../../../../../../src/Contexts/Agro/Beds/domain/entities/types/BedProps.js';
 
 type BedOverrides = Partial<BedProps>;
 

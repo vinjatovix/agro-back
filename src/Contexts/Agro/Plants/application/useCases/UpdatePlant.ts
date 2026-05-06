@@ -2,27 +2,30 @@ import { applyPatch } from '../../../../../shared/domain/patch/applyPatch.js';
 import { createError } from '../../../../../shared/errors/index.js';
 import type { Plant } from '../../domain/entities/Plant.js';
 import type { PlantRepository } from '../../domain/repositories/interfaces/PlantRepository.js';
-import { plantMapper } from '../../mappers/plantMapper.js';
+import { plantApiMapper } from '../../mappers/plantApiMapper.js';
+import { plantDomainMapper } from '../../mappers/plantDomainMapper.js';
 import type { UpdatePlantDto } from './interfaces/UpdatePlantDto.js';
+
+export type UpdatePlantInput = UpdatePlantDto & { id: string };
 
 export class UpdatePlant {
   constructor(private readonly plantRepository: PlantRepository) {}
 
-  async execute(dto: UpdatePlantDto, user: string): Promise<Plant> {
-    const plant = await this.plantRepository.findById(dto.id);
+  async execute(input: UpdatePlantInput, user: string): Promise<Plant> {
+    const plant = await this.plantRepository.findById(input.id);
 
     if (!plant) {
-      throw createError.notFound(`Plant not found: ${dto.id}`);
+      throw createError.notFound(`Plant not found: ${input.id}`);
     }
 
-    const current = plantMapper.toPrimitives(plant);
-    const patch = plantMapper.fromUpdateDtoToPrimitivesPatch(dto);
+    const current = plantDomainMapper.toPrimitives(plant);
+    const patch = plantApiMapper.fromUpdateDtoToPrimitivesPatch(input);
     const patched = applyPatch(current, patch);
-    plantMapper.fromCreateDtoToDomain(patched, user);
+    plantApiMapper.fromCreateDto(patched, user);
 
     await this.plantRepository.updateWithDiff(current, patched, user);
 
-    const updatedPlant = await this.plantRepository.findById(dto.id);
+    const updatedPlant = await this.plantRepository.findById(input.id);
 
     return updatedPlant;
   }

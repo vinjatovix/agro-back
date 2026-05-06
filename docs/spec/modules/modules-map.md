@@ -1,6 +1,6 @@
 # MODULE: MODULES MAP
 
-version: 1.0.0
+version: 1.1.0
 source-spec: v1.0.0
 status: stable
 
@@ -136,13 +136,14 @@ Rules:
 - routing
 - middleware
 - request/response shaping
-- dependency injection strategy (Awilix classic/proxy composition)
+- dependency injection strategy (Awilix PROXY mode)
 
 Rules:
 
 - no domain logic
 - no persistence logic
 - no spatial logic
+- dependency resolution is handled via proxy-based container injection (no manual binding)
 
 ---
 
@@ -180,7 +181,7 @@ Rules:
 
 - implementation MUST follow spec
 - contract drift is critical failure
-- used by tests as validation source (pending full enforcement)
+- used by tests as validation source
 
 ---
 

@@ -12,7 +12,10 @@ import { assert } from 'chai';
 import request from 'supertest';
 import type { Server } from 'node:http';
 
-import { createAppContainer } from '../../../../../src/apps/agroApi/container.js';
+import {
+  createAppContainer,
+  type AppContainer
+} from '../../../../../src/apps/agroApi/container.js';
 import { EnvironmentArranger } from '../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
 import { AgroBackApp } from '../../../../../src/apps/agroApi/AgroBackApp.js';
 import { API_PREFIXES } from '../../../../../src/apps/agroApi/routes/shared/apiPrefixes.js';
@@ -24,6 +27,10 @@ import { PlantSeeder } from '../shared/seeders/PlantSeeder.js';
 import { assertResponseMatchesOpenAPI } from '../../../../shared/contract/assertResponseMatchesOpenAPI.js';
 import { BedSeeder } from '../shared/seeders/BedSeeder.js';
 import { random } from '../../../../Contexts/shared/fixtures/random.js';
+import {
+  DBClientFactory,
+  DBConfigFactory
+} from '../../../../../src/shared/infrastructure/persistence/index.js';
 
 /* ---------------- WORLD ---------------- */
 
@@ -60,14 +67,6 @@ setWorldConstructor(TestWorldImpl);
 type CucumberWorld = TestWorldImpl;
 
 /* ---------------- INFRA ---------------- */
-
-const container = createAppContainer();
-
-const ENVIRONMENT_ARRANGER: Promise<EnvironmentArranger> = Promise.resolve(
-  container.resolve<EnvironmentArranger>('environmentArranger')
-);
-
-const ENCRYPTER: EncrypterTool = container.resolve<EncrypterTool>('encrypter');
 
 const USER_ID = random.uuid();
 const ANOTHER_USER_ID = random.uuid();
@@ -196,7 +195,22 @@ const interpolateJson = <T extends Record<string, unknown>>(
 
 /* ---------------- LIFECYCLE ---------------- */
 
+let container: AppContainer;
+let environmentArranger: Promise<EnvironmentArranger>;
+
 BeforeAll(async () => {
+  const client = await DBClientFactory.createClient(
+    'agroApi',
+    DBConfigFactory.createConfig()
+  );
+
+  const db = client.db();
+
+  container = createAppContainer({ db, client });
+  environmentArranger = Promise.resolve(
+    container.resolve<EnvironmentArranger>('environmentArranger')
+  );
+
   app = new AgroBackApp({
     host: process.env.HOST || 'http://localhost',
     port: process.env.PORT || '0'
@@ -207,7 +221,10 @@ BeforeAll(async () => {
   if (!app.httpServer) throw new Error('HTTP server is not available');
   httpServer = app.httpServer;
 
-  await (await ENVIRONMENT_ARRANGER).arrange();
+  await (await environmentArranger).arrange();
+
+  const ENCRYPTER: EncrypterTool =
+    container.resolve<EncrypterTool>('encrypter');
 
   validAdminBearerToken = await ENCRYPTER.generateToken({
     id: ADMIN_ID,
@@ -234,8 +251,8 @@ BeforeAll(async () => {
 });
 
 AfterAll(async () => {
-  await (await ENVIRONMENT_ARRANGER).arrange();
-  await (await ENVIRONMENT_ARRANGER).close();
+  await (await environmentArranger).arrange();
+  await (await environmentArranger).close();
   await app.stop(container.resolve('logger'));
 });
 
@@ -337,7 +354,7 @@ Given('a plant exists', async function (this: CucumberWorld) {
 });
 
 Given('no plants exist', async function () {
-  await (await ENVIRONMENT_ARRANGER).arrange();
+  await (await environmentArranger).arrange();
 });
 
 Given('a bed exists', async function (this: CucumberWorld) {
@@ -345,7 +362,7 @@ Given('a bed exists', async function (this: CucumberWorld) {
 
   const localBedSeeder = BedSeeder(httpServer, token!);
 
-  const bed = await localBedSeeder.createOne();
+  const bed = await localBedSeeder.createOne({});
 
   this.bedId = bed.id;
 });

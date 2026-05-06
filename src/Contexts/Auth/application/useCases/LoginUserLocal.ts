@@ -3,7 +3,7 @@ import {
   buildLogger,
   type EncrypterTool
 } from '../../../shared/plugins/index.js';
-import type { UserRepository } from '../../domain/repositories/interfaces/UserRepository.js';
+import type { AuthRepository } from '../../domain/repositories/interfaces/AuthRepository.js';
 import type { LoginUserRequest } from '../interfaces/index.js';
 
 const logger = buildLogger('loginUser');
@@ -12,10 +12,10 @@ const TOKEN_GENERATION_ERROR_MESSAGE =
   'Failed to generate authentication token';
 
 export class LoginUserLocal {
-  private readonly repository: UserRepository;
+  private readonly repository: AuthRepository;
   private readonly encrypter: EncrypterTool;
 
-  constructor(repository: UserRepository, encrypter: EncrypterTool) {
+  constructor(repository: AuthRepository, encrypter: EncrypterTool) {
     this.repository = repository;
     this.encrypter = encrypter;
   }

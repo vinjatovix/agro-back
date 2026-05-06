@@ -3,12 +3,18 @@ import type { ValidateMail } from '../../../../Contexts/Auth/application/index.j
 import { createError } from '../../../../shared/errors/index.js';
 import { HttpController } from '../../shared/HttpController.js';
 
+export type ValidateMailControllerDependencies = {
+  validateMail: ValidateMail;
+};
+
 export class ValidateMailController extends HttpController {
-  constructor(protected readonly validateMail: ValidateMail) {
+  protected readonly validateMail: ValidateMail;
+  constructor({ validateMail }: ValidateMailControllerDependencies) {
     super();
+    this.validateMail = validateMail;
   }
 
-  async run(req: Request, res: Response, next: NextFunction): Promise<void> {
+  run = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { token } = req.params;
 
@@ -22,5 +28,5 @@ export class ValidateMailController extends HttpController {
     } catch (error) {
       next(error);
     }
-  }
+  };
 }

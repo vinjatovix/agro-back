@@ -1,3 +1,4 @@
+@plants @create-plant
 Feature: Create a new plant
     In order to make a new plant available in the system
     As an administrator

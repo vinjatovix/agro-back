@@ -4,7 +4,7 @@ import { PasswordHash } from '../../../../../src/Contexts/Auth/domain/value-obje
 import { Uuid } from '../../../../../src/Contexts/shared/domain/valueObject/Uuid.js';
 import { EmailMother } from '../../../shared/domain/mothers/EmailMother.js';
 import { CryptAdapterMock } from '../../__mocks__/CryptAdapterMock.js';
-import { UserRepositoryMock } from '../../__mocks__/UserRepositoryMock.js';
+import { AuthRepositoryMock } from '../../__mocks__/AuthRepositoryMock.js';
 import { random, UuidMother } from '../../../shared/fixtures/index.js';
 
 const CURRENT_USER = {
@@ -23,17 +23,17 @@ const PAYLOAD = {
 
 describe('UpdatePasswordLocal', () => {
   let encrypter: CryptAdapterMock;
-  let repository: UserRepositoryMock;
+  let repository: AuthRepositoryMock;
   let updatePassword: UpdatePasswordLocal;
 
   beforeEach(() => {
     encrypter = new CryptAdapterMock({ login: true });
-    repository = new UserRepositoryMock({ find: true });
+    repository = new AuthRepositoryMock({ find: true });
     updatePassword = new UpdatePasswordLocal(repository, encrypter);
   });
 
   it('should throw an error when the user does not exist', async () => {
-    repository = new UserRepositoryMock();
+    repository = new AuthRepositoryMock();
     updatePassword = new UpdatePasswordLocal(repository, encrypter);
 
     expect(async () => {

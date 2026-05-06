@@ -15,6 +15,10 @@ import { registerRoutes } from './routes/registerRoutes.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { setupSwagger } from './openapi/setupSwagger.js';
 import migrations from '../../../migrations/index.js';
+import {
+  DBClientFactory,
+  DBConfigFactory
+} from '../../shared/infrastructure/persistence/index.js';
 
 const allowedOrigins = envs.ALLOWED_ORIGINS.split(',')
   .map((origin) => origin.trim())
@@ -25,6 +29,12 @@ const corsOptions: cors.CorsOptions = {
   methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
   credentials: true
 };
+
+const client = await DBClientFactory.createClient(
+  'agroApi',
+  DBConfigFactory.createConfig()
+);
+const db = client.db();
 
 export class Server {
   private readonly express: express.Express;
@@ -39,7 +49,7 @@ export class Server {
     this.host = host;
     this.express = express();
     this.express.set('trust proxy', false);
-    this.container = createAppContainer();
+    this.container = createAppContainer({ db, client });
     this.logger = logger;
 
     this.express.use(cors(corsOptions));

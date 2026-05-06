@@ -1,16 +1,16 @@
 import { ValidateMail } from '../../../../../src/Contexts/Auth/application/useCases/ValidateMail.js';
 import { UserPatch } from '../../../../../src/Contexts/Auth/domain/entities/UserPatch.js';
-import { CryptAdapterMock, UserRepositoryMock } from '../../__mocks__/index.js';
+import { CryptAdapterMock, AuthRepositoryMock } from '../../__mocks__/index.js';
 import { random } from '../../../shared/fixtures/index.js';
 
 describe('ValidateMail', () => {
   let encrypter: CryptAdapterMock;
-  let repository: UserRepositoryMock;
+  let repository: AuthRepositoryMock;
   let service: ValidateMail;
 
   beforeEach(() => {
     encrypter = new CryptAdapterMock({ token: true });
-    repository = new UserRepositoryMock({ find: true });
+    repository = new AuthRepositoryMock({ find: true });
     service = new ValidateMail(repository, encrypter);
   });
 
@@ -37,7 +37,7 @@ describe('ValidateMail', () => {
   });
 
   it('should throw an error if the user is not found', async () => {
-    repository = new UserRepositoryMock({ find: false });
+    repository = new AuthRepositoryMock({ find: false });
     service = new ValidateMail(repository, encrypter);
     const token = random.word({ min: 6, max: 255 });
 

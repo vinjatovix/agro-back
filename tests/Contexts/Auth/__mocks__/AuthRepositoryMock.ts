@@ -1,4 +1,4 @@
-import type { UserRepository } from '../../../../src/Contexts/Auth/domain/entities/types/index.js';
+import type { AuthRepository } from '../../../../src/Contexts/Auth/domain/entities/types/index.js';
 import type { AuthProvider } from '../../../../src/Contexts/Auth/domain/value-objects/types/AuthProvider.js';
 import type { Nullable } from '../../../../src/shared/domain/types/Nullable.js';
 import {
@@ -15,7 +15,7 @@ import type { UserPatch } from '../../../../src/Contexts/Auth/domain/entities/Us
 
 const DEFAULT_OPTIONS = { find: false };
 
-export class UserRepositoryMock implements UserRepository {
+export class AuthRepositoryMock implements AuthRepository {
   private readonly saveMock = jest.fn();
   private readonly updateMock = jest.fn();
   private readonly findMock = jest.fn();

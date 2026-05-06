@@ -10,7 +10,7 @@ import {
   UserAuthMethod,
   Username
 } from '../../domain/value-objects/index.js';
-import type { UserRepository } from '../../domain/entities/types/index.js';
+import type { AuthRepository } from '../../domain/entities/types/index.js';
 import type {
   UpdatePasswordRequest,
   UserSessionInfo
@@ -26,7 +26,7 @@ const PASSWORD_MUST_DIFFER_FROM_OLD_MESSAGE =
 
 export class UpdatePasswordLocal {
   constructor(
-    private readonly repository: UserRepository,
+    private readonly repository: AuthRepository,
     private readonly encrypter: EncrypterTool
   ) {}
 

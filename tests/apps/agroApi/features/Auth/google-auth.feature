@@ -1,3 +1,4 @@
+@auth @google-auth
 Feature: Authenticate with Google
   In order to sign in with Google
   As a user

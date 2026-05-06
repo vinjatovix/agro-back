@@ -19,7 +19,7 @@ export abstract class MongoCrudRepository<
   TFilter
 > extends MongoRepository {
   protected abstract toDomain(doc: TDocument): TDomain;
-  protected abstract toPrimitives(entity: TDomain): TPrimitives;
+  protected abstract toMongoDocument(entity: TDomain): TDocument;
   protected abstract entityName(): string;
 
   protected applySort(cursor: FindCursor, sort?: SortOptions): void {
@@ -48,7 +48,7 @@ export abstract class MongoCrudRepository<
   }
 
   async findById(id: string): Promise<TDomain> {
-    const collection = await this.collection();
+    const collection = this.collection();
 
     const document = await collection.findOne<TDocument>({
       _id: toMongoId(id)
@@ -62,11 +62,12 @@ export abstract class MongoCrudRepository<
   }
 
   async save(entity: TDomain & { id: { value: string } }): Promise<void> {
-    await this.persist(entity.id.value, this.toPrimitives(entity));
+    const mongoDocument = this.toMongoDocument(entity);
+    await this.persist(mongoDocument);
   }
 
   async findAll(options: QueryOptions<TFilter> = {}): Promise<TDomain[]> {
-    const collection = await this.collection();
+    const collection = this.collection();
 
     const { filter, sort, pagination } = options;
     const safePagination = normalizePagination(pagination);
@@ -85,7 +86,7 @@ export abstract class MongoCrudRepository<
     return docs.map((doc) => this.toDomain(doc));
   }
   async exists(id: string): Promise<boolean> {
-    const collection = await this.collection();
+    const collection = this.collection();
 
     const count = await collection.countDocuments({
       _id: toMongoId(id)
@@ -99,7 +100,7 @@ export abstract class MongoCrudRepository<
     updated: TPrimitives,
     username: string
   ): Promise<void> {
-    const collection = await this.collection();
+    const collection = this.collection();
 
     const mongoId = toMongoId(current.id);
 

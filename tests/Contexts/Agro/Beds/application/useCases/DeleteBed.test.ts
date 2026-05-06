@@ -41,7 +41,11 @@ describe('DeleteBed', () => {
   });
 
   it('should throw if bed does not exist', async () => {
-    await expect(useCase.execute('non-existent-id', USER)).rejects.toThrow();
+    const nonExistentId = random.uuid();
+
+    await expect(useCase.execute(nonExistentId, USER)).rejects.toThrow(
+      `Bed not found: ${nonExistentId}`
+    );
   });
 
   it('should throw if user is not the creator of the bed', async () => {

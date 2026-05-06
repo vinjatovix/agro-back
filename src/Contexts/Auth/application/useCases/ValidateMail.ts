@@ -2,7 +2,7 @@ import type { UnknownRecord } from '../../../../shared/domain/types/UnknownRecor
 import { createError } from '../../../../shared/errors/index.js';
 import type { EncrypterTool } from '../../../shared/plugins/EncrypterTool.js';
 import { buildLogger } from '../../../shared/plugins/logger.plugin.js';
-import type { UserRepository } from '../../domain/repositories/interfaces/UserRepository.js';
+import type { AuthRepository } from '../../domain/repositories/interfaces/AuthRepository.js';
 import { UserPatch } from '../../domain/entities/UserPatch.js';
 
 const logger = buildLogger('validateMail');
@@ -13,10 +13,10 @@ type ValidateMailRequest = {
 };
 
 export class ValidateMail {
-  private readonly repository: UserRepository;
+  private readonly repository: AuthRepository;
   private readonly encrypter: EncrypterTool;
 
-  constructor(repository: UserRepository, encrypter: EncrypterTool) {
+  constructor(repository: AuthRepository, encrypter: EncrypterTool) {
     this.repository = repository;
     this.encrypter = encrypter;
   }

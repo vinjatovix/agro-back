@@ -1,5 +1,4 @@
 import { makeInvoker } from 'awilix-express';
-import { bindRun } from '../shared/bindRun.js';
 import {
   CreatePlantController,
   GetPlantByIdController,
@@ -8,19 +7,25 @@ import {
   DeletePlantController
 } from '../../controllers/Plants/index.js';
 
-const api = (
-  createPlantController: CreatePlantController,
-  getAllPlantsController: GetAllPlantsController,
-  getPlantController: GetPlantByIdController,
-  updatePlantController: UpdatePlantController,
-  deletePlantController: DeletePlantController
-) => {
+const api = ({
+  createPlantController,
+  getAllPlantsController,
+  getPlantController,
+  updatePlantController,
+  deletePlantController
+}: {
+  createPlantController: CreatePlantController;
+  getAllPlantsController: GetAllPlantsController;
+  getPlantController: GetPlantByIdController;
+  updatePlantController: UpdatePlantController;
+  deletePlantController: DeletePlantController;
+}) => {
   return {
-    createPlant: bindRun(createPlantController),
-    getAllPlants: bindRun(getAllPlantsController),
-    getPlantById: bindRun(getPlantController),
-    updatePlant: bindRun(updatePlantController),
-    deletePlant: bindRun(deletePlantController)
+    createPlant: createPlantController.run,
+    getAllPlants: getAllPlantsController.run,
+    getPlantById: getPlantController.run,
+    updatePlant: updatePlantController.run,
+    deletePlant: deletePlantController.run
   };
 };
 

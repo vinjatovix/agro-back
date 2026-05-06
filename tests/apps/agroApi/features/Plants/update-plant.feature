@@ -1,3 +1,4 @@
+@plants @update-plant
 Feature: Update a plant
     In order to modify an existing plant
     As an administrator

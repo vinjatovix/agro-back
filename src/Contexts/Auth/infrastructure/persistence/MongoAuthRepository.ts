@@ -2,7 +2,7 @@ import type { Binary, UUID } from 'bson';
 import type { MetadataPrimitives } from '../../../shared/infrastructure/persistence/mongo/types/MetadataPrimitives.js';
 import type { UserAuthMethodPrimitives } from '../../domain/value-objects/types/UserAuthMethodPrimitives.js';
 import type { AuthProvider } from '../../domain/value-objects/types/AuthProvider.js';
-import type { UserRepository } from '../../domain/repositories/interfaces/UserRepository.js';
+import type { AuthRepository } from '../../domain/repositories/interfaces/AuthRepository.js';
 import { User } from '../../domain/entities/User.js';
 import type { UserPatch } from '../../domain/entities/UserPatch.js';
 import type { Nullable } from '../../../../shared/domain/types/Nullable.js';
@@ -28,7 +28,7 @@ export interface AuthDocument {
 
 export class MongoAuthRepository
   extends MongoRepository
-  implements UserRepository
+  implements AuthRepository
 {
   protected entityName(): string {
     return 'User';
@@ -38,11 +38,15 @@ export class MongoAuthRepository
   }
 
   async save(user: User): Promise<void> {
-    await this.persist(user.id.value, user.toPrimitives());
+    const mongoDocument = {
+      _id: toMongoId(user.id.value),
+      ...user.toPrimitives()
+    };
+    await this.persist(mongoDocument);
   }
 
   async update(user: UserPatch, username: Username): Promise<void> {
-    const collection = await this.collection();
+    const collection = this.collection();
 
     const mongoId = toMongoId(user.id.value);
 
@@ -58,7 +62,7 @@ export class MongoAuthRepository
   }
 
   async search(email: string): Promise<Nullable<User>> {
-    const collection = await this.collection();
+    const collection = this.collection();
     const document = await collection.findOne<AuthDocument>({ email });
 
     return this.mapDocumentToUser(document);
@@ -68,7 +72,7 @@ export class MongoAuthRepository
     provider: AuthProvider,
     providerUserId: string
   ): Promise<Nullable<User>> {
-    const collection = await this.collection();
+    const collection = this.collection();
     const document = await collection.findOne<AuthDocument>({
       authMethods: {
         $elemMatch: {
@@ -89,7 +93,7 @@ export class MongoAuthRepository
       ...(query.id && { _id: toMongoId(query.id) }),
       ...(query.username && { username: query.username })
     };
-    const collection = await this.collection();
+    const collection = this.collection();
     const documents = await collection
       .find<AuthDocument>(filter, { projection: { password: 0 } })
       .toArray();

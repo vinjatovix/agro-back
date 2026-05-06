@@ -1,6 +1,6 @@
 import { UpdatePlant } from '../../../../../../src/Contexts/Agro/Plants/application/useCases/index.js';
 import type { PlantPrimitives } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantPrimitives.js';
-import { plantMapper } from '../../../../../../src/Contexts/Agro/Plants/mappers/plantMapper.js';
+import { plantDomainMapper } from '../../../../../../src/Contexts/Agro/Plants/mappers/plantDomainMapper.js';
 import { random } from '../../../../shared/fixtures/index.js';
 import { PlantRepositoryMock } from '../../__mocks__/PlantRepositoryMock.js';
 import { PlantFactory } from '../../domain/mothers/PlantFactory.js';
@@ -105,7 +105,7 @@ describe('UpdatePlant use case', () => {
 
   it('should send null to repository when clearing optional fields', async () => {
     const plant = PlantFactory.random();
-    const current = plantMapper.toPrimitives(plant);
+    const current = plantDomainMapper.toPrimitives(plant);
     repository.addToStorage(plant);
 
     await useCase.execute(
@@ -144,7 +144,7 @@ describe('UpdatePlant use case', () => {
 
   it('should call repository.updateWithDiff with correct payload', async () => {
     const plant = PlantFactory.random();
-    const current = plantMapper.toPrimitives(plant);
+    const current = plantDomainMapper.toPrimitives(plant);
 
     repository.addToStorage(plant);
 
@@ -161,7 +161,7 @@ describe('UpdatePlant use case', () => {
     repository.assertUpdateHasBeenCalledWith(
       current,
       expect.objectContaining({
-        ...plantMapper.toPrimitives(plant),
+        ...plantDomainMapper.toPrimitives(plant),
         identity: expect.objectContaining({
           name: expect.objectContaining({
             primary: 'Updated name'

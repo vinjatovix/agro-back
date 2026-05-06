@@ -1,3 +1,4 @@
+@auth @refresh-token
 Feature: Refresh token
   In order to keep an active session
   As an authenticated user

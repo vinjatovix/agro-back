@@ -5,14 +5,20 @@ import { HttpController } from '../../shared/HttpController.js';
 import httpStatus from 'http-status';
 import type { CreateBedDto } from '../../../../Contexts/Agro/Beds/application/useCases/interfaces/CreateBedDto.js';
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
-import { bedMapper } from '../../../../Contexts/Agro/Beds/mappers/bedMapper.js';
+import { bedDomainMapper } from '../../../../Contexts/Agro/Beds/mappers/bedDomainMapper.js';
+
+export type CreateBedControllerDependencies = {
+  createBed: CreateBed;
+};
 
 export class CreateBedController extends HttpController {
-  constructor(private readonly createBed: CreateBed) {
+  protected readonly createBed: CreateBed;
+  constructor({ createBed }: CreateBedControllerDependencies) {
     super();
+    this.createBed = createBed;
   }
 
-  async run(req: Request, res: Response, next: NextFunction): Promise<void> {
+  run = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const dto = req.body as CreateBedDto;
       const user = res.locals.user as UserSessionInfo;
@@ -22,9 +28,11 @@ export class CreateBedController extends HttpController {
         user.username
       );
 
-      res.status(httpStatus.CREATED).json(bedMapper.toPrimitives(bed));
+      const response = bedDomainMapper.toPrimitives(bed);
+
+      res.status(httpStatus.CREATED).json(response);
     } catch (error) {
       next(error);
     }
-  }
+  };
 }

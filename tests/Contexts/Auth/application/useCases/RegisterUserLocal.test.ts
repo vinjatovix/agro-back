@@ -4,17 +4,17 @@ import { Username } from '../../../../../src/Contexts/Auth/domain/value-objects/
 import { UserRoles } from '../../../../../src/Contexts/Auth/domain/value-objects/UserRoles.js';
 import { Email } from '../../../../../src/Contexts/shared/domain/valueObject/Email.js';
 import { Uuid } from '../../../../../src/Contexts/shared/domain/valueObject/Uuid.js';
-import { CryptAdapterMock, UserRepositoryMock } from '../../__mocks__/index.js';
+import { CryptAdapterMock, AuthRepositoryMock } from '../../__mocks__/index.js';
 import { RegisterUserRequestMother } from '../mothers/RegisterUserRequestMother.js';
 
 describe('RegisterUserLocal', () => {
   let encrypter: CryptAdapterMock;
-  let repository: UserRepositoryMock;
+  let repository: AuthRepositoryMock;
   let registerUser: RegisterUserLocal;
 
   beforeEach(() => {
     encrypter = new CryptAdapterMock({ login: false });
-    repository = new UserRepositoryMock({ find: false });
+    repository = new AuthRepositoryMock({ find: false });
     registerUser = new RegisterUserLocal(repository, encrypter);
   });
 
@@ -40,7 +40,7 @@ describe('RegisterUserLocal', () => {
 
   it('should throw an error when the user already exists', async () => {
     const request = RegisterUserRequestMother.random();
-    repository = new UserRepositoryMock({ find: true });
+    repository = new AuthRepositoryMock({ find: true });
     registerUser = new RegisterUserLocal(repository, encrypter);
 
     await expect(async () => {

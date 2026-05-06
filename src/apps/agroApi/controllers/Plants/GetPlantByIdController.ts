@@ -4,14 +4,20 @@ import type { GetPlant } from '../../../../Contexts/Agro/Plants/application/useC
 import { HttpController } from '../../shared/HttpController.js';
 import { createError } from '../../../../shared/errors/index.js';
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
-import { plantMapper } from '../../../../Contexts/Agro/Plants/mappers/plantMapper.js';
+import { plantDomainMapper } from '../../../../Contexts/Agro/Plants/mappers/plantDomainMapper.js';
+
+export type GetPlantByIdControllerDependencies = {
+  getPlant: GetPlant;
+};
 
 export class GetPlantByIdController extends HttpController {
-  constructor(private readonly getPlant: GetPlant) {
+  protected readonly getPlant: GetPlant;
+  constructor({ getPlant }: GetPlantByIdControllerDependencies) {
     super();
+    this.getPlant = getPlant;
   }
 
-  async run(req: Request, res: Response, next: NextFunction): Promise<void> {
+  run = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const plantId = req.params.id;
       const user = res.locals.user as UserSessionInfo;
@@ -21,11 +27,11 @@ export class GetPlantByIdController extends HttpController {
       }
 
       const plant = await this.getPlant.execute(plantId, user);
-      const mappedPlant = plantMapper.toPrimitives(plant);
+      const mappedPlant = plantDomainMapper.toPrimitives(plant);
 
       res.status(this.status()).json(mappedPlant);
     } catch (error) {
       next(error);
     }
-  }
+  };
 }

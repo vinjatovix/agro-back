@@ -15,7 +15,7 @@ import {
   Username,
   UserRoles
 } from '../../domain/value-objects/index.js';
-import type { UserRepository } from '../../domain/repositories/interfaces/UserRepository.js';
+import type { AuthRepository } from '../../domain/repositories/interfaces/AuthRepository.js';
 import type { RegisterUserRequest } from '../interfaces/index.js';
 import { User } from '../../domain/entities/User.js';
 
@@ -23,10 +23,10 @@ const logger = buildLogger('registerUser');
 const PASSWORDS_DO_NOT_MATCH_MESSAGE = 'Passwords do not match';
 
 export class RegisterUserLocal {
-  private readonly repository: UserRepository;
+  private readonly repository: AuthRepository;
   private readonly encrypter: EncrypterTool;
 
-  constructor(repository: UserRepository, encrypter: EncrypterTool) {
+  constructor(repository: AuthRepository, encrypter: EncrypterTool) {
     this.repository = repository;
     this.encrypter = encrypter;
   }

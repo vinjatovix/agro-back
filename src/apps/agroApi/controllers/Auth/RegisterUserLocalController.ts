@@ -6,12 +6,18 @@ import type {
 } from '../../../../Contexts/Auth/application/index.js';
 import { HttpController } from '../../shared/HttpController.js';
 
+export type RegisterUserLocalControllerDependencies = {
+  registerUser: RegisterUserLocal;
+};
+
 export class RegisterUserLocalController extends HttpController {
-  constructor(protected readonly registerUser: RegisterUserLocal) {
+  protected readonly registerUser: RegisterUserLocal;
+  constructor({ registerUser }: RegisterUserLocalControllerDependencies) {
     super();
+    this.registerUser = registerUser;
   }
 
-  async run(req: Request, res: Response, next: NextFunction): Promise<void> {
+  run = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const request = req.body as RegisterUserRequest;
       await this.registerUser.run(request);
@@ -19,7 +25,7 @@ export class RegisterUserLocalController extends HttpController {
     } catch (error) {
       next(error);
     }
-  }
+  };
 
   protected status(): number {
     return httpStatus.CREATED;

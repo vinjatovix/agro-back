@@ -4,7 +4,7 @@ import type { UserPatch } from '../../entities/UserPatch.js';
 import type { Username } from '../../value-objects/index.js';
 import type { AuthProvider } from '../../value-objects/types/AuthProvider.js';
 
-export interface UserRepository {
+export interface AuthRepository {
   save(user: User): Promise<void>;
 
   update(user: UserPatch, username: Username): Promise<void>;

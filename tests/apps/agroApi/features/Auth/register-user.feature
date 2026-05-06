@@ -1,3 +1,4 @@
+@auth @register-user
 Feature: Register a new user
   In order to use the application
   I want to register a new user

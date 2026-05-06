@@ -1,3 +1,4 @@
+@plants @get-plant
 Feature: Get Plant
 
     Scenario: Get an existing plant

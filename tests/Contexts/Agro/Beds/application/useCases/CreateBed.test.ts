@@ -1,5 +1,5 @@
 import { CreateBed } from '../../../../../../src/Contexts/Agro/Beds/application/useCases/CreateBed.js';
-import { bedMapper } from '../../../../../../src/Contexts/Agro/Beds/mappers/bedMapper.js';
+import { bedApiMapper } from '../../../../../../src/Contexts/Agro/Beds/mappers/bedApiMapper.js';
 import { createError } from '../../../../../../src/shared/errors/index.js';
 import { random } from '../../../../shared/fixtures/random.js';
 import { UuidMother } from '../../../../shared/fixtures/UuidMother.js';
@@ -28,7 +28,7 @@ describe('CreateBed', () => {
   });
 
   it('should throw conflict if bed already exists', async () => {
-    const bed = bedMapper.fromCreateInputToDomain(input, USER_NAME);
+    const bed = bedApiMapper.fromCreateInputToDomain(input, USER_NAME);
     repository.addToStorage(bed);
 
     await expect(useCase.execute(input, USER_NAME)).rejects.toEqual(

@@ -5,12 +5,18 @@ import httpStatus from 'http-status';
 import type { DeleteBed } from '../../../../Contexts/Agro/Beds/application/useCases/DeleteBed.js';
 import { createError } from '../../../../shared/errors/index.js';
 
+export type DeleteBedControllerDependencies = {
+  deleteBed: DeleteBed;
+};
+
 export class DeleteBedController extends HttpController {
-  constructor(private readonly deleteBed: DeleteBed) {
+  protected readonly deleteBed: DeleteBed;
+  constructor({ deleteBed }: DeleteBedControllerDependencies) {
     super();
+    this.deleteBed = deleteBed;
   }
 
-  async run(req: Request, res: Response, next: NextFunction): Promise<void> {
+  run = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
       const user = res.locals.user as UserSessionInfo;
@@ -25,5 +31,5 @@ export class DeleteBedController extends HttpController {
     } catch (error) {
       next(error);
     }
-  }
+  };
 }

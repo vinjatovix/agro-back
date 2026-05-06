@@ -5,12 +5,18 @@ import type {
 } from '../../../../Contexts/Auth/application/index.js';
 import { HttpController } from '../../shared/HttpController.js';
 
+export type LoginUserLocalControllerDependencies = {
+  loginUser: LoginUserLocal;
+};
+
 export class LoginUserLocalController extends HttpController {
-  constructor(protected readonly loginUser: LoginUserLocal) {
+  protected readonly loginUser: LoginUserLocal;
+  constructor({ loginUser }: LoginUserLocalControllerDependencies) {
     super();
+    this.loginUser = loginUser;
   }
 
-  async run(req: Request, res: Response, next: NextFunction): Promise<void> {
+  run = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const request = req.body as LoginUserRequest;
       const token = await this.loginUser.run(request);
@@ -18,5 +24,5 @@ export class LoginUserLocalController extends HttpController {
     } catch (error) {
       next(error);
     }
-  }
+  };
 }
