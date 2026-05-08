@@ -19,10 +19,6 @@ export class Range implements Serializable<RangePrimitives> {
       throw createError.badRequest('Range min cannot be greater than max');
     }
 
-    if (max < min) {
-      throw createError.badRequest('Range max cannot be less than min');
-    }
-
     this.min = min;
     this.max = max;
   }
