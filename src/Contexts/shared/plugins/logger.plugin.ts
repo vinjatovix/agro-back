@@ -1,8 +1,7 @@
 import winston from 'winston';
 import 'winston-mongodb';
 import { envs } from '../../../apps/agroApi/config/plugins/envs.plugin.js';
-import { MongoClientFactory } from '../../../shared/infrastructure/persistence/mongo/MongoClientFactory.js';
-import { MongoConfigFactory } from '../../../shared/infrastructure/persistence/mongo/MongoConfigFactory.js';
+import type { MongoClient } from 'mongodb';
 
 export interface AppLogger {
   debug: (message: string) => void;
@@ -17,7 +16,7 @@ const DIRECTORY = 'logs';
 const ERRORS_FILENAME = `${DIRECTORY}/error-logs.log`;
 const INFO_FILENAME = `${DIRECTORY}/info-logs.log`;
 
-const logger = winston.createLogger({
+const rootLogger = winston.createLogger({
   level: 'info',
   format: combine(timestamp(), json()),
   transports: [
@@ -31,68 +30,64 @@ const logger = winston.createLogger({
   ]
 });
 
-if (envs.NODE_ENV !== 'test') {
-  const setupMongoLogger = async (logger: winston.Logger) => {
-    const mongoClient = await MongoClientFactory.createClient(
-      DIRECTORY,
-      MongoConfigFactory.createConfig()
-    );
-
-    const transportOptions = {
-      db: Promise.resolve(mongoClient),
-      collection: DIRECTORY,
-      format: combine(timestamp(), json())
-    };
-
-    try {
-      logger.add(new winston.transports.MongoDB(transportOptions));
-    } catch (error) {
-      logger.error('Error setting up logger:', error);
-    }
-  };
-
-  setupMongoLogger(logger).catch((error) => {
-    logger.error('Error initializing MongoDB logger:', error);
-  });
-}
-
 if (envs.NODE_ENV !== 'production') {
-  logger.add(
+  rootLogger.add(
     new winston.transports.Console({
       format: winston.format.combine(
         winston.format.colorize({ all: true }),
         winston.format.printf((info) => {
-          let service: string;
-          if (typeof info.service === 'string') {
-            service = info.service;
-          } else if (info.service !== undefined) {
-            service = JSON.stringify(info.service);
-          } else {
-            service = 'app';
-          }
+          const service =
+            typeof info.service === 'string'
+              ? info.service
+              : info.service
+                ? JSON.stringify(info.service)
+                : 'app';
 
-          return `[${info.level}] ${service} - ${String(info.timestamp)} : ${String(
-            info.message
-          )}`;
+          return `[${info.level}] ${service} - ${String(
+            info.timestamp
+          )} : ${String(info.message)}`;
         })
       )
     })
   );
 }
 
+export const attachMongoTransport = (client: MongoClient): void => {
+  if (envs.NODE_ENV === 'test') return;
+
+  rootLogger.add(
+    new winston.transports.MongoDB({
+      db: Promise.resolve(client),
+      collection: DIRECTORY,
+      format: combine(timestamp(), json())
+    })
+  );
+};
+
+export const detachMongoTransport = (): void => {
+  rootLogger.transports.forEach((t) => {
+    if (t instanceof winston.transports.MongoDB) {
+      rootLogger.remove(t);
+    }
+  });
+};
+
 export const buildLogger = (service: string): AppLogger => {
   return {
     debug: (message: string) => {
-      logger.debug({ service, message });
+      rootLogger.debug({ service, message });
     },
+
     info: (message: string) => {
-      logger.info({ service, message });
+      rootLogger.info({ service, message });
     },
+
     warn: (message: string) => {
-      logger.warn({ service, message });
+      rootLogger.warn({ service, message });
     },
+
     error: (message: string, error?: unknown) => {
-      logger.error({
+      rootLogger.error({
         service,
         message,
         error: error instanceof Error ? error.stack : error

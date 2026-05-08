@@ -6,7 +6,11 @@ import * as http from 'node:http';
 
 import type { AppLogger } from '../../Contexts/shared/plugins/logger.plugin.js';
 import { envs } from './config/plugins/envs.plugin.js';
-import { createAppContainer, type AppContainer } from './container.js';
+import {
+  createAppContainer,
+  type AppContainer,
+  type containerDeps as ContainerDeps
+} from './container.js';
 import {
   createRequestLoggerMiddleware,
   globalLimiter
@@ -15,10 +19,6 @@ import { registerRoutes } from './routes/registerRoutes.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { setupSwagger } from './openapi/setupSwagger.js';
 import migrations from '../../../migrations/index.js';
-import {
-  DBClientFactory,
-  DBConfigFactory
-} from '../../shared/infrastructure/persistence/index.js';
 
 const allowedOrigins = envs.ALLOWED_ORIGINS.split(',')
   .map((origin) => origin.trim())
@@ -30,12 +30,6 @@ const corsOptions: cors.CorsOptions = {
   credentials: true
 };
 
-const client = await DBClientFactory.createClient(
-  'agroApi',
-  DBConfigFactory.createConfig()
-);
-const db = client.db();
-
 export class Server {
   private readonly express: express.Express;
   private readonly container: AppContainer;
@@ -44,12 +38,17 @@ export class Server {
   private httpServer?: http.Server;
   private readonly logger: AppLogger;
 
-  constructor(host: string, port: string, logger: AppLogger) {
+  constructor(
+    host: string,
+    port: string,
+    logger: AppLogger,
+    containerDeps: ContainerDeps
+  ) {
     this.port = port;
     this.host = host;
     this.express = express();
     this.express.set('trust proxy', false);
-    this.container = createAppContainer({ db, client });
+    this.container = createAppContainer(containerDeps);
     this.logger = logger;
 
     this.express.use(cors(corsOptions));
