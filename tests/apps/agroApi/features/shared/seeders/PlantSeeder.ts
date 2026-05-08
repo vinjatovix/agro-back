@@ -2,11 +2,13 @@ import type { Server } from 'node:http';
 import request, { type Response } from 'supertest';
 import { UuidMother } from '../../../../../Contexts/shared/fixtures/UuidMother.js';
 import type { PlantPrimitives } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantPrimitives.js';
+import { buildPatch } from '../../../../../shared/dto/buildPatch.js';
+import { deepMerge } from '../../../../../shared/dto/deepMerge.js';
 
 export const PlantSeeder = (httpServer: Server, token: string) => {
   return {
     async create(overrides = {}) {
-      const body = {
+      const base = {
         id: UuidMother.random().value,
         identity: {
           name: { primary: 'Test plant' },
@@ -31,9 +33,10 @@ export const PlantSeeder = (httpServer: Server, token: string) => {
           },
           flowering: { months: [1] },
           harvest: { months: [1] }
-        },
-        ...overrides
+        }
       };
+      const patch = buildPatch(overrides);
+      const body = deepMerge(base, patch) as PlantPrimitives;
 
       const res: Response = await request(httpServer)
         .post('/api/v1/plants')
