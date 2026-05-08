@@ -20,6 +20,8 @@ tags:
     description: Endpoint for health checks.
   - name: Auth
     description: Endpoints for user authentication and management.
+  - name: Families
+    description: Endpoints for managing plant families.
   - name: Plants
     description: Endpoints for managing plant data.
   - name: Beds
@@ -182,6 +184,53 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+
+  /api/v1/families:
+    get:
+      tags: [Families]
+      summary: Get all families
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Family'
+
+    post:
+      tags: [Families]
+      summary: Create family
+      security:
+        - bearerAuth: []
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFamily'
+
+      responses:
+        '201':
+          description: Family created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Family'
+
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+        '409':
+          $ref: '#/components/responses/ConflictError'
 
   /api/v1/plants:
     get:
@@ -508,6 +557,112 @@ components:
           type: number
         max:
           type: number
+
+    # ================= FAMILY =================
+
+    Family:
+      type: object
+      required:
+        - id
+        - slug
+        - name
+        - scientificName
+        - shortDescription
+        - highlights
+      properties:
+        id:
+          type: string
+          format: uuid
+
+        slug:
+          type: string
+
+        name:
+          type: string
+
+        scientificName:
+          type: string
+
+        shortDescription:
+          type: string
+
+        highlights:
+          type: array
+          items:
+            type: string
+
+        aliases:
+          type: array
+          items:
+            type: string
+          nullable: true
+
+        extra:
+          type: object
+          nullable: true
+          properties:
+            order:
+              type: string
+            distribution:
+              type: string
+            speciesCount:
+              type: integer
+              minimum: 0
+          additionalProperties: false
+
+    CreateFamily:
+      type: object
+      required:
+        - id
+        - slug
+        - name
+        - scientificName
+        - shortDescription
+        - highlights
+      properties:
+        id:
+          type: string
+          format: uuid
+
+        slug:
+          type: string
+          minLength: 1
+
+        name:
+          type: string
+          minLength: 1
+
+        aliases:
+          type: array
+          items:
+            type: string
+          nullable: true
+
+        scientificName:
+          type: string
+          minLength: 1
+
+        shortDescription:
+          type: string
+          minLength: 1
+
+        highlights:
+          type: array
+          items:
+            type: string
+
+        extra:
+          type: object
+          nullable: true
+          properties:
+            order:
+              type: string
+            distribution:
+              type: string
+            speciesCount:
+              type: integer
+              minimum: 0
+          additionalProperties: false
 
     # ================= PLANT =================
 
