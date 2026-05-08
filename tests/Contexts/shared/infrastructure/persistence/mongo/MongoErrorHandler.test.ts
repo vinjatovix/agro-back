@@ -9,7 +9,7 @@ import { MONGO_ERROR_CODES } from '../../../../../../src/Contexts/shared/infrast
 
 describe('MongoErrorHandler', () => {
   describe('formatError', () => {
-    it('should throw BadRequestError for DUPLICATE_KEY error with keyValue', () => {
+    it('should throw ConflictError for DUPLICATE_KEY error with keyValue', () => {
       const duplicateKeyError = {
         code: MONGO_ERROR_CODES.DUPLICATE_KEY,
         errorResponse: {
@@ -19,7 +19,7 @@ describe('MongoErrorHandler', () => {
 
       expect(() => {
         MongoErrorHandler.formatError(duplicateKeyError);
-      }).toThrow(BadRequestError);
+      }).toThrow(ConflictError);
 
       expect(() => {
         MongoErrorHandler.formatError(duplicateKeyError);
@@ -57,7 +57,7 @@ describe('MongoErrorHandler', () => {
       }).toThrow('fallback error message');
     });
 
-    it('should not throw for unknown error codes', () => {
+    it('should rethrow unknown errors', () => {
       const unknownError = {
         code: 99999,
         message: 'Some other error'
@@ -65,7 +65,7 @@ describe('MongoErrorHandler', () => {
 
       expect(() => {
         MongoErrorHandler.formatError(unknownError);
-      }).not.toThrow();
+      }).toThrow(unknownError);
     });
 
     it('should handle multiple duplicate keys', () => {
@@ -78,6 +78,10 @@ describe('MongoErrorHandler', () => {
           }
         }
       } as unknown as MongoServerError;
+
+      expect(() => {
+        MongoErrorHandler.formatError(duplicateKeyError);
+      }).toThrow(ConflictError);
 
       expect(() => {
         MongoErrorHandler.formatError(duplicateKeyError);
@@ -115,7 +119,7 @@ describe('MongoErrorHandler', () => {
 
       expect(() => {
         MongoErrorHandler.formatError(wrongTypeError);
-      }).toThrow('Invalid data type: age must be a number');
+      }).toThrow('age must be a number');
     });
 
     it('should throw BadRequestError for DUPLICATE_INDEX error', () => {
@@ -133,22 +137,52 @@ describe('MongoErrorHandler', () => {
       }).toThrow('Index error: Index with name: email_1 already exists');
     });
 
-    it('should throw BadRequestError for INDEX_KEY_SPECS_CONFLICT error', () => {
-      const indexConflictError = {
+    it('should throw BadRequestError for BAD_VALUE error', () => {
+      const badValueError = {
+        code: MONGO_ERROR_CODES.BAD_VALUE,
+        errmsg: 'Invalid field value'
+      } as unknown as MongoServerError;
+
+      expect(() => {
+        MongoErrorHandler.formatError(badValueError);
+      }).toThrow(BadRequestError);
+
+      expect(() => {
+        MongoErrorHandler.formatError(badValueError);
+      }).toThrow('Invalid field value');
+    });
+
+    it('should throw ConflictError for INDEX_OPTIONS_CONFLICT error', () => {
+      const error = {
+        code: MONGO_ERROR_CODES.INDEX_OPTIONS_CONFLICT,
+        errmsg: 'Index already exists with different options'
+      } as unknown as MongoServerError;
+
+      expect(() => {
+        MongoErrorHandler.formatError(error);
+      }).toThrow(ConflictError);
+
+      expect(() => {
+        MongoErrorHandler.formatError(error);
+      }).toThrow('Index error: Index already exists with different options');
+    });
+
+    it('should throw ConflictError for INDEX_KEY_SPECS_CONFLICT error', () => {
+      const error = {
         code: MONGO_ERROR_CODES.INDEX_KEY_SPECS_CONFLICT,
         errmsg: 'Index key specs conflict'
       } as unknown as MongoServerError;
 
       expect(() => {
-        MongoErrorHandler.formatError(indexConflictError);
+        MongoErrorHandler.formatError(error);
       }).toThrow(ConflictError);
 
       expect(() => {
-        MongoErrorHandler.formatError(indexConflictError);
+        MongoErrorHandler.formatError(error);
       }).toThrow('Index error: Index key specs conflict');
     });
 
-    it('should throw BadRequestError for CANNOT_CREATE_INDEX error', () => {
+    it('should throw ConflictError for CANNOT_CREATE_INDEX error', () => {
       const cannotCreateIndexError = {
         code: MONGO_ERROR_CODES.CANNOT_CREATE_INDEX,
         errmsg: 'Cannot create index due to schema restrictions'
@@ -161,6 +195,51 @@ describe('MongoErrorHandler', () => {
       expect(() => {
         MongoErrorHandler.formatError(cannotCreateIndexError);
       }).toThrow('Index error: Cannot create index due to schema restrictions');
+    });
+
+    it('should throw ConflictError for INDEX_ALREADY_EXISTS error', () => {
+      const indexAlreadyExistsError = {
+        code: MONGO_ERROR_CODES.INDEX_ALREADY_EXISTS,
+        errmsg: 'Index already exists'
+      } as unknown as MongoServerError;
+
+      expect(() => {
+        MongoErrorHandler.formatError(indexAlreadyExistsError);
+      }).toThrow(ConflictError);
+
+      expect(() => {
+        MongoErrorHandler.formatError(indexAlreadyExistsError);
+      }).toThrow('Index error: Index already exists');
+    });
+
+    it('should throw ConflictError for NAMESPACE_EXISTS error', () => {
+      const namespaceExistsError = {
+        code: MONGO_ERROR_CODES.NAMESPACE_EXISTS,
+        errmsg: 'Namespace already exists'
+      } as unknown as MongoServerError;
+
+      expect(() => {
+        MongoErrorHandler.formatError(namespaceExistsError);
+      }).toThrow(ConflictError);
+
+      expect(() => {
+        MongoErrorHandler.formatError(namespaceExistsError);
+      }).toThrow('Index error: Namespace already exists');
+    });
+
+    it('should throw BadRequestError for BSON_OBJECT_TOO_LARGE', () => {
+      const bsonObjectTooLargeError = {
+        code: MONGO_ERROR_CODES.BSON_OBJECT_TOO_LARGE,
+        errmsg: 'object too large'
+      } as unknown as MongoServerError;
+
+      expect(() => {
+        MongoErrorHandler.formatError(bsonObjectTooLargeError);
+      }).toThrow(BadRequestError);
+
+      expect(() => {
+        MongoErrorHandler.formatError(bsonObjectTooLargeError);
+      }).toThrow('Document exceeds maximum BSON size');
     });
   });
 });
