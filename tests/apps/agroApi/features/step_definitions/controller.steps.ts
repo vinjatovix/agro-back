@@ -149,7 +149,7 @@ const parseBody = (
   const parsed = parseJsonObject(interpolateJson(body, world));
 
   if (Array.isArray(parsed)) {
-    throw new Error('Expected object but received array in request body');
+    throw new TypeError('Expected object but received array in request body');
   }
 
   return parsed;

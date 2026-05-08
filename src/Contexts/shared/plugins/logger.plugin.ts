@@ -36,12 +36,14 @@ if (envs.NODE_ENV !== 'production') {
       format: winston.format.combine(
         winston.format.colorize({ all: true }),
         winston.format.printf((info) => {
-          const service =
-            typeof info.service === 'string'
-              ? info.service
-              : info.service
-                ? JSON.stringify(info.service)
-                : 'app';
+          let service: string;
+          if (typeof info.service === 'string') {
+            service = info.service;
+          } else if (info.service !== undefined) {
+            service = JSON.stringify(info.service);
+          } else {
+            service = 'app';
+          }
 
           return `[${info.level}] ${service} - ${String(
             info.timestamp
