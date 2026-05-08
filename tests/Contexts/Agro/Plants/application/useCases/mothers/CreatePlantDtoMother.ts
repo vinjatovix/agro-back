@@ -1,5 +1,7 @@
 import type { CreatePlantDto } from '../../../../../../../src/Contexts/Agro/Plants/application/useCases/interfaces/index.js';
 import type { PlantLifecycleValue } from '../../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantLifecycleValue.js';
+import { buildPatch } from '../../../../../../shared/dto/buildPatch.js';
+import { deepMerge } from '../../../../../../shared/dto/deepMerge.js';
 import { random } from '../../../../../shared/fixtures/index.js';
 
 const lifecycle = (): PlantLifecycleValue =>
@@ -115,10 +117,10 @@ export class CreatePlantDtoMother {
     };
   }
 
-  static custom(overrides: Partial<CreatePlantDto>): CreatePlantDto {
-    return {
-      ...base(),
-      ...overrides
-    };
+  static custom(overrides: Record<string, unknown>): CreatePlantDto {
+    const patch = buildPatch(overrides);
+    const dto = structuredClone(base());
+
+    return deepMerge(dto, patch);
   }
 }
