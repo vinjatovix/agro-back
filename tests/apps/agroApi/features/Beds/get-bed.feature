@@ -11,7 +11,7 @@ Feature: GetBed
         And the response body should contain
             """
             {
-                "id": "<bedId>",
+                "id": "{bedId}",
                 "plantInstances": []
             }
             """

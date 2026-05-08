@@ -9,7 +9,7 @@ Feature: Get Plant
     And the response body should contain
       """
       {
-        "id": "<plantId>",
+        "id": "{plantId}",
         "identity": {
           "name": {
             "primary": "Test plant"

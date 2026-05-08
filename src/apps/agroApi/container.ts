@@ -97,11 +97,17 @@ import { MongoFamilyRepository } from '../../Contexts/Agro/Families/infrastructu
 import type { Db, MongoClient } from 'mongodb';
 import { bedPersistenceMapper } from '../../Contexts/Agro/Beds/mappers/bedPersistenceMapper.js';
 import { plantPersistenceMapper } from '../../Contexts/Agro/Plants/mappers/plantPersistenceMapper.js';
-import { CreateFamily } from '../../Contexts/Agro/Families/application/useCases/CreateFamily.js';
+import {
+  CreateFamily,
+  GetFamilyById,
+  GetFamilyBySlug
+} from '../../Contexts/Agro/Families/application/useCases/index.js';
 import {
   CreateFamilyController,
-  type CreateFamilyControllerDependencies
-} from './controllers/Families/CreateFamilyController.js';
+  GetFamilyBySlugController,
+  type CreateFamilyControllerDependencies,
+  type GetFamilyBySlugControllerDependencies
+} from './controllers/Families/index.js';
 import { familyPersistenceMapper } from '../../Contexts/Agro/Families/mappers/familyPersistenceMapper.js';
 
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
@@ -145,6 +151,8 @@ type ContainerCradle = {
 
   // Family UseCases
   createFamily: CreateFamily;
+  getFamilyById: GetFamilyById;
+  getFamilyBySlug: GetFamilyBySlug;
 
   // Family Controllers
   createFamilyController: CreateFamilyController;
@@ -324,6 +332,12 @@ const registerFamilyUseCases = (container: AppContainer): void => {
   container.register({
     createFamily: asFunction(
       ({ familyRepository }) => new CreateFamily(familyRepository)
+    ).scoped(),
+    getFamilyById: asFunction(
+      ({ familyRepository }) => new GetFamilyById(familyRepository)
+    ).scoped(),
+    getFamilyBySlug: asFunction(
+      ({ familyRepository }) => new GetFamilyBySlug(familyRepository)
     ).scoped()
   });
 };
@@ -333,6 +347,13 @@ const registerFamilyControllers = (container: AppContainer): void => {
     createFamilyController: asFunction(
       ({ createFamily }: CreateFamilyControllerDependencies) =>
         new CreateFamilyController({ createFamily })
+    ).scoped(),
+    getFamilyBySlugController: asFunction(
+      ({
+        getFamilyBySlug,
+        getFamilyById
+      }: GetFamilyBySlugControllerDependencies) =>
+        new GetFamilyBySlugController({ getFamilyBySlug, getFamilyById })
     ).scoped()
   });
 };

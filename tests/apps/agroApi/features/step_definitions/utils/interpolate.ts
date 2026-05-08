@@ -1,4 +1,4 @@
-import { isPrimitive } from '../../../../../../src/shared/domain/patch/utils/isPrimitive.js';
+import { isPrimitive } from '../../../../../../src/shared/domain/utils/isPrimitive.js';
 
 const interpolate = <T extends Record<string, unknown>>(
   input: unknown,

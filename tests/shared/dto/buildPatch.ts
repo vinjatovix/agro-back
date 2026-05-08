@@ -1,4 +1,4 @@
-import { isObject } from '../../../src/shared/domain/patch/utils/isObject.js';
+import { isObject } from '../../../src/shared/domain/utils/isObject.js';
 
 export function buildPatch(
   overrides: Record<string, unknown>

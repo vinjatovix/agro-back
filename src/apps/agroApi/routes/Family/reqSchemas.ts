@@ -1,4 +1,4 @@
-import { body, checkExact } from 'express-validator';
+import { body, checkExact, param } from 'express-validator';
 
 export const createFamilyReqSchema = [
   body('id').exists().isUUID(),
@@ -14,5 +14,10 @@ export const createFamilyReqSchema = [
   body('extra.distribution').optional().isString().notEmpty(),
   body('extra.speciesCount').optional().isInt({ min: 0 }),
 
+  checkExact()
+];
+
+export const getFamilyBySlugReqSchema = [
+  param('slug').exists().isString().notEmpty(),
   checkExact()
 ];

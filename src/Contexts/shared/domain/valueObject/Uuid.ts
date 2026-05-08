@@ -27,16 +27,16 @@ export class Uuid {
   }
 
   private static ensureIsValidUuid(id: string): void {
-    if (!validate(id)) {
+    if (!Uuid.isValid(id)) {
       throw createError.badRequest(`<Uuid> does not allow the value <${id}>`);
     }
   }
 
-  static equals(a: Uuid, b: Uuid): boolean {
-    return a.value === b.value;
-  }
-
   static create(value: string): Uuid {
     return new Uuid(value);
+  }
+
+  static isValid(value: string): boolean {
+    return validate(value.trim());
   }
 }

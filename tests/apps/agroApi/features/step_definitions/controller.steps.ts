@@ -619,15 +619,9 @@ Then(
   async function (this: CucumberWorld, docString: string) {
     const response = await this.request!;
 
-    const expected = JSON.parse(docString) as Record<string, unknown>;
-
-    if (expected.id === '<plantId>') {
-      expected.id = this.plantId!;
-    }
-
-    if (expected.id === '<bedId>') {
-      expected.id = this.bedId!;
-    }
+    const expected = parseJsonObject(
+      interpolateJson(docString, this)
+    ) as Record<string, unknown>;
 
     const matches = compareResponseObject(response.body, expected);
 

@@ -1,4 +1,4 @@
-import { isObject } from '../../../src/shared/domain/patch/utils/isObject.js';
+import { isObject } from '../../../src/shared/domain/utils/isObject.js';
 
 export function deepMerge<T>(target: T, patch: unknown): T {
   if (!isObject(target) || !isObject(patch)) {

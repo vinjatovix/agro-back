@@ -1,4 +1,4 @@
-import { isRecord } from '../../../../../../src/shared/domain/patch/utils/isRecord.js';
+import { isRecord } from '../../../../../../src/shared/domain/utils/isRecord.js';
 
 export const compareResponseObject = <T extends Record<string, unknown>>(
   responseObj: T,

@@ -232,6 +232,28 @@ paths:
         '409':
           $ref: '#/components/responses/ConflictError'
 
+  /api/v1/families/{idOrSlug}:
+    get:
+      tags: [Families]
+      summary: Get family by id or slug
+      parameters:
+        - name: idOrSlug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Family'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
   /api/v1/plants:
     get:
       tags: [Plants]
