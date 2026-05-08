@@ -5,7 +5,6 @@ Feature: Update Password
   I want to be able to update my password
 
   Background:
-  Scenario: Register with valid credentials
     Given a POST request to "/api/v1/Auth/register" with body
       """
       {
@@ -103,15 +102,15 @@ Feature: Update Password
       """
       {
         "email": "update@password.com",
-        "password": "Sup3rSecretPassword!"
+        "password": "#aD3fe2.0%"
       }
       """
     And a POST user request to "/api/v1/Auth/update" with body
       """
       {
-        "oldPassword": "Sup3rSecretPassword!",
-        "password": "Sup3rSecretPassword!",
-        "repeatPassword": "Sup3rSecretPassword!"
+        "oldPassword": "#aD3fe2.0%",
+        "password": "#aD3fe2.0%",
+        "repeatPassword": "#aD3fe2.0%"
       }
       """
     Then the response status code should be 401
@@ -122,4 +121,3 @@ Feature: Update Password
       }
       """
     And response matches OpenAPI contract
-

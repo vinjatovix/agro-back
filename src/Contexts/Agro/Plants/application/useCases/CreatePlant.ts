@@ -3,15 +3,28 @@ import type { CreatePlantDto } from './interfaces/CreatePlantDto.js';
 import type { Plant } from '../../domain/entities/Plant.js';
 import { createError } from '../../../../../shared/errors/index.js';
 import { plantApiMapper } from '../../mappers/plantApiMapper.js';
+import type { FamilyRepository } from '../../../Families/domain/repositories/interfaces/FamilyRepository.js';
 
 export class CreatePlant {
-  constructor(private readonly plantRepository: PlantRepository) {}
+  constructor(
+    private readonly plantRepository: PlantRepository,
+    private readonly familyRepository: FamilyRepository
+  ) {}
 
   async execute(dto: CreatePlantDto, user = 'system'): Promise<Plant> {
     const exists = await this.plantRepository.exists(dto.id);
 
     if (exists) {
       throw createError.conflict(`Plant already exists: ${dto.id}`);
+    }
+    const familyExists = await this.familyRepository.exists(
+      dto.identity.familyId
+    );
+
+    if (!familyExists) {
+      throw createError.badRequest(
+        `Family with id ${dto.identity.familyId} does not exist`
+      );
     }
 
     const plant = plantApiMapper.fromCreateDto(dto, user);

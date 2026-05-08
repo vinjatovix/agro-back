@@ -5,7 +5,6 @@ Feature: Login
   I want to be able to login
 
   Background:
-  Scenario: Register with valid credentials
     Given a POST request to "/api/v1/Auth/register" with body
       """
       {

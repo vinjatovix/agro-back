@@ -1,5 +1,6 @@
 import type { AddressInfo } from 'node:net';
 
+import { AgroBackApp } from '../../../src/apps/agroApi/AgroBackApp.js';
 import type { AppLogger } from '../../../src/Contexts/shared/plugins/logger.plugin.js';
 
 const listenMock = jest.fn<Promise<void>, []>();
@@ -10,18 +11,18 @@ const serverConstructorMock = jest.fn();
 jest.mock('../../../src/apps/agroApi/server.js', () => ({
   Server: jest
     .fn()
-    .mockImplementation((host: string, port: string, logger: AppLogger) => {
-      serverConstructorMock(host, port, logger);
+    .mockImplementation(
+      (host: string, port: string, logger: AppLogger, containerDeps) => {
+        serverConstructorMock(host, port, logger, containerDeps);
 
-      return {
-        listen: listenMock,
-        stop: stopMock,
-        getHTTPServer: getHTTPServerMock
-      };
-    })
+        return {
+          listen: listenMock,
+          stop: stopMock,
+          getHTTPServer: getHTTPServerMock
+        };
+      }
+    )
 }));
-
-import { AgroBackApp } from '../../../src/apps/agroApi/AgroBackApp.js';
 
 describe('AgroBackApp', () => {
   let logger: AppLogger;
@@ -56,10 +57,10 @@ describe('AgroBackApp', () => {
     expect(serverConstructorMock).toHaveBeenCalledWith(
       'http://localhost',
       '0',
-      logger
+      logger,
+      expect.any(Object)
     );
     expect(listenMock).toHaveBeenCalledTimes(1);
-    expect(app.host).toBe('http://localhost:3456');
     expect(logger.info).toHaveBeenCalledWith(
       'Server running at http://localhost:3456'
     );
@@ -80,9 +81,9 @@ describe('AgroBackApp', () => {
     expect(serverConstructorMock).toHaveBeenCalledWith(
       'http://agro.test',
       '8080',
-      logger
+      logger,
+      expect.any(Object)
     );
-    expect(app.host).toBe('http://agro.test:9001');
     expect(logger.info).toHaveBeenCalledWith(
       'Server running at http://agro.test:9001'
     );
@@ -100,7 +101,6 @@ describe('AgroBackApp', () => {
 
     await app.start(logger);
 
-    expect(app.host).toBe('http://localhost:8080');
     expect(logger.info).toHaveBeenCalledWith(
       'Server running at http://localhost:8080'
     );

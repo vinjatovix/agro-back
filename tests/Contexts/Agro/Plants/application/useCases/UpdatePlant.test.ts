@@ -2,16 +2,20 @@ import { UpdatePlant } from '../../../../../../src/Contexts/Agro/Plants/applicat
 import type { PlantPrimitives } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantPrimitives.js';
 import { plantDomainMapper } from '../../../../../../src/Contexts/Agro/Plants/mappers/plantDomainMapper.js';
 import { random } from '../../../../shared/fixtures/index.js';
+import { FamilyRepositoryMock } from '../../../Families/__mocks__/FamilyRepositoryMock.js';
+import { FamilyScenarios } from '../../../Families/domain/mothers/FamilyScenarios.js';
 import { PlantRepositoryMock } from '../../__mocks__/PlantRepositoryMock.js';
 import { PlantFactory } from '../../domain/mothers/PlantFactory.js';
 
 describe('UpdatePlant use case', () => {
   let repository: PlantRepositoryMock;
+  let familyRepository: FamilyRepositoryMock;
   let useCase: UpdatePlant;
 
   beforeEach(() => {
     repository = new PlantRepositoryMock();
-    useCase = new UpdatePlant(repository);
+    familyRepository = new FamilyRepositoryMock();
+    useCase = new UpdatePlant(repository, familyRepository);
   });
 
   it('should update plant name', async () => {
@@ -172,5 +176,53 @@ describe('UpdatePlant use case', () => {
       }) as Partial<PlantPrimitives>,
       'user-1'
     );
+  });
+  it('should update familyId when provided', async () => {
+    const plant = PlantFactory.random();
+    const current = plantDomainMapper.toPrimitives(plant);
+    const family = FamilyScenarios.domainBase();
+
+    repository.addToStorage(plant);
+    familyRepository.addToStorage(family);
+
+    await useCase.execute(
+      {
+        id: plant.id.value,
+        identity: {
+          familyId: family.id.value
+        }
+      },
+      'user-1'
+    );
+
+    repository.assertUpdateHasBeenCalledWith(
+      current,
+      expect.objectContaining({
+        ...plantDomainMapper.toPrimitives(plant),
+        identity: expect.objectContaining({
+          familyId: family.id.value
+        }) as Partial<PlantPrimitives>['identity']
+      }) as Partial<PlantPrimitives>,
+      'user-1'
+    );
+  });
+
+  it('should throw if trying to update to non existing familyId', async () => {
+    const plant = PlantFactory.random();
+
+    repository.addToStorage(plant);
+    const familyId = random.uuid();
+
+    await expect(
+      useCase.execute(
+        {
+          id: plant.id.value,
+          identity: {
+            familyId
+          }
+        },
+        'user-1'
+      )
+    ).rejects.toThrow(`Family with id ${familyId} does not exist`);
   });
 });

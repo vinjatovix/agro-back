@@ -41,10 +41,17 @@ import {
   RefreshTokenController,
   RegisterUserLocalController,
   UpdatePasswordLocalController,
-  ValidateMailController
+  ValidateMailController,
+  type AuthenticateWithGoogleControllerDependencies,
+  type LoginUserLocalControllerDependencies,
+  type RefreshTokenControllerDependencies,
+  type RegisterUserLocalControllerDependencies,
+  type UpdatePasswordLocalControllerDependencies,
+  type ValidateMailControllerDependencies
 } from './controllers/Auth/index.js';
 import {
-  HealthController
+  HealthController,
+  type HealthControllerDependencies
   // type HealthControllerDependencies
 } from './controllers/health/HealthController.js';
 import {
@@ -52,7 +59,12 @@ import {
   DeletePlantController,
   GetAllPlantsController,
   GetPlantByIdController,
-  UpdatePlantController
+  UpdatePlantController,
+  type CreatePlantControllerDependencies,
+  type DeletePlantControllerDependencies,
+  type GetAllPlantsControllerDependencies,
+  type GetPlantByIdControllerDependencies,
+  type UpdatePlantControllerDependencies
 } from './controllers/Plants/index.js';
 import { DeletePlant } from '../../Contexts/Agro/Plants/application/useCases/DeletePlant.js';
 import { MongoBedRepository } from '../../Contexts/Agro/Beds/infrastructure/persistence/MongoBedRepository.js';
@@ -85,6 +97,12 @@ import { MongoFamilyRepository } from '../../Contexts/Agro/Families/infrastructu
 import type { Db, MongoClient } from 'mongodb';
 import { bedPersistenceMapper } from '../../Contexts/Agro/Beds/mappers/bedPersistenceMapper.js';
 import { plantPersistenceMapper } from '../../Contexts/Agro/Plants/mappers/plantPersistenceMapper.js';
+import { CreateFamily } from '../../Contexts/Agro/Families/application/useCases/CreateFamily.js';
+import {
+  CreateFamilyController,
+  type CreateFamilyControllerDependencies
+} from './controllers/Families/CreateFamilyController.js';
+import { familyPersistenceMapper } from '../../Contexts/Agro/Families/mappers/familyPersistenceMapper.js';
 
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 
@@ -122,6 +140,15 @@ type ContainerCradle = {
   refreshTokenController: RefreshTokenController;
   updatePasswordController: UpdatePasswordLocalController;
 
+  // Family Repository
+  familyRepository: MongoFamilyRepository;
+
+  // Family UseCases
+  createFamily: CreateFamily;
+
+  // Family Controllers
+  createFamilyController: CreateFamilyController;
+
   // Plant Repository
   plantRepository: MongoPlantRepository;
 
@@ -155,9 +182,6 @@ type ContainerCradle = {
   getBedByIdController: GetBedByIdController;
   updateBedController: UpdateBedController;
   deleteBedController: DeleteBedController;
-
-  // Family Repository
-  familyRepository: MongoFamilyRepository;
 };
 
 const pkg = JSON.parse(
@@ -184,15 +208,16 @@ const registerHealthUseCase = (container: AppContainer): void => {
 const registerHealthController = (container: AppContainer): void => {
   container.register({
     healthController: asFunction(
-      ({ checkHealth }: ContainerCradle) =>
+      ({ checkHealth }: HealthControllerDependencies) =>
         new HealthController({ checkHealth })
     ).scoped()
   });
 };
 const registerPersistenceMappers = (container: AppContainer): void => {
   container.register({
-    bedPersistenceMapper: asValue(bedPersistenceMapper),
-    plantPersistenceMapper: asValue(plantPersistenceMapper)
+    familyPersistenceMapper: asValue(familyPersistenceMapper),
+    plantPersistenceMapper: asValue(plantPersistenceMapper),
+    bedPersistenceMapper: asValue(bedPersistenceMapper)
   });
 };
 
@@ -217,7 +242,10 @@ const registerInfrastructureDependencies = (
       ({ db, bedPersistenceMapper }) =>
         new MongoBedRepository(db, bedPersistenceMapper)
     ).singleton(),
-    familyRepository: asValue(new MongoFamilyRepository(db))
+    familyRepository: asFunction(
+      ({ db, familyPersistenceMapper }) =>
+        new MongoFamilyRepository(db, familyPersistenceMapper)
+    ).singleton()
   });
 };
 
@@ -256,34 +284,55 @@ const registerAuthUseCases = (container: AppContainer): void => {
 const registerAuthControllers = (container: AppContainer): void => {
   container.register({
     registerUserController: asFunction(
-      ({ registerUser }: ContainerCradle) =>
+      ({ registerUser }: RegisterUserLocalControllerDependencies) =>
         new RegisterUserLocalController({ registerUser })
     ).scoped(),
 
-    loginUserController: asFunction(({ loginUser }: ContainerCradle) => {
-      return new LoginUserLocalController({
-        loginUser
-      });
-    }).scoped(),
+    loginUserController: asFunction(
+      ({ loginUser }: LoginUserLocalControllerDependencies) => {
+        return new LoginUserLocalController({
+          loginUser
+        });
+      }
+    ).scoped(),
 
     authenticateWithGoogleController: asFunction(
-      ({ authenticateWithGoogle }: ContainerCradle) =>
+      ({
+        authenticateWithGoogle
+      }: AuthenticateWithGoogleControllerDependencies) =>
         new AuthenticateWithGoogleController({ authenticateWithGoogle })
     ).scoped(),
 
     validateMailController: asFunction(
-      ({ validateMail }: ContainerCradle) =>
+      ({ validateMail }: ValidateMailControllerDependencies) =>
         new ValidateMailController({ validateMail })
     ).scoped(),
 
     refreshTokenController: asFunction(
-      ({ refreshToken }: ContainerCradle) =>
+      ({ refreshToken }: RefreshTokenControllerDependencies) =>
         new RefreshTokenController({ refreshToken })
     ).scoped(),
 
     updatePasswordController: asFunction(
-      ({ updatePassword }: ContainerCradle) =>
+      ({ updatePassword }: UpdatePasswordLocalControllerDependencies) =>
         new UpdatePasswordLocalController({ updatePassword })
+    ).scoped()
+  });
+};
+
+const registerFamilyUseCases = (container: AppContainer): void => {
+  container.register({
+    createFamily: asFunction(
+      ({ familyRepository }) => new CreateFamily(familyRepository)
+    ).scoped()
+  });
+};
+
+const registerFamilyControllers = (container: AppContainer): void => {
+  container.register({
+    createFamilyController: asFunction(
+      ({ createFamily }: CreateFamilyControllerDependencies) =>
+        new CreateFamilyController({ createFamily })
     ).scoped()
   });
 };
@@ -291,7 +340,8 @@ const registerAuthControllers = (container: AppContainer): void => {
 const registerPlantUseCases = (container: AppContainer): void => {
   container.register({
     createPlant: asFunction(
-      ({ plantRepository }) => new CreatePlant(plantRepository)
+      ({ plantRepository, familyRepository }) =>
+        new CreatePlant(plantRepository, familyRepository)
     ).scoped(),
     getPlant: asFunction(
       ({ plantRepository }) => new GetPlant(plantRepository)
@@ -300,7 +350,8 @@ const registerPlantUseCases = (container: AppContainer): void => {
       ({ plantRepository }) => new ListPlants(plantRepository)
     ).scoped(),
     updatePlant: asFunction(
-      ({ plantRepository }) => new UpdatePlant(plantRepository)
+      ({ plantRepository, familyRepository }) =>
+        new UpdatePlant(plantRepository, familyRepository)
     ).scoped(),
     deletePlant: asFunction(
       ({ plantRepository }) => new DeletePlant(plantRepository)
@@ -311,27 +362,27 @@ const registerPlantUseCases = (container: AppContainer): void => {
 const registerPlantControllers = (container: AppContainer): void => {
   container.register({
     createPlantController: asFunction(
-      ({ createPlant }: ContainerCradle) =>
+      ({ createPlant }: CreatePlantControllerDependencies) =>
         new CreatePlantController({ createPlant })
     ).scoped(),
 
     getAllPlantsController: asFunction(
-      ({ listPlants }: ContainerCradle) =>
+      ({ listPlants }: GetAllPlantsControllerDependencies) =>
         new GetAllPlantsController({ listPlants })
     ).scoped(),
 
     getPlantController: asFunction(
-      ({ getPlant }: ContainerCradle) =>
+      ({ getPlant }: GetPlantByIdControllerDependencies) =>
         new GetPlantByIdController({ getPlant })
     ).scoped(),
 
     updatePlantController: asFunction(
-      ({ updatePlant }: ContainerCradle) =>
+      ({ updatePlant }: UpdatePlantControllerDependencies) =>
         new UpdatePlantController({ updatePlant })
     ).scoped(),
 
     deletePlantController: asFunction(
-      ({ deletePlant }: ContainerCradle) =>
+      ({ deletePlant }: DeletePlantControllerDependencies) =>
         new DeletePlantController({ deletePlant })
     ).scoped()
   });
@@ -390,10 +441,12 @@ const registerBedControllers = (container: AppContainer): void => {
   });
 };
 
-export const createAppContainer = (deps: {
+export type containerDeps = {
   db: Db;
   client: MongoClient;
-}): AppContainer => {
+};
+
+export const createAppContainer = (deps: containerDeps): AppContainer => {
   const container: AppContainer = createContainer({
     injectionMode: InjectionMode.PROXY
   });
@@ -409,6 +462,8 @@ export const createAppContainer = (deps: {
   registerHealthUseCase(container);
   registerAuthControllers(container);
   registerAuthUseCases(container);
+  registerFamilyControllers(container);
+  registerFamilyUseCases(container);
   registerPlantControllers(container);
   registerPlantUseCases(container);
   registerBedControllers(container);

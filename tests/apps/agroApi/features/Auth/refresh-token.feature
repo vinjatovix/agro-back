@@ -5,7 +5,6 @@ Feature: Refresh token
   I want to refresh my token
 
   Background:
-  Scenario: Register and login with valid credentials
     Given a POST request to "/api/v1/Auth/register" with body
       """
       {

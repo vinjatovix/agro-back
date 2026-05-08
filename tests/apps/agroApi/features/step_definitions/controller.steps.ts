@@ -1,60 +1,62 @@
 /* eslint-disable @typescript-eslint/require-await */
 import {
   AfterAll,
+  Before,
   BeforeAll,
   Given,
-  When,
-  Then,
   setWorldConstructor,
+  Then,
+  When,
   World
 } from '@cucumber/cucumber';
 import { assert } from 'chai';
-import request from 'supertest';
+import type { MongoClient } from 'mongodb';
 import type { Server } from 'node:http';
+import request from 'supertest';
 
+import { AgroBackApp } from '../../../../../src/apps/agroApi/AgroBackApp.js';
 import {
   createAppContainer,
   type AppContainer
 } from '../../../../../src/apps/agroApi/container.js';
-import { EnvironmentArranger } from '../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
-import { AgroBackApp } from '../../../../../src/apps/agroApi/AgroBackApp.js';
 import { API_PREFIXES } from '../../../../../src/apps/agroApi/routes/shared/apiPrefixes.js';
-import type { Nullable } from '../../../../../src/shared/domain/types/Nullable.js';
-import { UserMother } from '../../../../Contexts/Auth/domain/mothers/UserMother.js';
 import type { EncrypterTool } from '../../../../../src/Contexts/shared/plugins/index.js';
-import type { PlantPrimitives } from '../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantPrimitives.js';
-import { PlantSeeder } from '../shared/seeders/PlantSeeder.js';
-import { assertResponseMatchesOpenAPI } from '../../../../shared/contract/assertResponseMatchesOpenAPI.js';
-import { BedSeeder } from '../shared/seeders/BedSeeder.js';
-import { random } from '../../../../Contexts/shared/fixtures/random.js';
+import type { Nullable } from '../../../../../src/shared/domain/types/Nullable.js';
+import { EnvironmentArranger } from '../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
 import {
   DBClientFactory,
   DBConfigFactory
 } from '../../../../../src/shared/infrastructure/persistence/index.js';
 
+import { UserMother } from '../../../../Contexts/Auth/domain/mothers/UserMother.js';
+import { random } from '../../../../Contexts/shared/fixtures/random.js';
+import { assertResponseMatchesOpenAPI } from '../../../../shared/contract/assertResponseMatchesOpenAPI.js';
+
+import {
+  BedSeeder,
+  FamilySeeder,
+  PlantSeeder
+} from '../shared/seeders/index.js';
+
+import {
+  compareResponseObject,
+  interpolateJson,
+  interpolateRoute,
+  parseJsonObject
+} from './utils/index.js';
+
 /* ---------------- WORLD ---------------- */
 
-export interface TestWorld {
+class TestWorldImpl extends World {
+  familyId?: string;
+  familySlug?: string;
   plantId?: string;
   bedId?: string;
   token?: string;
+
   route?: string;
   method?: string;
   status?: number;
-  response?: unknown;
-
-  request?: request.Test;
-  responseRaw?: request.Response;
-}
-
-class TestWorldImpl extends World implements TestWorld {
-  plantId?: string;
-  bedId?: string;
-  token?: string;
-  route?: string;
-  method?: string;
-  status?: number;
-  response?: unknown;
 
   request?: request.Test;
   responseRaw?: request.Response;
@@ -72,21 +74,6 @@ const USER_ID = random.uuid();
 const ANOTHER_USER_ID = random.uuid();
 const ADMIN_ID = random.uuid();
 
-/* ---------------- HELPERS ---------------- */
-
-const setRequestContext = (
-  world: CucumberWorld,
-  method: string,
-  route: string
-) => {
-  world.route = route;
-  world.method = method;
-};
-
-const getAuthToken = (world: CucumberWorld, fallback?: string) => {
-  return world.token ?? fallback;
-};
-
 /* ---------------- GLOBAL STATE ---------------- */
 
 let app: AgroBackApp;
@@ -97,109 +84,81 @@ let validUserBearerToken: Nullable<string>;
 let anotherUserBearerToken: Nullable<string>;
 
 let plantSeeder: ReturnType<typeof PlantSeeder>;
+let familySeeder: ReturnType<typeof FamilySeeder>;
 
-/* ---------------- UTILS ---------------- */
+let client: MongoClient;
+let container: AppContainer;
+let environmentArranger: Promise<EnvironmentArranger>;
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
+/* ---------------- TYPES ---------------- */
 
-const isPrimitive = (value: unknown): value is string | number | boolean =>
-  typeof value === 'string' ||
-  typeof value === 'number' ||
-  typeof value === 'boolean';
+type HttpMethod = 'get' | 'post' | 'patch' | 'delete';
 
-const compareResponseObject = <T extends Record<string, unknown>>(
-  responseObj: T,
-  expectedObj: Partial<T>
-): boolean => {
-  const compare = (actual: unknown, expected: unknown): boolean => {
-    if (expected === undefined) return true;
-    if (expected === null) return actual === null;
+interface RequestOptions {
+  method: HttpMethod;
+  route: string;
+  token?: string;
+  body?: unknown;
+}
 
-    if (Array.isArray(expected)) {
-      if (!Array.isArray(actual)) return false;
+/* ---------------- HELPERS ---------------- */
 
-      return expected.every((expectedItem) =>
-        actual.some((actualItem) => compare(actualItem, expectedItem))
-      );
-    }
-
-    if (isRecord(expected)) {
-      if (!isRecord(actual)) return false;
-
-      return Object.entries(expected).every(([key, value]) =>
-        compare(actual[key], value)
-      );
-    }
-
-    return actual === expected;
-  };
-
-  return compare(responseObj, expectedObj);
+const setRequestContext = (
+  world: CucumberWorld,
+  method: string,
+  route: string
+): void => {
+  world.route = route;
+  world.method = method;
 };
 
-const interpolateRoute = <T extends Record<string, unknown>>(
-  route: string,
-  world: T
-): string =>
-  route.replaceAll(/{([^{}]+)}/g, (_, key: string) => {
-    const value = world[key];
+const getAuthToken = (
+  world: CucumberWorld,
+  fallback?: string
+): string | undefined => {
+  return world.token ?? fallback;
+};
 
-    if (value === undefined || value === null) {
-      throw new Error(`Missing value for route param: ${key}`);
-    }
+const withToken = (token?: string): { token: string } | object => {
+  return token ? { token } : {};
+};
 
-    if (!isPrimitive(value)) {
-      throw new Error(`Invalid type for route param "${key}"`);
-    }
+const buildRequest = ({
+  method,
+  route,
+  token,
+  body
+}: RequestOptions): request.Test => {
+  let req = request(httpServer)[method](route);
 
-    return String(value);
-  });
+  if (token) {
+    req = req.set('Authorization', `Bearer ${token}`);
+  }
 
-const interpolateJson = <T extends Record<string, unknown>>(
+  if (body !== undefined && body !== null) {
+    req = req.send(body);
+  }
+
+  return req;
+};
+
+const parseBody = (
   body: string,
-  world: T
-): string => {
-  const parsed = JSON.parse(body);
+  world: CucumberWorld
+): Record<string, unknown> => {
+  const parsed = parseJsonObject(interpolateJson(body, world));
 
-  const replace = (value: unknown): unknown => {
-    if (typeof value === 'string') {
-      return value.replaceAll(/{([^{}]+)}/g, (_, key: string) => {
-        const replacement = world[key];
+  if (Array.isArray(parsed)) {
+    throw new Error('Expected object but received array in request body');
+  }
 
-        if (replacement === undefined || replacement === null) {
-          throw new Error(`Missing value for json param: ${key}`);
-        }
-
-        if (!isPrimitive(replacement)) {
-          throw new Error(`Invalid type for json param "${key}"`);
-        }
-
-        return String(replacement);
-      });
-    }
-
-    if (Array.isArray(value)) return value.map(replace);
-
-    if (isRecord(value)) {
-      const out: Record<string, unknown> = {};
-      for (const [k, v] of Object.entries(value)) out[k] = replace(v);
-      return out;
-    }
-
-    return value;
-  };
-
-  return JSON.stringify(replace(parsed));
+  return parsed;
 };
 
 /* ---------------- LIFECYCLE ---------------- */
 
-let container: AppContainer;
-let environmentArranger: Promise<EnvironmentArranger>;
-
 BeforeAll(async () => {
-  const client = await DBClientFactory.createClient(
+  client = await DBClientFactory.createClient(
     'agroApi',
     DBConfigFactory.createConfig()
   );
@@ -207,6 +166,7 @@ BeforeAll(async () => {
   const db = client.db();
 
   container = createAppContainer({ db, client });
+
   environmentArranger = Promise.resolve(
     container.resolve<EnvironmentArranger>('environmentArranger')
   );
@@ -218,10 +178,11 @@ BeforeAll(async () => {
 
   await app.start(container.resolve('logger'));
 
-  if (!app.httpServer) throw new Error('HTTP server is not available');
-  httpServer = app.httpServer;
+  if (!app.httpServer) {
+    throw new Error('HTTP server is not available');
+  }
 
-  await (await environmentArranger).arrange();
+  httpServer = app.httpServer;
 
   const ENCRYPTER: EncrypterTool =
     container.resolve<EncrypterTool>('encrypter');
@@ -247,13 +208,21 @@ BeforeAll(async () => {
     roles: ['user']
   });
 
-  plantSeeder = PlantSeeder(app.httpServer, validAdminBearerToken!);
+  familySeeder = FamilySeeder(httpServer, validAdminBearerToken!);
+
+  plantSeeder = PlantSeeder(httpServer, validAdminBearerToken!);
+});
+
+Before(async () => {
+  await (await environmentArranger).arrange();
 });
 
 AfterAll(async () => {
-  await (await environmentArranger).arrange();
   await (await environmentArranger).close();
+
   await app.stop(container.resolve('logger'));
+
+  await client.close();
 });
 
 /* ---------------- GIVEN ---------------- */
@@ -262,22 +231,27 @@ Given('a GET request to {string}', async function (route: string) {
   const normalizedRoute = route.includes('current-user-token')
     ? route.replace('current-user-token', validUserBearerToken ?? '')
     : route;
+
   setRequestContext(this, 'GET', normalizedRoute);
 
-  this.request = request(httpServer).get(normalizedRoute);
+  this.request = buildRequest({
+    method: 'get',
+    route: normalizedRoute
+  });
 });
 
 Given('a GET user request to {string}', async function (route: string) {
   const normalizedRoute = interpolateRoute(route, this);
-  this.route = normalizedRoute;
-  this.method = 'GET';
 
-  this.request = request(httpServer)
-    .get(normalizedRoute)
-    .set(
-      'Authorization',
-      `Bearer ${getAuthToken(this, validUserBearerToken!)}`
-    );
+  setRequestContext(this, 'GET', normalizedRoute);
+
+  const token = getAuthToken(this, validUserBearerToken!);
+
+  this.request = buildRequest({
+    method: 'get',
+    route: normalizedRoute,
+    ...withToken(token)
+  });
 });
 
 Given(
@@ -285,43 +259,31 @@ Given(
   async function (route: string, body: string) {
     const normalizedRoute = interpolateRoute(route, this);
 
-    this.route = normalizedRoute;
-    this.method = 'POST';
+    setRequestContext(this, 'POST', normalizedRoute);
 
-    this.request = request(httpServer)
-      .post(normalizedRoute)
-      .send(JSON.parse(body));
+    this.request = buildRequest({
+      method: 'post',
+      route: normalizedRoute,
+      body: parseBody(body, this)
+    });
   }
 );
-
-Given('an authentication with body', async function (docString: string) {
-  const payload = JSON.parse(docString);
-
-  this.request = request(httpServer)
-    .post(API_PREFIXES.auth + '/login')
-    .send(payload);
-
-  const response = await this.request;
-
-  validUserBearerToken = response.body.token;
-  this.token = validUserBearerToken ?? undefined;
-});
 
 Given(
   'a POST admin request to {string} with body',
   async function (route: string, body: string) {
     const normalizedRoute = interpolateRoute(route, this);
 
-    this.route = normalizedRoute;
-    this.method = 'POST';
+    setRequestContext(this, 'POST', normalizedRoute);
 
-    this.request = request(httpServer)
-      .post(normalizedRoute)
-      .set(
-        'Authorization',
-        `Bearer ${getAuthToken(this, validAdminBearerToken!)}`
-      )
-      .send(JSON.parse(body));
+    const token = getAuthToken(this, validAdminBearerToken!);
+
+    this.request = buildRequest({
+      method: 'post',
+      route: normalizedRoute,
+      ...withToken(token),
+      body: parseBody(body, this)
+    });
   }
 );
 
@@ -330,25 +292,50 @@ Given(
   async function (route: string, body: string) {
     const normalizedRoute = interpolateRoute(route, this);
 
-    this.route = normalizedRoute;
-    this.method = 'POST';
+    setRequestContext(this, 'POST', normalizedRoute);
 
-    this.request = request(httpServer)
-      .post(normalizedRoute)
-      .set(
-        'Authorization',
-        `Bearer ${getAuthToken(this, validUserBearerToken!)}`
-      )
-      .send(JSON.parse(body));
+    const token = getAuthToken(this, validUserBearerToken!);
+
+    this.request = buildRequest({
+      method: 'post',
+      route: normalizedRoute,
+      ...withToken(token),
+      body: parseBody(body, this)
+    });
   }
 );
 
-Given('a plant exists', async function (this: CucumberWorld) {
-  const plants = await plantSeeder.createMany(2);
+Given('an authentication with body', async function (docString: string) {
+  const payload = parseJsonObject(docString);
 
-  if (plants?.length === 0) {
-    throw new Error('PlantSeeder returned empty array');
-  }
+  this.request = buildRequest({
+    method: 'post',
+    route: API_PREFIXES.auth + '/login',
+    body: payload
+  });
+
+  const response = (await this.request) as {
+    body: {
+      token?: string;
+    };
+  };
+
+  validUserBearerToken = response.body.token ?? validUserBearerToken;
+
+  this.token = validUserBearerToken ?? undefined;
+});
+
+Given('a family exists', async function () {
+  const family = await familySeeder.create();
+
+  this.familyId = family.id;
+  this.familySlug = family.slug;
+});
+
+Given('a plant exists', async function (this: CucumberWorld) {
+  const plants = await plantSeeder.createMany(2, {
+    'identity.familyId': this.familyId
+  });
 
   this.plantId = plants[0]!.id;
 });
@@ -357,7 +344,7 @@ Given('no plants exist', async function () {
   await (await environmentArranger).arrange();
 });
 
-Given('a bed exists', async function (this: CucumberWorld) {
+Given('a bed exists', async function () {
   const token = getAuthToken(this, validUserBearerToken!);
 
   const localBedSeeder = BedSeeder(httpServer, token!);
@@ -367,7 +354,7 @@ Given('a bed exists', async function (this: CucumberWorld) {
   this.bedId = bed.id;
 });
 
-Given('a bed exists for another user', async function (this: CucumberWorld) {
+Given('a bed exists for another user', async function () {
   const token = getAuthToken(this, anotherUserBearerToken!);
 
   const localBedSeeder = BedSeeder(httpServer, token!);
@@ -378,19 +365,21 @@ Given('a bed exists for another user', async function (this: CucumberWorld) {
 });
 
 /* ---------------- WHEN ---------------- */
+
 When(
   'I send a GET admin request to {string}',
   async function (this: CucumberWorld, route: string) {
     const normalizedRoute = interpolateRoute(route, this);
 
-    setRequestContext(this, 'get', normalizedRoute);
+    setRequestContext(this, 'GET', normalizedRoute);
 
-    this.request = request(httpServer)
-      .get(normalizedRoute)
-      .set(
-        'Authorization',
-        `Bearer ${getAuthToken(this, validAdminBearerToken!)}`
-      );
+    const token = getAuthToken(this, validAdminBearerToken!);
+
+    this.request = buildRequest({
+      method: 'get',
+      route: normalizedRoute,
+      ...withToken(token)
+    });
   }
 );
 
@@ -399,36 +388,45 @@ When(
   async function (this: CucumberWorld, route: string) {
     const normalizedRoute = interpolateRoute(route, this);
 
-    setRequestContext(this, 'get', normalizedRoute);
+    setRequestContext(this, 'GET', normalizedRoute);
 
-    this.request = request(httpServer)
-      .get(normalizedRoute)
-      .set(
-        'Authorization',
-        `Bearer ${getAuthToken(this, validUserBearerToken!)}`
-      );
+    const token = getAuthToken(this, validUserBearerToken!);
+
+    this.request = buildRequest({
+      method: 'get',
+      route: normalizedRoute,
+      ...withToken(token)
+    });
   }
 );
 
 When(
   'I send a GET request to {string}',
   async function (this: CucumberWorld, route: string) {
-    const normalized = interpolateRoute(route, this);
+    const normalizedRoute = interpolateRoute(route, this);
 
-    setRequestContext(this, 'GET', normalized);
+    setRequestContext(this, 'GET', normalizedRoute);
 
-    this.request = request(httpServer).get(normalized);
+    this.request = buildRequest({
+      method: 'get',
+      route: normalizedRoute
+    });
   }
 );
 
 When('I get the plant', async function (this: CucumberWorld) {
-  if (!this.plantId) throw new Error('plantId not set');
+  if (!this.plantId) {
+    throw new Error('plantId not set');
+  }
 
   const route = `/api/v1/plants/${this.plantId}`;
 
-  setRequestContext(this, 'get', route);
+  setRequestContext(this, 'GET', route);
 
-  this.request = request(httpServer).get(route);
+  this.request = buildRequest({
+    method: 'get',
+    route
+  });
 });
 
 When(
@@ -436,17 +434,16 @@ When(
   async function (this: CucumberWorld, route: string, body: string) {
     const normalizedRoute = interpolateRoute(route, this);
 
-    setRequestContext(this, 'patch', normalizedRoute);
+    setRequestContext(this, 'PATCH', normalizedRoute);
 
-    const interpolatedBody = interpolateJson(body, this);
+    const token = getAuthToken(this, validAdminBearerToken!);
 
-    this.request = request(httpServer)
-      .patch(normalizedRoute)
-      .set(
-        'Authorization',
-        `Bearer ${getAuthToken(this, validAdminBearerToken!)}`
-      )
-      .send(JSON.parse(interpolatedBody));
+    this.request = buildRequest({
+      method: 'patch',
+      route: normalizedRoute,
+      ...withToken(token),
+      body: parseBody(body, this)
+    });
   }
 );
 
@@ -455,15 +452,16 @@ When(
   async function (this: CucumberWorld, route: string, body: string) {
     const normalizedRoute = interpolateRoute(route, this);
 
-    setRequestContext(this, 'patch', normalizedRoute);
+    setRequestContext(this, 'PATCH', normalizedRoute);
 
-    this.request = request(httpServer)
-      .patch(normalizedRoute)
-      .set(
-        'Authorization',
-        `Bearer ${getAuthToken(this, validUserBearerToken!)}`
-      )
-      .send(JSON.parse(interpolateJson(body, this)));
+    const token = getAuthToken(this, validUserBearerToken!);
+
+    this.request = buildRequest({
+      method: 'patch',
+      route: normalizedRoute,
+      ...withToken(token),
+      body: parseBody(body, this)
+    });
   }
 );
 
@@ -472,11 +470,13 @@ When(
   async function (this: CucumberWorld, route: string, body: string) {
     const normalizedRoute = interpolateRoute(route, this);
 
-    setRequestContext(this, 'patch', normalizedRoute);
+    setRequestContext(this, 'PATCH', normalizedRoute);
 
-    this.request = request(httpServer)
-      .patch(normalizedRoute)
-      .send(JSON.parse(interpolateJson(body, this)));
+    this.request = buildRequest({
+      method: 'patch',
+      route: normalizedRoute,
+      body: parseBody(body, this)
+    });
   }
 );
 
@@ -485,14 +485,15 @@ When(
   async function (this: CucumberWorld, route: string) {
     const normalizedRoute = interpolateRoute(route, this);
 
-    setRequestContext(this, 'delete', normalizedRoute);
+    setRequestContext(this, 'DELETE', normalizedRoute);
 
-    this.request = request(httpServer)
-      .delete(normalizedRoute)
-      .set(
-        'Authorization',
-        `Bearer ${getAuthToken(this, validAdminBearerToken!)}`
-      );
+    const token = getAuthToken(this, validAdminBearerToken!);
+
+    this.request = buildRequest({
+      method: 'delete',
+      route: normalizedRoute,
+      ...withToken(token)
+    });
   }
 );
 
@@ -501,14 +502,15 @@ When(
   async function (this: CucumberWorld, route: string) {
     const normalizedRoute = interpolateRoute(route, this);
 
-    setRequestContext(this, 'delete', normalizedRoute);
+    setRequestContext(this, 'DELETE', normalizedRoute);
 
-    this.request = request(httpServer)
-      .delete(normalizedRoute)
-      .set(
-        'Authorization',
-        `Bearer ${getAuthToken(this, validUserBearerToken!)}`
-      );
+    const token = getAuthToken(this, validUserBearerToken!);
+
+    this.request = buildRequest({
+      method: 'delete',
+      route: normalizedRoute,
+      ...withToken(token)
+    });
   }
 );
 
@@ -517,25 +519,31 @@ When(
   async function (this: CucumberWorld, route: string) {
     const normalizedRoute = interpolateRoute(route, this);
 
-    setRequestContext(this, 'delete', normalizedRoute);
+    setRequestContext(this, 'DELETE', normalizedRoute);
 
-    this.request = request(httpServer).delete(normalizedRoute);
+    this.request = buildRequest({
+      method: 'delete',
+      route: normalizedRoute
+    });
   }
 );
 
 When('I get the bed', async function (this: CucumberWorld) {
-  if (!this.bedId) throw new Error('bedId not set');
+  if (!this.bedId) {
+    throw new Error('bedId not set');
+  }
 
   const route = `/api/v1/beds/${this.bedId}`;
 
-  setRequestContext(this, 'get', route);
+  setRequestContext(this, 'GET', route);
 
-  this.request = request(httpServer)
-    .get(route)
-    .set(
-      'Authorization',
-      `Bearer ${getAuthToken(this, validUserBearerToken!)}`
-    );
+  const token = getAuthToken(this, validUserBearerToken!);
+
+  this.request = buildRequest({
+    method: 'get',
+    route,
+    ...withToken(token)
+  });
 });
 
 /* ---------------- THEN ---------------- */
@@ -545,9 +553,9 @@ Then(
   async function (this: CucumberWorld, status: number) {
     this.status = status;
 
-    const res = await this.request!.expect(status);
-    this.responseRaw = res;
-    this.response = res;
+    const response = await this.request!.expect(status);
+
+    this.responseRaw = response;
   }
 );
 
@@ -558,11 +566,13 @@ Then('the response body should be empty', async function (this: CucumberWorld) {
 Then(
   'the response body should include an auth token',
   async function (this: CucumberWorld) {
-    assert.isNotEmpty(this.responseRaw!.body.token);
+    const body = this.responseRaw?.body as {
+      token?: string;
+    };
+
+    assert.isNotEmpty(body.token);
   }
 );
-
-/* resto de THEN igual: responseRaw en vez de _response */
 
 Then(
   'the response body should be',
@@ -578,6 +588,7 @@ Then(
   'the response body should be a list',
   async function (this: CucumberWorld) {
     const response = await this.request!;
+
     assert.isArray(response.body);
   }
 );
@@ -585,7 +596,10 @@ Then(
 Then(
   'the list should contain at least {int} item',
   async function (this: CucumberWorld, count: number) {
-    const response = await this.request!;
+    const response = (await this.request!) as {
+      body: unknown[];
+    };
+
     assert.isAtLeast(response.body.length, count);
   }
 );
@@ -594,6 +608,7 @@ Then(
   'the response body should be an empty list',
   async function (this: CucumberWorld) {
     const response = await this.request!;
+
     assert.isArray(response.body);
     assert.lengthOf(response.body, 0);
   }
@@ -604,11 +619,12 @@ Then(
   async function (this: CucumberWorld, docString: string) {
     const response = await this.request!;
 
-    const expected = JSON.parse(docString) as Partial<PlantPrimitives>;
+    const expected = JSON.parse(docString) as Record<string, unknown>;
 
     if (expected.id === '<plantId>') {
       expected.id = this.plantId!;
     }
+
     if (expected.id === '<bedId>') {
       expected.id = this.bedId!;
     }
@@ -633,6 +649,6 @@ Then('response matches OpenAPI contract', async function (this: CucumberWorld) {
     path: this.route!,
     method: this.method!,
     status: this.status!,
-    body: (this.responseRaw as request.Response).body
+    body: this.responseRaw!.body
   });
 });

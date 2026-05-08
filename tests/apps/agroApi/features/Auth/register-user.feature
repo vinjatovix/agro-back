@@ -54,6 +54,18 @@ Feature: Register a new user
     Given a POST request to "/api/v1/Auth/register" with body
       """
       {
+        "id": "082e014a-e718-4df5-a6a2-6f463e4b9ab3",
+        "username": "first",
+        "email": "register@aa.com",
+        "password": "#aD3fe2.0%",
+        "repeatPassword": "#aD3fe2.0%"
+      }
+      """
+    Then the response status code should be 201
+
+    Given a POST request to "/api/v1/Auth/register" with body
+      """
+      {
         "id": "9b2fddbd-3ef4-406d-a2e5-de781af1b2ae",
         "username": "register",
         "email": "register@aa.com",

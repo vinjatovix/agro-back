@@ -1,12 +1,12 @@
+import type { Db } from 'mongodb';
 import { createError } from '../../../../../shared/errors/index.js';
 import { MongoCrudRepository } from '../../../../shared/infrastructure/persistence/mongo/MongoCrudRepository.js';
 import type { Family } from '../../domain/entities/Family.js';
 import type { FamilyRepository } from '../../domain/repositories/interfaces/FamilyRepository.js';
 import type { FamilyFilter } from '../../domain/types/FamilyFilter.js';
 import type { FamilyPrimitives } from '../../domain/types/FamilyPrimitives.js';
-import { familyDomainMapper } from '../../mappers/familyDomainMapper.js';
-import { familyPersistenceMapper } from '../../mappers/familyPersistenceMapper.js';
 import type { MongoFamilyDocument } from './types/MongoFamilyDocument.js';
+import type { FamilyPersistenceMapper } from '../../mappers/interfaces/FamilyPersistenceMapper.js';
 
 export class MongoFamilyRepository
   extends MongoCrudRepository<
@@ -17,6 +17,12 @@ export class MongoFamilyRepository
   >
   implements FamilyRepository
 {
+  constructor(
+    db: Db,
+    private readonly familyPersistenceMapper: FamilyPersistenceMapper
+  ) {
+    super(db);
+  }
   protected entityName(): string {
     return 'Family';
   }
@@ -25,15 +31,11 @@ export class MongoFamilyRepository
   }
 
   protected toDomain(document: MongoFamilyDocument): Family {
-    return familyPersistenceMapper.fromMongoDocument(document);
-  }
-
-  protected toPrimitives(family: Family): FamilyPrimitives {
-    return familyDomainMapper.toPrimitives(family);
+    return this.familyPersistenceMapper.fromMongoDocument(document);
   }
 
   protected toMongoDocument(family: Family): MongoFamilyDocument {
-    return familyPersistenceMapper.toMongoDocument(family);
+    return this.familyPersistenceMapper.toMongoDocument(family);
   }
 
   async findBySlug(slug: string): Promise<Family> {
