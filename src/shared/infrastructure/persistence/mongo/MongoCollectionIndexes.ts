@@ -1,4 +1,58 @@
-export const INDEXES = [
-  { collection: 'users', indexes: [['email'], ['username']] },
-  { collection: 'assets', indexes: [['family']] }
+export interface CollectionIndex {
+  fields: Record<string, 1 | -1>;
+  options?: {
+    unique?: boolean;
+    sparse?: boolean;
+    name?: string;
+  };
+}
+
+export interface IndexConfig {
+  collection: string;
+  indexes: CollectionIndex[];
+}
+
+export const INDEXES: IndexConfig[] = [
+  {
+    collection: 'users',
+    indexes: [
+      {
+        fields: { email: 1 },
+        options: {
+          unique: true,
+          name: 'users_email_unique'
+        }
+      },
+      {
+        fields: { username: 1 },
+        options: {
+          unique: true,
+          name: 'users_username_unique'
+        }
+      }
+    ]
+  },
+  {
+    collection: 'families',
+    indexes: [
+      {
+        fields: { slug: 1 },
+        options: {
+          unique: true,
+          name: 'families_slug_unique'
+        }
+      }
+    ]
+  },
+  {
+    collection: 'plants',
+    indexes: [
+      {
+        fields: { 'identity.familyId': 1 },
+        options: {
+          name: 'plants_family_idx'
+        }
+      }
+    ]
+  }
 ];

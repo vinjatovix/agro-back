@@ -1,15 +1,15 @@
 import { UUID } from 'bson';
-import { MongoClient, MongoServerError } from 'mongodb';
-import type { MongoConfig } from './MongoConfig.js';
-import { INDEXES } from './MongoCollectionIndexes.js';
+import { MongoClient } from 'mongodb';
 
-interface IndexConfig {
-  collection: string;
-  indexes: string[][];
-}
+import type { MongoConfig } from './MongoConfig.js';
+
+import { INDEXES, type IndexConfig } from './MongoCollectionIndexes.js';
 
 export class MongoClientFactory {
-  private static clients: { [key: string]: MongoClient } = {};
+  private static clients: Record<string, MongoClient> = {};
+
+  private static readonly MAX_RETRIES = 3;
+  private static readonly RETRY_INTERVAL_MS = 5000;
 
   static async createClient(
     contextName: string,
@@ -21,6 +21,7 @@ export class MongoClientFactory {
       client = await MongoClientFactory.createAndConnectClient(config);
 
       MongoClientFactory.registerClient(client, contextName);
+
       await MongoClientFactory.ensureIndexes(client, config.db, INDEXES);
     }
 
@@ -31,14 +32,11 @@ export class MongoClientFactory {
     return MongoClientFactory.clients[contextName] ?? null;
   }
 
-  private static readonly MAX_RETRIES = 3;
-  private static readonly RETRY_INTERVAL_MS = 5000;
-
   private static async createAndConnectClient(
     config: MongoConfig,
     attempt = 1
   ): Promise<MongoClient> {
-    if (!config?.connectionString) {
+    if (!config.connectionString) {
       throw new Error(
         `MongoClientFactory: connectionString is missing in config: ${JSON.stringify(config)}`
       );
@@ -54,6 +52,7 @@ export class MongoClientFactory {
 
       await client.connect();
       console.info('MongoDB client connected successfully');
+
       return client;
     } catch (error) {
       if (attempt < MongoClientFactory.MAX_RETRIES) {
@@ -92,29 +91,24 @@ export class MongoClientFactory {
     client: MongoClient,
     dbName: string,
     indexConfigs: IndexConfig[]
-  ) {
+  ): Promise<void> {
     const db = client.db(dbName);
 
     await Promise.all(
       indexConfigs.flatMap(({ collection, indexes }) =>
-        indexes.map(async (fieldsArray) => {
-          const fields = Object.fromEntries(
-            fieldsArray.map((field) => [field, 1])
-          );
-
+        indexes.map(async ({ fields, options }) => {
           try {
-            await db
-              .collection(collection)
-              .createIndex(fields, { unique: true });
-          } catch (error: unknown) {
-            if ((error as MongoServerError).code !== 11000) {
-              console.error(
-                `Error creating index in ${collection}: ${JSON.stringify(fields)}`,
-                error
-              );
+            await db.collection(collection).createIndex(fields, options);
+            console.info(
+              `Mongo index ensured: ${collection} ${JSON.stringify(fields)}`
+            );
+          } catch (error) {
+            console.error(
+              `Error creating index in ${collection}: ${JSON.stringify(fields)}`,
+              error
+            );
 
-              throw error;
-            }
+            throw error;
           }
         })
       )
