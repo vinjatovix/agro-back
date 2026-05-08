@@ -39,7 +39,7 @@ if (envs.NODE_ENV !== 'production') {
           let service: string;
           if (typeof info.service === 'string') {
             service = info.service;
-          } else if (info.service !== undefined) {
+          } else if (info.service) {
             service = JSON.stringify(info.service);
           } else {
             service = 'app';
