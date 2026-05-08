@@ -1,9 +1,8 @@
 import { UUID } from 'bson';
 import { MongoClient } from 'mongodb';
 
-import type { MongoConfig } from './MongoConfig.js';
-
-import { INDEXES, type IndexConfig } from './MongoCollectionIndexes.js';
+import type { IndexConfig, MongoConfig } from './interfaces/index.js';
+import { INDEXES } from './MongoCollectionIndexes.js';
 
 export class MongoClientFactory {
   private static clients: Record<string, MongoClient> = {};
