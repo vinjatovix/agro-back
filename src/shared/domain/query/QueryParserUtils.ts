@@ -11,7 +11,12 @@ export class QueryParserUtils {
   }
 
   static toNumber(value: unknown, fallback: number): number {
+    if (value === null || value === undefined) {
+      return fallback;
+    }
+
     const n = typeof value === 'number' ? value : Number(value);
+
     return Number.isFinite(n) ? n : fallback;
   }
 
