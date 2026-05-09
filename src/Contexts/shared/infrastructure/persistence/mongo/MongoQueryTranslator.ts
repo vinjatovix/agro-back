@@ -1,30 +1,64 @@
 import type { FilterOperators } from './types/FilterOperators.js';
+import { toMongoId } from './MongoId.js';
+import { Uuid } from '../../../domain/valueObject/Uuid.js';
+import type { Primitive } from '../../../../../shared/domain/types/Primitive.js';
 
 type MongoValue = Record<string, unknown>;
 
 export class MongoQueryTranslator {
-  static toMongo(filter?: Record<string, unknown>): Record<string, unknown> {
+  static toMongo<TFilter extends Record<string, unknown>>(
+    filter?: TFilter
+  ): Record<string, unknown> {
     if (!filter) return {};
 
     const query: Record<string, unknown> = {};
 
-    for (const field in filter) {
-      const condition = filter[field];
+    const entries = Object.entries(filter) as Array<
+      [string, FilterOperators<Primitive>]
+    >;
 
-      if (!condition) continue;
+    for (const [field, condition] of entries) {
+      if (!this.isObject(condition)) continue;
       if (this.isEmpty(condition)) continue;
 
-      const translated = this.translateCondition(condition);
+      const mongoField = field === 'id' ? '_id' : field;
 
-      if (translated !== undefined && this.hasValue(translated)) {
-        query[field] = translated;
+      let translated = this.translateCondition(condition);
+      translated = this.mapUuidValues(translated);
+
+      if (this.hasValue(translated)) {
+        query[mongoField] = translated;
       }
     }
 
     return query;
   }
 
-  private static translateCondition<T>(condition: FilterOperators<T>): unknown {
+  private static mapUuidValues(value: unknown): unknown {
+    if (Array.isArray(value)) {
+      return value.map((v) => this.mapUuidValues(v));
+    }
+
+    if (typeof value === 'string' && Uuid.isValid(value)) {
+      return toMongoId(value);
+    }
+
+    if (this.isObject(value)) {
+      const result: Record<string, unknown> = {};
+
+      for (const [k, v] of Object.entries(value)) {
+        result[k] = this.mapUuidValues(v);
+      }
+
+      return result;
+    }
+
+    return value;
+  }
+
+  private static translateCondition(
+    condition: FilterOperators<Primitive>
+  ): unknown {
     if ('eq' in condition && condition.eq !== undefined) {
       return condition.eq;
     }
@@ -32,8 +66,8 @@ export class MongoQueryTranslator {
     const regex = this.buildRegex(condition);
     if (regex) return regex;
 
-    const setOp = this.buildSetOperators(condition);
-    if (setOp) return setOp;
+    const set = this.buildSetOperators(condition);
+    if (set) return set;
 
     const range = this.buildRangeOperators(condition);
     if (range) return range;
@@ -41,29 +75,42 @@ export class MongoQueryTranslator {
     return undefined;
   }
 
-  private static buildRegex<T>(condition: FilterOperators<T>): unknown {
+  private static buildRegex(condition: FilterOperators<Primitive>): unknown {
     if ('contains' in condition && condition.contains !== undefined) {
-      return { $regex: condition.contains, $options: 'i' };
+      return {
+        $regex: String(condition.contains),
+        $options: 'i'
+      };
     }
 
     if ('startsWith' in condition && condition.startsWith !== undefined) {
-      return { $regex: `^${condition.startsWith}`, $options: 'i' };
+      return {
+        $regex: `^${String(condition.startsWith)}`,
+        $options: 'i'
+      };
     }
 
     if ('endsWith' in condition && condition.endsWith !== undefined) {
-      return { $regex: `${condition.endsWith}$`, $options: 'i' };
+      return {
+        $regex: `${String(condition.endsWith)}$`,
+        $options: 'i'
+      };
     }
 
     return undefined;
   }
 
-  private static buildSetOperators<T>(condition: FilterOperators<T>): unknown {
+  private static buildSetOperators(
+    condition: FilterOperators<Primitive>
+  ): unknown {
     if ('in' in condition && condition.in !== undefined) {
       return { $in: condition.in };
     }
 
     if ('includes' in condition && condition.includes !== undefined) {
-      return { $elemMatch: { $eq: condition.includes } };
+      return {
+        $elemMatch: { $eq: condition.includes }
+      };
     }
 
     if ('includesSome' in condition && condition.includesSome !== undefined) {
@@ -73,8 +120,8 @@ export class MongoQueryTranslator {
     return undefined;
   }
 
-  private static buildRangeOperators<T>(
-    condition: FilterOperators<T>
+  private static buildRangeOperators(
+    condition: FilterOperators<Primitive>
   ): MongoValue | undefined {
     const mongo: MongoValue = {};
 
@@ -97,17 +144,19 @@ export class MongoQueryTranslator {
     return Object.keys(mongo).length ? mongo : undefined;
   }
 
-  private static isEmpty(condition: unknown): boolean {
-    if (!condition || typeof condition !== 'object') return true;
+  private static isObject(value: unknown): value is FilterOperators<Primitive> {
+    return typeof value === 'object' && value !== null;
+  }
 
-    return Object.values(condition as Record<string, unknown>).every(
-      (v) => v === undefined
-    );
+  private static isEmpty(condition: FilterOperators<Primitive>): boolean {
+    return Object.values(condition).every((v) => v === undefined);
   }
 
   private static hasValue(value: unknown): boolean {
     if (value === null || value === undefined) return false;
-    if (typeof value === 'object') return Object.keys(value).length > 0;
+    if (typeof value === 'object') {
+      return Object.keys(value).length > 0;
+    }
     return true;
   }
 }

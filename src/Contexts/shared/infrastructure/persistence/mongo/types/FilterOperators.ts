@@ -1,10 +1,21 @@
-import type { ArrayFilterOperators } from './ArrayFilterOperators.js';
-import type { EqFilter } from './EqFilter.js';
-import type { NumberFilterOperators } from './NumberFilterOperators.js';
-import type { StringFilterOperators } from './StringFilterOperators.js';
+import type { Primitive } from '../../../../../../shared/domain/types/Primitive.js';
 
-export type FilterOperators<T> =
-  | EqFilter<T>
-  | StringFilterOperators
-  | NumberFilterOperators
-  | ArrayFilterOperators;
+export type FilterOperators<T = Primitive> = {
+  eq?: T;
+
+  // string
+  contains?: T extends string ? string : never;
+  startsWith?: T extends string ? string : never;
+  endsWith?: T extends string ? string : never;
+
+  // number
+  gt?: T extends number ? number : never;
+  gte?: T extends number ? number : never;
+  lt?: T extends number ? number : never;
+  lte?: T extends number ? number : never;
+
+  // array
+  in?: T extends Primitive ? T[] : never;
+  includes?: T extends Primitive ? T : never;
+  includesSome?: T extends Primitive ? T[] : never;
+};

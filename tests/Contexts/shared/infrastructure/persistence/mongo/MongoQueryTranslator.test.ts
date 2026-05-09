@@ -4,7 +4,6 @@ describe('MongoQueryTranslator', () => {
   describe('toMongo', () => {
     it('should return empty object when filter is undefined', () => {
       const result = MongoQueryTranslator.toMongo();
-
       expect(result).toEqual({});
     });
 
@@ -120,7 +119,54 @@ describe('MongoQueryTranslator', () => {
       });
 
       expect(result).toEqual({
-        name: { $regex: 'rose', $options: 'i' },
+        name: {
+          $regex: 'rose',
+          $options: 'i'
+        },
+        slug: 'rosaceae'
+      });
+    });
+
+    it('should map id field to _id', () => {
+      const result = MongoQueryTranslator.toMongo({
+        id: { eq: '123' }
+      });
+
+      expect(result).toEqual({
+        _id: '123'
+      });
+    });
+
+    it('should prioritize eq over other operators', () => {
+      const result = MongoQueryTranslator.toMongo({
+        name: {
+          eq: 'rose',
+          contains: 'ros'
+        }
+      });
+
+      expect(result).toEqual({
+        name: 'rose'
+      });
+    });
+
+    // 🔥 NUEVO: multiple fields stress
+    it('should handle complex mixed filters', () => {
+      const result = MongoQueryTranslator.toMongo({
+        name: { contains: 'rose' },
+        count: { gt: 5, lte: 10 },
+        slug: { eq: 'rosaceae' }
+      });
+
+      expect(result).toEqual({
+        name: {
+          $regex: 'rose',
+          $options: 'i'
+        },
+        count: {
+          $gt: 5,
+          $lte: 10
+        },
         slug: 'rosaceae'
       });
     });
