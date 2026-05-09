@@ -1,5 +1,4 @@
 import { User } from '../../../../src/Contexts/Auth/domain/entities/User.js';
-import type { MetadataPrimitives } from '../../../../src/Contexts/shared/infrastructure/persistence/mongo/types/MetadataPrimitives.js';
 import { UserMother } from './mothers/UserMother.js';
 
 describe('User', () => {
@@ -14,7 +13,7 @@ describe('User', () => {
     expect(typeof user.id.value).toBe('string');
     expect(typeof user.email.value).toBe('string');
     expect(typeof user.username.value).toBe('string');
-    expect(typeof user.password.value).toBe('string');
+    expect(typeof user.password?.value).toBe('string');
     expect(typeof user.emailValidated).toBe('boolean');
     expect(Array.isArray(user.roles.value)).toBe(true);
   });
@@ -35,63 +34,43 @@ describe('User', () => {
       const primitives = user.toPrimitives();
 
       expect(primitives).toMatchObject({
-        id: expect.any(String),
-        email: expect.any(String),
-        username: expect.any(String),
-        password: expect.any(String),
-        emailValidated: expect.any(Boolean),
-        roles: expect.any(Array)
+        id: user.id.value,
+        email: user.email.value,
+        username: user.username.value,
+        password: user.password?.value,
+        emailValidated: user.emailValidated,
+        roles: user.roles.value
       });
-    });
-
-    it('should return primitive values matching the domain field values', () => {
-      const user = UserMother.random();
-      const primitives = user.toPrimitives();
-
-      expect(primitives.id).toBe(user.id.value);
-      expect(primitives.email).toBe(user.email.value);
-      expect(primitives.username).toBe(user.username.value);
-      expect(primitives.password).toBe(user.password.value);
-      expect(primitives.emailValidated).toBe(user.emailValidated);
     });
   });
 
-  describe('fromPrimitives', () => {
-    it('should reconstruct a User equal to the original', () => {
-      const user = UserMother.random();
+  it('should return primitive values matching the domain field values', () => {
+    const user = UserMother.random();
+    const primitives = user.toPrimitives();
 
-      const restored = User.fromPrimitives(
-        user.toPrimitives() as {
-          id: string;
-          email: string;
-          username: string;
-          password: string;
-          emailValidated: boolean;
-          roles: string[];
-          metadata: MetadataPrimitives;
-        }
-      );
+    expect(primitives.id).toBe(user.id.value);
+    expect(primitives.email).toBe(user.email.value);
+    expect(primitives.username).toBe(user.username.value);
+    expect(primitives.password).toBe(user.password?.value);
+    expect(primitives.emailValidated).toBe(user.emailValidated);
+  });
+});
 
-      expect(restored).toBeInstanceOf(User);
-      expect(restored).toEqual(user);
-    });
+describe('fromPrimitives', () => {
+  it('should reconstruct a User equal to the original', () => {
+    const user = UserMother.random();
 
-    it('should preserve emailValidated through roundtrip', () => {
-      const user = UserMother.create({ emailValidated: true });
+    const restored = User.fromPrimitives(user.toPrimitives());
 
-      const restored = User.fromPrimitives(
-        user.toPrimitives() as {
-          id: string;
-          email: string;
-          username: string;
-          password: string;
-          emailValidated: boolean;
-          roles: string[];
-          metadata: MetadataPrimitives;
-        }
-      );
+    expect(restored).toBeInstanceOf(User);
+    expect(restored).toEqual(user);
+  });
 
-      expect(restored.emailValidated).toBe(true);
-    });
+  it('should preserve emailValidated through roundtrip', () => {
+    const user = UserMother.create({ emailValidated: true });
+
+    const restored = User.fromPrimitives(user.toPrimitives());
+
+    expect(restored.emailValidated).toBe(true);
   });
 });
