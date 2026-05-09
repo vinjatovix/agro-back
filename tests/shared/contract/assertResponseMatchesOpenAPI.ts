@@ -47,22 +47,35 @@ function getResponseSchema(
   method: string,
   status: number
 ): OpenAPIV3.SchemaObject | null {
-  const matchedPath = matchPath(spec, path);
+  const normalizedPath = new URL(path, 'http://localhost').pathname;
+
+  const matchedPath = matchPath(spec, normalizedPath);
+
   if (!matchedPath) {
-    throw new Error(`Path not found in OpenAPI: ${path}`);
+    throw new Error(`Path not found in OpenAPI: ${normalizedPath}`);
   }
+
   const pathItem = spec.paths[matchedPath];
+
   const operation =
     pathItem?.[method.toLowerCase() as keyof OpenAPIV3.PathItemObject];
+
   if (!operation || typeof operation === 'string') {
-    throw new Error(`Operation not found: ${method} ${path}`);
+    throw new Error(`Operation not found: ${method} ${normalizedPath}`);
   }
+
   const responses = (operation as OpenAPIV3.OperationObject).responses;
+
   const response = responses?.[String(status)];
+
   if (!response || typeof response === 'string') {
-    throw new Error(`Response not found: ${method} ${path} ${status}`);
+    throw new Error(
+      `Response not found: ${method} ${normalizedPath} ${status}`
+    );
   }
+
   const content = (response as OpenAPIV3.ResponseObject).content;
+
   const schema = content?.['application/json']?.schema;
 
   return (schema as OpenAPIV3.SchemaObject) ?? null;
