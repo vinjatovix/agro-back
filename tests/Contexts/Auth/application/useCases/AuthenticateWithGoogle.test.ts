@@ -1,5 +1,4 @@
 import { AuthenticateWithGoogle } from '../../../../../src/Contexts/Auth/application/index.js';
-import type { User } from '../../../../../src/Contexts/Auth/domain/entities/User.js';
 import type { UserPatch } from '../../../../../src/Contexts/Auth/domain/entities/UserPatch.js';
 import type { UserAuthMethod } from '../../../../../src/Contexts/Auth/domain/value-objects/UserAuthMethod.js';
 import {
@@ -89,16 +88,16 @@ describe('AuthenticateWithGoogle', () => {
       expect.objectContaining({
         email: expect.objectContaining({
           value: 'google-user@aa.com'
-        }) as unknown,
+        }) as jest.AsymmetricMatcher,
         password: undefined,
         emailValidated: true,
         authMethods: expect.arrayContaining([
           expect.objectContaining({
             provider: 'google',
             providerUserId: 'google-sub-1'
-          })
-        ]) as unknown
-      }) as unknown as User
+          }) as jest.AsymmetricMatcher
+        ]) as jest.AsymmetricMatcher
+      })
     );
   });
 

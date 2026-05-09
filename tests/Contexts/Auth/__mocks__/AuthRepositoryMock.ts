@@ -91,7 +91,7 @@ export class AuthRepositoryMock implements AuthRepository {
     this.saveMock(user);
   }
 
-  assertSaveHasBeenCalledWith(expected: User): void {
+  assertSaveHasBeenCalledWith(expected: unknown): void {
     expect(this.saveMock).toHaveBeenCalledWith(expected);
   }
 
