@@ -62,5 +62,5 @@ module.exports = defineConfig([
     }
   },
 
-  globalIgnores(['**/dist/', '**/node_modules/'])
+  globalIgnores(['**/dist/', '**/node_modules/', 'commitlint.config.js'])
 ]);
