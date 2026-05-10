@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/require-await */
 
-import type { QueryOptions } from '../../../../src/Contexts/shared/domain/query/interfaces/QueryOptions.js';
+import type { QueryOptions } from '../../../../src/shared/domain/query/interfaces/QueryOptions.js';
 import { applyPatch } from '../../../../src/shared/domain/patch/applyPatch.js';
 import { createError } from '../../../../src/shared/errors/index.js';
+import type { PaginatedResult } from '../../../../src/shared/domain/query/interfaces/PaginatedResult.js';
 
 export abstract class BaseMongoCrudRepositoryMock<
   TEntity extends { id: { value: string } },
@@ -42,7 +43,9 @@ export abstract class BaseMongoCrudRepositoryMock<
     return entity;
   }
 
-  async findAll(options?: QueryOptions<unknown>): Promise<TEntity[]> {
+  async findAll(
+    options?: QueryOptions<unknown>
+  ): Promise<PaginatedResult<TEntity>> {
     this.findAllMock(options);
 
     let result = Array.from(this.storage.values());
@@ -53,7 +56,15 @@ export abstract class BaseMongoCrudRepositoryMock<
       result = result.slice(start, start + limit);
     }
 
-    return result;
+    return {
+      data: result,
+      pagination: {
+        totalItems: result.length,
+        page: options?.pagination?.page || 1,
+        limit: options?.pagination?.limit || result.length,
+        totalPages: 1
+      }
+    };
   }
 
   async exists(id: string): Promise<boolean> {

@@ -6,6 +6,7 @@ import { MongoCrudRepository } from '../../../../../shared/infrastructure/persis
 import type { PlantFilter } from '../../../domain/entities/types/PlantFilter.js';
 import type { Db } from 'mongodb';
 import type { PlantPersistenceMapper } from '../../../mappers/interfaces/PlantPersistenceMapper.js';
+import { PlantQueryMapper } from './mappers/PlantQueryMapper.js';
 
 export class MongoPlantRepository
   extends MongoCrudRepository<
@@ -18,7 +19,8 @@ export class MongoPlantRepository
 {
   constructor(
     db: Db,
-    private readonly plantPersistenceMapper: PlantPersistenceMapper
+    private readonly plantPersistenceMapper: PlantPersistenceMapper,
+    private readonly plantQueryMapper: PlantQueryMapper
   ) {
     super(db);
   }
@@ -35,5 +37,9 @@ export class MongoPlantRepository
 
   protected toMongoDocument(plant: Plant): MongoPlantDocument {
     return this.plantPersistenceMapper.toMongoDocument(plant);
+  }
+
+  protected toMongoFilter(filter: PlantFilter) {
+    return this.plantQueryMapper.toMongo(filter);
   }
 }

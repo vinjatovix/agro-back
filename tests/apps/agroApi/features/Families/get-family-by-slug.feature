@@ -8,7 +8,7 @@ Feature: Get Family By Slug
     And the response body should contain
       """
       {
-        "id": "{familyId}",
+        "id": "{family}",
         "slug": "{familySlug}"
       }
       """
@@ -16,12 +16,12 @@ Feature: Get Family By Slug
 
   Scenario: Get family by id successfully
     Given a family exists
-    When I send a GET request to "/api/v1/families/{familyId}"
+    When I send a GET request to "/api/v1/families/{family}"
     Then the response status code should be 200
     And the response body should contain
       """
       {
-        "id": "{familyId}",
+        "id": "{family}",
         "slug": "{familySlug}"
       }
       """
@@ -48,10 +48,6 @@ Feature: Get Family By Slug
       }
       """
     And response matches OpenAPI contract
-
-  Scenario: Invalid slug returns validation error
-    When I send a GET request to "/api/v1/families/"
-    Then the response status code should be 404
 
   Scenario: Invalid uuid format falls back to slug lookup
     When I send a GET request to "/api/v1/families/not-a-valid-uuid"

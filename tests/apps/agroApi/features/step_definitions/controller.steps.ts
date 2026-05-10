@@ -3,6 +3,7 @@ import {
   AfterAll,
   Before,
   BeforeAll,
+  DataTable,
   Given,
   setWorldConstructor,
   Then,
@@ -45,10 +46,65 @@ import {
   parseJsonObject
 } from './utils/index.js';
 
+const operators = {
+  eq: (a: unknown, b: unknown) => a === b,
+
+  hasAny: (a: unknown[], b: unknown[]) => b.some((v) => a.includes(v)),
+
+  contains: (a: string, b: string) => a.includes(b),
+
+  startsWith: (a: string, b: string) => a.startsWith(b),
+
+  endsWith: (a: string, b: string) => a.endsWith(b)
+};
+
+const get = (obj: unknown, path: string): unknown =>
+  path.split('.').reduce((acc, key) => {
+    if (typeof acc === 'object' && acc !== null && key in acc) {
+      return (acc as Record<string, unknown>)[key];
+    }
+
+    return undefined;
+  }, obj);
+
+function parseExpected(value: string): unknown {
+  if (value.includes(',')) {
+    return value.split(',').map((v) => v.trim());
+  }
+
+  if (!Number.isNaN(Number(value))) {
+    return Number(value);
+  }
+
+  return value;
+}
+
+function assertField(
+  item: unknown,
+  field: string,
+  operator: keyof typeof operators,
+  expected: string
+): void {
+  const actual = get(item, field);
+
+  const parsedExpected = parseExpected(expected);
+
+  const fn = operators[operator];
+
+  assert.exists(fn, `Operator "${operator}" not supported`);
+
+  const result = fn(actual as never, parsedExpected as never);
+
+  assert.isTrue(
+    result,
+    `Expected field "${field}" with value ${JSON.stringify(actual)} to satisfy ${operator} ${JSON.stringify(parsedExpected)}`
+  );
+}
+
 /* ---------------- WORLD ---------------- */
 
 class TestWorldImpl extends World {
-  familyId?: string;
+  family?: string;
   familySlug?: string;
   plantId?: string;
   bedId?: string;
@@ -141,6 +197,23 @@ const buildRequest = ({
 
   return req;
 };
+
+function buildGetRequestWithQuery(
+  this: CucumberWorld,
+  route: string,
+  docString: string,
+  token?: string
+) {
+  const normalizedRoute = interpolateRoute(route, this);
+
+  const query = encodeURIComponent(docString);
+
+  return buildRequest({
+    method: 'get',
+    route: `${normalizedRoute}?query=${query}`,
+    ...(token ? withToken(token) : {})
+  });
+}
 
 const parseBody = (
   body: string,
@@ -328,11 +401,26 @@ Given('an authentication with body', async function (docString: string) {
 Given('a family exists', async function () {
   const family = await familySeeder.create();
 
-  this.familyId = family.id;
+  this.family = family.id;
   this.familySlug = family.slug;
 });
 
+Given('multiple families exist', async function () {
+  const families = await familySeeder.seed();
+
+  this.family = families[0]!.id;
+  this.familySlug = families[0]!.slug;
+});
+
 Given('a plant exists', async function (this: CucumberWorld) {
+  const plants = await plantSeeder.createMany(2, {
+    'identity.family': this.family
+  });
+
+  this.plantId = plants[0]!.id;
+});
+
+Given('multiple plants exists', async function (this: CucumberWorld) {
   const plants = await plantSeeder.createMany(2, {
     'identity.familyId': this.familyId
   });
@@ -411,6 +499,37 @@ When(
       method: 'get',
       route: normalizedRoute
     });
+  }
+);
+
+When(
+  'I send a GET request to {string} with query:',
+  async function (this: CucumberWorld, route: string, docString: string) {
+    this.request = buildGetRequestWithQuery.call(this, route, docString);
+  }
+);
+
+When(
+  'I send a GET user request to {string} with query:',
+  async function (this: CucumberWorld, route: string, docString: string) {
+    this.request = buildGetRequestWithQuery.call(
+      this,
+      route,
+      docString,
+      getAuthToken(this, validUserBearerToken!)
+    );
+  }
+);
+
+When(
+  'I send a GET admin request to {string} with query:',
+  async function (this: CucumberWorld, route: string, docString: string) {
+    this.request = buildGetRequestWithQuery.call(
+      this,
+      route,
+      docString,
+      getAuthToken(this, validAdminBearerToken!)
+    );
   }
 );
 
@@ -594,23 +713,83 @@ Then(
 );
 
 Then(
-  'the list should contain at least {int} item',
-  async function (this: CucumberWorld, count: number) {
+  'the response body should contain a paginated list',
+  async function (this: CucumberWorld) {
     const response = (await this.request!) as {
-      body: unknown[];
+      body: {
+        data: unknown[];
+        pagination: Record<string, unknown>;
+      };
     };
 
-    assert.isAtLeast(response.body.length, count);
+    assert.containsAllKeys(response.body, ['data', 'pagination']);
+    assert.isArray(response.body.data);
+    assert.containsAllKeys(response.body.pagination, [
+      'page',
+      'limit',
+      'totalPages',
+      'totalItems'
+    ]);
   }
 );
 
 Then(
-  'the response body should be an empty list',
-  async function (this: CucumberWorld) {
-    const response = await this.request!;
+  'the list should contain at least {int} item',
+  async function (this: CucumberWorld, count: number) {
+    const response = (await this.request!) as {
+      body: unknown[] | { data: unknown[] };
+    };
 
-    assert.isArray(response.body);
-    assert.lengthOf(response.body, 0);
+    if (Array.isArray(response.body)) {
+      assert.isAtLeast(response.body.length, count);
+      return;
+    }
+
+    assert.isArray(response.body.data);
+    assert.isAtLeast(response.body.data.length, count);
+  }
+);
+
+Then('the list should be empty', async function (this: CucumberWorld) {
+  const response = (await this.request!) as {
+    body: { data: unknown[] };
+  };
+
+  assert.isArray(response.body.data);
+  assert.lengthOf(response.body.data, 0);
+});
+
+type MatchRow = {
+  field: string;
+  operator: keyof typeof operators;
+  value: string;
+};
+
+function getResponseData(world: CucumberWorld): unknown[] {
+  const body = world.responseRaw?.body as { data?: unknown[] } | undefined;
+
+  assert.exists(body);
+  assert.isArray(body.data);
+
+  return body.data as unknown[];
+}
+
+Then(
+  'every item should match:',
+  function (this: CucumberWorld, dataTable: DataTable) {
+    const rows: MatchRow[] = dataTable.hashes().map((row) => ({
+      field: interpolateRoute(row.field as string, this),
+      operator: row.operator as keyof typeof operators,
+      value: interpolateRoute(row.value as string, this)
+    }));
+
+    const items = getResponseData(this);
+
+    for (const item of items) {
+      for (const row of rows) {
+        assertField(item, row.field, row.operator, row.value);
+      }
+    }
   }
 );
 

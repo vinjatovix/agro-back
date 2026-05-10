@@ -30,4 +30,6 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
     validateReqSchema,
     familyApiInvoker('getFamilyBySlug')
   );
+
+  router.get(`${prefix}/`, familyApiInvoker('getAllFamilies'));
 };

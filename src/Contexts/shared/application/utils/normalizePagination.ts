@@ -1,12 +1,11 @@
 import { createError } from '../../../../shared/errors/index.js';
-import type { PaginationParams } from '../../domain/query/interfaces/PaginationParams.js';
+import type { PaginationParams } from '../../../../shared/domain/query/interfaces/PaginationParams.js';
 
 export function normalizePagination(
   pagination?: PaginationParams
 ): PaginationParams | undefined {
-  if (!pagination) return undefined;
-
-  const { page, limit } = pagination;
+  const page = pagination?.page ?? 1;
+  const limit = pagination?.limit ?? 20;
 
   if (limit <= 0) {
     throw createError.badRequest('pagination.limit must be greater than 0');

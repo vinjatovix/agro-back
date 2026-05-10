@@ -1,4 +1,5 @@
 import { ListPlants } from '../../../../../../src/Contexts/Agro/Plants/application/useCases/ListPlants.js';
+import { PlantStatus } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantStatus.js';
 import type { UserSessionInfo } from '../../../../../../src/Contexts/Auth/application/index.js';
 import { PlantRepositoryMock } from '../../__mocks__/PlantRepositoryMock.js';
 import { PlantFactory } from '../../domain/mothers/PlantFactory.js';
@@ -18,34 +19,31 @@ describe('ListPlants', () => {
     listPlants = new ListPlants(repository);
   });
 
-  it('should return empty list when no plants exist', async () => {
-    const result = await listPlants.execute(ADMIN);
-
-    expect(result).toEqual([]);
-  });
-
-  it('should return all plants', async () => {
+  it('should call repository with all plants for admin users', async () => {
     const plant1 = PlantFactory.random();
     plant1.markAsDeleted();
     const plant2 = PlantFactory.random();
     repository.addToStorage(plant1);
     repository.addToStorage(plant2);
 
-    const result = await listPlants.execute(ADMIN);
+    await listPlants.execute(ADMIN);
 
-    expect(result).toHaveLength(2);
+    repository.assertFindAllHasBeenCalledWith({ filter: {} });
   });
 
-  it('should not return deleted plants for non-admin users', async () => {
+  it('should call repository with active status filter for non-admin users', async () => {
     const plant1 = PlantFactory.random();
     plant1.markAsDeleted();
     const plant2 = PlantFactory.random();
     repository.addToStorage(plant1);
     repository.addToStorage(plant2);
 
-    const result = await listPlants.execute(USER);
+    await listPlants.execute(USER);
 
-    expect(result).toHaveLength(1);
-    expect(result[0]?.id.value).toBe(plant2.id.value);
+    repository.assertFindAllHasBeenCalledWith({
+      filter: {
+        status: PlantStatus.ACTIVE
+      }
+    });
   });
 });

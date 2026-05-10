@@ -297,9 +297,28 @@ describe('MongoPlantRepository', () => {
       await repository.save(plant1);
       await repository.save(plant2);
 
-      const all = await repository.findAll({});
+      const { data } = await repository.findAll({});
 
-      expect(all).toHaveLength(2);
+      expect(data).toHaveLength(2);
+    });
+
+    it('should return paginated plants', async () => {
+      for (let i = 0; i < 10; i++) {
+        const plant = PlantFactory.random();
+        await repository.save(plant);
+      }
+
+      const { data, pagination } = await repository.findAll({
+        pagination: { page: 2, limit: 3 }
+      });
+
+      expect(data).toHaveLength(3);
+      expect(pagination).toEqual({
+        page: 2,
+        limit: 3,
+        totalPages: 4,
+        totalItems: 10
+      });
     });
   });
 });

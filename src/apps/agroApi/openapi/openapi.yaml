@@ -195,9 +195,16 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Family'
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Family'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
 
     post:
       tags: [Families]
@@ -264,9 +271,16 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Plant'
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Plant'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
 
     post:
       tags: [Plants]
@@ -525,6 +539,40 @@ components:
         updatedBy:
           type: string
 
+    PaginationRequest:
+      type: object
+      required: [page, limit]
+      properties:
+        page:
+          type: integer
+          minimum: 1
+          example: 1
+        limit:
+          type: integer
+          minimum: 1
+          example: 10
+
+    PaginationResponse:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 10
+        totalPages:
+          type: integer
+          example: 1
+        totalItems:
+          type: integer
+          example: 42
+      required:
+        - page
+        - limit
+        - totalPages
+        - totalItems
+
     # ================= AUTH =================
 
     LoginUserRequest:
@@ -697,7 +745,7 @@ components:
 
         identity:
           type: object
-          required: [name, familyId]
+          required: [name, family]
           properties:
             name:
               type: object
@@ -712,7 +760,7 @@ components:
             scientificName:
               type: string
               nullable: true
-            familyId:
+            family:
               type: string
 
         traits:
@@ -819,7 +867,7 @@ components:
             scientificName:
               type: string
               nullable: true
-            familyId:
+            family:
               type: string
 
         traits:

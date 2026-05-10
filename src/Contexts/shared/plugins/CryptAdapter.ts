@@ -6,15 +6,12 @@ import { envs } from '../../../apps/agroApi/config/plugins/envs.plugin.js';
 import type { Nullable } from '../../../shared/domain/types/Nullable.js';
 import type { EncrypterTool } from './EncrypterTool.js';
 import type { UnknownRecord } from '../../../shared/domain/types/UnknownRecord.js';
+import { isRecord } from '../../../shared/domain/utils/isRecord.js';
 
 const JWT_SECRET = envs.JWT_SECRET;
 const SALT_ROUNDS = envs.BCRYPT_SALT_ROUNDS;
 const DEFAULT_TOKEN_DURATION = envs.JWT_DEFAULT_DURATION;
 const { sign, verify } = jwt;
-
-const isRecord = (value: unknown): value is UnknownRecord => {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-};
 
 export class CryptAdapter implements EncrypterTool {
   hash(password: string): string {

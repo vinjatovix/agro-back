@@ -4,13 +4,14 @@ import type { UnknownRecord } from '../../../../../shared/domain/types/UnknownRe
 import { createError } from '../../../../../shared/errors/index.js';
 import { Username } from '../../../../Auth/domain/value-objects/Username.js';
 import { updateMetadata } from '../../../application/utils/updateMetadata.js';
-import type { QueryOptions } from '../../../domain/query/interfaces/QueryOptions.js';
-import type { SortOptions } from '../../../domain/query/interfaces/SortOptions.js';
+import type { QueryOptions } from '../../../../../shared/domain/query/interfaces/QueryOptions.js';
+import type { SortOptions } from '../../../../../shared/domain/query/interfaces/SortOptions.js';
 import { toMongoId } from './MongoId.js';
 import { MongoQueryTranslator } from './MongoQueryTranslator.js';
 import { MongoRepository } from './MongoRepository.js';
 import type { Entity, WithId } from './types/index.js';
 import { normalizePagination } from '../../../application/utils/normalizePagination.js';
+import type { PaginatedResult } from '../../../../../shared/domain/query/interfaces/PaginatedResult.js';
 
 export abstract class MongoCrudRepository<
   TDomain,
@@ -66,24 +67,35 @@ export abstract class MongoCrudRepository<
     await this.persist(mongoDocument);
   }
 
-  async findAll(options: QueryOptions<TFilter> = {}): Promise<TDomain[]> {
+  async findAll(
+    options: Partial<QueryOptions<TFilter>> = {}
+  ): Promise<PaginatedResult<TDomain>> {
     const collection = this.collection();
 
     const { filter, sort, pagination } = options;
     const safePagination = normalizePagination(pagination);
 
-    const mongoFilter = MongoQueryTranslator.toMongo(
-      filter as Record<string, unknown>
-    );
-
+    const mongoFilter = this.toMongoFilter(filter);
+    const totalItems = await collection.countDocuments(mongoFilter);
     const cursor = collection.find<TDocument>(mongoFilter);
 
     this.applySort(cursor, sort);
     this.applyPagination(cursor, safePagination);
 
     const docs = await cursor.toArray();
+    const page = safePagination?.page ?? 1;
+    const limit = (safePagination?.limit ?? totalItems) || 1;
+    const totalPages = Math.ceil(totalItems / limit);
 
-    return docs.map((doc) => this.toDomain(doc));
+    return {
+      data: docs.map((doc) => this.toDomain(doc)),
+      pagination: {
+        page,
+        limit,
+        totalPages,
+        totalItems
+      }
+    };
   }
   async exists(id: string): Promise<boolean> {
     const collection = this.collection();
@@ -93,6 +105,10 @@ export abstract class MongoCrudRepository<
     });
 
     return count > 0;
+  }
+
+  protected toMongoFilter(filter?: TFilter): Record<string, unknown> {
+    return MongoQueryTranslator.toMongo(filter as Record<string, unknown>);
   }
 
   async updateWithDiff(

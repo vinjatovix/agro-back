@@ -200,17 +200,69 @@ describe('MongoFamilyRepository', () => {
       await repository.save(family1);
       await repository.save(family2);
 
-      const all = await repository.findAll();
+      const { data } = await repository.findAll();
 
-      expect(all).toHaveLength(2);
-      expect(all.some((f) => f.idValue === family1.idValue)).toBe(true);
-      expect(all.some((f) => f.idValue === family2.idValue)).toBe(true);
+      expect(data).toHaveLength(2);
+      expect(data.some((f) => f.idValue === family1.idValue)).toBe(true);
+      expect(data.some((f) => f.idValue === family2.idValue)).toBe(true);
     });
 
     it('should return empty array if no families exist', async () => {
-      const all = await repository.findAll();
+      const { data } = await repository.findAll();
 
-      expect(all).toEqual([]);
+      expect(data).toEqual([]);
+    });
+
+    it('should filter by id', async () => {
+      const family1 = FamilyScenarios.domainRandom();
+      const family2 = FamilyScenarios.domainRandom();
+
+      await repository.save(family1);
+      await repository.save(family2);
+
+      const { data } = await repository.findAll({
+        filter: {
+          id: { eq: family2.idValue }
+        }
+      });
+
+      expect(data).toHaveLength(1);
+      expect(data[0]?.idValue).toBe(family2.idValue);
+    });
+
+    it('should filter by id with in operator', async () => {
+      const family1 = FamilyScenarios.domainRandom();
+      const family2 = FamilyScenarios.domainRandom();
+      const family3 = FamilyScenarios.domainRandom();
+
+      await repository.save(family1);
+      await repository.save(family2);
+      await repository.save(family3);
+
+      const { data } = await repository.findAll({
+        filter: {
+          id: { in: [family1.idValue, family3.idValue] }
+        }
+      });
+
+      expect(data).toHaveLength(2);
+      expect(data.map((f) => f.idValue)).toEqual(
+        expect.arrayContaining([family1.idValue, family3.idValue])
+      );
+    });
+
+    it('should ignore empty filter object', async () => {
+      const family1 = FamilyScenarios.domainRandom();
+
+      await repository.save(family1);
+
+      const { data } = await repository.findAll({
+        filter: {
+          name: {}
+        }
+      });
+
+      expect(data.length).toBeGreaterThanOrEqual(1);
     });
 
     it('should apply filter options', async () => {
@@ -220,14 +272,14 @@ describe('MongoFamilyRepository', () => {
       await repository.save(family1);
       await repository.save(family2);
 
-      const all = await repository.findAll({
+      const { data } = await repository.findAll({
         filter: {
           name: { eq: 'Tulip' }
         }
       });
 
-      expect(all).toHaveLength(1);
-      expect(all[0]?.idValue).toBe(family2.idValue);
+      expect(data).toHaveLength(1);
+      expect(data[0]?.idValue).toBe(family2.idValue);
     });
 
     it('should apply contains filter', async () => {
@@ -237,14 +289,14 @@ describe('MongoFamilyRepository', () => {
       await repository.save(family1);
       await repository.save(family2);
 
-      const all = await repository.findAll({
+      const { data } = await repository.findAll({
         filter: {
           name: { contains: 'Rose' }
         }
       });
 
-      expect(all).toHaveLength(1);
-      expect(all[0]?.idValue).toBe(family1.idValue);
+      expect(data).toHaveLength(1);
+      expect(data[0]?.idValue).toBe(family1.idValue);
     });
 
     it('should apply startsWith filter', async () => {
@@ -254,13 +306,13 @@ describe('MongoFamilyRepository', () => {
       await repository.save(family1);
       await repository.save(family2);
 
-      const all = await repository.findAll({
+      const { data } = await repository.findAll({
         filter: {
           name: { startsWith: 'Rose' }
         }
       });
 
-      expect(all).toHaveLength(1);
+      expect(data).toHaveLength(1);
     });
 
     it('should apply in filter for arrays', async () => {
@@ -272,13 +324,13 @@ describe('MongoFamilyRepository', () => {
       await repository.save(family2);
       await repository.save(family3);
 
-      const all = await repository.findAll({
+      const { data } = await repository.findAll({
         filter: {
           name: { in: ['Rose', 'Lily'] }
         }
       });
 
-      expect(all).toHaveLength(2);
+      expect(data).toHaveLength(2);
     });
 
     it('should filter by aliases contains value', async () => {
@@ -293,14 +345,14 @@ describe('MongoFamilyRepository', () => {
       await repository.save(family1);
       await repository.save(family2);
 
-      const all = await repository.findAll({
+      const { data } = await repository.findAll({
         filter: {
-          aliases: { includes: 'rosa' }
+          aliases: { has: 'rosa' }
         }
       });
 
-      expect(all).toHaveLength(1);
-      expect(all[0]?.idValue).toBe(family1.idValue);
+      expect(data).toHaveLength(1);
+      expect(data[0]?.idValue).toBe(family1.idValue);
     });
 
     it('should combine multiple filters correctly', async () => {
@@ -317,15 +369,15 @@ describe('MongoFamilyRepository', () => {
       await repository.save(family1);
       await repository.save(family2);
 
-      const all = await repository.findAll({
+      const { data } = await repository.findAll({
         filter: {
           name: { eq: 'Rose' },
           scientificName: { contains: 'rubiginosa' }
         }
       });
 
-      expect(all).toHaveLength(1);
-      expect(all[0]?.idValue).toBe(family1.idValue);
+      expect(data).toHaveLength(1);
+      expect(data[0]?.idValue).toBe(family1.idValue);
     });
 
     it('should apply pagination options', async () => {
@@ -337,29 +389,29 @@ describe('MongoFamilyRepository', () => {
       await repository.save(family2);
       await repository.save(family3);
 
-      const all = await repository.findAll({
+      const { data } = await repository.findAll({
         pagination: {
           page: 2,
           limit: 1
         }
       });
 
-      expect(all).toHaveLength(1);
-      expect(all[0]?.idValue).toBe(family2.idValue);
+      expect(data).toHaveLength(1);
+      expect(data[0]?.idValue).toBe(family2.idValue);
     });
 
     it('should return empty array when page is out of range', async () => {
       const family1 = FamilyScenarios.domainRandom();
       await repository.save(family1);
 
-      const all = await repository.findAll({
+      const { data } = await repository.findAll({
         pagination: {
           page: 99,
           limit: 10
         }
       });
 
-      expect(all).toEqual([]);
+      expect(data).toEqual([]);
     });
 
     it('should handle limit = 0', async () => {
@@ -376,6 +428,25 @@ describe('MongoFamilyRepository', () => {
       ).rejects.toThrow('pagination.limit must be greater than 0');
     });
 
+    it('should apply pagination correctly across pages', async () => {
+      const families = Array.from({ length: 5 }, () =>
+        FamilyScenarios.domainRandom()
+      );
+
+      await Promise.allSettled(families.map((f) => repository.save(f)));
+
+      const page1 = await repository.findAll({
+        pagination: { page: 1, limit: 2 }
+      });
+
+      const page2 = await repository.findAll({
+        pagination: { page: 2, limit: 2 }
+      });
+
+      expect(page1.data).toHaveLength(2);
+      expect(page2.data).toHaveLength(2);
+    });
+
     it('should sort by name ascending', async () => {
       const b = FamilyScenarios.domainRandom({ name: 'B' });
       const a = FamilyScenarios.domainRandom({ name: 'A' });
@@ -383,13 +454,37 @@ describe('MongoFamilyRepository', () => {
       await repository.save(b);
       await repository.save(a);
 
-      const all = await repository.findAll({
+      const { data } = await repository.findAll({
         sort: {
           name: 'asc'
         }
       });
 
-      expect(all[0]?.name).toBe('A');
+      expect(data[0]?.name).toBe('A');
+    });
+
+    it('should sort by multiple fields', async () => {
+      const b = FamilyScenarios.domainRandom({
+        name: 'A',
+        scientificName: 'Z'
+      });
+      const a = FamilyScenarios.domainRandom({
+        name: 'A',
+        scientificName: 'A'
+      });
+
+      await repository.save(b);
+      await repository.save(a);
+
+      const { data } = await repository.findAll({
+        sort: {
+          name: 'asc',
+          scientificName: 'asc'
+        }
+      });
+
+      expect(data[0]?.name).toBe('A');
+      expect(data[0]?.scientificName).toBe('A');
     });
   });
 });
