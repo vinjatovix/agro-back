@@ -68,9 +68,9 @@ describe('MongoQueryTranslator', () => {
       });
     });
 
-    it('should translate includes operator', () => {
+    it('should translate has operator', () => {
       const result = MongoQueryTranslator.toMongo({
-        aliases: { includes: 'rose family' }
+        aliases: { has: 'rose family' }
       });
 
       expect(result).toEqual({
@@ -80,9 +80,9 @@ describe('MongoQueryTranslator', () => {
       });
     });
 
-    it('should translate includesSome operator', () => {
+    it('should translate hasAny operator', () => {
       const result = MongoQueryTranslator.toMongo({
-        aliases: { includesSome: ['rose', 'flower'] }
+        aliases: { hasAny: ['rose', 'flower'] }
       });
 
       expect(result).toEqual({
@@ -150,7 +150,6 @@ describe('MongoQueryTranslator', () => {
       });
     });
 
-    // 🔥 NUEVO: multiple fields stress
     it('should handle complex mixed filters', () => {
       const result = MongoQueryTranslator.toMongo({
         name: { contains: 'rose' },

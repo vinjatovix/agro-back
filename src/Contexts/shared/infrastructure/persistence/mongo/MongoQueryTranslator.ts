@@ -107,14 +107,14 @@ export class MongoQueryTranslator {
       return { $in: condition.in };
     }
 
-    if ('includes' in condition && condition.includes !== undefined) {
+    if ('has' in condition && condition.has !== undefined) {
       return {
-        $elemMatch: { $eq: condition.includes }
+        $elemMatch: { $eq: condition.has }
       };
     }
 
-    if ('includesSome' in condition && condition.includesSome !== undefined) {
-      return { $in: condition.includesSome };
+    if ('hasAny' in condition && condition.hasAny !== undefined) {
+      return { $in: condition.hasAny };
     }
 
     return undefined;
