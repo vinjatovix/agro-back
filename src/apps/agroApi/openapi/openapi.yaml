@@ -12,9 +12,6 @@ info:
     name: MIT
     url: https://opensource.org/licenses/MIT
 
-servers:
-  - url: http://localhost:3000
-
 tags:
   - name: Health
     description: Endpoint for health checks.
