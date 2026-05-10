@@ -35,7 +35,7 @@ describe('QueryParserUtils', () => {
       expect(QueryParserUtils.toNumber('abc', 99)).toBe(99);
       expect(QueryParserUtils.toNumber(undefined, 99)).toBe(99);
       expect(QueryParserUtils.toNumber(null, 99)).toBe(99);
-      expect(QueryParserUtils.toNumber(NaN, 99)).toBe(99);
+      expect(QueryParserUtils.toNumber(Number.NaN, 99)).toBe(99);
     });
   });
 

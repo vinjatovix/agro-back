@@ -52,9 +52,7 @@ export class GenericQueryParser {
         if (rawValue === 'true') parsedValue = true;
         if (rawValue === 'false') parsedValue = false;
 
-        if (!result[field]) {
-          result[field] = {};
-        }
+        result[field] ??= {};
 
         const bucket = result[field];
 

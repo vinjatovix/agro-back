@@ -26,7 +26,7 @@ export class QueryParserUtils {
     if (
       typeof value === 'string' &&
       value.trim() !== '' &&
-      !isNaN(Number(value))
+      !Number.isNaN(Number(value))
     ) {
       return Number(value);
     }
@@ -61,7 +61,7 @@ export class QueryParserUtils {
     }
 
     if (Array.isArray(value)) {
-      return value.map((v) => String(v));
+      return value.map(String);
     }
 
     return undefined;
