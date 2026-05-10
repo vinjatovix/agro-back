@@ -1,6 +1,6 @@
 // QueryParserUtils.spec.ts
 
-import { QueryParserUtils } from "../../../../src/shared/domain/query/QueryParserUtils.js";
+import { QueryParserUtils } from '../../../../src/shared/domain/query/QueryParserUtils.js';
 
 describe('QueryParserUtils', () => {
   describe('parseCsv', () => {
@@ -11,9 +11,7 @@ describe('QueryParserUtils', () => {
     });
 
     it('should trim spaces and remove empty values', () => {
-      const result = QueryParserUtils.parseCsv(
-        ' name , , email , age ,, ',
-      );
+      const result = QueryParserUtils.parseCsv(' name , , email , age ,, ');
 
       expect(result).toEqual(['name', 'email', 'age']);
     });
@@ -44,19 +42,19 @@ describe('QueryParserUtils', () => {
   describe('parseSort', () => {
     it('should parse a valid sort object from JSON string', () => {
       const result = QueryParserUtils.parseSort(
-        '{"name":"asc","createdAt":"desc"}',
+        '{"name":"asc","createdAt":"desc"}'
       );
 
       expect(result).toEqual({
         name: 'asc',
-        createdAt: 'desc',
+        createdAt: 'desc'
       });
     });
 
     it('should return the object when it is already valid', () => {
       const value = {
         name: 'asc',
-        createdAt: 'desc',
+        createdAt: 'desc'
       };
 
       const result = QueryParserUtils.parseSort(value);
@@ -73,14 +71,14 @@ describe('QueryParserUtils', () => {
     it('should return undefined for invalid sort values', () => {
       expect(
         QueryParserUtils.parseSort({
-          name: 'ascending',
-        }),
+          name: 'ascending'
+        })
       ).toBeUndefined();
 
       expect(
         QueryParserUtils.parseSort({
-          name: 1,
-        }),
+          name: 1
+        })
       ).toBeUndefined();
 
       expect(QueryParserUtils.parseSort(null)).toBeUndefined();
@@ -97,19 +95,13 @@ describe('QueryParserUtils', () => {
 
   describe('parseInclude', () => {
     it('should parse include values from csv string', () => {
-      const result = QueryParserUtils.parseInclude(
-        'profile,posts,comments',
-      );
+      const result = QueryParserUtils.parseInclude('profile,posts,comments');
 
       expect(result).toEqual(['profile', 'posts', 'comments']);
     });
 
     it('should parse include values from array', () => {
-      const result = QueryParserUtils.parseInclude([
-        'profile',
-        123,
-        true,
-      ]);
+      const result = QueryParserUtils.parseInclude(['profile', 123, true]);
 
       expect(result).toEqual(['profile', '123', 'true']);
     });

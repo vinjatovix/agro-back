@@ -20,6 +20,20 @@ export class QueryParserUtils {
     return Number.isFinite(n) ? n : fallback;
   }
 
+  static coerce(value: string): string | number | boolean {
+    if (value === null || value === undefined) return value;
+
+    if (
+      typeof value === 'string' &&
+      value.trim() !== '' &&
+      !isNaN(Number(value))
+    ) {
+      return Number(value);
+    }
+
+    return value;
+  }
+
   static parseSort(value: unknown): SortOptions | undefined {
     if (!value) return undefined;
 
