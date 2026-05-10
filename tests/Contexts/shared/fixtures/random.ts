@@ -8,7 +8,7 @@ class Random {
   }
 
   public arrayElement<T>(array: readonly T[]): T {
-    return this.chance.pickone(array as unknown as T[]);
+    return this.chance.pickone(array);
   }
 
   public boolean(): boolean {
