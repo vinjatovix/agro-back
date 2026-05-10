@@ -41,65 +41,76 @@ export class GenericQueryParser {
           );
         }
 
-        let parsedValue: ParsedFilterValue = rawValue;
-
-        // CSV -> array
-        if (rawValue.includes(',')) {
-          parsedValue = rawValue.split(',').map((v) => v.trim());
-        }
-
-        // boolean parsing
-        if (rawValue === 'true') parsedValue = true;
-        if (rawValue === 'false') parsedValue = false;
-
         result[field] ??= {};
-
         const bucket = result[field];
 
-        switch (operator) {
-          // string operators
-          case 'contains':
-          case 'startsWith':
-          case 'endsWith':
-            bucket[operator] = String(parsedValue);
-            break;
-
-          // array operators
-          case 'has':
-          case 'hasAny':
-            bucket[operator] = (
-              Array.isArray(parsedValue) ? parsedValue : [parsedValue]
-            ).map((v) => QueryParserUtils.coerce(String(v)));
-            break;
-
-          case 'includes':
-            bucket[operator] = String(parsedValue);
-            break;
-
-          // numeric operators
-          case 'gt':
-          case 'gte':
-          case 'lt':
-          case 'lte':
-            bucket[operator] = Number(parsedValue);
-            break;
-
-          // eq
-          case 'eq':
-          default:
-            if (Array.isArray(parsedValue)) {
-              throw createError.badRequest(
-                `Invalid eq value for field ${field}: arrays are not allowed. Use 'in' instead.`
-              );
-            }
-
-            bucket.eq = QueryParserUtils.coerce(String(parsedValue));
-            break;
-        }
+        this.applyOperatorFilter(bucket, field, operator, rawValue);
       }
     }
 
     return result;
+  }
+
+  private static applyOperatorFilter(
+    bucket: Record<string, ParsedFilterValue>,
+    field: string,
+    operator: string,
+    rawValue: string
+  ): void {
+    const parsedValue = this.parseFilterValue(rawValue);
+
+    if (this.isStringOperator(operator)) {
+      bucket[operator] = String(parsedValue);
+    } else if (this.isArrayOperator(operator)) {
+      bucket[operator] = (
+        Array.isArray(parsedValue) ? parsedValue : [parsedValue]
+      ).map((v) => QueryParserUtils.coerce(String(v)));
+    } else if (this.isNumericOperator(operator)) {
+      bucket[operator] = Number(parsedValue);
+    } else {
+      this.applyEqOperator(bucket, field, parsedValue);
+    }
+  }
+
+  private static parseFilterValue(rawValue: string): ParsedFilterValue {
+    let parsedValue: ParsedFilterValue = rawValue;
+
+    if (rawValue.includes(',')) {
+      parsedValue = rawValue.split(',').map((v) => v.trim());
+    }
+
+    if (rawValue === 'true') parsedValue = true;
+    if (rawValue === 'false') parsedValue = false;
+
+    return parsedValue;
+  }
+
+  private static isStringOperator(operator: string): boolean {
+    return ['contains', 'startsWith', 'endsWith', 'includes'].includes(
+      operator
+    );
+  }
+
+  private static isArrayOperator(operator: string): boolean {
+    return ['has', 'hasAny'].includes(operator);
+  }
+
+  private static isNumericOperator(operator: string): boolean {
+    return ['gt', 'gte', 'lt', 'lte'].includes(operator);
+  }
+
+  private static applyEqOperator(
+    bucket: Record<string, ParsedFilterValue>,
+    field: string,
+    parsedValue: ParsedFilterValue
+  ): void {
+    if (Array.isArray(parsedValue)) {
+      throw createError.badRequest(
+        `Invalid eq value for field ${field}: arrays are not allowed. Use 'in' instead.`
+      );
+    }
+
+    bucket.eq = QueryParserUtils.coerce(String(parsedValue));
   }
 
   private static normalizePagination(pagination?: unknown): PaginationParams {
