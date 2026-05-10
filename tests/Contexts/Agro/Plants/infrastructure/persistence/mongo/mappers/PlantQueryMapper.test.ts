@@ -2,53 +2,54 @@ import type { PlantFilter } from '../../../../../../../../src/Contexts/Agro/Plan
 import { PlantQueryMapper } from '../../../../../../../../src/Contexts/Agro/Plants/infrastructure/persistence/mongo/mappers/PlantQueryMapper.js';
 
 describe('PlantQueryMapper', () => {
+  const plantQueryMapper = new PlantQueryMapper();
   it('should return empty query if no filter', () => {
-    const result = PlantQueryMapper.toMongo({});
+    const result = plantQueryMapper.toMongo({});
     expect(result).toEqual({});
   });
 
   it('should map id to $in', () => {
     const filter: PlantFilter = {
-      id: { eq: ['plant_1', 'plant_2'] }
+      id: { has: ['plant_1', 'plant_2'] }
     };
 
-    const result = PlantQueryMapper.toMongo(filter);
+    const result = plantQueryMapper.toMongo(filter);
 
     expect(result['_id']).toEqual({
       $in: ['plant_1', 'plant_2']
     });
   });
 
-  it('should wrap single id into $in', () => {
+  it('should wrap single id into $eq', () => {
     const filter: PlantFilter = {
       id: { eq: 'plant_1' }
     };
 
-    const result = PlantQueryMapper.toMongo(filter);
+    const result = plantQueryMapper.toMongo(filter);
 
     expect(result['_id']).toEqual({
-      $in: ['plant_1']
+      $eq: ['plant_1']
     });
   });
 
-  it('should map familyId to $in', () => {
+  it('should map family to $in', () => {
     const filter: PlantFilter = {
-      familyId: { eq: ['fam_1', 'fam_2'] }
+      family: { has: ['fam_1', 'fam_2'] }
     };
 
-    const result = PlantQueryMapper.toMongo(filter);
+    const result = plantQueryMapper.toMongo(filter);
 
-    expect(result['identity.familyId']).toEqual({
+    expect(result['identity.family']).toEqual({
       $in: ['fam_1', 'fam_2']
     });
   });
 
-  it('should map aliases includesSome to $in', () => {
+  it('should map aliases hasAny to $in', () => {
     const filter: PlantFilter = {
-      aliases: { includesSome: ['maravilla', 'calendula'] }
+      aliases: { hasAny: ['maravilla', 'calendula'] }
     };
 
-    const result = PlantQueryMapper.toMongo(filter);
+    const result = plantQueryMapper.toMongo(filter);
 
     expect(result['identity.aliases']).toEqual({
       $in: ['maravilla', 'calendula']
@@ -60,9 +61,11 @@ describe('PlantQueryMapper', () => {
       lifeCycle: { eq: 'perennial' }
     };
 
-    const result = PlantQueryMapper.toMongo(filter);
+    const result = plantQueryMapper.toMongo(filter);
 
-    expect(result['traits.lifecycle']).toBe('perennial');
+    expect(result['traits.lifecycle']).toEqual({
+      $eq: 'perennial'
+    });
   });
 
   it('should match plants that fit within available spacing', () => {
@@ -70,7 +73,7 @@ describe('PlantQueryMapper', () => {
       spacingCm: { eq: 40 }
     };
 
-    const result = PlantQueryMapper.toMongo(filter);
+    const result = plantQueryMapper.toMongo(filter);
 
     expect(result['traits.spacingCm.max']).toEqual({
       $lte: 40
@@ -79,13 +82,37 @@ describe('PlantQueryMapper', () => {
 
   it('should match any overlapping sowing months', () => {
     const filter: PlantFilter = {
-      sowingMonths: { includesSome: [3, 4] }
+      sowingMonths: { hasAny: [3, 4] }
     };
 
-    const result = PlantQueryMapper.toMongo(filter);
+    const result = plantQueryMapper.toMongo(filter);
 
     expect(result['phenology.sowing.months']).toEqual({
       $in: [3, 4]
+    });
+  });
+
+  it('should match plants that match specific sowing month', () => {
+    const filter: PlantFilter = {
+      sowingMonths: { has: 5 }
+    };
+
+    const result = plantQueryMapper.toMongo(filter);
+
+    expect(result['phenology.sowing.months']).toEqual({
+      $eq: 5
+    });
+  });
+
+  it('should match plants that match specific sowing months', () => {
+    const filter: PlantFilter = {
+      sowingMonths: { has: [5, 6] }
+    };
+
+    const result = plantQueryMapper.toMongo(filter);
+
+    expect(result['phenology.sowing.months']).toEqual({
+      $eq: [5, 6]
     });
   });
 
@@ -94,7 +121,7 @@ describe('PlantQueryMapper', () => {
       sowingMethod: { eq: 'direct' }
     };
 
-    const result = PlantQueryMapper.toMongo(filter);
+    const result = plantQueryMapper.toMongo(filter);
 
     expect(result['phenology.sowing.method']).toBe('direct');
   });
@@ -104,7 +131,7 @@ describe('PlantQueryMapper', () => {
       soilPh: { eq: 6.5 }
     };
 
-    const result = PlantQueryMapper.toMongo(filter);
+    const result = plantQueryMapper.toMongo(filter);
 
     expect(result['knowledge.soil.ph.min']).toEqual({ $lte: 6.5 });
     expect(result['knowledge.soil.ph.max']).toEqual({ $gte: 6.5 });
@@ -115,7 +142,7 @@ describe('PlantQueryMapper', () => {
       soilAvailableDepthCm: { eq: 20 }
     };
 
-    const result = PlantQueryMapper.toMongo(filter);
+    const result = plantQueryMapper.toMongo(filter);
 
     expect(result['knowledge.soil.availableDepthCm.min']).toEqual({
       $lte: 20
@@ -131,7 +158,7 @@ describe('PlantQueryMapper', () => {
       lightHoursMin: { eq: 6 }
     };
 
-    const result = PlantQueryMapper.toMongo(filter);
+    const result = plantQueryMapper.toMongo(filter);
 
     expect(result['knowledge.light.hoursMin']).toEqual({
       $lte: 6
@@ -143,7 +170,7 @@ describe('PlantQueryMapper', () => {
       lightType: { eq: 'full_sun' }
     };
 
-    const result = PlantQueryMapper.toMongo(filter);
+    const result = plantQueryMapper.toMongo(filter);
 
     expect(result['knowledge.light.type']).toBe('full_sun');
   });
@@ -153,7 +180,7 @@ describe('PlantQueryMapper', () => {
       strategicBenefits: { contains: 'pollinator' }
     };
 
-    const result = PlantQueryMapper.toMongo(filter);
+    const result = plantQueryMapper.toMongo(filter);
 
     expect(result['knowledge.ecology.strategicBenefits']).toEqual({
       $in: ['pollinator']
@@ -165,22 +192,22 @@ describe('PlantQueryMapper', () => {
       rootSystem: { eq: 'taproot' }
     };
 
-    const result = PlantQueryMapper.toMongo(filter);
+    const result = plantQueryMapper.toMongo(filter);
 
     expect(result['knowledge.rootSystem.type']).toBe('taproot');
   });
 
   it('should combine multiple filters correctly', () => {
     const filter: PlantFilter = {
-      familyId: { eq: ['fam_asteraceae'] },
+      family: { eq: 'fam_asteraceae' },
       spacingCm: { eq: 30 },
       soilPh: { eq: 6.5 }
     };
 
-    const result = PlantQueryMapper.toMongo(filter);
+    const result = plantQueryMapper.toMongo(filter);
 
     expect(result).toEqual({
-      'identity.familyId': { $in: ['fam_asteraceae'] },
+      'identity.family': { $in: ['fam_asteraceae'] },
       'traits.spacingCm.max': { $lte: 30 },
       'knowledge.soil.ph.min': { $lte: 6.5 },
       'knowledge.soil.ph.max': { $gte: 6.5 }

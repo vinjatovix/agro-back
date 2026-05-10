@@ -8,32 +8,50 @@ export class PlantQueryMapper {
     (filter, query) => {
       if (filter.id?.eq) {
         query['_id'] = {
-          $in: Array.isArray(filter.id.eq) ? filter.id.eq : [filter.id.eq]
+          $eq: Array.isArray(filter.id.eq) ? filter.id.eq : [filter.id.eq]
+        };
+      } else if (filter.id?.has) {
+        query['_id'] = {
+          $in: filter.id.has
         };
       }
     },
 
     (filter, query) => {
-      if (filter.aliases?.includesSome) {
+      if (filter.aliases?.hasAny) {
         query['identity.aliases'] = {
-          $in: filter.aliases.includesSome
+          $in: filter.aliases.hasAny
+        };
+      } else if (filter.aliases?.has) {
+        query['identity.aliases'] = {
+          $eq: [filter.aliases.has]
         };
       }
     },
 
     (filter, query) => {
-      if (filter.familyId?.eq) {
-        query['identity.familyId'] = {
-          $in: Array.isArray(filter.familyId.eq)
-            ? filter.familyId.eq
-            : [filter.familyId.eq]
+      if (filter.family?.eq) {
+        query['identity.family'] = {
+          $in: Array.isArray(filter.family.eq)
+            ? filter.family.eq
+            : [filter.family.eq]
+        };
+      } else if (filter.family?.has) {
+        query['identity.family'] = {
+          $in: filter.family.has
         };
       }
     },
 
     (filter, query) => {
       if (filter.lifeCycle?.eq) {
-        query['traits.lifecycle'] = filter.lifeCycle.eq;
+        query['traits.lifecycle'] = {
+          $eq: filter.lifeCycle.eq
+        };
+      } else if (filter.lifeCycle?.has) {
+        query['traits.lifecycle'] = {
+          $in: filter.lifeCycle.has
+        };
       }
     },
 
@@ -46,9 +64,13 @@ export class PlantQueryMapper {
     },
 
     (filter, query) => {
-      if (filter.sowingMonths?.includesSome) {
+      if (filter.sowingMonths?.has) {
         query['phenology.sowing.months'] = {
-          $in: filter.sowingMonths.includesSome
+          $eq: filter.sowingMonths.has
+        };
+      } else if (filter.sowingMonths?.hasAny) {
+        query['phenology.sowing.months'] = {
+          $in: filter.sowingMonths.hasAny
         };
       }
     },
@@ -106,12 +128,12 @@ export class PlantQueryMapper {
     }
   ];
 
-  static toMongo(filter: PlantFilter): MongoQuery {
+  toMongo(filter: PlantFilter): MongoQuery {
     const query: MongoQuery = {};
 
     if (!filter) return query;
 
-    for (const map of this.mappers) {
+    for (const map of PlantQueryMapper.mappers) {
       map(filter, query);
     }
 

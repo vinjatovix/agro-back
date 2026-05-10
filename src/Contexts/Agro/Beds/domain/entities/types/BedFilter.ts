@@ -1,4 +1,4 @@
-import { type ExactFilter } from '../../../../../shared/domain/query/interfaces/ExactFilter.js';
+import { type ExactFilter } from '../../../../../../shared/domain/query/interfaces/ExactFilter.js';
 
 export interface BedFilter {
   depth?: ExactFilter<number>;
