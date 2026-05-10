@@ -1,12 +1,12 @@
 # MODULE: KNOWLEDGE SYSTEM
 
 version: 1.1.0
-source-spec: v1.0.0
+source-spec: v1.1.0
 status: stable
 
 ---
 
-# 1. PURPOSE
+## 1. PURPOSE
 
 The Knowledge System represents the ecological and agronomic intelligence layer of AgroApp.
 
@@ -16,7 +16,7 @@ It is intentionally **decoupled from core domain entities** (Plant, Bed, PlantIn
 
 ---
 
-# 2. CORE PRINCIPLE
+## 2. CORE PRINCIPLE
 
 Knowledge is a **shared ecological dataset**, not ownership data.
 
@@ -30,20 +30,20 @@ Rules:
 
 ---
 
-# 3. KNOWLEDGE ENTITIES
+## 3. KNOWLEDGE ENTITIES
 
-## 3.1 Pest
+### 3.1 Pest
 
 Represents organisms that negatively affect plants.
 
-### Fields
+#### Fields
 
 - id
 - name
 - affects: Plant IDs
 - symptoms: string[]
 
-### Rules
+#### Rules
 
 - can affect multiple plants
 - symptoms are descriptive only
@@ -51,11 +51,11 @@ Represents organisms that negatively affect plants.
 
 ---
 
-## 3.2 Disease
+### 3.2 Disease
 
 Represents plant pathology conditions.
 
-### Fields
+#### Fields
 
 - id
 - name
@@ -65,11 +65,11 @@ Represents plant pathology conditions.
 
 ---
 
-## 3.3 Remedy
+### 3.3 Remedy
 
 Represents treatments for pests and diseases.
 
-### Fields
+#### Fields
 
 - id
 - name
@@ -83,11 +83,11 @@ Represents treatments for pests and diseases.
 
 ---
 
-## 3.4 Fertilizer
+### 3.4 Fertilizer
 
 Represents nutrient inputs for plant growth.
 
-### Fields
+#### Fields
 
 - id
 - name
@@ -102,16 +102,16 @@ Represents nutrient inputs for plant growth.
 
 ---
 
-## 3.5 Plant Attributes
+### 3.5 Plant Attributes
 
 Represents ecological or functional properties of plants.
 
-### Categories
+#### Categories
 
 - benefits
 - strategies
 
-### Examples
+#### Examples
 
 - attract_pollinators
 - trap_crop
@@ -119,13 +119,13 @@ Represents ecological or functional properties of plants.
 
 ---
 
-## 3.6 Plant Relations Graph
+### 3.6 Plant Relations Graph
 
 Defines ecological interactions between plants.
 
 This is a **global directed weighted graph**.
 
-### Fields
+#### Fields
 
 - plantA
 - plantB
@@ -141,7 +141,7 @@ This is a **global directed weighted graph**.
 
 - reason (human-readable explanation)
 
-### Rules
+#### Rules
 
 - graph is global (not per plant)
 - relationships are directional
@@ -150,13 +150,13 @@ This is a **global directed weighted graph**.
 
 ---
 
-## 3.7 Family Taxonomy
+### 3.7 Family Taxonomy
 
 Represents botanical classification units used by Plant entities.
 
 Families are part of the Knowledge System because they are **global taxonomic reference data**, not domain behavior.
 
-### Fields
+#### Fields
 
 - id
 - slug
@@ -172,7 +172,7 @@ Families are part of the Knowledge System because they are **global taxonomic re
 
 ---
 
-### Rules
+#### Rules
 
 - Family is a READ-ONLY dataset
 - Family does NOT evolve via domain logic
@@ -183,9 +183,9 @@ Families are part of the Knowledge System because they are **global taxonomic re
 
 ---
 
-# 4. SYSTEM BOUNDARIES
+## 4. SYSTEM BOUNDARIES
 
-## 4.1 What Knowledge System DOES
+### 4.1 What Knowledge System DOES
 
 - models ecological relationships
 - provides agronomic intelligence
@@ -195,7 +195,7 @@ Families are part of the Knowledge System because they are **global taxonomic re
 
 ---
 
-## 4.2 What Knowledge System DOES NOT DO
+### 4.2 What Knowledge System DOES NOT DO
 
 - does not enforce planting rules
 - does not validate Plant aggregates
@@ -205,9 +205,9 @@ Families are part of the Knowledge System because they are **global taxonomic re
 
 ---
 
-# 5. INTEGRATION MODEL
+## 5. INTEGRATION MODEL
 
-## 5.1 Plant ↔ Knowledge
+### 5.1 Plant ↔ Knowledge
 
 Plants reference knowledge via IDs:
 
@@ -230,7 +230,7 @@ No embedded knowledge objects allowed.
 
 ---
 
-## 5.2 Events ↔ Knowledge
+### 5.2 Events ↔ Knowledge
 
 Events may reference:
 
@@ -244,7 +244,7 @@ But NEVER embed logic from them.
 
 ---
 
-## 5.3 Spatial System ↔ Knowledge
+### 5.3 Spatial System ↔ Knowledge
 
 Indirect influence only:
 
@@ -254,7 +254,7 @@ Indirect influence only:
 
 ---
 
-# 6. PLANT RELATIONSHIP GRAPH SEMANTICS
+## 6. PLANT RELATIONSHIP GRAPH SEMANTICS
 
 The graph is:
 
@@ -276,7 +276,7 @@ Not used for:
 
 ---
 
-# 7. EXTENSIBILITY RULES
+## 7. EXTENSIBILITY RULES
 
 New knowledge types MUST:
 
@@ -293,9 +293,9 @@ Allowed extensions:
 
 ---
 
-# 8. CURRENT STATUS
+## 8. CURRENT STATUS
 
-## Implemented
+### Implemented
 
 - pest model (partial)
 - fertilizer model (partial)
@@ -303,7 +303,7 @@ Allowed extensions:
 - relation graph concept defined
 - family taxonomy (NEW - conceptual layer added)
 
-## Pending
+### Pending
 
 - full normalization of IDs across knowledge entities
 - consistent schema enforcement
@@ -313,7 +313,7 @@ Allowed extensions:
 
 ---
 
-# 9. ANTI-PATTERNS
+## 9. ANTI-PATTERNS
 
 The following are forbidden:
 
@@ -326,7 +326,7 @@ The following are forbidden:
 
 ---
 
-# 10. FUTURE EVOLUTION
+## 10. FUTURE EVOLUTION
 
 Planned extensions:
 
@@ -339,7 +339,7 @@ Planned extensions:
 
 ---
 
-# 11. FINAL NOTE
+## 11. FINAL NOTE
 
 The Knowledge System is the **intelligence layer of AgroApp**.
 

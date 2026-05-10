@@ -1,12 +1,12 @@
 # MODULE: OPENAPI CONTRACT
 
-version: 1.0.0
-source-spec: v1.0.0
+version: 1.1.0
+source-spec: v1.1.0
 status: planned
 
 ---
 
-# 1. PURPOSE
+## 1. PURPOSE
 
 Defines the formal API contract of AgroApp.
 
@@ -14,7 +14,7 @@ This is the **single source of truth for external consumers**.
 
 ---
 
-# 2. SCOPE
+## 2. SCOPE
 
 Includes:
 
@@ -23,10 +23,11 @@ Includes:
 - response schemas
 - error contracts
 - authentication schemes
+- query parameter contracts (filters, sorting, pagination)
 
 ---
 
-# 3. CORE PRINCIPLE
+## 3. CORE PRINCIPLE
 
 OpenAPI is the **contract boundary of the system**.
 
@@ -38,9 +39,28 @@ Rules:
 
 ---
 
-# 4. SPEC STRATEGY
+## 4. QUERY CONTRACT OWNERSHIP (IMPORTANT)
 
-## 4.1 Approach
+OpenAPI **does NOT define query semantics**.
+
+The filtering, sorting, and pagination system is defined in:
+
+> **Query DSL Contract v1.0.0**
+
+Rules:
+
+- filter operators (eq, contains, gt, lte, etc.) are defined in Query DSL Contract v1.0.0
+- sort semantics are defined in Query DSL Contract v1.0.0
+- pagination semantics are defined in Query DSL Contract v1.0.0
+- OpenAPI ONLY describes the transport shape (how queries are passed via HTTP)
+
+OpenAPI is an **external mapping of the Query DSL**, not its definition.
+
+---
+
+## 5. SPEC STRATEGY
+
+### 5.1 Approach
 
 Hybrid model:
 
@@ -49,7 +69,7 @@ Hybrid model:
 
 ---
 
-## 4.2 Versioning strategy
+### 5.2 Versioning strategy
 
 Current:
 
@@ -63,7 +83,7 @@ Future:
 
 ---
 
-## 4.3 Tooling
+### 5.3 Tooling
 
 Current:
 
@@ -77,11 +97,11 @@ Future:
 
 ---
 
-# 5. COVERED RESOURCES
+## 6. COVERED RESOURCES
 
-## 5.1 Plants
+### 6.1 Plants
 
-### Endpoints
+#### Plants Endpoints
 
 - POST /api/v1/plants (admin only)
 - GET /api/v1/plants (public)
@@ -89,11 +109,126 @@ Future:
 - PATCH /api/v1/plants/:id (admin only)
 - DELETE /api/v1/plants/:id (admin only)
 
+#### Query parameters (NEW) (transport layer only)
+
+```yaml
+parameters:
+  - name: filter
+    in: query
+    required: false
+    schema:
+      type: object
+      additionalProperties: true
+    description: |
+      Transport representation of Query DSL filter object.
+      Semantic rules are defined in Query DSL Contract v1.0.0
+
+  - name: sort
+    in: query
+    required: false
+    schema:
+      type: object
+      additionalProperties: true
+    description: |
+      Transport representation of Query DSL sort object.
+      Semantic rules are defined in Query DSL Contract v1.0.0
+
+  - name: pagination
+    in: query
+    required: false
+    schema:
+      type: object
+      additionalProperties: true
+    description: |
+      Transport representation of Query DSL pagination object.
+      Semantic rules are defined in Query DSL Contract v1.0.0
+```
+
 ---
 
-## 5.2 Beds
+### 6.2 Families (NEW)
 
-### Endpoints
+#### Families Endpoints
+
+- POST /api/v1/families (admin)
+- GET /api/v1/families (public)
+- GET /api/v1/families/:idOrSlug (public)
+
+#### Query parameters (transport layer only)
+
+```yaml
+parameters:
+  - name: filter
+    in: query
+    required: false
+    schema:
+      type: object
+      additionalProperties: true
+    description: Query DSL filter (see Query DSL Contract v1.0.0)
+
+  - name: sort
+    in: query
+    required: false
+    schema:
+      type: object
+      additionalProperties: true
+    description: Query DSL sort (see Query DSL Contract v1.0.0)
+
+  - name: pagination
+    in: query
+    required: false
+    schema:
+      type: object
+      additionalProperties: true
+    description: Query DSL pagination (see Query DSL Contract v1.0.0)
+```
+
+---
+
+### 6.4 Plants
+
+#### Plants Endpoints
+
+- POST /api/v1/plants (admin)
+- GET /api/v1/plants (public)
+- GET /api/v1/plants/:id (public)
+- PATCH /api/v1/plants/:id (admin)
+- DELETE /api/v1/plants/:id (admin)
+
+#### Query parameters (transport layer only)
+
+```yaml
+parameters:
+  - name: filter
+    in: query
+    required: false
+    schema:
+      type: object
+      additionalProperties: true
+    description: Query DSL filter (see Query DSL Contract v1.0.0)
+
+  - name: sort
+    in: query
+    required: false
+    schema:
+      type: object
+      additionalProperties: true
+    description: Query DSL sort (see Query DSL Contract v1.0.0)
+
+  - name: pagination
+    in: query
+    required: false
+    schema:
+      type: object
+      additionalProperties: true
+    description: Query DSL pagination (see Query DSL Contract v1.0.0)
+```
+
+---
+
+### 6.5 Beds
+
+#### Beds Endpoints (user)
 
 - POST /api/v1/beds
 - GET /api/v1/beds
@@ -101,7 +236,7 @@ Future:
 - PATCH /api/v1/beds/:id
 - DELETE /api/v1/beds/:id
 
-### Schemas
+#### Schemas
 
 - Bed
 - CreateBedRequest
@@ -110,16 +245,15 @@ Future:
 
 ---
 
-## 5.3 PlantInstances (FUTURE)
-
-### Endpoints
+### 6.6 PlantInstances (FUTURE) (user)
 
 - POST /api/v1/plant-instances
+- GET /api/v1/plant-instances
 - GET /api/v1/plant-instances/:id
 - DELETE /api/v1/plant-instances/:id
 - PATCH /api/v1/plant-instances/:id
 
-### Schemas
+#### Schemas
 
 - PlantInstance
 - CreatePlantInstanceRequest
@@ -127,7 +261,7 @@ Future:
 
 ---
 
-## 5.4 Auth / Users
+### 6.7 Auth / Users
 
 - POST /api/v1/Auth/register
 - POST /api/v1/Auth/login
@@ -138,14 +272,20 @@ Future:
 
 ---
 
-## 5.5 Events (pending)
+### 6.8 Events (pending)
 
 - event ingestion API
 - filtering by plantInstance / bed / type
 
+#### Query parameters (planned)
+
+- filter (by type, entity references)
+- sort
+- pagination
+
 ---
 
-## 5.6 Knowledge (pending)
+### 6.9 Knowledge (pending)
 
 - pests
 - diseases
@@ -155,7 +295,7 @@ Future:
 
 ---
 
-# 6. ERROR CONTRACT
+## 7. ERROR CONTRACT
 
 OpenAPI MUST define:
 
@@ -165,7 +305,7 @@ OpenAPI MUST define:
 
 ---
 
-## 6.1 Validation error behavior (EPIC 13 alignment)
+### 7.1 Validation error behavior (EPIC 13 alignment)
 
 Validation errors MUST be represented as:
 
@@ -195,7 +335,7 @@ Rules:
 
 ---
 
-## 6.2 Empty response handling (204)
+### 7.2 Empty response handling (204)
 
 For endpoints returning **204 No Content**:
 
@@ -206,23 +346,25 @@ For endpoints returning **204 No Content**:
 
 ---
 
-# 7. TESTING INTEGRATION
+## 8. TESTING INTEGRATION
 
 - contract tests validate OpenAPI compliance
 - E2E tests MUST match spec
 - no endpoint exists without OpenAPI definition
 - validation error shape MUST be covered by contract tests when finalized
+- query parameter behavior MUST be validated via contract tests when defined
 
 ---
 
-# 8. EVOLUTION RULES
+## 9. EVOLUTION RULES
 
 - every new endpoint MUST first exist in OpenAPI
+- every new query capability MUST be defined here BEFORE implementation
 - breaking changes require version bump
 - backward compatibility preferred
 
 ---
 
-# 9. FINAL NOTE
+## 10. FINAL NOTE
 
-OpenAPI becomes the **external truth layer of AgroApp**.
+OpenAPI becomes the **external transport contract layer of AgroApp**, while Query DSL Contract v1.0.0 defines the actual semantics of querying.

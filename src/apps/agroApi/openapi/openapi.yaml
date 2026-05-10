@@ -189,6 +189,31 @@ paths:
     get:
       tags: [Families]
       summary: Get all families
+
+      parameters:
+        - in: query
+          name: filter
+          style: deepObject
+          explode: true
+          schema:
+            type: object
+            example:
+              name: 'Rosaceae'
+              aliases:
+                hasAny: ['Rose family', 'Rosids']
+        - in: query
+          name: sort
+          style: deepObject
+          explode: true
+          schema:
+            $ref: '#/components/schemas/SortOptions'
+        - in: query
+          name: pagination
+          style: deepObject
+          explode: true
+          schema:
+            $ref: '#/components/schemas/PaginationParams'
+
       responses:
         '200':
           description: OK
@@ -265,6 +290,32 @@ paths:
     get:
       tags: [Plants]
       summary: Get all plants
+
+      parameters:
+        - in: query
+          name: filter
+          style: deepObject
+          explode: true
+          schema:
+            type: object
+            example:
+              family:
+                eq: ca4fc5c8-3c52-4922-80c4-ea8ecda1f545
+              sowingMonths:
+                hasAny: [3, 4, 5]
+        - in: query
+          name: sort
+          style: deepObject
+          explode: true
+          schema:
+            $ref: '#/components/schemas/SortOptions'
+        - in: query
+          name: pagination
+          style: deepObject
+          explode: true
+          schema:
+            $ref: '#/components/schemas/PaginationParams'
+
       responses:
         '200':
           description: OK
@@ -279,6 +330,7 @@ paths:
                       $ref: '#/components/schemas/Plant'
                   pagination:
                     $ref: '#/components/schemas/PaginationResponse'
+
         '400':
           $ref: '#/components/responses/ValidationError'
 
@@ -539,19 +591,6 @@ components:
         updatedBy:
           type: string
 
-    PaginationRequest:
-      type: object
-      required: [page, limit]
-      properties:
-        page:
-          type: integer
-          minimum: 1
-          example: 1
-        limit:
-          type: integer
-          minimum: 1
-          example: 10
-
     PaginationResponse:
       type: object
       properties:
@@ -572,6 +611,49 @@ components:
         - limit
         - totalPages
         - totalItems
+
+    FilterOperators:
+      type: object
+      additionalProperties: true
+
+    SortOptions:
+      type: object
+      additionalProperties:
+        type: string
+        enum: [asc, desc]
+
+    PaginationParams:
+      type: object
+      required: [page, limit]
+      properties:
+        page:
+          type: integer
+          minimum: 1
+          example: 1
+        limit:
+          type: integer
+          minimum: 1
+          example: 10
+
+    QueryParams:
+      type: object
+      properties:
+        filter:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties: true
+
+        sort:
+          $ref: '#/components/schemas/SortOptions'
+
+        pagination:
+          $ref: '#/components/schemas/PaginationParams'
+
+        include:
+          type: array
+          items:
+            type: string
 
     # ================= AUTH =================
 

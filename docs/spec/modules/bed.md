@@ -1,12 +1,12 @@
 # MODULE: BED
 
-version: 1.1.0
-source-spec: v1.0.0
+version: 1.2.0
+source-spec: v1.1.0
 status: evolving
 
 ---
 
-# 1. PURPOSE
+## 1. PURPOSE
 
 Represents a physical or logical growing space where PlantInstances are placed.
 
@@ -14,7 +14,7 @@ It acts as the spatial and organizational boundary for cultivation.
 
 ---
 
-# 2. CORE RESPONSIBILITY
+## 2. CORE RESPONSIBILITY
 
 The Bed aggregate is responsible for:
 
@@ -26,7 +26,7 @@ The Bed aggregate is responsible for:
 
 ---
 
-# 3. DOMAIN ROLE
+## 3. DOMAIN ROLE
 
 Bed is:
 
@@ -43,21 +43,21 @@ Bed is NOT:
 
 ---
 
-# 4. RELATIONSHIPS
+## 4. RELATIONSHIPS
 
-## 4.1 Bed → PlantInstances
+### 4.1 Bed → PlantInstances
 
 - A Bed contains multiple PlantInstances
 - PlantInstances are positioned within Bed space
 - Spatial rules are evaluated at Bed level
 
-## 4.2 Bed → Spatial System
+### 4.2 Bed → Spatial System
 
 - Bed provides spatial context
 - Bed defines coordinate space assumptions
 - Bed is input for SpatialService validation
 
-## 4.3 Bed → User
+### 4.3 Bed → User
 
 - Bed is scoped to a single User
 - Access is enforced per user ownership
@@ -65,9 +65,9 @@ Bed is NOT:
 
 ---
 
-# 5. SPATIAL MODEL
+## 5. SPATIAL MODEL
 
-## 5.1 Current model
+### 5.1 Current model
 
 - Bed defines logical space for placement
 - SpatialService uses Bed context for validation
@@ -75,7 +75,7 @@ Bed is NOT:
 
 ---
 
-## 5.2 Constraints
+### 5.2 Constraints
 
 - spacing rules apply inside Bed boundaries
 - collision detection is Bed-scoped
@@ -83,7 +83,45 @@ Bed is NOT:
 
 ---
 
-# 6. RULES
+## 6. QUERY INTEGRATION (NEW)
+
+pending integration for admins ep
+
+- Bed supports the global Query System for collection retrieval.
+
+---
+
+### 6.1 Supported operations
+
+GET /api/v1/beds/audit (admin) MAY support:
+
+- filtering (Query DSL)
+- sorting
+- pagination
+- include (future)
+- populate (future)
+
+---
+
+### 6.2 Filter support
+
+Filters MUST follow the Query DSL defined in the API contract:
+
+- string operators: eq, contains, startsWith, endsWith
+- array operators: has, hasAny
+- numeric operators: gt, gte, lt, lte
+
+---
+
+### 6.3 Validation alignment
+
+- invalid filters MUST be rejected by Validation layer
+- Bed domain MUST NOT interpret query semantics
+- Bed remains unaware of query parsing internals
+
+---
+
+### 7. RULES
 
 - Bed MUST NOT contain plant business logic
 - Bed MUST NOT handle events
@@ -93,26 +131,26 @@ Bed is NOT:
 
 ---
 
-# 7. CURRENT IMPLEMENTATION STATUS
+## 8. CURRENT IMPLEMENTATION STATUS
 
-## Implemented
+### Implemented
 
 - Bed aggregate structure
 - basic spatial anchoring concept
 - integration with SpatialService (logical)
 - full REST lifecycle coverage (create, read, update, delete)
 - ownership enforcement in API layer
-- partial validation contract enforcement (OpenAPI-driven tests)
+- validation contract enforcement (OpenAPI-driven tests)
 
-## Partial
+### Partial
 
-- persistence layer (CRUD not fully defined)
 - spatial indexing not implemented
 - grid abstraction not formalized in domain
 - PATCH semantics validation rules still evolving
 
-## Pending
+### Pending
 
+- persistence layer (admin audit ep not implemented)
 - formal grid model (cellSize, coordinate system)
 - BedRepository full implementation
 - integration with PlantInstance lifecycle
@@ -120,9 +158,9 @@ Bed is NOT:
 
 ---
 
-# 8. FUTURE EVOLUTION
+## 9. FUTURE EVOLUTION
 
-## 8.1 Grid system (planned)
+### 9.1 Grid system (planned)
 
 - cellSize becomes domain concept
 - snapping rules defined at Bed level
@@ -130,7 +168,7 @@ Bed is NOT:
 
 ---
 
-## 8.2 Spatial scaling
+### 9.2 Spatial scaling
 
 - SpatialIndex integration
 - performance optimization for large beds
@@ -138,7 +176,7 @@ Bed is NOT:
 
 ---
 
-## 8.3 PlantInstance integration
+### 9.3 PlantInstance integration
 
 - Bed becomes primary container for PlantInstances
 - lifecycle queries scoped per Bed
@@ -146,7 +184,7 @@ Bed is NOT:
 
 ---
 
-# 9. BOUNDARY RULES
+## 10. BOUNDARY RULES
 
 Bed MUST remain:
 
@@ -158,7 +196,7 @@ Bed MUST remain:
 
 ---
 
-# 10. RELATION TO SPATIAL SYSTEM
+## 11. RELATION TO SPATIAL SYSTEM
 
 Bed is the primary input to:
 
@@ -169,7 +207,7 @@ Bed is the primary input to:
 
 ---
 
-# 11. FINAL NOTE
+## 12. FINAL NOTE
 
 Bed is a structural aggregate, not a behavioral system.
 

@@ -1,7 +1,7 @@
 # APPLICATION CONTRACT (API SURFACE)
 
-version: 1.1.0
-source-spec: v1.0.0
+version: 1.2.0
+source-spec: v1.1.0
 status: evolving
 
 ---
@@ -62,15 +62,109 @@ The system exposes the following domain resources:
 
 ---
 
-## 4. RESOURCE CONTRACTS
+## 4. QUERY SYSTEM (NEW)
 
-### 4.1 Plants
+This section defines query parameter behavior for all list endpoints (GET collections).
 
-- POST /api/v1/plants (implemented)
-- GET /api/v1/plants (implemented)
-- GET /api/v1/plants/:id (implemented)
-- PATCH /api/v1/plants/:id (implemented)
-- DELETE /api/v1/plants/:id (implemented)
+### IMPORTANT BOUNDARY RULE
+
+This module defines **HTTP query shape only**.
+
+Query semantics (operators, filtering behavior, sorting rules, pagination rules) are defined in:
+
+> **Query DSL Contract v1.0.0**
+
+---
+
+### 4.1 Supported Query Features
+
+All collection endpoints MAY support:
+
+- filtering (Query DSL Contract v1.0.0)
+- sorting (Query DSL Contract v1.0.0)
+- pagination (Query DSL Contract v1.0.0)
+- include (future expansion)
+
+---
+
+### 4.2 Pagination
+
+Query shape:
+
+- `page`: number (string input allowed)
+- `limit`: number (string input allowed)
+
+Rules:
+
+- default: `page = 1`, `limit = 20`
+- values are coerced from string → number
+- must be positive integers
+
+---
+
+### 4.3 Sorting
+
+Rules:
+
+- format: `{ field: "asc" | "desc" }`
+- field validity and behavior defined in Query DSL Contract v1.0.0
+- invalid directions are rejected at validation layer
+
+---
+
+### 4.4 Filter DSL
+
+Filters are passed as structured objects.
+
+All filter semantics are defined in:
+
+> **Query DSL Contract v1.0.0**
+
+This includes:
+
+- eq
+- contains
+- startsWith
+- endsWith
+- has
+- hasAny
+- gt / gte / lt / lte
+
+OpenAPI only defines transport structure.
+
+---
+
+### 4.5 CSV Parsing Rules
+
+- values are split by comma
+- whitespace is trimmed
+- empty values are removed
+
+Example:
+
+```
+"a, , b" → ["a","b"]
+```
+
+---
+
+### 4.6 Validation Boundary Rule
+
+- unknown filter keys are rejected by Validation Layer
+- Query Parser assumes validated input
+- invalid query structures MUST NOT reach persistence layer
+
+---
+
+## 5. RESOURCE CONTRACTS
+
+### 5.1 Plants
+
+- POST /api/v1/plants (implemented) (admin)
+- GET /api/v1/plants (implemented) (public)
+- GET /api/v1/plants/:id (implemented) (public)
+- PATCH /api/v1/plants/:id (implemented) (admin)
+- DELETE /api/v1/plants/:id (implemented) (admin)
 
 #### Access control
 
@@ -79,9 +173,19 @@ The system exposes the following domain resources:
 - PATCH /api/v1/plants/:id → admin only
 - DELETE /api/v1/plants/:id → admin only
 
+#### Query support
+
+GET /api/v1/plants supports:
+
+- filtering (Query DSL Contract v1.0.0)
+- sorting (Query DSL Contract v1.0.0)
+- pagination (Query DSL Contract v1.0.0)
+- include (future)
+- populate (future)
+
 ---
 
-#### 4.1.1 Plant by ID
+### 5.1.1 Plant by ID
 
 Behavior:
 
@@ -91,7 +195,7 @@ Behavior:
 
 ---
 
-#### PATCH /api/v1/plants/:id (implemented)
+### 5.1.2 PATCH /api/v1/plants/:id (admin)
 
 Behavior:
 
@@ -101,75 +205,53 @@ Behavior:
 
 ---
 
-### 4.2 PlantInstances
+### 5.2 PlantInstances (user)
 
 Represents a real instance of a Plant placed in a Bed.
 
-#### Endpoints
-
-pending implementation
+Endpoints pending implementation:
 
 - POST /api/v1/plant-instances
 - GET /api/v1/plant-instances/:id
 - GET /api/v1/plant-instances?bedId=
-- PUT /api/v1/plant-instances/:id
+- PATCH /api/v1/plant-instances/:id
 - DELETE /api/v1/plant-instances/:id
-
-#### Concept
-
-- Plant = definition (species template)
-- PlantInstance = physical/virtual occurrence in space
-
-Note: PlantInstance schema is reused in Bed-related OpenAPI responses as a read-model embedding. This does not imply ownership coupling.
 
 ---
 
-### 4.3 Beds
-
-pending implementation
+### 5.3 Beds (user)
 
 - POST /api/v1/beds
 - GET /api/v1/beds/:id
 - GET /api/v1/beds
-- PUT /api/v1/beds/:id
+- PATCH /api/v1/beds/:id
 - DELETE /api/v1/beds/:id
 
 ---
 
-### 4.4 Events
+### 5.4 Events (user)
 
 Lifecycle events associated with PlantInstances.
 
-#### Endpoints
-
-pending implementation
+Endpoints pending implementation:
 
 - POST /api/v1/events
 - GET /api/v1/events
 - GET /api/v1/events/:id
+- PATCH /api/v1/events/:id
 - GET /api/v1/events?plantInstanceId=
 - DELETE /api/v1/events/:id
 
-#### Event types
-
-- watering
-- fertilization
-- pruning
-- pest_control
-- harvest
-- transplant
-- growth_update
-
 ---
 
-### 4.5 Users
+### 5.5 Users
 
-- POST /api/v1/auth/register
-- POST /api/v1/auth/login
-- POST /api/v1/auth/google
-- POST /api/v1/auth/refresh
-- POST /api/v1/auth/update
-- GET /api/v1/auth/validate/:token
+- POST /api/v1/auth/register (public)
+- POST /api/v1/auth/login (public)
+- POST /api/v1/auth/google (public)
+- POST /api/v1/auth/refresh (user)
+- POST /api/v1/auth/update (user)
+- GET /api/v1/auth/validate/:token (user)
 
 #### Roles
 
@@ -179,52 +261,72 @@ pending implementation
 
 ---
 
-### 4.6 Pests
+### 5.6 Pests
+
+pending implementation
 
 - GET /api/v1/pests
 - GET /api/v1/pests/:id
 
 ---
 
-### 4.7 Diseases
+### 5.7 Diseases
+
+pending implementation
 
 - GET /api/v1/diseases
 - GET /api/v1/diseases/:id
 
 ---
 
-### 4.8 Remedies
+### 5.8 Remedies
+
+pending implementation
 
 - GET /api/v1/remedies
 - GET /api/v1/remedies/:id
 
 ---
 
-### 4.9 Fertilizers
+### 5.9 Fertilizers
+
+pending implementation
 
 - GET /api/v1/fertilizers
 - GET /api/v1/fertilizers/:id
 
 ---
 
-### 4.10 Families
+### 5.10 Families
 
-- GET /api/v1/families
-- GET /api/v1/families/:id
+- POST /api/v1/families (admin)
+- GET /api/v1/families (public)
+- GET /api/v1/families/:id (public)
+
+pending implementation:
+
+- PATCH /api/v1/families/:id (admin)
+- DELETE /api/v1/families/:id (admin)
+
+Families list endpoints MAY support Query DSL filtering, sorting, and pagination as defined in Query DSL Contract v1.0.0.
 
 ---
 
-### 4.11 Plant Relations
+### 5.11 Plant Relations
 
 Represents companion planting relationships.
 
-- GET /api/v1/plant-relations
-- POST /api/v1/plant-relations
-- GET /api/v1/plant-relations/:id
+pending implementation
+
+- POST /api/v1/plant-relations (admin)
+- GET /api/v1/plant-relations (public)
+- GET /api/v1/plant-relations/:id (public)
+- PATCH /api/v1/plant-relations/:id (admin)
+- DELETE /api/v1/plant-relations/:id (admin)
 
 ---
 
-## 5. ERROR CONTRACT
+## 6. ERROR CONTRACT
 
 All endpoints MUST return a consistent error structure.
 
@@ -244,7 +346,7 @@ Validation errors:
 
 ---
 
-## 6. STATUS CODES
+## 7. STATUS CODES
 
 - 400 → validation error
 - 401 → unauthenticated
@@ -254,7 +356,7 @@ Validation errors:
 
 ---
 
-## 7. GENERAL RULES
+## 8. GENERAL RULES
 
 - No business logic in API layer
 - No direct domain exposure
@@ -265,11 +367,12 @@ Validation errors:
 
 ---
 
-## 8. CURRENT STATUS
+## 9. CURRENT STATUS
 
 ### Implemented
 
-- Plants: READ + CREATE + PATCH + DELETE
+- Plants, Beds: READ + CREATE + PATCH + DELETE
+- Families: READ + CREATE
 - Auth system (functional end-to-end, Swagger tested)
 - validation middleware (partial → evolving)
 - error handling (structured)
@@ -286,7 +389,7 @@ Validation errors:
 
 ---
 
-## 9. CONTRACT PRINCIPLE
+## 10. CONTRACT PRINCIPLE
 
 This document defines the external contract of the system.
 
@@ -294,30 +397,27 @@ Any change affecting this module is a breaking change and MUST be versioned.
 
 ---
 
-## 10. DEPENDENCY INJECTION STRATEGY
+## 11. DEPENDENCY INJECTION STRATEGY
 
 The system uses --Awilix PROXY MODE-- as the active dependency injection mechanism.
 
 ### Current state
 
 - Controllers are resolved via proxy container property access
-- No manual binding is required (`bindRun` has been removed)
+- No manual binding is required
 - Dependencies are lazily resolved at runtime through the container proxy
 - Controller wiring is simplified and declarative
 
 ### Impact
 
-- Eliminates `this` binding issues from classic mode
-- Removes Classic-mode binding layer (bindRun + manual context binding), but keeps explicit invocation adapters (makeInvoker) as HTTP composition layer.
+- Eliminates classic binding issues
 - Reduces API composition boilerplate
 - Standardizes dependency resolution across runtime and tests
 
 ---
 
-## 11. FINAL NOTE
+## 12. FINAL NOTE
 
 This document defines the external contract of the system.
 
 It does NOT describe internal architecture decisions unless they directly affect the HTTP surface or execution contract.
-
----

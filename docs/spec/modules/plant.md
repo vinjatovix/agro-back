@@ -1,18 +1,18 @@
 # MODULE: PLANT
 
-version: 1.0.0
-source-spec: v1.0.0
+version: 1.1.0
+source-spec: v1.1.0
 status: formalized (derived from codebase snapshot)
 
 ---
 
-# 1. PURPOSE
+## 1. PURPOSE
 
-The Plant module defines the **biological definition layer** of AgroApp.
+The Plant module defines the --biological definition layer-- of AgroApp.
 
-It represents a plant as a **species-level aggregate**, not a spatial or temporal instance.
+It represents a plant as a --species-level aggregate--, not a spatial or temporal instance.
 
-Plant is the **source of agronomic truth** used by:
+Plant is the --source of agronomic truth-- used by:
 
 - PlantInstance (runtime occurrence)
 - Knowledge System (ecological context)
@@ -21,9 +21,9 @@ Plant is the **source of agronomic truth** used by:
 
 ---
 
-# 2. DOMAIN ROLE
+## 2. DOMAIN ROLE
 
-Plant is a **definition aggregate root**.
+Plant is a --definition aggregate root--.
 
 It is responsible for describing:
 
@@ -34,7 +34,7 @@ It is responsible for describing:
 
 ---
 
-# 3. CORE PRINCIPLE
+## 3. CORE PRINCIPLE
 
 > Plant defines _what a plant is_, not _what happens to it in space or time_
 
@@ -47,11 +47,11 @@ Rules:
 
 ---
 
-# 4. INTERNAL STRUCTURE
+## 4. INTERNAL STRUCTURE
 
 Plant is composed of 4 core subdomains:
 
-## 4.1 Identity
+### 4.1 Identity
 
 ```ts
 {
@@ -64,7 +64,7 @@ Plant is composed of 4 core subdomains:
 }
 ```
 
-### Rules
+Rules:
 
 - primary name is required semantic identifier
 - aliases are optional semantic enrichments
@@ -72,7 +72,7 @@ Plant is composed of 4 core subdomains:
 
 ---
 
-## 4.2 Traits (Biological constraints)
+### 4.2 Traits (Biological constraints)
 
 ```ts
 {
@@ -85,13 +85,13 @@ Plant is composed of 4 core subdomains:
 }
 ```
 
-### Meaning
+#### Meaning
 
 - lifecycle → biological growth pattern
 - size → expected physical bounds
-- spacingCm → **indirect spatial constraint (NOT enforcement)**
+- spacingCm → **advisory spatial constraint (NOT enforcement)**
 
-### Important boundary rule
+#### Important boundary rule
 
 Spacing is:
 
@@ -99,9 +99,9 @@ Spacing is:
 
 ---
 
-## 4.3 Phenology (time behavior model)
+### 4.3 Phenology (time behavior model)
 
-### Sowing
+#### Sowing
 
 Encapsulated as:
 
@@ -110,7 +110,7 @@ Encapsulated as:
 - months
 - methods (direct / starter)
 
-👉 This is a **structured sub-aggregate (PlantSowing)**
+This is a **structured sub-aggregate (PlantSowing)**
 
 Rules:
 
@@ -120,21 +120,21 @@ Rules:
 
 ---
 
-### Flowering
+#### Flowering
 
 - months
 - pollination (optional)
 
 ---
 
-### Harvest
+#### Harvest
 
 - months
 - description (optional)
 
 ---
 
-## 4.4 Knowledge (ecological reference layer)
+### 4.4 Knowledge (ecological reference layer)
 
 ```ts
 knowledge?: PlantKnowledge
@@ -149,9 +149,9 @@ Rules:
 
 ---
 
-# 5. BEHAVIOR
+## 5. BEHAVIOR
 
-## 5.1 Lifecycle control
+### 5.1 Lifecycle control
 
 Plant supports soft deletion:
 
@@ -167,9 +167,9 @@ Rules:
 
 ---
 
-## 5.2 Validation invariants
+### 5.2 Validation invariants
 
-### Status consistency
+#### Status consistency
 
 - ACTIVE → cannot have deletedAt
 - DELETED → must have deletedAt
@@ -178,7 +178,7 @@ This is enforced in constructor.
 
 ---
 
-## 5.3 Immutability principle
+### 5.3 Immutability principle
 
 - props are deeply frozen
 - domain state cannot be mutated externally
@@ -186,9 +186,9 @@ This is enforced in constructor.
 
 ---
 
-# 6. DOMAIN RULES
+## 6. DOMAIN RULES
 
-## 6.1 Allowed dependencies
+### 6.1 Allowed dependencies
 
 Plant MAY depend on:
 
@@ -198,7 +198,7 @@ Plant MAY depend on:
 
 ---
 
-## 6.2 Forbidden dependencies
+### 6.2 Forbidden dependencies
 
 Plant MUST NOT depend on:
 
@@ -210,9 +210,9 @@ Plant MUST NOT depend on:
 
 ---
 
-# 7. RELATIONSHIP MODEL
+## 7. RELATIONSHIP MODEL
 
-## 7.1 Plant → PlantInstance
+### 7.1 Plant → PlantInstance
 
 - Plant defines blueprint
 - PlantInstance is runtime instantiation
@@ -221,28 +221,28 @@ No bidirectional coupling.
 
 ---
 
-## 7.2 Plant → Knowledge System
+### 7.2 Plant → Knowledge System
 
 - Plant references knowledge IDs
 - Knowledge system remains external
 
 ---
 
-## 7.3 Plant → Spatial System
+### 7.3 Plant → Spatial System
 
 - Plant defines spacingCm (advisory)
 - Spatial system enforces actual placement
 
 ---
 
-## 7.4 Plant → Events (indirect future link)
+### 7.4 Plant → Events (indirect future link)
 
 - Plant does not consume events
 - Events may reference Plant metadata
 
 ---
 
-# 8. SERIALIZATION CONTRACT
+## 8. SERIALIZATION CONTRACT
 
 Plant is not self-serializable.
 
@@ -254,11 +254,9 @@ All transformations must go through:
 
 ---
 
-# 9. MAPPING STRATEGY
+## 9. MAPPING STRATEGY
 
-From codebase analysis:
-
-## 9.1 PlantMapper responsibilities
+### 9.1 PlantMapper responsibilities
 
 - Plant ↔ PlantPrimitives
 - DTO → Plant
@@ -267,7 +265,7 @@ From codebase analysis:
 
 ---
 
-## 9.2 Critical rule
+### 9.2 Critical rule
 
 Mapper is the **only place where structural translation is allowed**
 
@@ -275,23 +273,70 @@ Plant must remain pure.
 
 ---
 
-# 10. CURRENT ARCHITECTURAL OBSERVATIONS
+## 10. QUERY SUPPORT (NEW)
 
-From your implementation:
+Plant collection endpoints support the global Query System.
 
-## 10.1 Strengths
+---
+
+### 10.1 Find all Plants
+
+GET /api/v1/plants
+
+Supports:
+
+- filtering (Query DSL)
+- sorting
+- pagination
+- include (future)
+
+---
+
+### 10.2 Query behavior rules
+
+- filters MUST follow validated Query DSL
+- invalid filters are rejected in Validation layer
+- Plant domain MUST NOT interpret query semantics
+- query execution is handled in Application + Persistence layers
+
+---
+
+### 10.3 Allowed filter fields
+
+Filterable Plant fields include:
+
+- identity.aliases
+- identity.family
+- traits.lifecycle
+- traits.spacingCm
+- phenology.sowing.months
+- phenology.sowing.methods
+- knowledge.soil.ph
+- knowledge.soil.availableDepthCm
+- knowledge.light.hoursMin
+- knowledge.light.type
+- knowledge.ecology.strategicBenefits
+- knowledge.rootSystem.type
+
+(Exact enforcement delegated to validation layer)
+
+---
+
+## 11. CURRENT ARCHITECTURAL OBSERVATIONS
+
+### 11.1 Strengths
 
 - strong value object usage
-- clear separation of phenology subdomain
+- clear separation of phenology and knowledge subdomains
 - good immutability via deepFreeze
 - explicit validation rules
 - proper aggregate boundary usage
 
 ---
 
-## 10.2 Emerging risks
+### 11.2 Emerging risks
 
-### 1. Plant is becoming “semantic hub”
+#### 1. Plant is becoming "semantic hub"
 
 It contains:
 
@@ -305,7 +350,7 @@ risk: gradual expansion into god-aggregate
 
 ---
 
-### 2. Phenology is well-designed but heavy
+#### 2. Phenology is well-designed but heavy
 
 PlantSowing is already:
 
@@ -316,14 +361,14 @@ acceptable, but must remain isolated
 
 ---
 
-### 3. Knowledge coupling is still loose
+#### 3. Knowledge coupling is still loose
 
 - PlantKnowledge is embedded but optional
 - risk of hidden coupling increasing over time
 
 ---
 
-# 11. ANTI-PATTERNS
+## 12. ANTI-PATTERNS
 
 Forbidden in Plant:
 
@@ -333,12 +378,13 @@ Forbidden in Plant:
 - DTO awareness
 - business workflows
 - cross-aggregate mutation
+- query parsing logic
 
 ---
 
-# 12. EVOLUTION PATH
+## 13. EVOLUTION PATH
 
-## 12.1 Likely future stabilizations
+### 13.1 Likely future stabilizations
 
 - PlantLifecycle may become full state machine module
 - Phenology may split further (GrowthModel module)
@@ -346,7 +392,7 @@ Forbidden in Plant:
 
 ---
 
-## 12.2 Potential refactor trigger
+### 13.2 Potential refactor trigger
 
 If Plant grows beyond:
 
@@ -362,7 +408,7 @@ If Plant grows beyond:
 
 ---
 
-# 13. FINAL STATEMENT
+## 14. FINAL STATEMENT
 
 Plant is currently:
 

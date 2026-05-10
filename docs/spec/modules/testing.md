@@ -1,12 +1,12 @@
 # MODULE: TESTING
 
-version: 1.1.0
+version: 1.2.0
 source-spec: v1.0.0
 status: stable
 
 ---
 
-# 1. PURPOSE
+## 1. PURPOSE
 
 Defines testing strategy across all AgroApp layers.
 
@@ -14,9 +14,9 @@ Ensures correctness, regression safety, and architectural compliance.
 
 ---
 
-# 2. TESTING LEVELS
+## 2. TESTING LEVELS
 
-## 2.1 Unit Tests
+### 2.1 Unit Tests
 
 Scope:
 
@@ -24,6 +24,17 @@ Scope:
 - Value Objects
 - Pure functions
 - Spatial logic (pure computation)
+- Shared utilities (DTO + query parsing)
+
+#### Added coverage
+
+Unit tests now explicitly include:
+
+- GenericQueryParser (filter DSL parsing)
+- QueryParserUtils (CSV parsing, numeric coercion, sort/include parsing)
+- DTO helpers:
+  - buildPatch (path-based patch construction)
+  - deepMerge (immutable merge utility)
 
 Rules:
 
@@ -33,7 +44,7 @@ Rules:
 
 ---
 
-## 2.2 Integration Tests
+### 2.2 Integration Tests
 
 Scope:
 
@@ -41,6 +52,15 @@ Scope:
 - Persistence layer
 - Repository behavior
 - Patch system
+- Query system translation layer
+
+#### Added coverage
+
+Integration tests MUST include:
+
+- MongoQueryTranslator behavior (filter DSL → Mongo queries)
+- repository query execution using QueryOptions
+- interaction between parsed queries and persistence filtering
 
 Rules:
 
@@ -49,7 +69,7 @@ Rules:
 
 ---
 
-## 2.3 E2E Tests
+### 2.3 E2E Tests
 
 Scope:
 
@@ -64,7 +84,7 @@ Rules:
 
 ---
 
-## 2.4 Contract Tests
+### 2.4 Contract Tests
 
 Scope:
 
@@ -76,10 +96,11 @@ Rules:
 - no drift between implementation and spec
 - failures block deployment
 - includes Beds endpoints validation
+- includes query parameter validation where defined in OpenAPI
 
 ---
 
-## 2.5 BDD / Cucumber Tests
+### 2.5 BDD / Cucumber Tests
 
 Scope:
 
@@ -97,10 +118,11 @@ Added coverage:
 
 - Beds feature scenarios (CRUD flows)
 - cross-entity ownership rules (user/bed isolation)
+- query-driven filtering scenarios (list endpoints with filters, sorting, pagination)
 
 ---
 
-# 3. COVERAGE RULES
+## 3. COVERAGE RULES
 
 - minimum coverage: 80%
 - enforced at CI level
@@ -108,7 +130,7 @@ Added coverage:
 
 ---
 
-# 4. ASSERTION RULES
+## 4. ASSERTION RULES
 
 - NO dependency on exact error strings
 - use semantic matching only
@@ -120,7 +142,7 @@ Contract tests enforce full-response strict equality against OpenAPI. BDD tests 
 
 ---
 
-# 5. SONAR RULES
+## 5. SONAR RULES
 
 - PRs MUST pass Sonar checks
 - no critical vulnerabilities allowed
@@ -129,7 +151,7 @@ Contract tests enforce full-response strict equality against OpenAPI. BDD tests 
 
 ---
 
-# 6. SEEDERS
+## 6. SEEDERS
 
 Test utilities MAY include:
 
@@ -140,6 +162,7 @@ Added seeders:
 
 - BedSeeder for Beds module setup
 - PlantSeeder for Plants module setup
+- FamilySeeder for Families module setup
 - cross-user seeders for ownership validation scenarios
 
 Seeders are allowed to:
@@ -149,19 +172,21 @@ Seeders are allowed to:
 
 ---
 
-# 7. WORLD MODEL (BDD)
+## 7. WORLD MODEL (BDD)
 
 Cucumber tests MAY define:
 
 ```ts
-class TestWorldImpl extends World implements TestWorld {
+class TestWorldImpl extends World {
+  family?: string;
+  familySlug?: string;
   plantId?: string;
   bedId?: string;
   token?: string;
   route?: string;
   method?: string;
-  status?: number;
-  response?: unknown;
+  request?: request.Test;
+  responseRaw?: request.Response;
 }
 ```
 
@@ -174,23 +199,24 @@ Extended state usage:
 
 - bedId used in Beds scenarios
 - plantId used in Plants scenarios
+- query/filter state used in list/filter scenarios
 
 ---
 
-# 8. FUTURE EVOLUTION
+## 8. FUTURE EVOLUTION
 
 - mutation testing
 - contract-driven test generation
 - scenario-based DSL expansion
 - BDD step definition modularization (Cucumber scalability layer)
   - current step file structure is becoming too large
-  - steps MUST be split by bounded context (Plant, Bed, Auth, etc.)
+  - steps MUST be split by bounded context (Plant, Bed, Auth, Query, etc.)
   - shared steps MUST be extracted into reusable step utilities
   - step definition organization MUST follow domain-aligned structure rather than feature dump files
 
 ---
 
-# 9. ANTI-PATTERNS
+## 9. ANTI-PATTERNS
 
 - testing implementation details instead of behavior
 - coupling tests to Express internals

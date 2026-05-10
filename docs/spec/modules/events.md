@@ -1,12 +1,12 @@
 # MODULE: EVENTS SYSTEM
 
 version: 1.1.0
-source-spec: v1.0.0
+source-spec: v1.1.0
 status: evolving
 
 ---
 
-# 1. PURPOSE
+## 1. PURPOSE
 
 This module defines the event-driven layer of AgroApp.
 
@@ -21,7 +21,7 @@ Events are the foundation for:
 
 ---
 
-# 2. CORE CONCEPT
+## 2. CORE CONCEPT
 
 An Event is an immutable record of something that happened in the system.
 
@@ -34,7 +34,7 @@ Events are:
 
 ---
 
-# 3. DOMAIN ROLE
+## 3. DOMAIN ROLE
 
 Events are NOT:
 
@@ -51,9 +51,9 @@ Events ARE:
 
 ---
 
-# 4. EVENT MODEL
+## 4. EVENT MODEL
 
-## 4.1 Base Event Structure
+### 4.1 Base Event Structure
 
 Each event includes:
 
@@ -69,7 +69,7 @@ Each event includes:
 
 ---
 
-## 4.2 Event Typing (CURRENT IMPLEMENTATION)
+### 4.2 Event Typing (CURRENT IMPLEMENTATION)
 
 Events are implemented as a **fully discriminated union type system**:
 
@@ -80,9 +80,9 @@ Events are implemented as a **fully discriminated union type system**:
 
 ---
 
-## 4.3 Event Types
+### 4.3 Event Types
 
-### Core lifecycle events (IMPLEMENTED)
+#### Core lifecycle events (IMPLEMENTED)
 
 - watering
 - fertilization
@@ -93,7 +93,7 @@ Events are implemented as a **fully discriminated union type system**:
 
 ---
 
-### Future agronomic/health events
+#### Future agronomic/health events
 
 - pest_detection
 - disease_detection
@@ -102,18 +102,18 @@ Events are implemented as a **fully discriminated union type system**:
 
 ---
 
-### Future simulation events
+#### Future simulation events
 
 - growth_update
 - stage_transition
 
 ---
 
-# 5. EVENT PAYLOAD (DATA FIELD)
+## 5. EVENT PAYLOAD (DATA FIELD)
 
 The `data` field is strictly typed per event.
 
-## watering
+### watering
 
 ```ts
 {
@@ -121,7 +121,7 @@ The `data` field is strictly typed per event.
 }
 ```
 
-## fertilization
+### fertilization
 
 ```ts
 {
@@ -133,7 +133,7 @@ The `data` field is strictly typed per event.
 }
 ```
 
-## pruning
+### pruning
 
 ```ts
 {
@@ -142,7 +142,7 @@ The `data` field is strictly typed per event.
 }
 ```
 
-## harvest
+### harvest
 
 ```ts
 {
@@ -150,7 +150,7 @@ The `data` field is strictly typed per event.
 }
 ```
 
-## transplant
+### transplant
 
 ```ts
 {
@@ -159,7 +159,7 @@ The `data` field is strictly typed per event.
 }
 ```
 
-## treatment
+### treatment
 
 ```ts
 {
@@ -171,21 +171,21 @@ The `data` field is strictly typed per event.
 
 ---
 
-# 6. EVENT PRINCIPLES
+## 6. EVENT PRINCIPLES
 
-## 6.1 Immutability
+### 6.1 Immutability
 
 Once created, an event MUST NOT be modified.
 
-## 6.2 Append-only log
+### 6.2 Append-only log
 
 Events form a chronological log per PlantInstance.
 
-## 6.3 Determinism
+### 6.3 Determinism
 
 Given the same event sequence, derived state MUST be reproducible.
 
-## 6.4 Traceability
+### 6.4 Traceability
 
 Every event MUST be traceable to:
 
@@ -195,9 +195,9 @@ Every event MUST be traceable to:
 
 ---
 
-# 7. EVENT INFRASTRUCTURE (CURRENT STATE)
+## 7. EVENT INFRASTRUCTURE (CURRENT STATE)
 
-## Implemented
+### Implemented
 
 - Strongly typed discriminated union (`DomainEvent`)
 - Domain ↔ persistence mapper (`EventMapper`)
@@ -211,7 +211,7 @@ Every event MUST be traceable to:
 
 ---
 
-## Partial / evolving
+### Partial / evolving
 
 - repository layer (not defined yet)
 - query model for time-series access
@@ -220,21 +220,21 @@ Every event MUST be traceable to:
 
 ---
 
-## Missing / future
+### Missing / future
 
 - EventRepository abstraction
 
 ---
 
-# 8. RELATIONSHIPS
+## 8. RELATIONSHIPS
 
-## 8.1 Event → PlantInstance
+### 8.1 Event → PlantInstance
 
 - Events are linked to PlantInstance via `plantInstanceId`
 - Used for historical traceability
 - PlantInstance is NOT derived from events in current architecture
 
-## 8.2 Event → Bed
+### 8.2 Event → Bed
 
 - Events reference Bed via `bedId`
 - Bed acts as a contextual location reference for the event
@@ -242,19 +242,19 @@ Every event MUST be traceable to:
 This means:
 Events are tagged with where they happened, not that Bed has behavior here.
 
-## 8.3 Event → Plant
+### 8.3 Event → Plant
 
 - Indirect relationship through PlantInstance
 
-## 8.4 ### Event → User
+### 8.4 #### Event → User
 
 - Every event is attributable to a user (actor)
 
 ---
 
-# 9. CURRENT IMPLEMENTATION STATUS
+## 9. CURRENT IMPLEMENTATION STATUS
 
-## Implemented (actual state)
+### Implemented (actual state)
 
 - Fully typed event system (discriminated unions)
 - strict EventMapper (domain ↔ persistence)
@@ -264,13 +264,13 @@ Events are tagged with where they happened, not that Bed has behavior here.
 
 ---
 
-## Partial
+### Partial
 
 - event validation layer per type not formalize
 
 ---
 
-## Missing
+### Missing
 
 - repository abstraction
 - Improve querying of event history (filters, ranges)
@@ -278,7 +278,7 @@ Events are tagged with where they happened, not that Bed has behavior here.
 
 ---
 
-# 10. RULES
+## 10. RULES
 
 - Events MUST be immutable
 - Events MUST NOT contain business logic
@@ -289,7 +289,7 @@ Events are tagged with where they happened, not that Bed has behavior here.
 
 ---
 
-# 12. BOUNDARY RULES (CRITICAL)
+## 12. BOUNDARY RULES (CRITICAL)
 
 Events module:
 
@@ -301,16 +301,16 @@ Events module:
 
 ---
 
-# 13. RELATION TO OTHER MODULES
+## 13. RELATION TO OTHER MODULES
 
-## Depends on
+### Depends on
 
 - PlantInstance module
 - Bed module
 - User module
 - Shared kernel (Value Objects, Errors)
 
-## Feeds into (future systems)
+### Feeds into (future systems)
 
 - Simulation system
 - Analytics system
@@ -319,7 +319,7 @@ Events module:
 
 ---
 
-# 14. FINAL NOTE
+## 14. FINAL NOTE
 
 Events are what turn AgroApp from a CRUD system into a temporal model.
 

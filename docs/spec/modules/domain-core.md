@@ -1,12 +1,12 @@
 # MODULE: DOMAIN CORE
 
-version: 1.0.0
-source-spec: v1.0.0
+version: 1.1.0
+source-spec: v1.1.0
 status: stable
 
 ---
 
-# 1. PURPOSE
+## 1. PURPOSE
 
 Defines the core business entities of AgroApp.
 
@@ -14,9 +14,9 @@ This module is the root of all domain logic.
 
 ---
 
-# 2. ENTITIES
+## 2. ENTITIES
 
-## 2.1 Plant
+### 2.1 Plant
 
 Definition-only aggregate.
 
@@ -33,7 +33,7 @@ Invariant rules:
 
 ---
 
-## 2.2 PlantInstance
+### 2.2 PlantInstance
 
 Runtime representation of a Plant in a Bed.
 
@@ -45,7 +45,7 @@ Responsibilities:
 
 ---
 
-## 2.3 Bed
+### 2.3 Bed
 
 Spatial container for PlantInstances.
 
@@ -57,7 +57,7 @@ Responsibilities:
 
 ---
 
-## 2.4 User
+### 2.4 User
 
 System actor.
 
@@ -75,12 +75,16 @@ Responsible for:
 
 ---
 
-# 3. VALUE OBJECTS
+## 3. VALUE OBJECTS
 
 - Uuid
+- StringValueObject
+- DateValueObject
+- PositiveNumber
+- Email
+- Coordinates
 - Range
 - MonthSet
-- Lifecycle
 - Metadata
 
 Rules:
@@ -89,18 +93,9 @@ Rules:
 - self-validating
 - no infrastructure dependency
 
-- PositiveNumber
-
-Rules:
-
-- represents strictly positive numeric values
-- MUST be finite
-- MUST be > 0
-- used in domain-critical numeric fields (events, measurements)
-
 ---
 
-# 4. SERIALIZATION RULE
+## 4. SERIALIZATION RULE
 
 Domain entities MUST NOT implement serialization methods.
 
@@ -119,7 +114,7 @@ IMPORTANT:
 
 ---
 
-# 5. DOMAIN INVARIANTS
+## 5. DOMAIN INVARIANTS
 
 - no invalid state allowed at construction time
 - range consistency enforced
@@ -127,19 +122,85 @@ IMPORTANT:
 
 ---
 
-# 6. BOUNDARY RULES
+## 6. BOUNDARY RULES
 
 Domain MUST NOT depend on:
 
 - HTTP
 - DB
-- validation libs
+- validation libraries
 - frameworks
+- query DSL or filter/parser utilities
 
 ---
 
-# 7. RELATIONSHIP RULES
+## 7. RELATIONSHIP RULES
 
 - PlantInstance depends on Plant
 - Bed contains PlantInstances
 - User is global root actor
+
+---
+
+## 8. QUERY INTEGRATION BOUNDARY (NEW)
+
+The domain layer defines **no query implementation logic**, but MAY expose **query intent types** for read models.
+
+### 8.1 Allowed concept
+
+Domain MAY define:
+
+- filter intent types (e.g. PlantFilterCriteria)
+- sort intent enums (domain-level meaning only)
+
+These are:
+
+> semantic contracts, not execution logic
+
+---
+
+### 8.2 Forbidden in Domain
+
+Domain MUST NOT contain:
+
+- filter parsing logic
+- CSV parsing
+- query string interpretation
+- pagination logic
+- sorting implementation
+- Mongo/SQL translation
+
+---
+
+### 8.3 Responsibility Split
+
+| Concern           | Layer                          |
+| ----------------- | ------------------------------ |
+| Query parsing     | API / Validation               |
+| Query translation | Persistence                    |
+| Query execution   | Persistence                    |
+| Query semantics   | Domain (optional intent types) |
+
+---
+
+### 8.4 Rationale
+
+This prevents:
+
+- leakage of HTTP query format into domain
+- coupling to persistence DSL
+- accidental business logic in query parsing layer
+
+---
+
+## 9. FINAL RULE
+
+The Domain Core is:
+
+> a pure, stable, persistence-agnostic model of AgroApp reality
+
+It MUST remain unaffected by:
+
+- transport changes
+- Query DSL evolution
+- storage strategy changes

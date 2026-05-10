@@ -1,12 +1,12 @@
 # MODULE: PERSISTENCE + PATCH SYSTEM CORE
 
-version: 1.2.0
-source-spec: v1.0.0
+version: 1.3.0
+source-spec: v1.1.0
 status: stable
 
 ---
 
-# 1. PURPOSE
+## 1. PURPOSE
 
 This module defines the persistence model and update mechanics for AgroApp.
 
@@ -15,12 +15,14 @@ It is responsible for:
 - translating domain primitives to persistence storage
 - applying partial updates through a deterministic patch system
 - maintaining consistency between stored state and domain model
+- supporting structured query-based read operations (filter/sort/pagination DSL)
+- translating **Query DSL → database queries (MongoDB)**
 
 It MUST NOT contain business logic.
 
 ---
 
-# 2. SCOPE
+## 2. SCOPE
 
 This module includes:
 
@@ -32,10 +34,11 @@ This module includes:
 - DeepPartial update model
 - DTO mapping layer
 - persistence lifecycle handling
+- **query translation layer (MongoQueryTranslator)**
 
 ---
 
-# 3. CORE PRINCIPLE
+## 3. CORE PRINCIPLE
 
 Persistence is a projection of the domain state.
 
@@ -47,18 +50,18 @@ Rules:
 
 ---
 
-# 4. PATCH MODEL
+## 4. PATCH MODEL
 
-## 4.1 DeepPartial<T>
+### 4.1 DeepPartial<T>
 
 Used for partial updates.
 
-### Semantics
+#### Semantics
 
 - `undefined` → no operation (field unchanged)
 - `null` → explicit deletion (field removed)
 
-### Constraints
+#### Constraints
 
 - must preserve type structure
 - must not introduce unknown fields
@@ -66,9 +69,9 @@ Used for partial updates.
 
 ---
 
-## 4.2 Diff / Patch Pipeline
+### 4.2 Diff / Patch Pipeline
 
-### Update flow
+#### Update flow
 
 1. current persisted state is loaded
 2. patch is applied to create "next state"
@@ -78,7 +81,7 @@ Used for partial updates.
 
 ---
 
-## CRITICAL RULE
+### CRITICAL RULE
 
 Domain validation MUST occur **before any persistence side effect**.
 
@@ -86,7 +89,7 @@ Persistence MUST ONLY receive a **validated final state transition**.
 
 ---
 
-## NOTE
+### NOTE
 
 - Patch application is a **transformation step**, not a persistence action
 - Diff calculation is **internal to persistence layer**, not part of domain flow
@@ -94,9 +97,9 @@ Persistence MUST ONLY receive a **validated final state transition**.
 
 ---
 
-# 5. REPOSITORY CONTRACT
+## 5. REPOSITORY CONTRACT
 
-## 5.1 MongoCrudRepository (NEW)
+### 5.1 MongoCrudRepository (NEW)
 
 Shared abstraction for CRUD repositories across aggregates.
 
@@ -105,14 +108,14 @@ Used by:
 - PlantRepository
 - BedRepository
 
-### Responsibilities
+#### Responsibilities
 
 - generic CRUD operations
 - query normalization
 - common Mongo access patterns
 - eliminating duplicated repository logic between aggregates
 
-### Rules
+#### Rules
 
 - MUST NOT contain domain logic
 - MUST remain aggregate-agnostic
@@ -121,7 +124,7 @@ Used by:
 
 ---
 
-## 5.2 MongoRepository
+### 5.2 MongoRepository
 
 Base abstraction for Mongo persistence.
 
@@ -133,7 +136,7 @@ Responsibilities:
 
 ---
 
-## 5.3 PlantRepository
+### 5.3 PlantRepository
 
 Specialized repository for Plant aggregate.
 
@@ -146,7 +149,7 @@ Responsibilities:
 
 ---
 
-## 5.4 BedRepository
+### 5.4 BedRepository
 
 Specialized repository for Bed aggregate.
 
@@ -159,9 +162,9 @@ Responsibilities:
 
 ---
 
-## 5.5 REPOSITORY RETRIEVAL SEMANTICS (NEW)
+### 5.5 REPOSITORY RETRIEVAL SEMANTICS
 
-### 5.5.1 Retrieval Contract Principle
+#### 5.5.1 Retrieval Contract Principle
 
 Repositories MAY return `null` or `undefined` when an entity does not exist in persistence.
 
@@ -171,7 +174,7 @@ Repositories MUST NOT throw domain-level exceptions (e.g. notFound, forbidden).
 
 ---
 
-### 5.5.2 Responsibility Boundary
+#### 5.5.2 Responsibility Boundary
 
 | Layer       | Responsibility                                            |
 | ----------- | --------------------------------------------------------- |
@@ -180,7 +183,7 @@ Repositories MUST NOT throw domain-level exceptions (e.g. notFound, forbidden).
 
 ---
 
-### 5.5.3 Truth Enforcement Rule
+#### 5.5.3 Truth Enforcement Rule
 
 All semantic decisions regarding entity existence MUST be handled at the Application Layer:
 
@@ -191,7 +194,7 @@ All semantic decisions regarding entity existence MUST be handled at the Applica
 
 ---
 
-### 5.5.4 Repository Contract Clarity
+#### 5.5.4 Repository Contract Clarity
 
 Repositories are:
 
@@ -205,7 +208,7 @@ Therefore:
 
 ---
 
-### 5.5.5 Forbidden Behavior in Repositories
+#### 5.5.5 Forbidden Behavior in Repositories
 
 Repositories MUST NOT:
 
@@ -217,7 +220,7 @@ Repositories MUST NOT:
 
 ---
 
-### 5.5.6 Design Rationale
+#### 5.5.6 Design Rationale
 
 This separation ensures:
 
@@ -228,9 +231,9 @@ This separation ensures:
 
 ---
 
-# 5.7 MAPPER RESPONSIBILITY RULE (NEW)
+### 5.6 MAPPER RESPONSIBILITY RULE
 
-## 5.7.1 Core Rule
+#### 5.6.1 Core Rule
 
 All transformations between persistence and domain MUST be handled by dedicated mapper modules.
 
@@ -238,7 +241,7 @@ Repositories MUST NOT contain transformation logic beyond delegation.
 
 ---
 
-## 5.7.2 Repository Responsibility
+#### 5.6.2 Repository Responsibility
 
 Repositories:
 
@@ -248,7 +251,7 @@ Repositories:
 
 ---
 
-## 5.7.3 Mapper Responsibility
+#### 5.6.3 Mapper Responsibility
 
 Mappers:
 
@@ -258,12 +261,14 @@ Mappers:
   - DTO → Domain
 
 - MUST be pure functions
+
 - MUST NOT access persistence layer
+
 - MUST NOT contain business logic
 
 ---
 
-## 5.7.4 Allowed Pattern
+#### 5.6.4 Allowed Pattern
 
 ✔ correct:
 
@@ -273,7 +278,7 @@ return mapper.fromMongoDocumentToDomain(document);
 
 ---
 
-## 5.7.5 Forbidden Pattern
+#### 5.6.5 Forbidden Pattern
 
 ✘ incorrect:
 
@@ -283,7 +288,7 @@ return new Entity({ ...document, computed: x });
 
 ---
 
-## 5.7.6 Design Rationale
+#### 5.6.6 Design Rationale
 
 This rule ensures:
 
@@ -294,9 +299,9 @@ This rule ensures:
 
 ---
 
-# 5.8 MIGRATIONS
+### 5.7 MIGRATIONS
 
-## 5.8.1 Purpose
+#### 5.7.1 Purpose
 
 Migrations are infrastructure lifecycle tools responsible for evolving the MongoDB schema over time.
 
@@ -304,7 +309,7 @@ They are NOT part of domain, application, or repository logic.
 
 ---
 
-## 5.8.2 Responsibilities
+#### 5.7.2 Responsibilities
 
 Migrations are responsible for:
 
@@ -315,7 +320,7 @@ Migrations are responsible for:
 
 ---
 
-## 5.8.3 Execution Context
+#### 5.7.3 Execution Context
 
 Migrations:
 
@@ -325,7 +330,7 @@ Migrations:
 
 ---
 
-## 5.8.4 Storage
+#### 5.7.4 Storage
 
 Migration state is stored in:
 
@@ -339,7 +344,7 @@ Each entry tracks:
 
 ---
 
-## 5.8.5 Critical Rule
+#### 5.7.5 Critical Rule
 
 Migrations MUST NOT:
 
@@ -349,7 +354,7 @@ Migrations MUST NOT:
 
 ---
 
-## 5.9 SCHEMA MIGRATION BOUNDARY
+#### 5.7.6 Schema Migration Boundary
 
 - schema evolution is handled via migrations system
 - migrations are executed at bootstrap phase
@@ -358,22 +363,22 @@ Migrations MUST NOT:
 
 ---
 
-# 5.10 QUERY SYSTEM (NEW)
+### 5.8 QUERY SYSTEM
 
-## 5.10.1 Purpose
+#### 5.8.1 Purpose
 
 Provides a generic query abstraction for repository read operations.
 
 Includes:
 
-- filtering
+- filtering (DSL-based operators)
 - sorting
 - pagination
 - include (future)
 
 ---
 
-## 5.10.2 Query Model
+#### 5.8.2 Query Model
 
 Repositories accept a `QueryOptions<TFilter>` object.
 
@@ -386,28 +391,45 @@ This object MAY include:
 
 ---
 
-## 5.10.3 Filter Model
+#### 5.8.3 Filter Model (DSL)
 
-Filters are expressed using a typed DSL:
+**IMPORTANT: Query semantics are NOT defined in this module.**
 
-- eq
-- contains / startsWith / endsWith
-- in
-- includes / includesSome
-- gt / gte / lt / lte
+This layer only TRANSLATES the Query DSL into database queries.
+
+All filter/sort/pagination semantics are defined in:
+
+> **Query DSL Contract v1.0.0**
+
+Rules:
+
+- filter operators (eq, contains, gt, lte, etc.) are defined in Query DSL Contract v1.0.0
+- sort semantics are defined in Query DSL Contract v1.0.0
+- pagination semantics are defined in Query DSL Contract v1.0.0
+- this module ONLY implements translation to MongoDB query operators
+
+Supported translation targets:
+
+- Equality → `$eq`
+- String ops → regex / collation strategies
+- Array ops → `$in`, `$all`
+- Numeric ops → `$gt`, `$gte`, `$lt`, `$lte`
 
 ---
 
-## 5.10.4 Translation Layer
+#### 5.8.4 Translation Layer
 
 A `MongoQueryTranslator` is responsible for:
 
-- converting filter DSL into Mongo queries
+- converting Query DSL → MongoDB queries
 - ensuring compatibility with Mongo operators
+- normalizing CSV-based operators into arrays
+- applying numeric coercion rules
+- mapping DSL semantics to persistence-specific constructs
 
 ---
 
-## 5.10.5 Defensive Behavior (CRITICAL)
+#### 5.8.5 Defensive Behavior (CRITICAL)
 
 Persistence layer MUST tolerate malformed or partial filter conditions.
 
@@ -421,32 +443,35 @@ This ensures robustness against imperfect upstream input.
 
 ---
 
-## 5.10.6 Responsibility Boundary
+#### 5.8.6 Responsibility Boundary
 
-- Query DSL definition → shared/domain
-- Query translation → persistence layer
-- Input validation → API/Validation layer
+| Concern           | Layer                       |
+| ----------------- | --------------------------- |
+| Query semantics   | Query DSL Contract v1.0.0   |
+| Query parsing     | API / Validation layer      |
+| Query translation | Persistence layer           |
+| Query execution   | Persistence layer (MongoDB) |
 
 ---
 
-### 5.10.7 Invalid Input Handling (NEW)
+#### 5.8.7 Invalid Input Handling
 
 Persistence layer MUST differentiate between:
 
-- technically empty conditions (e.g. undefined, empty operator objects)
-- structurally invalid input (e.g. null values, invalid operator combinations)
+- empty conditions (undefined, empty objects)
+- invalid conditions (null values, malformed operators)
 
 Rules:
 
 - empty conditions MUST be ignored
 - invalid conditions MUST NOT crash execution
-- invalid conditions SHOULD be ignored OR logged (non-blocking)
+- invalid conditions SHOULD be ignored or logged (non-blocking)
 
 Persistence MUST NOT enforce validation rules.
 
 ---
 
-# 6. SERIALIZATION CONTRACT
+## 6. SERIALIZATION CONTRACT
 
 Domain objects MUST NOT be responsible for persistence serialization.
 
@@ -460,7 +485,7 @@ MUST be handled by dedicated mapper modules.
 
 ---
 
-## 6.1 Mapper responsibilities
+### 6.1 Mapper responsibilities
 
 Mappers MUST:
 
@@ -471,7 +496,7 @@ Mappers MUST:
 
 ---
 
-## 6.2 Example
+### 6.2 Example
 
 Plant domain conversion is handled via:
 
@@ -482,7 +507,7 @@ Plant domain conversion is handled via:
 
 ---
 
-## 6.3 Forbidden patterns
+### 6.3 Forbidden patterns
 
 - domain methods that serialize themselves
 - persistence logic inside aggregates
@@ -490,11 +515,11 @@ Plant domain conversion is handled via:
 
 ---
 
-## 6.4 Event Mapping
+### 6.4 Event Mapping
 
 Persistence layer includes **EventDocument ↔ DomainEvent mapping**.
 
-### Rules
+#### Rules
 
 - MUST use dedicated mapper (`EventMapper`)
 - MUST NOT perform inline transformation in repositories
@@ -502,9 +527,7 @@ Persistence layer includes **EventDocument ↔ DomainEvent mapping**.
 
 ---
 
-### EventDocument Contract
-
-Persistence defines a **typed union**:
+#### EventDocument Contract
 
 ```ts
 type EventDocument =
@@ -518,7 +541,7 @@ type EventDocument =
 
 ---
 
-### Critical Rule
+#### Critical Rule
 
 Persistence MUST:
 
@@ -528,9 +551,9 @@ Persistence MUST:
 
 ---
 
-# 7. INVARIANTS
+## 7. INVARIANTS
 
-## 7.1 Persistence invariants
+### 7.1 Persistence invariants
 
 - stored data MUST always be valid domain-compatible structure
 - partial updates MUST NOT break structural integrity
@@ -539,7 +562,7 @@ Persistence MUST:
 
 ---
 
-## 7.2 Patch invariants
+### 7.2 Patch invariants
 
 - patch application is deterministic
 - order of operations must not change result
@@ -547,9 +570,9 @@ Persistence MUST:
 
 ---
 
-# 8. CURRENT IMPLEMENTATION STATUS
+## 8. CURRENT IMPLEMENTATION STATUS
 
-## Implemented
+### Implemented
 
 - MongoCrudRepository abstraction
 - MongoRepository abstraction
@@ -558,10 +581,11 @@ Persistence MUST:
 - diffObjects + applyPatch system
 - updateWithDiff pipeline
 - PlantDtoMapper
+- Query DSL + parser support (GenericQueryParser, QueryParserUtils)
 
 ---
 
-## Partial
+### Partial
 
 - strict typing of DeepPartial<T>
 - elimination of unsafe casts in repository layer
@@ -569,7 +593,7 @@ Persistence MUST:
 
 ---
 
-## Pending
+### Pending
 
 - removal of all `as unknown` usage in persistence layer
 - removal of `Record<string, unknown>` leakage
@@ -579,7 +603,7 @@ Persistence MUST:
 
 ---
 
-# 9. ANTI-PATTERNS
+## 9. ANTI-PATTERNS
 
 The following are forbidden in this module:
 
@@ -589,21 +613,23 @@ The following are forbidden in this module:
 - untyped patch merges
 - uncontrolled partial updates
 - leaking HTTP or API concerns
+- enforcing validation rules in query handling layer
 
 ---
 
-# 10. EVOLUTION RULES
+## 10. EVOLUTION RULES
 
 This module evolves under strict rules:
 
 - patch system changes require explicit version bump
+- query DSL changes require explicit version bump
 - null/undefined semantics MUST NOT change silently
 - repository contract changes MUST be backward compatible or versioned
 - mapping rules MUST remain deterministic
 
 ---
 
-# 11. RELATION TO DOMAIN
+## 11. RELATION TO DOMAIN
 
 This module depends on:
 
@@ -616,7 +642,7 @@ But:
 
 ---
 
-# 12. FINAL NOTE
+## 12. FINAL NOTE
 
 This module exists to isolate persistence complexity.
 
@@ -624,4 +650,5 @@ It enforces strict separation between:
 
 - data access (repository)
 - transformation (mapper)
+- query translation (read model)
 - business rules (application/domain)
