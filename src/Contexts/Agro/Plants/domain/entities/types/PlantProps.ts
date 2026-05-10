@@ -17,7 +17,7 @@ export type PlantProps = {
       aliases?: string[];
     };
     scientificName?: string;
-    familyId: string;
+    family: string;
   };
 
   traits: {

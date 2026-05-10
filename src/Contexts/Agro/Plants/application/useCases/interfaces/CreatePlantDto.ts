@@ -12,7 +12,7 @@ export interface CreatePlantDto {
       aliases?: string[];
     };
     scientificName?: string;
-    familyId: string;
+    family: string;
   };
 
   traits: {

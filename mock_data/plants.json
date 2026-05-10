@@ -7,7 +7,7 @@
         "primary": "Caléndula",
         "aliases": ["Maravilla"]
       },
-      "familyId": "fam_asteraceae",
+      "family": "fam_asteraceae",
       "scientificName": "Calendula officinalis"
     },
 

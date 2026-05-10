@@ -13,7 +13,7 @@ const buildPlant = () => {
     id: UuidMother.random(),
     identity: {
       name: { primary: 'Tomato' },
-      familyId: 'solanaceae'
+      family: 'solanaceae'
     },
     traits: {
       lifecycle: PlantLifecycle.from('annual'),
@@ -52,7 +52,7 @@ describe('Plant (aggregate root)', () => {
     const plant = buildPlant();
 
     expect(plant.identity.name.primary).toBe('Tomato');
-    expect(plant.identity.familyId).toBe('solanaceae');
+    expect(plant.identity.family).toBe('solanaceae');
   });
 
   it('should expose traits correctly', () => {
@@ -74,7 +74,7 @@ describe('Plant (aggregate root)', () => {
       id: UuidMother.random(),
       identity: {
         name: { primary: 'Tomato' },
-        familyId: 'solanaceae'
+        family: 'solanaceae'
       },
       traits: {
         lifecycle: PlantLifecycle.from('annual'),
@@ -126,7 +126,7 @@ describe('Plant (aggregate root)', () => {
       id: UuidMother.random(),
       identity: {
         name: { primary: 'Tomato' },
-        familyId: 'solanaceae'
+        family: 'solanaceae'
       },
       traits: {
         lifecycle: PlantLifecycle.from('annual'),
@@ -165,7 +165,7 @@ describe('Plant (aggregate root)', () => {
           id: UuidMother.random(),
           identity: {
             name: { primary: 'Tomato' },
-            familyId: 'solanaceae'
+            family: 'solanaceae'
           },
           traits: {
             lifecycle: PlantLifecycle.from('annual'),
@@ -199,7 +199,7 @@ describe('Plant (aggregate root)', () => {
         id: UuidMother.random(),
         identity: {
           name: { primary: 'Tomato' },
-          familyId: 'solanaceae'
+          family: 'solanaceae'
         },
         traits: {
           lifecycle: PlantLifecycle.from('annual'),

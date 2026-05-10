@@ -18,12 +18,12 @@ export class CreatePlant {
       throw createError.conflict(`Plant already exists: ${dto.id}`);
     }
     const familyExists = await this.familyRepository.exists(
-      dto.identity.familyId
+      dto.identity.family
     );
 
     if (!familyExists) {
       throw createError.badRequest(
-        `Family with id ${dto.identity.familyId} does not exist`
+        `Family with id ${dto.identity.family} does not exist`
       );
     }
 

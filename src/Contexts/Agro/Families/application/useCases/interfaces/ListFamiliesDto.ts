@@ -1,6 +1,6 @@
-import type { QueryOptions } from '../../../../../shared/domain/query/interfaces/QueryOptions.js';
+import type { QueryOptions } from '../../../../../../shared/domain/query/interfaces/QueryOptions.js';
 import type { FamilyFilter } from '../../../domain/types/FamilyFilter.js';
 
 export interface ListFamiliesDto {
-  query?: Partial<QueryOptions<FamilyFilter>>;
+  query?: QueryOptions<FamilyFilter>;
 }

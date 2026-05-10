@@ -1,4 +1,4 @@
-import type { DeepPartial } from '../../../../shared/domain/patch/DeepPartial.js';
+import type { DeepPartial } from '../../../../shared/domain/patch/interfaces/DeepPartial.js';
 import {
   MonthSet,
   Range

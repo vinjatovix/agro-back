@@ -1,4 +1,4 @@
-import type { DeepPartial } from '../../../../shared/domain/patch/DeepPartial.js';
+import type { DeepPartial } from '../../../../shared/domain/patch/interfaces/DeepPartial.js';
 import { MonthSet } from '../../../../shared/domain/value-objects/MonthSet.js';
 import { Range } from '../../../../shared/domain/value-objects/Range.js';
 import { Metadata } from '../../../shared/domain/valueObject/Metadata.js';
@@ -86,8 +86,8 @@ function mapIdentity(
     ...(identity?.scientificName !== undefined && {
       scientificName: identity.scientificName
     }),
-    ...(identity?.familyId && {
-      familyId: identity.familyId
+    ...(identity?.family && {
+      family: identity.family
     })
   };
 }

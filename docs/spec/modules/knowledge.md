@@ -176,7 +176,7 @@ Families are part of the Knowledge System because they are **global taxonomic re
 
 - Family is a READ-ONLY dataset
 - Family does NOT evolve via domain logic
-- Family is referenced by Plant.familyId
+- Family is referenced by Plant.family
 - Family has no behavior or lifecycle
 - Family is globally consistent across the system
 - Family is NOT part of Plant aggregate
@@ -223,7 +223,7 @@ plant.knowledgeRefs = {
 And taxonomy:
 
 ```ts
-plant.identity.familyId → Knowledge.Family.id
+plant.identity.family → Knowledge.Family.id
 ```
 
 No embedded knowledge objects allowed.

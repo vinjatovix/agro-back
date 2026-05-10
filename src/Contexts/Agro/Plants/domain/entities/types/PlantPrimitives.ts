@@ -15,7 +15,7 @@ export type PlantPrimitives = {
       aliases?: string[];
     };
     scientificName?: string;
-    familyId: string;
+    family: string;
   };
 
   traits: {

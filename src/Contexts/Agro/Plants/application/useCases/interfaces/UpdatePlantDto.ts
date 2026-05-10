@@ -9,7 +9,7 @@ export interface UpdatePlantDto {
       aliases?: string[];
     };
     scientificName?: string | null;
-    familyId?: string;
+    family?: string;
   };
 
   traits?: {

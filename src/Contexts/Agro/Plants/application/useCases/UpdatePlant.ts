@@ -22,14 +22,14 @@ export class UpdatePlant {
       throw createError.notFound(`Plant not found: ${input.id}`);
     }
 
-    if (input.identity?.familyId) {
+    if (input.identity?.family) {
       const familyExists = await this.familyRepository.exists(
-        input.identity.familyId
+        input.identity.family
       );
 
       if (!familyExists) {
         throw createError.badRequest(
-          `Family with id ${input.identity.familyId} does not exist`
+          `Family with id ${input.identity.family} does not exist`
         );
       }
     }

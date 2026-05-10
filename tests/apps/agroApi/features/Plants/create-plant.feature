@@ -17,7 +17,7 @@ Feature: Create a new plant
       {
         "message": "Validation error",
         "errors": {
-          "identity.familyId": "Invalid value at body. Value: undefined",
+          "identity.family": "Invalid value at body. Value: undefined",
           "identity.name.primary": "Invalid value at body. Value: undefined",
           "phenology.flowering.months": "Invalid value at body. Value: undefined",
           "phenology.harvest.months": "Invalid value at body. Value: undefined",
@@ -46,7 +46,7 @@ Feature: Create a new plant
           "name": {
             "primary": "Tomato"
           },
-          "familyId": "f4529c3f-c474-4386-ac48-ce769f1c86ea"
+          "family": "f4529c3f-c474-4386-ac48-ce769f1c86ea"
         },
         "traits": {
           "lifecycle": "annual",
@@ -128,7 +128,7 @@ Feature: Create a new plant
           "name": {
             "primary": "Tomato"
           },
-          "familyId": "{familyId}"
+          "family": "{family}"
         },
         "traits": {
           "lifecycle": "annual",
@@ -204,7 +204,7 @@ Feature: Create a new plant
               "Maravilla"
             ]
           },
-          "familyId": "{familyId}",
+          "family": "{family}",
           "scientificName": "Calendula officinalis"
         },
         "traits": {
@@ -414,7 +414,7 @@ Feature: Create a new plant
           "name": {
             "primary": "Tomato"
           },
-          "familyId": "ff8e78aa-8410-40bb-ad9f-c48110ffe59a"
+          "family": "ff8e78aa-8410-40bb-ad9f-c48110ffe59a"
         },
         "traits": {
           "lifecycle": "annual",
@@ -515,7 +515,7 @@ Feature: Create a new plant
           "name": {
             "primary": "Tomato"
           },
-          "familyId": "{familyId}"
+          "family": "{family}"
         },
         "traits": {
           "lifecycle": "annual",
@@ -588,7 +588,7 @@ Feature: Create a new plant
           "name": {
             "primary": "Test"
           },
-          "familyId": "{familyId}"
+          "family": "{family}"
         },
         "traits": {
           "lifecycle": "annual",
@@ -661,7 +661,7 @@ Feature: Create a new plant
           "name": {
             "primary": "Test"
           },
-          "familyId": "{familyId}"
+          "family": "{family}"
         },
         "traits": {
           "lifecycle": "annual",

@@ -177,7 +177,7 @@ describe('UpdatePlant use case', () => {
       'user-1'
     );
   });
-  it('should update familyId when provided', async () => {
+  it('should update family when provided', async () => {
     const plant = PlantFactory.random();
     const current = plantDomainMapper.toPrimitives(plant);
     const family = FamilyScenarios.domainBase();
@@ -189,7 +189,7 @@ describe('UpdatePlant use case', () => {
       {
         id: plant.id.value,
         identity: {
-          familyId: family.id.value
+          family: family.id.value
         }
       },
       'user-1'
@@ -200,29 +200,29 @@ describe('UpdatePlant use case', () => {
       expect.objectContaining({
         ...plantDomainMapper.toPrimitives(plant),
         identity: expect.objectContaining({
-          familyId: family.id.value
+          family: family.id.value
         }) as Partial<PlantPrimitives>['identity']
       }) as Partial<PlantPrimitives>,
       'user-1'
     );
   });
 
-  it('should throw if trying to update to non existing familyId', async () => {
+  it('should throw if trying to update to non existing family', async () => {
     const plant = PlantFactory.random();
 
     repository.addToStorage(plant);
-    const familyId = random.uuid();
+    const family = random.uuid();
 
     await expect(
       useCase.execute(
         {
           id: plant.id.value,
           identity: {
-            familyId
+            family
           }
         },
         'user-1'
       )
-    ).rejects.toThrow(`Family with id ${familyId} does not exist`);
+    ).rejects.toThrow(`Family with id ${family} does not exist`);
   });
 });

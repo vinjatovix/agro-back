@@ -205,7 +205,7 @@ Feature: Update a plant
       """
       {
         "id": "{plantId}",
-        "familyId": "0ccd23ae-4ac5-4dbe-84b1-fc0e8dac26e3"
+        "family": "0ccd23ae-4ac5-4dbe-84b1-fc0e8dac26e3"
       }
       """
     Then the response status code should be 400

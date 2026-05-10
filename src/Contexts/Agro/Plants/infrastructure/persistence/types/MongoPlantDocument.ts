@@ -12,7 +12,7 @@ export type MongoPlantDocument = {
       primary: string;
       aliases?: string[];
     };
-    familyId: string;
+    family: string;
     scientificName?: string;
   };
 

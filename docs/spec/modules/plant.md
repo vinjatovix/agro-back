@@ -60,7 +60,7 @@ Plant is composed of 4 core subdomains:
     aliases?: string[];
   };
   scientificName?: string;
-  familyId: string;
+  family: string;
 }
 ```
 
@@ -68,7 +68,7 @@ Plant is composed of 4 core subdomains:
 
 - primary name is required semantic identifier
 - aliases are optional semantic enrichments
-- familyId links to taxonomy layer (external bounded context)
+- family links to taxonomy layer (external bounded context)
 
 ---
 

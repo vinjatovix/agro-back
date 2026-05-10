@@ -12,7 +12,7 @@ export const PlantSeeder = (httpServer: Server, token: string) => {
         id: UuidMother.random().value,
         identity: {
           name: { primary: 'Test plant' },
-          familyId: 'fam_test'
+          family: 'fam_test'
         },
         traits: {
           lifecycle: 'annual',

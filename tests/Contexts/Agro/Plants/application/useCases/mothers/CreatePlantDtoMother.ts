@@ -19,7 +19,7 @@ const base = (): CreatePlantDto => ({
     name: {
       primary: 'Tomato'
     },
-    familyId: 'solanaceae'
+    family: 'solanaceae'
   },
 
   traits: {
@@ -73,7 +73,7 @@ export class CreatePlantDtoMother {
 
       identity: {
         name: { primary: 'Lettuce' },
-        familyId: 'asteraceae'
+        family: 'asteraceae'
       },
 
       traits: {

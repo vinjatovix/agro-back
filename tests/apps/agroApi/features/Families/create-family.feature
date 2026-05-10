@@ -142,7 +142,7 @@ Feature: Create Family
     And a POST admin request to "/api/v1/families/" with body
       """
       {
-        "id": "{familyId}",
+        "id": "{family}",
         "slug": "fabaceae",
         "name": "Fabaceae",
         "scientificName": "Fabaceae",
@@ -157,7 +157,7 @@ Feature: Create Family
     And the response body should be
       """
       {
-        "message": "Family already exists: {familyId}"
+        "message": "Family already exists: {family}"
       }
       """
     And response matches OpenAPI contract

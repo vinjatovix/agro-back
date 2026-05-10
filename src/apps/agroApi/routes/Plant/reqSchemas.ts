@@ -10,7 +10,7 @@ export const createPlantReqSchema = [
   body('identity.name.primary').exists().isString(),
   body('identity.name.aliases').optional().isArray(),
   body('identity.scientificName').optional().isString(),
-  body('identity.familyId').exists().isString(),
+  body('identity.family').exists().isString(),
 
   body('traits.lifecycle').exists().isIn(['annual', 'biennial', 'perennial']),
   ...rangeSchema('traits.size.height'),
@@ -74,7 +74,7 @@ export const updatePlantReqSchema = [
   body('identity.name.aliases').optional().isArray(),
 
   body('identity.scientificName').optional().isString(),
-  body('identity.familyId').optional().isString(),
+  body('identity.family').optional().isString(),
 
   // =====================
   // TRAITS

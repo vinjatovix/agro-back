@@ -5,28 +5,28 @@ export const PlantIdentityBuilder = {
   generic(): PlantProps['identity'] {
     return {
       name: { primary: 'Generic plant' },
-      familyId: 'generic'
+      family: 'generic'
     };
   },
 
   random(): PlantProps['identity'] {
     return {
       name: { primary: random.word({ min: 3, max: 10 }) },
-      familyId: random.word({ min: 5, max: 12 })
+      family: random.word({ min: 5, max: 12 })
     };
   },
 
   tomato(): PlantProps['identity'] {
     return {
       name: { primary: 'Tomato' },
-      familyId: 'solanaceae'
+      family: 'solanaceae'
     };
   },
 
   lettuce(): PlantProps['identity'] {
     return {
       name: { primary: 'Lettuce' },
-      familyId: 'asteraceae'
+      family: 'asteraceae'
     };
   },
 
@@ -38,7 +38,7 @@ export const PlantIdentityBuilder = {
         primary: 'Plant with scientific name'
       },
       scientificName,
-      familyId: 'generic'
+      family: 'generic'
     };
   }
 };

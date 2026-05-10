@@ -19,7 +19,7 @@ describe('CreatePlant (use case)', () => {
     const family = FamilyScenarios.domainBase();
     familyRepository.addToStorage(family);
     const dto = CreatePlantDtoMother.custom({
-      'identity.familyId': family.id.value
+      'identity.family': family.id.value
     });
 
     repository.addToStorage(await useCase.execute(dto));
@@ -45,7 +45,7 @@ describe('CreatePlant (use case)', () => {
     const family = FamilyScenarios.domainBase();
     familyRepository.addToStorage(family);
     const dto = CreatePlantDtoMother.custom({
-      'identity.familyId': family.id.value
+      'identity.family': family.id.value
     });
 
     const plant = await useCase.execute(dto);
@@ -63,25 +63,25 @@ describe('CreatePlant (use case)', () => {
     const family = FamilyScenarios.domainBase();
     familyRepository.addToStorage(family);
     const dto1 = CreatePlantDtoMother.custom({
-      'identity.familyId': family.id.value
+      'identity.family': family.id.value
     });
     const dto2 = CreatePlantDtoMother.custom({
-      'identity.familyId': family.id.value
+      'identity.family': family.id.value
     });
 
     await useCase.execute(dto1);
     await useCase.execute(dto2);
 
-    const all = await repository.findAll();
+    const { data } = await repository.findAll();
 
-    expect(all).toHaveLength(2);
+    expect(data).toHaveLength(2);
   });
 
   it('should NOT include scientificName when not provided', async () => {
     const family = FamilyScenarios.domainBase();
     familyRepository.addToStorage(family);
     const dto = CreatePlantDtoMother.custom({
-      'identity.familyId': family.id.value
+      'identity.family': family.id.value
     });
     delete dto.identity.scientificName;
 
@@ -94,7 +94,7 @@ describe('CreatePlant (use case)', () => {
     const family = FamilyScenarios.domainBase();
     familyRepository.addToStorage(family);
     const dto = CreatePlantDtoMother.custom({
-      'identity.familyId': family.id.value,
+      'identity.family': family.id.value,
       'identity.scientificName': 'Solanum lycopersicum'
     });
 
@@ -102,14 +102,14 @@ describe('CreatePlant (use case)', () => {
 
     expect(plant.identity.scientificName).toBe(dto.identity.scientificName);
 
-    expect(plant.identity.familyId).toBe(dto.identity.familyId);
+    expect(plant.identity.family).toBe(dto.identity.family);
   });
 
   it('should propagate repository save errors', async () => {
     const family = FamilyScenarios.domainBase();
     familyRepository.addToStorage(family);
     const dto = CreatePlantDtoMother.custom({
-      'identity.familyId': family.id.value
+      'identity.family': family.id.value
     });
 
     repository.simulateSaveFailure();
@@ -129,7 +129,7 @@ describe('CreatePlant (use case)', () => {
     const dto = CreatePlantDtoMother.tomato();
 
     await expect(useCase.execute(dto)).rejects.toThrow(
-      `Family with id ${dto.identity.familyId} does not exist`
+      `Family with id ${dto.identity.family} does not exist`
     );
   });
 });
