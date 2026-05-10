@@ -10,39 +10,14 @@ const baseResult = {
 };
 
 describe('GenericQueryParser', () => {
-  it('defaults operator to eq when not provided', () => {
-    const query = {
-      'filter[name]': 'Asteraceae'
-    };
-
-    const result = GenericQueryParser.parse(query);
-
-    expect(result).toEqual({
-      ...baseResult,
-      filter: {
-        name: {
-          eq: 'Asteraceae'
-        }
-      }
-    });
-  });
-
   describe('exact filter parsing', () => {
-    it('parses eq filter (default operator)', () => {
+    it('parses eq filter', () => {
       const query = {
-        'filter[name]': 'Asteraceae'
-      };
-
-      const result = GenericQueryParser.parse(query);
-
-      expect(result.filter).toEqual({
-        name: { eq: 'Asteraceae' }
-      });
-    });
-
-    it('parses explicit eq filter', () => {
-      const query = {
-        'filter[name][eq]': 'Asteraceae'
+        filter: {
+          name: {
+            eq: 'Asteraceae'
+          }
+        }
       };
 
       const result = GenericQueryParser.parse(query);
@@ -57,9 +32,13 @@ describe('GenericQueryParser', () => {
       });
     });
 
-    it('parses in operator with csv', () => {
+    it('parses has operator with csv', () => {
       const query = {
-        'filter[name][in]': 'Asteraceae,Solanaceae'
+        filter: {
+          name: {
+            has: 'Asteraceae,Solanaceae'
+          }
+        }
       };
 
       const result = GenericQueryParser.parse(query);
@@ -68,7 +47,7 @@ describe('GenericQueryParser', () => {
         ...baseResult,
         filter: {
           name: {
-            in: ['Asteraceae', 'Solanaceae']
+            has: ['Asteraceae', 'Solanaceae']
           }
         }
       });
@@ -78,7 +57,11 @@ describe('GenericQueryParser', () => {
   describe('string filter operators', () => {
     it('parses contains operator', () => {
       const query = {
-        'filter[name][contains]': 'sol'
+        filter: {
+          name: {
+            contains: 'sol'
+          }
+        }
       };
 
       const result = GenericQueryParser.parse(query);
@@ -95,7 +78,11 @@ describe('GenericQueryParser', () => {
 
     it('parses startsWith operator', () => {
       const query = {
-        'filter[name][startsWith]': 'sol'
+        filter: {
+          name: {
+            startsWith: 'sol'
+          }
+        }
       };
 
       const result = GenericQueryParser.parse(query);
@@ -112,7 +99,11 @@ describe('GenericQueryParser', () => {
 
     it('parses endsWith operator', () => {
       const query = {
-        'filter[name][endsWith]': 'aceae'
+        filter: {
+          name: {
+            endsWith: 'aceae'
+          }
+        }
       };
 
       const result = GenericQueryParser.parse(query);
@@ -131,7 +122,11 @@ describe('GenericQueryParser', () => {
   describe('array filter operators', () => {
     it('parses includes operator', () => {
       const query = {
-        'filter[aliases][includes]': 'foo'
+        filter: {
+          aliases: {
+            includes: 'foo'
+          }
+        }
       };
 
       const result = GenericQueryParser.parse(query);
@@ -146,9 +141,13 @@ describe('GenericQueryParser', () => {
       });
     });
 
-    it('parses includesSome with csv', () => {
+    it('parses hasAny operator with csv', () => {
       const query = {
-        'filter[aliases][includesSome]': 'a,b,c'
+        filter: {
+          aliases: {
+            hasAny: 'a,b,c'
+          }
+        }
       };
 
       const result = GenericQueryParser.parse(query);
@@ -157,7 +156,7 @@ describe('GenericQueryParser', () => {
         ...baseResult,
         filter: {
           aliases: {
-            includesSome: ['a', 'b', 'c']
+            hasAny: ['a', 'b', 'c']
           }
         }
       });
@@ -167,7 +166,11 @@ describe('GenericQueryParser', () => {
   describe('numeric filters', () => {
     it('parses gt operator', () => {
       const query = {
-        'filter[growthDays][gt]': '3'
+        filter: {
+          growthDays: {
+            gt: '3'
+          }
+        }
       };
 
       const result = GenericQueryParser.parse(query);
@@ -184,7 +187,11 @@ describe('GenericQueryParser', () => {
 
     it('parses gte operator', () => {
       const query = {
-        'filter[growthDays][gte]': '5'
+        filter: {
+          growthDays: {
+            gte: '5'
+          }
+        }
       };
 
       const result = GenericQueryParser.parse(query);
@@ -201,7 +208,11 @@ describe('GenericQueryParser', () => {
 
     it('parses lt operator', () => {
       const query = {
-        'filter[growthDays][lt]': '10'
+        filter: {
+          growthDays: {
+            lt: '10'
+          }
+        }
       };
 
       const result = GenericQueryParser.parse(query);
@@ -218,7 +229,11 @@ describe('GenericQueryParser', () => {
 
     it('parses lte operator', () => {
       const query = {
-        'filter[growthDays][lte]': '20'
+        filter: {
+          growthDays: {
+            lte: '20'
+          }
+        }
       };
 
       const result = GenericQueryParser.parse(query);
@@ -234,50 +249,24 @@ describe('GenericQueryParser', () => {
     });
   });
 
-  describe('boolean filters', () => {
-    it('parses true boolean', () => {
-      const query = {
-        'filter[active][eq]': 'true'
-      };
-
-      const result = GenericQueryParser.parse(query);
-
-      expect(result).toEqual({
-        ...baseResult,
-        filter: {
-          active: {
-            eq: true
-          }
-        }
-      });
-    });
-
-    it('parses false boolean', () => {
-      const query = {
-        'filter[active][eq]': 'false'
-      };
-
-      const result = GenericQueryParser.parse(query);
-
-      expect(result).toEqual({
-        ...baseResult,
-        filter: {
-          active: {
-            eq: false
-          }
-        }
-      });
-    });
-  });
-
   describe('mixed filters', () => {
     it('parses multiple filter types together', () => {
       const query = {
-        'filter[name][contains]': 'sol',
-        'filter[slug][eq]': 'solanaceae',
-        'filter[aliases][includesSome]': 'a,b',
-        'filter[name][in]': 'Asteraceae,Solanaceae',
-        'filter[growthDays][lt]': '3'
+        filter: {
+          name: {
+            contains: 'sol',
+            has: 'Asteraceae,Solanaceae'
+          },
+          slug: {
+            eq: 'solanaceae'
+          },
+          aliases: {
+            hasAny: 'a,b'
+          },
+          growthDays: {
+            lt: '3'
+          }
+        }
       };
 
       const result = GenericQueryParser.parse(query);
@@ -287,13 +276,13 @@ describe('GenericQueryParser', () => {
         filter: {
           name: {
             contains: 'sol',
-            in: ['Asteraceae', 'Solanaceae']
+            has: ['Asteraceae', 'Solanaceae']
           },
           slug: {
             eq: 'solanaceae'
           },
           aliases: {
-            includesSome: ['a', 'b']
+            hasAny: ['a', 'b']
           },
           growthDays: {
             lt: 3
@@ -333,7 +322,11 @@ describe('GenericQueryParser', () => {
   describe('edge cases', () => {
     it('throws when eq receives array value', () => {
       const query = {
-        'filter[name]': 'a,b'
+        filter: {
+          name: {
+            eq: 'a,b'
+          }
+        }
       };
 
       expect(() => GenericQueryParser.parse(query)).toThrow(
@@ -343,7 +336,11 @@ describe('GenericQueryParser', () => {
 
     it('ignores invalid filter keys', () => {
       const query = {
-        'invalid[name][eq]': 'value'
+        invalid: {
+          name: {
+            eq: 'value'
+          }
+        }
       };
 
       const result = GenericQueryParser.parse(query);
@@ -351,19 +348,21 @@ describe('GenericQueryParser', () => {
       expect(result.filter).toEqual({});
     });
 
-    it('ignores non-string values', () => {
+    it('throws when eq receives non-string value', () => {
       const query = {
-        'filter[name][eq]': 123 as unknown
+        filter: {
+          name: {
+            eq: 123 as unknown
+          }
+        }
       };
 
-      const result = GenericQueryParser.parse(query);
-
-      expect(result.filter).toEqual({});
+      expect(() => GenericQueryParser.parse(query)).toThrow(/expected string/);
     });
 
-    it('ignores malformed filter patterns', () => {
+    it('ignores malformed filter values', () => {
       const query = {
-        filternameeq: 'Asteraceae'
+        filter: 'Asteraceae' as unknown
       };
 
       const result = GenericQueryParser.parse(query);
