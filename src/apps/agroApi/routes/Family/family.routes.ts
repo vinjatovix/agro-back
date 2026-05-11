@@ -7,7 +7,8 @@ import { validateReqSchema } from '../../middlewares/validateReqSchema.js';
 import { familyApiInvoker } from './familyApiInvoker.js';
 import {
   createFamilyReqSchema,
-  getFamilyBySlugReqSchema
+  getFamilyBySlugReqSchema,
+  updateFamilyReqSchema
 } from './reqSchemas.js';
 import { isAdmin } from '../../middlewares/isAdmin.js';
 
@@ -32,4 +33,14 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
   );
 
   router.get(`${prefix}/`, familyApiInvoker('getAllFamilies'));
+
+  router.patch(
+    `${prefix}/:id`,
+    auth,
+    isAdmin,
+    validateBody,
+    updateFamilyReqSchema,
+    validateReqSchema,
+    familyApiInvoker('updateFamily')
+  );
 };

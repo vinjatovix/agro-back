@@ -101,7 +101,8 @@ import {
   CreateFamily,
   GetFamilyById,
   GetFamilyBySlug,
-  ListFamilies
+  ListFamilies,
+  UpdateFamily
 } from '../../Contexts/Agro/Families/application/useCases/index.js';
 import {
   CreateFamilyController,
@@ -115,6 +116,10 @@ import { familyPersistenceMapper } from '../../Contexts/Agro/Families/mappers/fa
 import { FamilyQueryParser } from '../../Contexts/Agro/Families/application/query/FamilyQueryParser.js';
 import { PlantQueryParser } from '../../Contexts/Agro/Plants/application/query/PlantQueryParser.js';
 import { PlantQueryMapper } from '../../Contexts/Agro/Plants/infrastructure/persistence/mongo/mappers/PlantQueryMapper.js';
+import {
+  UpdateFamilyController,
+  type UpdateFamilyControllerDependencies
+} from './controllers/Families/UpdateFamilyController.js';
 
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 
@@ -163,11 +168,13 @@ type ContainerCradle = {
   getFamilyById: GetFamilyById;
   getFamilyBySlug: GetFamilyBySlug;
   listFamilies: ListFamilies;
+  updateFamily: UpdateFamily;
 
   // Family Controllers
   createFamilyController: CreateFamilyController;
   getAllFamiliesController: GetAllFamiliesController;
   getFamilyBySlugController: GetFamilyBySlugController;
+  updateFamilyController: UpdateFamilyController;
 
   // Plant Repository
   plantRepository: MongoPlantRepository;
@@ -365,6 +372,9 @@ const registerFamilyUseCases = (container: AppContainer): void => {
     ).scoped(),
     listFamilies: asFunction(
       ({ familyRepository }) => new ListFamilies(familyRepository)
+    ).scoped(),
+    updateFamily: asFunction(
+      ({ familyRepository }) => new UpdateFamily(familyRepository)
     ).scoped()
   });
 };
@@ -388,6 +398,10 @@ const registerFamilyControllers = (container: AppContainer): void => {
         familyQueryParser
       }: GetAllFamiliesControllerDependencies) =>
         new GetAllFamiliesController({ listFamilies, familyQueryParser })
+    ).scoped(),
+    updateFamilyController: asFunction(
+      ({ updateFamily }: UpdateFamilyControllerDependencies) =>
+        new UpdateFamilyController({ updateFamily })
     ).scoped()
   });
 };

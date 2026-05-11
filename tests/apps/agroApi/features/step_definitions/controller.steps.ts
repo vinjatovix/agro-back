@@ -104,7 +104,7 @@ function assertField(
 /* ---------------- WORLD ---------------- */
 
 class TestWorldImpl extends World {
-  family?: string;
+  familyId?: string;
   familySlug?: string;
   plantId?: string;
   bedId?: string;
@@ -401,20 +401,20 @@ Given('an authentication with body', async function (docString: string) {
 Given('a family exists', async function () {
   const family = await familySeeder.create();
 
-  this.family = family.id;
+  this.familyId = family.id;
   this.familySlug = family.slug;
 });
 
 Given('multiple families exist', async function () {
   const families = await familySeeder.seed();
 
-  this.family = families[0]!.id;
+  this.familyId = families[0]!.id;
   this.familySlug = families[0]!.slug;
 });
 
 Given('a plant exists', async function (this: CucumberWorld) {
   const plants = await plantSeeder.createMany(2, {
-    'identity.family': this.family
+    'identity.family': this.familyId
   });
 
   this.plantId = plants[0]!.id;
@@ -422,7 +422,7 @@ Given('a plant exists', async function (this: CucumberWorld) {
 
 Given('multiple plants exists', async function (this: CucumberWorld) {
   const plants = await plantSeeder.createMany(2, {
-    'identity.familyId': this.familyId
+    'identity.family': this.familyId
   });
 
   this.plantId = plants[0]!.id;
