@@ -37,7 +37,7 @@ export class UpdatePlant {
     const current = plantDomainMapper.toPrimitives(plant);
     const patch = plantApiMapper.fromUpdateDtoToPrimitivesPatch(input);
     const patched = applyPatch(current, patch);
-    plantApiMapper.fromCreateDto(patched, user);
+    plantDomainMapper.fromPrimitives(patched);
 
     await this.plantRepository.updateWithDiff(current, patched, user);
 
