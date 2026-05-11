@@ -91,22 +91,35 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function isPrimitiveValid(type: string | undefined, value: unknown): boolean {
+function isPrimitiveValid(
+  schema: OpenAPIV3.SchemaObject,
+  value: unknown
+): boolean {
   if (value === null || value === undefined) {
     return false;
   }
-  switch (type) {
+
+  if (schema.enum && !schema.enum.includes(value)) {
+    return false;
+  }
+
+  switch (schema.type) {
     case 'string':
       return typeof value === 'string';
+
     case 'number':
       return typeof value === 'number';
+
+    case 'integer':
+      return Number.isInteger(value);
+
     case 'boolean':
       return typeof value === 'boolean';
+
     default:
       return true;
   }
 }
-
 /**
  * =========================
  * VALIDATION CORE
@@ -114,8 +127,12 @@ function isPrimitiveValid(type: string | undefined, value: unknown): boolean {
  */
 
 function validateShape(body: unknown, schema: OpenAPIV3.SchemaObject): boolean {
-  if (body === null || body === undefined) {
-    return Boolean(schema.nullable) || !schema.required?.length;
+  if (body === null) {
+    return Boolean(schema.nullable);
+  }
+
+  if (body === undefined) {
+    return false;
   }
 
   return validateBySchemaType(body, schema);
@@ -133,7 +150,7 @@ function validateBySchemaType(
       return validateObject(body, schema);
 
     default:
-      return isPrimitiveValid(schema.type, body);
+      return isPrimitiveValid(schema, body);
   }
 }
 
@@ -168,6 +185,17 @@ function validateObject(
 
   if (!validateRequiredFields(obj, schema.required)) {
     return false;
+  }
+
+  // additionalProperties: false
+  if (schema.additionalProperties === false) {
+    const allowedKeys = Object.keys(props);
+
+    for (const key of Object.keys(obj)) {
+      if (!allowedKeys.includes(key)) {
+        return false;
+      }
+    }
   }
 
   for (const [key, prop] of Object.entries(props)) {
@@ -206,19 +234,15 @@ function validateObjectField(
   schema: OpenAPIV3.SchemaObject,
   isRequired: boolean
 ): boolean {
-  if (value === undefined && !isRequired) {
-    return true;
+  if (value === undefined) {
+    return !isRequired;
   }
 
-  if (value === null && Boolean(schema.nullable)) {
-    return true;
+  if (value === null) {
+    return Boolean(schema.nullable);
   }
 
-  if (schema.type === 'object' || schema.type === 'array') {
-    return validateShape(value, schema);
-  }
-
-  return isPrimitiveValid(schema.type, value);
+  return validateShape(value, schema);
 }
 
 /**
