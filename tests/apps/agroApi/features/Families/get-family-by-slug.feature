@@ -8,7 +8,7 @@ Feature: Get Family By Slug
     And the response body should contain
       """
       {
-        "id": "{family}",
+        "id": "{familyId}",
         "slug": "{familySlug}"
       }
       """
@@ -16,12 +16,12 @@ Feature: Get Family By Slug
 
   Scenario: Get family by id successfully
     Given a family exists
-    When I send a GET request to "/api/v1/families/{family}"
+    When I send a GET request to "/api/v1/families/{familyId}"
     Then the response status code should be 200
     And the response body should contain
       """
       {
-        "id": "{family}",
+        "id": "{familyId}",
         "slug": "{familySlug}"
       }
       """

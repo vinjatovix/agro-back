@@ -1,5 +1,4 @@
-import { Metadata } from '../../../shared/domain/valueObject/Metadata.js';
-import { Uuid } from '../../../shared/domain/valueObject/Uuid.js';
+import { Metadata, Uuid } from '../../../shared/domain/valueObject/index.js';
 import { Family } from '../domain/entities/Family.js';
 import type { FamilyApiMapper } from './interfaces/FamilyApiMapper.js';
 
@@ -18,19 +17,20 @@ export const familyApiMapper: FamilyApiMapper = {
     });
   },
 
-  fromUpdateDtoToPrimitivesPatch(dto) {
+  fromUpdateInputToPrimitivesPatch(input) {
     return {
-      ...(dto.slug !== undefined && { slug: dto.slug }),
-      ...(dto.name !== undefined && { name: dto.name }),
-      ...(dto.aliases !== undefined && { aliases: dto.aliases }),
-      ...(dto.scientificName !== undefined && {
-        scientificName: dto.scientificName
+      id: new Uuid(input.id).value,
+      ...(input.slug !== undefined && { slug: input.slug }),
+      ...(input.name !== undefined && { name: input.name }),
+      ...(input.aliases !== undefined && { aliases: input.aliases }),
+      ...(input.scientificName !== undefined && {
+        scientificName: input.scientificName
       }),
-      ...(dto.shortDescription !== undefined && {
-        shortDescription: dto.shortDescription
+      ...(input.shortDescription !== undefined && {
+        shortDescription: input.shortDescription
       }),
-      ...(dto.highlights !== undefined && { highlights: dto.highlights }),
-      ...(dto.extra !== undefined && { extra: dto.extra })
+      ...(input.highlights !== undefined && { highlights: input.highlights }),
+      ...(input.extra !== undefined && { extra: input.extra })
     };
   }
 };

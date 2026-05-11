@@ -283,6 +283,39 @@ paths:
         '404':
           $ref: '#/components/responses/NotFoundError'
 
+    patch:
+      tags: [Families]
+      summary: Update family
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateFamily'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Family'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
   /api/v1/plants:
     get:
       tags: [Plants]
@@ -813,6 +846,38 @@ components:
               minimum: 0
           additionalProperties: false
 
+    UpdateFamily:
+      type: object
+      properties:
+        slug:
+          type: string
+        name:
+          type: string
+        scientificName:
+          type: string
+        shortDescription:
+          type: string
+        highlights:
+          type: array
+          items:
+            type: string
+        aliases:
+          type: array
+          items:
+            type: string
+          nullable: true
+        extra:
+          type: object
+          nullable: true
+          properties:
+            order:
+              type: string
+            distribution:
+              type: string
+            speciesCount:
+              type: integer
+              minimum: 0
+          additionalProperties: false
     # ================= PLANT =================
 
     Plant:

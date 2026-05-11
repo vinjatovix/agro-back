@@ -128,7 +128,7 @@ Feature: Create a new plant
           "name": {
             "primary": "Tomato"
           },
-          "family": "{family}"
+          "family": "{familyId}"
         },
         "traits": {
           "lifecycle": "annual",
@@ -204,7 +204,7 @@ Feature: Create a new plant
               "Maravilla"
             ]
           },
-          "family": "{family}",
+          "family": "{familyId}",
           "scientificName": "Calendula officinalis"
         },
         "traits": {
@@ -515,7 +515,7 @@ Feature: Create a new plant
           "name": {
             "primary": "Tomato"
           },
-          "family": "{family}"
+          "family": "{familyId}"
         },
         "traits": {
           "lifecycle": "annual",
@@ -588,7 +588,7 @@ Feature: Create a new plant
           "name": {
             "primary": "Test"
           },
-          "family": "{family}"
+          "family": "{familyId}"
         },
         "traits": {
           "lifecycle": "annual",
@@ -661,7 +661,7 @@ Feature: Create a new plant
           "name": {
             "primary": "Test"
           },
-          "family": "{family}"
+          "family": "{familyId}"
         },
         "traits": {
           "lifecycle": "annual",

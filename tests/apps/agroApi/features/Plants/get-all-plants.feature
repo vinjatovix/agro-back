@@ -21,11 +21,11 @@ Feature: Get All Plants
   Scenario: Filter plants by family
     Given multiple families exist
     And a plant exists
-    When I send a GET request to "/api/v1/plants?filter[family][eq]={family}"
+    When I send a GET request to "/api/v1/plants?filter[family][eq]={familyId}"
     Then the response status code should be 200
     And every item should match:
       | field           | operator | value    |
-      | identity.family | eq       | {family} |
+      | identity.family | eq       | {familyId} |
     And response matches OpenAPI contract
 
   Scenario: Filter plants by lifecycle
