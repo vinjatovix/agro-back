@@ -65,14 +65,14 @@ export class RegisterUserLocal {
   private async ensureIdDoesNotExist(id: string): Promise<void> {
     const storedUser = await this.repository.findByQuery({ id });
     if (storedUser.length > 0) {
-      throw createError.conflict(`User with id <${id}> already exists`);
+      throw createError.conflict(`User with id ${id} already exists`);
     }
   }
 
   private async ensureUserDoesNotExist(email: string): Promise<void> {
     const storedUser = await this.repository.search(email);
     if (storedUser) {
-      throw createError.badRequest(`User <${email}> already exists`);
+      throw createError.badRequest(`User ${email} already exists`);
     }
   }
 

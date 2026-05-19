@@ -7,10 +7,10 @@ Feature: Update a plant
   Scenario: Update a plant with a partial field
     Given a family exists
     And a plant exists
-    When I send a PATCH admin request to "/api/v1/plants/{plantId}" with body
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "{plantId}",
+        "id": "<plantId>",
         "identity": {
           "name": {
             "primary": "Updated Tomato"
@@ -34,10 +34,10 @@ Feature: Update a plant
   Scenario: Update nested range field
     Given a family exists
     And a plant exists
-    When I send a PATCH admin request to "/api/v1/plants/{plantId}" with body
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "{plantId}",
+        "id": "<plantId>",
         "traits": {
           "spacingCm": {
             "min": 20,
@@ -77,10 +77,10 @@ Feature: Update a plant
   Scenario: Fail to update with unknown field
     Given a family exists
     And a plant exists
-    When I send a PATCH admin request to "/api/v1/plants/{plantId}" with body
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "{plantId}",
+        "id": "<plantId>",
         "unknownField": "boom"
       }
       """
@@ -105,10 +105,10 @@ Feature: Update a plant
   Scenario: Fail to update with invalid range values
     Given a family exists
     Given a plant exists
-    When I send a PATCH admin request to "/api/v1/plants/{plantId}" with body
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "{plantId}",
+        "id": "<plantId>",
         "traits": {
           "size": {
             "height": {
@@ -131,10 +131,10 @@ Feature: Update a plant
   Scenario: Fail to update with invalid months
     Given a family exists
     Given a plant exists
-    When I send a PATCH admin request to "/api/v1/plants/{plantId}" with body
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "{plantId}",
+        "id": "<plantId>",
         "phenology": {
           "sowing": {
             "months": [
@@ -157,10 +157,10 @@ Feature: Update a plant
   Scenario: Fail to update a plant without authentication
     Given a family exists
     Given a plant exists
-    When I send a PATCH request to "/api/v1/plants/{plantId}" with body
+    When I send a PATCH request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "{plantId}",
+        "id": "<plantId>",
         "identity": {
           "name": {
             "primary": "Test"
@@ -174,10 +174,10 @@ Feature: Update a plant
   Scenario: Fail to update a plant with invalid role
     Given a family exists
     Given a plant exists
-    When I send a PATCH user request to "/api/v1/plants/{plantId}" with body
+    When I send a PATCH user request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "{plantId}",
+        "id": "<plantId>",
         "identity": {
           "name": {
             "primary": "Test"
@@ -191,7 +191,7 @@ Feature: Update a plant
   Scenario: Fail to update with empty body
     Given a family exists
     Given a plant exists
-    When I send a PATCH admin request to "/api/v1/plants/{plantId}" with body
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {}
       """
@@ -201,10 +201,10 @@ Feature: Update a plant
   Scenario: Fail to update with an unexistent family
     Given a family exists
     And a plant exists
-    When I send a PATCH admin request to "/api/v1/plants/{plantId}" with body
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "{plantId}",
+        "id": "<plantId>",
         "family": "0ccd23ae-4ac5-4dbe-84b1-fc0e8dac26e3"
       }
       """

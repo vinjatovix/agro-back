@@ -1,11 +1,13 @@
 import { isPrimitive } from '../../../../../../src/shared/domain/utils/isPrimitive.js';
 
+const INTERPOLATION_REGEX = /<([^<>]+)>/g;
+
 const interpolate = <T extends Record<string, unknown>>(
   input: unknown,
   world: T
 ): unknown => {
   if (typeof input === 'string') {
-    return input.replaceAll(/{([^{}]+)}/g, (_, key: string) => {
+    return input.replaceAll(INTERPOLATION_REGEX, (_, key: string) => {
       const value = world[key];
 
       if (value === undefined || value === null) {
@@ -42,7 +44,7 @@ export const interpolateRoute = <T extends Record<string, unknown>>(
   route: string,
   world: T
 ): string =>
-  route.replaceAll(/{([^{}]+)}/g, (_, key: string) => {
+  route.replaceAll(INTERPOLATION_REGEX, (_, key: string) => {
     const value = world[key];
 
     if (value === undefined || value === null) {

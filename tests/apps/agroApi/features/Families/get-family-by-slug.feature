@@ -3,26 +3,26 @@ Feature: Get Family By Slug
 
   Scenario: Get family by slug successfully
     Given a family exists
-    When I send a GET request to "/api/v1/families/{familySlug}"
+    When I send a GET request to "/api/v1/families/<familySlug>"
     Then the response status code should be 200
     And the response body should contain
       """
       {
-        "id": "{familyId}",
-        "slug": "{familySlug}"
+        "id": "<familyId>",
+        "slug": "<familySlug>"
       }
       """
     And response matches OpenAPI contract
 
   Scenario: Get family by id successfully
     Given a family exists
-    When I send a GET request to "/api/v1/families/{familyId}"
+    When I send a GET request to "/api/v1/families/<familyId>"
     Then the response status code should be 200
     And the response body should contain
       """
       {
-        "id": "{familyId}",
-        "slug": "{familySlug}"
+        "id": "<familyId>",
+        "slug": "<familySlug>"
       }
       """
     And response matches OpenAPI contract

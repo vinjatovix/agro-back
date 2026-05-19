@@ -142,7 +142,7 @@ Feature: Create Family
     And a POST admin request to "/api/v1/families/" with body
       """
       {
-        "id": "{familyId}",
+        "id": "<familyId>",
         "slug": "fabaceae",
         "name": "Fabaceae",
         "scientificName": "Fabaceae",
@@ -157,7 +157,7 @@ Feature: Create Family
     And the response body should be
       """
       {
-        "message": "Family already exists: {familyId}"
+        "message": "Family already exists: <familyId>"
       }
       """
     And response matches OpenAPI contract
@@ -168,7 +168,7 @@ Feature: Create Family
       """
       {
         "id": "d4c5835e-1b90-4fdc-9a7d-664ca4308dda",
-        "slug": "{familySlug}",
+        "slug": "<familySlug>",
         "name": "Fabaceae",
         "aliases": [
           "legume-family"
@@ -185,7 +185,7 @@ Feature: Create Family
     And the response body should be
       """
       {
-        "message": "Duplicate document with {\"slug\":\"{familySlug}\"}"
+        "message": "Duplicate document with {\"slug\":\"<familySlug>\"}"
       }
       """
     And response matches OpenAPI contract

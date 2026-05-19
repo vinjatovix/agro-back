@@ -11,7 +11,7 @@ Feature: GetBed
         And the response body should contain
             """
             {
-                "id": "{bedId}",
+                "id": "<bedId>",
                 "plantInstances": []
             }
             """
@@ -30,19 +30,19 @@ Feature: GetBed
 
     Scenario: Cannot get a non owned bed
         Given a bed exists for another user
-        When I send a GET user request to "/api/v1/beds/{bedId}"
+        When I send a GET user request to "/api/v1/beds/<bedId>"
         Then the response status code should be 403
         Then the response body should be
             """
             {
-                "message": "You do not have access to this bed: {bedId}"
+                "message": "You do not have access to this bed: <bedId>"
             }
             """
         And response matches OpenAPI contract
 
     Scenario: Get bed without authentication
         Given a bed exists
-        When I send a GET request to "/api/v1/beds/{bedId}"
+        When I send a GET request to "/api/v1/beds/<bedId>"
         Then the response status code should be 401
         Then the response body should be
             """
