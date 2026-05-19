@@ -189,3 +189,53 @@ Feature: Create Family
       }
       """
     And response matches OpenAPI contract
+
+  Scenario: Unknown extra fields returns validation error
+    Given a POST admin request to "/api/v1/families/" with body
+      """
+      {
+        "id": "c2c5835e-1b90-4fdc-9a7d-664ca4308dda",
+        "slug": "rosaceae",
+        "name": "Rosaceae",
+        "scientificName": "Rosaceae",
+        "shortDescription": "Family of flowering plants",
+        "highlights": [
+          "flowers",
+          "fruits"
+        ],
+        "extra": {
+          "order": "Rosales",
+          "invalidField": "should fail"
+        }
+      }
+      """
+    Then the response status code should be 400
+    And the response body should be
+      """
+      {
+        "message": "Validation error",
+        "errors": {
+          "extra": "Unknown fields at body. Value: {\"order\":\"Rosales\",\"invalidField\":\"should fail\"}"
+        }
+      }
+      """
+    And response matches OpenAPI contract
+
+  Scenario: extra cannot be null on create
+    Given a POST admin request to "/api/v1/families/" with body
+      """
+      {
+        "id": "d1c5835e-1b90-4fdc-9a7d-664ca4308dda",
+        "slug": "rosaceae",
+        "name": "Rosaceae",
+        "scientificName": "Rosaceae",
+        "shortDescription": "Family of flowering plants",
+        "highlights": [
+          "flowers",
+          "fruits"
+        ],
+        "extra": null
+      }
+      """
+    Then the response status code should be 400
+    And response matches OpenAPI contract

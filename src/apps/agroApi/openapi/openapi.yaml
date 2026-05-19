@@ -785,11 +785,15 @@ components:
           properties:
             order:
               type: string
+            subfamilies:
+              type: array
+              items:
+                type: string
             distribution:
               type: string
             speciesCount:
               type: integer
-              minimum: 0
+              minimum: 1
           additionalProperties: false
 
     CreateFamily:
@@ -843,7 +847,11 @@ components:
               type: string
             speciesCount:
               type: integer
-              minimum: 0
+              minimum: 1
+            subfamilies:
+              type: array
+              items:
+                type: string
           additionalProperties: false
 
     UpdateFamily:
@@ -872,11 +880,19 @@ components:
           properties:
             order:
               type: string
+              nullable: true
             distribution:
               type: string
+              nullable: true
             speciesCount:
               type: integer
-              minimum: 0
+              nullable: true
+              minimum: 1
+            subfamilies:
+              type: array
+              nullable: true
+              items:
+                type: string
           additionalProperties: false
     # ================= PLANT =================
 
