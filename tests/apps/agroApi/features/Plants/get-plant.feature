@@ -9,7 +9,7 @@ Feature: Get Plant
     And the response body should contain
       """
       {
-        "id": "{plantId}",
+        "id": "<plantId>",
         "identity": {
           "name": {
             "primary": "Test plant"
@@ -61,29 +61,29 @@ Feature: Get Plant
   Scenario: Admin can access deleted plant
     Given a family exists
     And a plant exists
-    When I send a DELETE admin request to "/api/v1/plants/{plantId}"
+    When I send a DELETE admin request to "/api/v1/plants/<plantId>"
     Then the response status code should be 204
-    When I send a GET admin request to "/api/v1/plants/{plantId}"
+    When I send a GET admin request to "/api/v1/plants/<plantId>"
     Then the response status code should be 200
     And response matches OpenAPI contract
 
   Scenario: Non-admin cannot access deleted plant
     Given a family exists
     And a plant exists
-    When I send a DELETE admin request to "/api/v1/plants/{plantId}"
+    When I send a DELETE admin request to "/api/v1/plants/<plantId>"
     Then the response status code should be 204
-    When I send a GET request to "/api/v1/plants/{plantId}"
+    When I send a GET request to "/api/v1/plants/<plantId>"
     Then the response status code should be 404
     And response matches OpenAPI contract
 
   Scenario: Get after double delete remains consistent
     Given a family exists
     And a plant exists
-    When I send a DELETE admin request to "/api/v1/plants/{plantId}"
+    When I send a DELETE admin request to "/api/v1/plants/<plantId>"
     Then the response status code should be 204
-    And I send a DELETE admin request to "/api/v1/plants/{plantId}"
+    And I send a DELETE admin request to "/api/v1/plants/<plantId>"
     Then the response status code should be 204
-    And I send a GET admin request to "/api/v1/plants/{plantId}"
+    And I send a GET admin request to "/api/v1/plants/<plantId>"
     Then the response status code should be 200
     And response matches OpenAPI contract
 

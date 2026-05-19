@@ -44,7 +44,7 @@ Feature: Register a new user
     Then the response body should be
       """
       {
-        "message": "User with id <f7b8fce8-0a57-431a-b81e-4f1cc196412b> already exists"
+        "message": "User with id f7b8fce8-0a57-431a-b81e-4f1cc196412b already exists"
       }
       """
     And response matches OpenAPI contract
@@ -77,7 +77,7 @@ Feature: Register a new user
     Then the response body should be
       """
       {
-        "message": "User <register@aa.com> already exists"
+        "message": "User register@aa.com already exists"
       }
       """
     And response matches OpenAPI contract

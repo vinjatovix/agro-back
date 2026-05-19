@@ -8,7 +8,7 @@ Feature: Update Family
     Given a family exists
 
   Scenario: Admin updates a family successfully
-    When I send a PATCH admin request to "/api/v1/families/{familyId}" with body
+    When I send a PATCH admin request to "/api/v1/families/<familyId>" with body
       """
       {
         "name": "Updated Family Name",
@@ -35,7 +35,7 @@ Feature: Update Family
     And response matches OpenAPI contract
 
   Scenario: Invalid payload returns 400
-    When I send a PATCH admin request to "/api/v1/families/{familyId}" with body
+    When I send a PATCH admin request to "/api/v1/families/<familyId>" with body
       """
       {
         "extra": {
@@ -48,7 +48,7 @@ Feature: Update Family
     And response matches OpenAPI contract
 
   Scenario: Unauthenticated request fails
-    When I send a PATCH request to "/api/v1/families/{familyId}" with body
+    When I send a PATCH request to "/api/v1/families/<familyId>" with body
       """
       {
         "name": "Hack attempt"
@@ -67,7 +67,7 @@ Feature: Update Family
       }
       """
 
-    When I send a PATCH user request to "/api/v1/families/{familyId}" with body
+    When I send a PATCH user request to "/api/v1/families/<familyId>" with body
       """
       {
         "name": "Illegal update"
@@ -89,7 +89,7 @@ Feature: Update Family
     And response matches OpenAPI contract
 
   Scenario: speciesCount must be >= 1
-    When I send a PATCH admin request to "/api/v1/families/{familyId}" with body
+    When I send a PATCH admin request to "/api/v1/families/<familyId>" with body
       """
       {
         "extra": {

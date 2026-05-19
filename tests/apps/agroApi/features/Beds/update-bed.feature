@@ -6,7 +6,7 @@ Feature: Update a bed
 
     Scenario: Update a bed successfully
         Given a bed exists
-        When I send a PATCH user request to "/api/v1/beds/{bedId}" with body
+        When I send a PATCH user request to "/api/v1/beds/<bedId>" with body
             """
             {
                 "name": "Updated Bed Name",
@@ -29,7 +29,7 @@ Feature: Update a bed
 
     Scenario: Unauthenticated user cannot update a bed
         Given a bed exists
-        When I send a PATCH request to "/api/v1/beds/{bedId}" with body
+        When I send a PATCH request to "/api/v1/beds/<bedId>" with body
             """
             {
                 "name": "Updated Bed Name"
@@ -40,7 +40,7 @@ Feature: Update a bed
 
     Scenario: Cannot update a non owned bed
         Given a bed exists for another user
-        When I send a PATCH user request to "/api/v1/beds/{bedId}" with body
+        When I send a PATCH user request to "/api/v1/beds/<bedId>" with body
             """
             {
                 "name": "Updated Bed Name"
@@ -70,7 +70,7 @@ Feature: Update a bed
 
     Scenario: Update a bed with missing fields
         Given a bed exists
-        When I send a PATCH user request to "/api/v1/beds/{bedId}" with body
+        When I send a PATCH user request to "/api/v1/beds/<bedId>" with body
             """
             {}
             """
@@ -85,7 +85,7 @@ Feature: Update a bed
 
     Scenario: Update a bed with invalid data
         Given a bed exists
-        When I send a PATCH user request to "/api/v1/beds/{bedId}" with body
+        When I send a PATCH user request to "/api/v1/beds/<bedId>" with body
             """
             {
                 "name": "",
@@ -127,7 +127,7 @@ Feature: Update a bed
 
     Scenario: Update UserId should be ignored
         Given a bed exists
-        When I send a PATCH user request to "/api/v1/beds/{bedId}" with body
+        When I send a PATCH user request to "/api/v1/beds/<bedId>" with body
             """
             {
                 "userId": "another-user-id"

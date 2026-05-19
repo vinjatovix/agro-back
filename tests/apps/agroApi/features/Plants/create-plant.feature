@@ -128,7 +128,7 @@ Feature: Create a new plant
           "name": {
             "primary": "Tomato"
           },
-          "family": "{familyId}"
+          "family": "<familyId>"
         },
         "traits": {
           "lifecycle": "annual",
@@ -204,7 +204,7 @@ Feature: Create a new plant
               "Maravilla"
             ]
           },
-          "family": "{familyId}",
+          "family": "<familyId>",
           "scientificName": "Calendula officinalis"
         },
         "traits": {
@@ -510,12 +510,12 @@ Feature: Create a new plant
     And a POST admin request to "/api/v1/plants" with body
       """
       {
-        "id": "{plantId}",
+        "id": "<plantId>",
         "identity": {
           "name": {
             "primary": "Tomato"
           },
-          "family": "{familyId}"
+          "family": "<familyId>"
         },
         "traits": {
           "lifecycle": "annual",
@@ -588,7 +588,7 @@ Feature: Create a new plant
           "name": {
             "primary": "Test"
           },
-          "family": "{familyId}"
+          "family": "<familyId>"
         },
         "traits": {
           "lifecycle": "annual",
@@ -661,7 +661,7 @@ Feature: Create a new plant
           "name": {
             "primary": "Test"
           },
-          "family": "{familyId}"
+          "family": "<familyId>"
         },
         "traits": {
           "lifecycle": "annual",

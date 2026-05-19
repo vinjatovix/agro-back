@@ -7,10 +7,10 @@ Feature: Delete a plant
   Scenario: Delete an existing plant
     Given a family exists
     And a plant exists
-    When I send a DELETE admin request to "/api/v1/plants/{plantId}"
+    When I send a DELETE admin request to "/api/v1/plants/<plantId>"
     Then the response status code should be 204
     And response matches OpenAPI contract
-    And GET "/api/v1/plants/{plantId}" returns 404
+    And GET "/api/v1/plants/<plantId>" returns 404
 
   Scenario: Delete a non-existing plant
     When I send a DELETE admin request to "/api/v1/plants/165d2414-365d-4c71-ab92-881a1d415712"
@@ -39,7 +39,7 @@ Feature: Delete a plant
   Scenario: Non-admin user cannot delete a plant
     Given a family exists
     And a plant exists
-    When I send a DELETE user request to "/api/v1/plants/{plantId}"
+    When I send a DELETE user request to "/api/v1/plants/<plantId>"
     Then the response status code should be 403
     And the response body should be
       """
@@ -52,7 +52,7 @@ Feature: Delete a plant
   Scenario: Non authenticated user cannot delete a plant
     Given a family exists
     And a plant exists
-    When I send a DELETE request to "/api/v1/plants/{plantId}"
+    When I send a DELETE request to "/api/v1/plants/<plantId>"
     Then the response status code should be 401
     And the response body should be
       """
@@ -65,15 +65,15 @@ Feature: Delete a plant
   Scenario: Deleting an already deleted plant returns 204
     Given a family exists
     And a plant exists
-    When I send a DELETE admin request to "/api/v1/plants/{plantId}"
+    When I send a DELETE admin request to "/api/v1/plants/<plantId>"
     Then the response status code should be 204
-    When I send a DELETE admin request to "/api/v1/plants/{plantId}"
+    When I send a DELETE admin request to "/api/v1/plants/<plantId>"
     Then the response status code should be 204
     And response matches OpenAPI contract
 
   Scenario: Delete plant with trailing slash
     Given a family exists
     And a plant exists
-    When I send a DELETE admin request to "/api/v1/plants/{plantId}/"
+    When I send a DELETE admin request to "/api/v1/plants/<plantId>/"
     Then the response status code should be 204
     And response matches OpenAPI contract
