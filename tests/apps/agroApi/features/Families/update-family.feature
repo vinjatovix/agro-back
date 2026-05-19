@@ -100,3 +100,32 @@ Feature: Update Family
 
     Then the response status code should be 400
     And response matches OpenAPI contract
+
+  Scenario: Unknown extra fields in PATCH returns validation error
+    When I send a PATCH admin request to "/api/v1/families/<familyId>" with body
+      """
+      {
+        "extra": {
+          "order": "Rosales",
+          "hack": "not allowed"
+        }
+      }
+      """
+    Then the response status code should be 400
+    And response matches OpenAPI contract
+
+  Scenario: Setting extra to null deletes it
+    When I send a PATCH admin request to "/api/v1/families/<familyId>" with body
+      """
+      {
+        "extra": null
+      }
+      """
+    Then the response status code should be 200
+    And the response body should not contain
+      """
+      {
+        "extra": {}
+      }
+      """
+    And response matches OpenAPI contract

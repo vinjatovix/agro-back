@@ -29,6 +29,21 @@ const FAMILY_BASE_VALUES = {
 const commonExtra = {
   order: 'Asterales',
   distribution: 'Cosmopolitan',
+  subfamilies: [
+    'Asteroideae',
+    'Cichorioideae',
+    'Carduoideae',
+    'Barnadesioideae',
+    'Mutisioideae',
+    'Pertyoideae',
+    'Stifftioideae',
+    'Gochnatioideae',
+    'Gymnarrhenoideae',
+    'Wunderlichioideae',
+    'Hecastocleidoideae',
+    'Corymbioideae',
+    'Nassauvioideae'
+  ],
   speciesCount: 32000
 };
 

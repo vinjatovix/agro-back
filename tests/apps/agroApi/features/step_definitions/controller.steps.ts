@@ -809,6 +809,26 @@ Then(
 );
 
 Then(
+  'the response body should not contain',
+  async function (this: CucumberWorld, docString: string) {
+    const response = await this.request!;
+
+    const expected = parseJsonObject(
+      interpolateJson(docString, this)
+    ) as Record<string, unknown>;
+
+    assert.isDefined(response.body, 'Response body is undefined');
+
+    const hasMatch = compareResponseObject(response.body, expected);
+
+    assert.isFalse(
+      hasMatch,
+      `Expected response NOT to contain: ${JSON.stringify(expected)}`
+    );
+  }
+);
+
+Then(
   'GET {string} returns 404',
   async function (this: CucumberWorld, route: string) {
     const normalizedRoute = interpolateRoute(route, this);
