@@ -9,18 +9,6 @@ type MapperFn = (filter: PlantFilter, query: MongoQuery) => void;
 export class PlantQueryMapper {
   private static readonly mappers: MapperFn[] = [
     (filter, query) => {
-      if (filter.id?.eq) {
-        query['_id'] = {
-          $eq: Array.isArray(filter.id.eq) ? filter.id.eq : [filter.id.eq]
-        };
-      } else if (filter.id?.has) {
-        query['_id'] = {
-          $in: filter.id.has
-        };
-      }
-    },
-
-    (filter, query) => {
       const or: Record<string, RegExp>[] = [];
 
       const contains = filter.identity?.contains;
@@ -41,27 +29,11 @@ export class PlantQueryMapper {
     },
 
     (filter, query) => {
-      if (filter.aliases?.hasAny) {
-        query['identity.name.aliases'] = {
-          $in: filter.aliases.hasAny
-        };
-      } else if (filter.aliases?.has) {
-        query['identity.name.aliases'] = Array.isArray(filter.aliases.has)
-          ? { $all: filter.aliases.has }
-          : filter.aliases.has;
-      }
-    },
-
-    (filter, query) => {
       if (filter.family?.eq) {
         query['identity.family'] = {
           $in: Array.isArray(filter.family.eq)
             ? filter.family.eq
             : [filter.family.eq]
-        };
-      } else if (filter.family?.has) {
-        query['identity.family'] = {
-          $in: filter.family.has
         };
       }
     },
@@ -70,10 +42,6 @@ export class PlantQueryMapper {
       if (filter.lifeCycle?.eq) {
         query['traits.lifecycle'] = {
           $eq: filter.lifeCycle.eq
-        };
-      } else if (filter.lifeCycle?.has) {
-        query['traits.lifecycle'] = {
-          $in: filter.lifeCycle.has
         };
       }
     },
@@ -100,7 +68,9 @@ export class PlantQueryMapper {
 
     (filter, query) => {
       if (filter.sowingMethod?.eq) {
-        query['phenology.sowing.method'] = filter.sowingMethod.eq;
+        query[`phenology.sowing.methods.${filter.sowingMethod.eq}`] = {
+          $exists: true
+        };
       }
     },
 
@@ -116,9 +86,6 @@ export class PlantQueryMapper {
         query['knowledge.soil.availableDepthCm.min'] = {
           $lte: filter.soilAvailableDepthCm.eq
         };
-        query['knowledge.soil.availableDepthCm.max'] = {
-          $gte: filter.soilAvailableDepthCm.eq
-        };
       }
     },
 
@@ -133,14 +100,6 @@ export class PlantQueryMapper {
     (filter, query) => {
       if (filter.lightType?.eq) {
         query['knowledge.light.type'] = filter.lightType.eq;
-      }
-    },
-
-    (filter, query) => {
-      if (filter.strategicBenefits?.contains) {
-        query['knowledge.ecology.strategicBenefits'] = {
-          $in: [filter.strategicBenefits.contains]
-        };
       }
     },
 

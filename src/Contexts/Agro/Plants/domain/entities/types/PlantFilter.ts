@@ -5,9 +5,7 @@ import type { StringFilter } from '../../../../../../shared/domain/query/interfa
 import type { PlantLifecycleValue } from './PlantLifecycleValue.js';
 
 export interface PlantFilter {
-  id?: ExactFilter<string>;
   identity?: StringFilter;
-  aliases?: ArrayFilter<string>;
   family?: ExactFilter<string>;
   lifeCycle?: ExactFilter<PlantLifecycleValue>;
   spacingCm?: RangeFilter;
@@ -17,6 +15,5 @@ export interface PlantFilter {
   soilAvailableDepthCm?: RangeFilter;
   lightHoursMin?: RangeFilter;
   lightType?: ExactFilter<string>;
-  strategicBenefits?: StringFilter;
   rootSystem?: ExactFilter<string>;
 }
