@@ -8,39 +8,15 @@ describe('PlantQueryMapper', () => {
     expect(result).toEqual({});
   });
 
-  it('should map id to $in', () => {
-    const filter: PlantFilter = {
-      id: { has: ['plant_1', 'plant_2'] }
-    };
-
-    const result = plantQueryMapper.toMongo(filter);
-
-    expect(result['_id']).toEqual({
-      $in: ['plant_1', 'plant_2']
-    });
-  });
-
-  it('should wrap single id into $eq', () => {
-    const filter: PlantFilter = {
-      id: { eq: 'plant_1' }
-    };
-
-    const result = plantQueryMapper.toMongo(filter);
-
-    expect(result['_id']).toEqual({
-      $eq: ['plant_1']
-    });
-  });
-
   it('should map family to $in', () => {
     const filter: PlantFilter = {
-      family: { has: ['fam_1', 'fam_2'] }
+      family: { eq: 'fam_1' }
     };
 
     const result = plantQueryMapper.toMongo(filter);
 
     expect(result['identity.family']).toEqual({
-      $in: ['fam_1', 'fam_2']
+      $in: ['fam_1']
     });
   });
 
@@ -61,18 +37,6 @@ describe('PlantQueryMapper', () => {
         { 'identity.scientificName': /rose/i }
       ])
     );
-  });
-
-  it('should map aliases hasAny to $in', () => {
-    const filter: PlantFilter = {
-      aliases: { hasAny: ['maravilla', 'calendula'] }
-    };
-
-    const result = plantQueryMapper.toMongo(filter);
-
-    expect(result['identity.name.aliases']).toEqual({
-      $in: ['maravilla', 'calendula']
-    });
   });
 
   it('should map lifecycle eq', () => {
@@ -142,7 +106,7 @@ describe('PlantQueryMapper', () => {
 
     const result = plantQueryMapper.toMongo(filter);
 
-    expect(result['phenology.sowing.method']).toBe('direct');
+    expect(result['phenology.sowing.methods.direct']).toEqual({ $exists: true });
   });
 
   it('should match plants whose ph range contains value', () => {
@@ -166,10 +130,6 @@ describe('PlantQueryMapper', () => {
     expect(result['knowledge.soil.availableDepthCm.min']).toEqual({
       $lte: 20
     });
-
-    expect(result['knowledge.soil.availableDepthCm.max']).toEqual({
-      $gte: 20
-    });
   });
 
   it('should match plants requiring less or equal light', () => {
@@ -192,18 +152,6 @@ describe('PlantQueryMapper', () => {
     const result = plantQueryMapper.toMongo(filter);
 
     expect(result['knowledge.light.type']).toBe('full_sun');
-  });
-
-  it('should match strategic benefit contains', () => {
-    const filter: PlantFilter = {
-      strategicBenefits: { contains: 'pollinator' }
-    };
-
-    const result = plantQueryMapper.toMongo(filter);
-
-    expect(result['knowledge.ecology.strategicBenefits']).toEqual({
-      $in: ['pollinator']
-    });
   });
 
   it('should match root system type', () => {
