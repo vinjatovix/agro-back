@@ -19,13 +19,13 @@ export class PlantQueryMapper {
 
     (filter, query) => {
       if (filter.aliases?.hasAny) {
-        query['identity.aliases'] = {
+        query['identity.name.aliases'] = {
           $in: filter.aliases.hasAny
         };
       } else if (filter.aliases?.has) {
-        query['identity.aliases'] = {
-          $eq: [filter.aliases.has]
-        };
+        query['identity.name.aliases'] = Array.isArray(filter.aliases.has)
+          ? { $all: filter.aliases.has }
+          : filter.aliases.has;
       }
     },
 
