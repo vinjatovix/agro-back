@@ -1,3 +1,4 @@
+import qs from 'qs';
 import { scopePerRequest } from 'awilix-express';
 import cors from 'cors';
 import express, { Router } from 'express';
@@ -56,6 +57,14 @@ export class Server {
     this.express.use(express.json({ limit: envs.JSON_BODY_LIMIT }));
     this.express.use(
       express.urlencoded({ extended: true, limit: envs.URL_ENCODED_BODY_LIMIT })
+    );
+    this.express.set('query parser', (str: string) =>
+      qs.parse(str, {
+        allowPrototypes: false,
+        depth: 5,
+        parameterLimit: 100,
+        arrayLimit: 50
+      })
     );
 
     this.express.use(helmet.dnsPrefetchControl());
