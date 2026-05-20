@@ -5,7 +5,7 @@ const baseResult = {
   include: [],
   pagination: {
     page: 1,
-    limit: 20
+    limit: 25
   }
 };
 
@@ -314,7 +314,7 @@ describe('GenericQueryParser', () => {
 
       expect(result.pagination).toEqual({
         page: 1,
-        limit: 20
+        limit: 25
       });
     });
   });
@@ -357,7 +357,9 @@ describe('GenericQueryParser', () => {
         }
       };
 
-      expect(() => GenericQueryParser.parse(query)).toThrow(/expected string/);
+      expect(() => GenericQueryParser.parse(query)).toThrow(
+        "Invalid value for filter 'name.eq'"
+      );
     });
 
     it('ignores malformed filter values', () => {

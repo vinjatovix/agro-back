@@ -1,9 +1,9 @@
 {
   "_id": "89db1b59-37db-4a0f-bbb3-5a011d4b63e2",
   "slug": "asteraceae",
-  "name": "Asteraceae",
-  "aliases": ["Compositae"],
-  "scientificName": "Asteraceae",
+  "name": "asteraceae",
+  "aliases": ["compositae"],
+  "scientificName": "asteraceae",
   "shortDescription": "Large family of flowering plants",
   "highlights": [
     "Una de las familias más grandes",
@@ -13,7 +13,8 @@
   "extra": {
     "order": "Asterales",
     "distribution": "Cosmopolitan",
-    "speciesCount": 32000
+    "speciesCount": 32000,
+    "subfamilies": ["Asteroideae", "Cichorioideae", "Carduoideae"]
   },
   "metadata": {
     "createdAt": "2024-01-01T00:00:00Z",
