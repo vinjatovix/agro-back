@@ -6,6 +6,7 @@ import type { PlantLifecycleValue } from './PlantLifecycleValue.js';
 
 export interface PlantFilter {
   id?: ExactFilter<string>;
+  identity?: StringFilter;
   aliases?: ArrayFilter<string>;
   family?: ExactFilter<string>;
   lifeCycle?: ExactFilter<PlantLifecycleValue>;

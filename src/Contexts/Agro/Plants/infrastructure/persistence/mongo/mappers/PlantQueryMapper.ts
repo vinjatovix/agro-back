@@ -1,6 +1,9 @@
+import { escapeRegex } from '../../../../../../../shared/utils/escapeRegex.js';
 import type { PlantFilter } from '../../../../domain/entities/types/PlantFilter.js';
 
-type MongoQuery = Record<string, unknown>;
+type MongoQuery = Record<string, unknown> & {
+  $or?: unknown[];
+};
 type MapperFn = (filter: PlantFilter, query: MongoQuery) => void;
 
 export class PlantQueryMapper {
@@ -14,6 +17,26 @@ export class PlantQueryMapper {
         query['_id'] = {
           $in: filter.id.has
         };
+      }
+    },
+
+    (filter, query) => {
+      const or: Record<string, RegExp>[] = [];
+
+      const contains = filter.identity?.contains;
+
+      if (contains) {
+        const regex = new RegExp(escapeRegex(contains), 'i');
+
+        or.push(
+          { 'identity.name.primary': regex },
+          { 'identity.name.aliases': regex },
+          { 'identity.scientificName': regex }
+        );
+      }
+
+      if (or.length > 0) {
+        query.$or = or;
       }
     },
 

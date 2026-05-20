@@ -8,6 +8,8 @@ type ParsedFilterValue = Primitive | Primitive[];
 
 type ParsedFilters = Record<string, Record<string, ParsedFilterValue>>;
 
+type RawFilterValue = string | string[];
+
 export class GenericQueryParser {
   static parse<TFilter>(query: Record<string, unknown>): QueryOptions<TFilter> {
     const { filter, sort, include, pagination } = query;
@@ -28,16 +30,29 @@ export class GenericQueryParser {
     const result: ParsedFilters = {};
 
     for (const [field, operators] of Object.entries(filters)) {
-      if (!operators || typeof operators !== 'object') {
+      if (
+        !operators ||
+        typeof operators !== 'object' ||
+        Array.isArray(operators)
+      ) {
         continue;
       }
 
       for (const [operator, rawValue] of Object.entries(
         operators as Record<string, unknown>
       )) {
-        if (typeof rawValue !== 'string') {
+        if (typeof rawValue !== 'string' && !Array.isArray(rawValue)) {
           throw createError.badRequest(
-            `Invalid value for filter '${field}.${operator}': expected string`
+            `Invalid value for filter '${field}.${operator}'`
+          );
+        }
+
+        if (
+          Array.isArray(rawValue) &&
+          rawValue.some((v) => typeof v !== 'string')
+        ) {
+          throw createError.badRequest(
+            `Invalid array value for filter '${field}.${operator}'`
           );
         }
 
@@ -55,7 +70,7 @@ export class GenericQueryParser {
     bucket: Record<string, ParsedFilterValue>,
     field: string,
     operator: string,
-    rawValue: string
+    rawValue: RawFilterValue
   ): void {
     const parsedValue = this.parseFilterValue(rawValue);
 
@@ -72,7 +87,11 @@ export class GenericQueryParser {
     }
   }
 
-  private static parseFilterValue(rawValue: string): ParsedFilterValue {
+  private static parseFilterValue(rawValue: RawFilterValue): ParsedFilterValue {
+    if (Array.isArray(rawValue)) {
+      return rawValue.map((v) => QueryParserUtils.coerce(v));
+    }
+
     let parsedValue: ParsedFilterValue = rawValue;
 
     if (rawValue.includes(',')) {
@@ -118,7 +137,7 @@ export class GenericQueryParser {
 
     return {
       page: QueryParserUtils.toNumber(obj.page, 1),
-      limit: QueryParserUtils.toNumber(obj.limit, 20)
+      limit: QueryParserUtils.toNumber(obj.limit, 25)
     };
   }
 }

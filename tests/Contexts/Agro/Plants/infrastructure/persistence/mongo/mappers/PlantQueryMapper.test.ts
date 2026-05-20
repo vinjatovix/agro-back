@@ -44,6 +44,25 @@ describe('PlantQueryMapper', () => {
     });
   });
 
+  it('should map identity contains to $or with regex', () => {
+    const filter: PlantFilter = {
+      identity: { contains: 'rose' }
+    };
+
+    const result = plantQueryMapper.toMongo(filter);
+
+    expect(result.$or).toBeDefined();
+    expect(result.$or).toHaveLength(3);
+
+    expect(result.$or).toEqual(
+      expect.arrayContaining([
+        { 'identity.name.primary': /rose/i },
+        { 'identity.name.aliases': /rose/i },
+        { 'identity.scientificName': /rose/i }
+      ])
+    );
+  });
+
   it('should map aliases hasAny to $in', () => {
     const filter: PlantFilter = {
       aliases: { hasAny: ['maravilla', 'calendula'] }
@@ -51,7 +70,7 @@ describe('PlantQueryMapper', () => {
 
     const result = plantQueryMapper.toMongo(filter);
 
-    expect(result['identity.aliases']).toEqual({
+    expect(result['identity.name.aliases']).toEqual({
       $in: ['maravilla', 'calendula']
     });
   });
@@ -212,5 +231,29 @@ describe('PlantQueryMapper', () => {
       'knowledge.soil.ph.min': { $lte: 6.5 },
       'knowledge.soil.ph.max': { $gte: 6.5 }
     });
+  });
+
+  it('should escape regex special characters in identity contains', () => {
+    const filter: PlantFilter = {
+      identity: { contains: 'ro.se*[]' }
+    };
+
+    const result = plantQueryMapper.toMongo(filter) as {
+      $or: Array<Record<string, RegExp>>;
+    };
+
+    expect(result.$or).toEqual(
+      expect.arrayContaining([
+        {
+          'identity.name.primary': /ro\.se\*\[\]/i
+        },
+        {
+          'identity.name.aliases': /ro\.se\*\[\]/i
+        },
+        {
+          'identity.scientificName': /ro\.se\*\[\]/i
+        }
+      ])
+    );
   });
 });
