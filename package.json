@@ -126,6 +126,7 @@
     "jsonwebtoken": "^9.0.3",
     "migrate-mongo": "^14.0.7",
     "mongodb": "^7.1.1",
+    "qs": "^6.15.1",
     "swagger-ui-express": "^5.0.1",
     "uuid": "^11.0.0",
     "winston": "^3.19.0",
