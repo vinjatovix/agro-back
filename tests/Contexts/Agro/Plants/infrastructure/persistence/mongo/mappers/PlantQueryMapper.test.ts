@@ -106,7 +106,9 @@ describe('PlantQueryMapper', () => {
 
     const result = plantQueryMapper.toMongo(filter);
 
-    expect(result['phenology.sowing.methods.direct']).toEqual({ $exists: true });
+    expect(result['phenology.sowing.methods.direct']).toEqual({
+      $exists: true
+    });
   });
 
   it('should match plants whose ph range contains value', () => {
