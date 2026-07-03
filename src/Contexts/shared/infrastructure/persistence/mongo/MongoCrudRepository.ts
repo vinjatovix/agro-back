@@ -1,4 +1,4 @@
-import type { FindCursor } from 'mongodb';
+import type { CollationOptions, FindCursor } from 'mongodb';
 import { diffObjects } from '../../../../../shared/domain/diff/diffObjects.js';
 import type { UnknownRecord } from '../../../../../shared/domain/types/UnknownRecord.js';
 import { createError } from '../../../../../shared/errors/index.js';
@@ -33,6 +33,10 @@ export abstract class MongoCrudRepository<
     }
 
     cursor.sort(mongoSort);
+  }
+
+  protected getCollation(): CollationOptions | undefined {
+    return undefined;
   }
 
   protected applyPagination(
@@ -76,8 +80,15 @@ export abstract class MongoCrudRepository<
     const safePagination = normalizePagination(pagination);
 
     const mongoFilter = this.toMongoFilter(filter);
-    const totalItems = await collection.countDocuments(mongoFilter);
-    const cursor = collection.find<TDocument>(mongoFilter);
+    const collation = this.getCollation();
+    const findOptions = collation ? { collation } : {};
+
+    const totalItems = await collection.countDocuments(
+      mongoFilter,
+      findOptions
+    );
+
+    const cursor = collection.find<TDocument>(mongoFilter, findOptions);
 
     this.applySort(cursor, sort);
     this.applyPagination(cursor, safePagination);
@@ -97,6 +108,7 @@ export abstract class MongoCrudRepository<
       }
     };
   }
+
   async exists(id: string): Promise<boolean> {
     const collection = this.collection();
 

@@ -1,10 +1,10 @@
+import type { CollationOptions, Db } from 'mongodb';
 import { Plant } from '../../../domain/entities/Plant.js';
 import type { PlantRepository } from '../../../domain/repositories/interfaces/PlantRepository.js';
 import type { PlantPrimitives } from '../../../domain/entities/types/PlantPrimitives.js';
 import type { MongoPlantDocument } from '../types/MongoPlantDocument.js';
 import { MongoCrudRepository } from '../../../../../shared/infrastructure/persistence/mongo/MongoCrudRepository.js';
 import type { PlantFilter } from '../../../domain/entities/types/PlantFilter.js';
-import type { Db } from 'mongodb';
 import type { PlantPersistenceMapper } from '../../../mappers/interfaces/PlantPersistenceMapper.js';
 import { PlantQueryMapper } from './mappers/PlantQueryMapper.js';
 
@@ -29,6 +29,12 @@ export class MongoPlantRepository
   }
   protected collectionName(): string {
     return `${this.entityName().toLowerCase()}s`;
+  }
+  protected getCollation(): CollationOptions {
+    return {
+      locale: 'es',
+      strength: 2
+    };
   }
 
   protected toDomain(document: MongoPlantDocument): Plant {
