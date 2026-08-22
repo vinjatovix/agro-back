@@ -41,6 +41,15 @@ export class MongoClientFactory {
       );
     }
 
+    if (
+      process.env.NODE_ENV === 'test' &&
+      config.connectionString.includes('mongodb.net')
+    ) {
+      throw new Error(
+        'MongoClientFactory: Connecting to Mongo Atlas (mongodb.net) in test environment is strictly forbidden to prevent accidental data loss.'
+      );
+    }
+
     try {
       const client = new MongoClient(config.connectionString, {
         ignoreUndefined: true,
