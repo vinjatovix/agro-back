@@ -1,4 +1,4 @@
-import { createError } from '../../../../shared/errors/index.js';
+import { DomainUnauthorizedException } from '../../../shared/domain/errors/index.js';
 import {
   Email,
   Metadata,
@@ -36,11 +36,11 @@ export class AuthenticateWithGoogle {
       await this.googleIdTokenVerifier.verifyIdToken(idToken);
 
     if (!tokenPayload?.email || !tokenPayload?.sub) {
-      throw createError.auth(INVALID_GOOGLE_TOKEN_MESSAGE);
+      throw new DomainUnauthorizedException(INVALID_GOOGLE_TOKEN_MESSAGE);
     }
 
     if (!tokenPayload.emailVerified) {
-      throw createError.auth(INVALID_GOOGLE_TOKEN_MESSAGE);
+      throw new DomainUnauthorizedException(INVALID_GOOGLE_TOKEN_MESSAGE);
     }
 
     const user = await this.resolveUser(tokenPayload.email, tokenPayload.sub);
@@ -67,7 +67,7 @@ export class AuthenticateWithGoogle {
     if (existingByEmail) {
       const linkedMethod = existingByEmail.findAuthMethod('google');
       if (linkedMethod && linkedMethod.providerUserId !== providerUserId) {
-        throw createError.auth(INVALID_GOOGLE_TOKEN_MESSAGE);
+        throw new DomainUnauthorizedException(INVALID_GOOGLE_TOKEN_MESSAGE);
       }
 
       if (!linkedMethod) {
@@ -161,7 +161,7 @@ export class AuthenticateWithGoogle {
     });
 
     if (!token) {
-      throw createError.auth(TOKEN_GENERATION_ERROR_MESSAGE);
+      throw new DomainUnauthorizedException(TOKEN_GENERATION_ERROR_MESSAGE);
     }
 
     return token;

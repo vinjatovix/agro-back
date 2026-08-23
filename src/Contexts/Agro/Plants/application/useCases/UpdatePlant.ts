@@ -1,5 +1,5 @@
 import { applyPatch } from '../../../../../shared/domain/patch/applyPatch.js';
-import { createError } from '../../../../../shared/errors/index.js';
+import { InvalidArgumentException } from '../../../../shared/domain/errors/index.js';
 import type { FamilyRepository } from '../../../Families/domain/repositories/interfaces/FamilyRepository.js';
 import type { Plant } from '../../domain/entities/Plant.js';
 import type { PlantRepository } from '../../domain/repositories/interfaces/PlantRepository.js';
@@ -18,17 +18,13 @@ export class UpdatePlant {
   async execute(input: UpdatePlantInput, user: string): Promise<Plant> {
     const plant = await this.plantRepository.findById(input.id);
 
-    if (!plant) {
-      throw createError.notFound(`Plant not found: ${input.id}`);
-    }
-
     if (input.identity?.family) {
       const familyExists = await this.familyRepository.exists(
         input.identity.family
       );
 
       if (!familyExists) {
-        throw createError.badRequest(
+        throw new InvalidArgumentException(
           `Family with id ${input.identity.family} does not exist`
         );
       }

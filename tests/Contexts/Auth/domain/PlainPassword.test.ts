@@ -1,5 +1,6 @@
 import { PlainPassword } from '../../../../src/Contexts/Auth/domain/value-objects/PlainPassword.js';
 import { PlainPasswordMother } from './mothers/PlainPasswordMother.js';
+import { InvalidArgumentException } from '../../../../src/Contexts/shared/domain/errors/index.js';
 
 describe('PlainPassword', () => {
   it('should create a valid password', () => {
@@ -30,43 +31,49 @@ describe('PlainPassword', () => {
   });
 
   describe('validation', () => {
+    it('should throw if value is not a string', () => {
+      expect(() => new PlainPassword(12345 as unknown as string)).toThrow(
+        InvalidArgumentException
+      );
+    });
+
     it('should throw if shorter than MIN_LENGTH', () => {
       const short = PlainPasswordMother.withLength(
         PlainPassword.MIN_LENGTH - 1
       );
       expect(() => PlainPasswordMother.create(short)).toThrow(
-        `<PlainPassword> must be at least ${PlainPassword.MIN_LENGTH} characters long`
+        InvalidArgumentException
       );
     });
 
     it('should throw if longer than MAX_LENGTH', () => {
       const long = PlainPasswordMother.withLength(PlainPassword.MAX_LENGTH + 1);
       expect(() => PlainPasswordMother.create(long)).toThrow(
-        `<PlainPassword> must be less than ${PlainPassword.MAX_LENGTH} characters long`
+        InvalidArgumentException
       );
     });
 
     it('should throw if missing uppercase letter', () => {
       expect(() => PlainPasswordMother.create('validpass1!')).toThrow(
-        '<PlainPassword> must include at least one uppercase letter'
+        InvalidArgumentException
       );
     });
 
     it('should throw if missing lowercase letter', () => {
       expect(() => PlainPasswordMother.create('VALIDPASS1!')).toThrow(
-        '<PlainPassword> must include at least one lowercase letter'
+        InvalidArgumentException
       );
     });
 
     it('should throw if missing digit', () => {
       expect(() => PlainPasswordMother.create('ValidPass!!')).toThrow(
-        '<PlainPassword> must include at least one digit'
+        InvalidArgumentException
       );
     });
 
     it('should throw if missing special character', () => {
       expect(() => PlainPasswordMother.create('ValidPass12')).toThrow(
-        '<PlainPassword> must include at least one special character'
+        InvalidArgumentException
       );
     });
   });

@@ -1,4 +1,4 @@
-import { createError } from '../../../../../shared/errors/index.js';
+import { DomainNotFoundException } from '../../../../shared/domain/errors/index.js';
 import type { UserSessionInfo } from '../../../../Auth/application/index.js';
 import type { Plant } from '../../domain/entities/Plant.js';
 import type { PlantRepository } from '../../domain/repositories/interfaces/PlantRepository.js';
@@ -9,8 +9,8 @@ export class GetPlant {
   async execute(id: string, user: UserSessionInfo): Promise<Plant> {
     const plant = await this.plantRepository.findById(id);
 
-    if (!plant || (plant.isDeleted() && !canSeeDeleted(user?.roles))) {
-      throw createError.notFound(`Plant not found: ${id}`);
+    if (plant.isDeleted() && !canSeeDeleted(user?.roles)) {
+      throw new DomainNotFoundException(`Plant not found: ${id}`);
     }
 
     return plant;

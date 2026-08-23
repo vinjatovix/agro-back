@@ -1,4 +1,5 @@
 import { DateValueObject } from '../../../../../src/Contexts/shared/domain/valueObject/DateValueObject.js';
+import { InvalidArgumentException } from '../../../../../src/Contexts/shared/domain/errors/index.js';
 
 describe('DateValueObject', () => {
   it('should create a valid date value object from an ISO string', () => {
@@ -18,7 +19,7 @@ describe('DateValueObject', () => {
 
   it('should throw for an invalid date', () => {
     expect(() => new DateValueObject('not-a-date')).toThrow(
-      '<DateValueObject> does not allow the value <not-a-date>'
+      InvalidArgumentException
     );
   });
 });

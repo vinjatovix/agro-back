@@ -1,4 +1,4 @@
-import { createError } from '../../../../shared/errors/index.js';
+import { InvalidArgumentException } from '../../../shared/domain/errors/index.js';
 import {
   SUPPORTED_AUTH_PROVIDERS,
   type AuthProvider
@@ -67,7 +67,7 @@ export class UserAuthMethod {
 
   withPassword(password: PasswordHash): UserAuthMethod {
     if (!this.isLocal()) {
-      throw createError.badRequest(
+      throw new InvalidArgumentException(
         `Provider <${this.provider}> does not support local passwords`
       );
     }
@@ -88,13 +88,13 @@ export class UserAuthMethod {
 
   private ensureIsValid(): void {
     if (this.isLocal() && this.password === undefined) {
-      throw createError.badRequest(
+      throw new InvalidArgumentException(
         '<UserAuthMethod> local provider requires a password hash'
       );
     }
 
     if (!this.isLocal() && this.providerUserId === undefined) {
-      throw createError.badRequest(
+      throw new InvalidArgumentException(
         `<UserAuthMethod> provider <${this.provider}> requires a providerUserId`
       );
     }
@@ -102,7 +102,7 @@ export class UserAuthMethod {
 
   private static ensureProviderIsSupported(provider: string): void {
     if (!SUPPORTED_AUTH_PROVIDERS.includes(provider as AuthProvider)) {
-      throw createError.badRequest(
+      throw new InvalidArgumentException(
         `<UserAuthMethod> does not allow provider <${provider}>`
       );
     }

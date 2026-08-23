@@ -1,5 +1,6 @@
 import { UserAuthMethod } from '../../../../src/Contexts/Auth/domain/value-objects/UserAuthMethod.js';
 import { PasswordHash } from '../../../../src/Contexts/Auth/domain/value-objects/PasswordHash.js';
+import { InvalidArgumentException } from '../../../../src/Contexts/shared/domain/errors/index.js';
 
 const VALID_PASSWORD_HASH = `$2b$10$${'a'.repeat(53)}`;
 
@@ -35,7 +36,7 @@ describe('UserAuthMethod', () => {
           provider: 'local',
           linkedAt: new Date()
         })
-    ).toThrow('<UserAuthMethod> local provider requires a password hash');
+    ).toThrow(InvalidArgumentException);
   });
 
   it('should throw when external provider has no providerUserId', () => {
@@ -45,7 +46,7 @@ describe('UserAuthMethod', () => {
           provider: 'github',
           linkedAt: new Date()
         })
-    ).toThrow('<UserAuthMethod> provider <github> requires a providerUserId');
+    ).toThrow(InvalidArgumentException);
   });
 
   it('should throw when provider is unsupported', () => {
@@ -56,7 +57,7 @@ describe('UserAuthMethod', () => {
           linkedAt: new Date(),
           providerUserId: 'x'
         })
-    ).toThrow('<UserAuthMethod> does not allow provider <twitter>');
+    ).toThrow(InvalidArgumentException);
   });
 
   it('should roundtrip with toPrimitives/fromPrimitives', () => {
@@ -98,6 +99,6 @@ describe('UserAuthMethod', () => {
 
     expect(() =>
       method.withPassword(new PasswordHash(VALID_PASSWORD_HASH))
-    ).toThrow('Provider <google> does not support local passwords');
+    ).toThrow(InvalidArgumentException);
   });
 });

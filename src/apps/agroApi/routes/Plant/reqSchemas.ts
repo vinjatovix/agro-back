@@ -1,6 +1,6 @@
 import { body, checkExact, param } from 'express-validator';
 import { PollinationType } from '../../../../Contexts/Agro/Plants/domain/entities/types/PollinationType.js';
-import { rangeSchema } from '../../middlewares/helpers/rangeSchema.js';
+import { rangeSchema } from '../../middlewares/helpers/index.js';
 
 // =====================================================
 // CREATE (FULL VALIDATION - STRICT)

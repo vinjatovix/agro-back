@@ -7,6 +7,7 @@ import { Metadata } from '../../../../../../src/Contexts/shared/domain/valueObje
 import { MonthSet } from '../../../../../../src/shared/domain/value-objects/MonthSet.js';
 import { Range } from '../../../../../../src/shared/domain/value-objects/Range.js';
 import { UuidMother } from '../../../../shared/fixtures/UuidMother.js';
+import { InvalidArgumentException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 
 const buildPlant = () => {
   return new Plant({
@@ -181,7 +182,7 @@ describe('Plant (aggregate root)', () => {
           status: PlantStatus.ACTIVE,
           deletedAt
         })
-    ).toThrow('Active plant cannot have deletedAt');
+    ).toThrow(InvalidArgumentException);
   });
 
   it('should allow DELETED plant without deletedAt only if set via markAsDeleted', () => {
@@ -213,6 +214,6 @@ describe('Plant (aggregate root)', () => {
         metadata: Metadata.create('system'),
         status: PlantStatus.DELETED
       });
-    }).toThrow();
+    }).toThrow(InvalidArgumentException);
   });
 });

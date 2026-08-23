@@ -130,7 +130,7 @@ Please report [bugs](https://github.com/vinjatovix/agro-back/issues/new?assignee
 
 This project is licensed under the MIT License.
 
-See [LICENSE](LICENSE.md) for details.
+See [LICENSE](LICENSE) for details.
 
 ## Changelog
 

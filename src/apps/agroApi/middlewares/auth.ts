@@ -3,7 +3,7 @@ import type { AppLogger } from '../../../Contexts/shared/plugins/logger.plugin.j
 import type { EncrypterTool } from '../../../Contexts/shared/plugins/EncrypterTool.js';
 import type { AppContainer } from '../container.js';
 import { EnsureAuthentication } from './EnsureAuthentication.js';
-import { asyncHandler } from './helpers/asyncHandler.js';
+import { asyncHandler } from './helpers/index.js';
 
 type RequestWithContainer = Request & {
   container: AppContainer;

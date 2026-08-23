@@ -1,4 +1,5 @@
 import { Uuid } from '../../../../../src/Contexts/shared/domain/valueObject/Uuid.js';
+import { InvalidArgumentException } from '../../../../../src/Contexts/shared/domain/errors/index.js';
 
 describe('Uuid', () => {
   const VALID_UUID = '550e8400-e29b-41d4-a716-446655440000';
@@ -16,27 +17,21 @@ describe('Uuid', () => {
     });
 
     it('should throw when value is not a valid UUID', () => {
-      expect(() => new Uuid('not-a-uuid')).toThrow(
-        '<Uuid> does not allow the value <not-a-uuid>'
-      );
+      expect(() => new Uuid('not-a-uuid')).toThrow(InvalidArgumentException);
     });
 
     it('should throw when value is an empty string', () => {
-      expect(() => new Uuid('')).toThrow('<Uuid> does not allow the value <>');
+      expect(() => new Uuid('')).toThrow(InvalidArgumentException);
     });
 
     it('should throw when value is invalid UUID format', () => {
       const invalidUuid = '550e8400-e29b-41d4-a716';
-      expect(() => new Uuid(invalidUuid)).toThrow(
-        `<Uuid> does not allow the value <${invalidUuid}>`
-      );
+      expect(() => new Uuid(invalidUuid)).toThrow(InvalidArgumentException);
     });
 
     it('should throw when UUID has wrong length', () => {
       const tooLong = `${VALID_UUID}extra`;
-      expect(() => new Uuid(tooLong)).toThrow(
-        `<Uuid> does not allow the value <${tooLong}>`
-      );
+      expect(() => new Uuid(tooLong)).toThrow(InvalidArgumentException);
     });
   });
 

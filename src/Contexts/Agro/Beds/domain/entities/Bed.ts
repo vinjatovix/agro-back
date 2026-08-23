@@ -7,7 +7,7 @@ import type {
 } from '../services/spatial/interfaces/index.js';
 import type { PlantInstance } from '../../../PlantInstances/domain/entities/PlantInstance.js';
 import type { Metadata } from '../../../../shared/domain/valueObject/Metadata.js';
-import { createError } from '../../../../../shared/errors/index.js';
+import { DomainConflictException } from '../../../../shared/domain/errors/index.js';
 import type { PositiveNumber } from '../../../../shared/domain/valueObject/PositiveNumber.js';
 import type { StringValueObject } from '../../../../shared/domain/valueObject/StringValueObject.js';
 import type { BedProps } from './types/BedProps.js';
@@ -69,7 +69,7 @@ export class Bed extends AggregateRoot<Uuid> {
     existingSpatialPlants: SpatialPlantModel[]
   ): void {
     if (this.isDeleted) {
-      throw createError.badRequest('Cannot add a plant to a deleted bed');
+      throw new DomainConflictException('Cannot add a plant to a deleted bed');
     }
     this.spatialService.validatePlacement(
       {
@@ -102,10 +102,10 @@ export class Bed extends AggregateRoot<Uuid> {
 
   markAsDeleted(): void {
     if (this.plantInstances.length > 0) {
-      throw createError.badRequest('Cannot delete a bed that has plants');
+      throw new DomainConflictException('Cannot delete a bed that has plants');
     }
     if (this.isDeleted) {
-      throw createError.badRequest('Bed is already deleted');
+      throw new DomainConflictException('Bed is already deleted');
     }
     this.props.deleted = true;
     this.props.deletedAt = new Date();

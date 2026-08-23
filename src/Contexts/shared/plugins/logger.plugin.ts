@@ -6,7 +6,7 @@ import type { MongoClient } from 'mongodb';
 export interface AppLogger {
   debug: (message: string) => void;
   info: (message: string) => void;
-  warn: (message: string) => void;
+  warn: (message: string, error?: unknown) => void;
   error: (message: string, error?: unknown) => void;
 }
 
@@ -84,8 +84,12 @@ export const buildLogger = (service: string): AppLogger => {
       rootLogger.info({ service, message });
     },
 
-    warn: (message: string) => {
-      rootLogger.warn({ service, message });
+    warn: (message: string, error?: unknown) => {
+      rootLogger.warn({
+        service,
+        message,
+        error: error instanceof Error ? error.stack : error
+      });
     },
 
     error: (message: string, error?: unknown) => {

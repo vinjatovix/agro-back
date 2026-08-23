@@ -1,5 +1,5 @@
 import { Coordinates } from '../../../../../shared/domain/value-objects/index.js';
-import { createError } from '../../../../../shared/errors/index.js';
+import { InvalidArgumentException } from '../../../../shared/domain/errors/index.js';
 import type { Serializable } from '../../../../shared/domain/interfaces/Serializable.js';
 import { Uuid } from '../../../../shared/domain/valueObject/index.js';
 import {
@@ -80,7 +80,7 @@ export class PlantInstance implements Serializable<PlantInstancePrimitives> {
       props.removedAt &&
       props.instanceStatus !== PlantInstanceLifecycleStatus.REMOVED
     ) {
-      throw createError.badRequest(
+      throw new InvalidArgumentException(
         'Invalid PlantInstance: removedAt only allowed when instanceStatus is REMOVED'
       );
     }

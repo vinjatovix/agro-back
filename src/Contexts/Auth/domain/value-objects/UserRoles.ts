@@ -1,4 +1,4 @@
-import { createError } from '../../../../shared/errors/index.js';
+import { InvalidArgumentException } from '../../../shared/domain/errors/index.js';
 import type { Serializable } from '../../../shared/domain/interfaces/Serializable.js';
 
 export const USER_ROLES = ['admin', 'user'] as const;
@@ -26,7 +26,7 @@ export class UserRoles implements Serializable<UserRole[]> {
 
     uniqueRoles.forEach((role) => {
       if (!UserRoles.VALID_ROLES.has(role as UserRole)) {
-        throw createError.badRequest(
+        throw new InvalidArgumentException(
           `<UserRoles> does not allow the value <${role}>`
         );
       }

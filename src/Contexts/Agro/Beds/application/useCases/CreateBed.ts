@@ -1,4 +1,4 @@
-import { createError } from '../../../../../shared/errors/index.js';
+import { DomainConflictException } from '../../../../shared/domain/errors/index.js';
 import type { Bed } from '../../domain/entities/Bed.js';
 import type { BedRepository } from '../../domain/repositories/interfaces/BedRepository.js';
 import { bedApiMapper } from '../../mappers/bedApiMapper.js';
@@ -11,7 +11,9 @@ export class CreateBed {
     const exists = await this.bedRepository.exists(dtoWithUserId.id);
 
     if (exists) {
-      throw createError.conflict(`Bed already exists: ${dtoWithUserId.id}`);
+      throw new DomainConflictException(
+        `Bed already exists: ${dtoWithUserId.id}`
+      );
     }
     const bed = bedApiMapper.fromCreateInputToDomain(dtoWithUserId, user);
 

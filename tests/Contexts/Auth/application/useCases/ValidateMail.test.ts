@@ -1,4 +1,5 @@
 import { ValidateMail } from '../../../../../src/Contexts/Auth/application/useCases/ValidateMail.js';
+import { DomainUnauthorizedException } from '../../../../../src/Contexts/shared/domain/errors/index.js';
 import { UserPatch } from '../../../../../src/Contexts/Auth/domain/entities/UserPatch.js';
 import { CryptAdapterMock, AuthRepositoryMock } from '../../__mocks__/index.js';
 import { random } from '../../../shared/fixtures/index.js';
@@ -31,7 +32,7 @@ describe('ValidateMail', () => {
     const token = random.word({ min: 6, max: 255 });
 
     await expect(service.run({ token })).rejects.toThrow({
-      name: 'UnauthorizedError',
+      name: 'DomainUnauthorizedException',
       message: 'Invalid token'
     });
   });
@@ -42,7 +43,7 @@ describe('ValidateMail', () => {
     const token = random.word({ min: 6, max: 255 });
 
     await expect(service.run({ token })).rejects.toThrow({
-      name: 'UnauthorizedError',
+      name: 'DomainUnauthorizedException',
       message: 'Invalid token'
     });
   });

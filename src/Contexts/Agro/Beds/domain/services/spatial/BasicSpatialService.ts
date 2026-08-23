@@ -1,7 +1,7 @@
+import { InvalidArgumentException } from '../../../../../shared/domain/errors/index.js';
 import type { SpatialService } from './interfaces/SpatialService.js';
 import type { SpatialContext } from './interfaces/SpatialContext.js';
 import type { SpatialPlantModel } from './interfaces/SpatialPlantModel.js';
-import { createError } from '../../../../../../shared/errors/index.js';
 
 export class BasicSpatialService implements SpatialService {
   validatePlacement(
@@ -19,11 +19,11 @@ export class BasicSpatialService implements SpatialService {
     const { x, y } = plant.position;
 
     if (x < 0 || y < 0) {
-      throw createError.badRequest('Plant out of bounds (min limit)');
+      throw new InvalidArgumentException('Plant out of bounds (min limit)');
     }
 
     if (x > context.width.value || y > context.height.value) {
-      throw createError.badRequest('Plant out of bounds (max limit)');
+      throw new InvalidArgumentException('Plant out of bounds (max limit)');
     }
   }
 
@@ -39,7 +39,7 @@ export class BasicSpatialService implements SpatialService {
       const minDistance = Math.max(existing.spacingCm, newPlant.spacingCm);
 
       if (distance <= minDistance) {
-        throw createError.badRequest(
+        throw new InvalidArgumentException(
           `Collision detected between ${existing.id} and ${newPlant.id}`
         );
       }

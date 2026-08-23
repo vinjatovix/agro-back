@@ -1,5 +1,5 @@
 import type { Serializable } from '../../../Contexts/shared/domain/interfaces/Serializable.js';
-import { createError } from '../../errors/index.js';
+import { InvalidArgumentException } from '../../../Contexts/shared/domain/errors/index.js';
 import type { RangePrimitives } from './interfaces/RangePrimitives.js';
 
 export class Range implements Serializable<RangePrimitives> {
@@ -8,15 +8,17 @@ export class Range implements Serializable<RangePrimitives> {
 
   constructor(min: number, max: number) {
     if (!Number.isFinite(min) || !Number.isFinite(max)) {
-      throw createError.badRequest('Range values must be finite numbers');
+      throw new InvalidArgumentException('Range values must be finite numbers');
     }
 
     if (min < 0 || max < 0) {
-      throw createError.badRequest('Range values cannot be negative');
+      throw new InvalidArgumentException('Range values cannot be negative');
     }
 
     if (min > max) {
-      throw createError.badRequest('Range min cannot be greater than max');
+      throw new InvalidArgumentException(
+        'Range min cannot be greater than max'
+      );
     }
 
     this.min = min;

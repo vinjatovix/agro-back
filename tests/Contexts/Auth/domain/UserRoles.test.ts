@@ -1,6 +1,7 @@
 import { UserRoles } from '../../../../src/Contexts/Auth/domain/value-objects/UserRoles.js';
 import { random } from '../../shared/fixtures/index.js';
 import { UserRolesMother } from './mothers/UserRolesMother.js';
+import { InvalidArgumentException } from '../../../../src/Contexts/shared/domain/errors/index.js';
 
 describe('UserRoles', () => {
   it('should create valid user roles', () => {
@@ -28,7 +29,7 @@ describe('UserRoles', () => {
   it('should throw if any role is invalid', () => {
     const roles = [random.word()];
     expect(() => UserRolesMother.create(roles)).toThrow(
-      `<UserRoles> does not allow the value <${roles}>`
+      InvalidArgumentException
     );
   });
 

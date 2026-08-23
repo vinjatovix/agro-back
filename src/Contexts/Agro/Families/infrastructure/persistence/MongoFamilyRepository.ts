@@ -1,5 +1,5 @@
 import type { Db } from 'mongodb';
-import { createError } from '../../../../../shared/errors/index.js';
+import { DomainNotFoundException } from '../../../../shared/domain/errors/index.js';
 import { MongoCrudRepository } from '../../../../shared/infrastructure/persistence/mongo/MongoCrudRepository.js';
 import type { Family } from '../../domain/entities/Family.js';
 import type { FamilyRepository } from '../../domain/repositories/interfaces/FamilyRepository.js';
@@ -43,7 +43,7 @@ export class MongoFamilyRepository
     const document = await collection.findOne<MongoFamilyDocument>({ slug });
 
     if (!document) {
-      throw createError.notFound(`Family not found with slug: ${slug}`);
+      throw new DomainNotFoundException(`Family not found with slug: ${slug}`);
     }
 
     return this.toDomain(document);

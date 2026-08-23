@@ -20,7 +20,7 @@ The system will be a robust, deployable backend based strictly on Hexagonal Arch
 
 ## Phase 0: Architectural Consolidation (Zero Technical Debt)
 
-### Iteration 1: Purge HTTP Transport Dependencies from Domain
+### Iteration 1: Purge HTTP Transport Dependencies from Domain [COMPLETED]
 
 - **Value Delivered:** Blinds the core business logic from transport details, preventing leakage of controller mechanics.
 - **Definition of Done:** `HttpError` is replaced by subclasses of `DomainException` across aggregates and VOs. Global error middleware intercepts and maps these to correct HTTP status codes.
@@ -38,6 +38,16 @@ The system will be a robust, deployable backend based strictly on Hexagonal Arch
   3. Enhance the global exception handler middleware to map `DomainException` subclasses to appropriate HTTP status codes (4xx/5xx).
   ```
 
+#### Known Technical Debt from Iteration 1 (To be resolved in subsequent iterations)
+
+During the review of Iteration 1, several non-blocking architectural inconsistencies, documentation drifts, and potential logical risks were identified as technical debt:
+
+1. **Outdated Module Specifications:**
+   - `docs/spec/modules/family.md` lists the entire persistence layer and API endpoints of the Families module as "Missing" under Section 7, even though they are fully implemented and integrated.
+   - `docs/spec/modules/knowledge.md` marks "Knowledge System" entities (Pest, Disease, Remedy, Fertilizer) as "stable", but they do not exist as domain classes in the production codebase (mock data only).
+2. **License Link drift in README:** The reference to license details in `README.md` points to `LICENSE.md` but the physical file is named `LICENSE` without an extension.
+3. **Build Script Refactoring and macOS Compatibility (`build:di`):** The package script `build:di` is poorly named; it dates back to legacy/pre-Awilix setups but is now solely responsible for copying non-TypeScript assets (like OpenAPI `.yaml` schemas) to `dist/`. In addition to the confusing name, it uses the GNU-specific `--parents` flag for `cp`, which causes compilation to fail on macOS (darwin) with a `cp: illegal option -- -` error. This should be refactored into a cross-platform, non-confusing command/script (e.g., named `build:copy-assets` using a custom Node.js script or `shx`).
+
 ### Iteration 1.1: Relocate Query System to Delivery Mechanism
 
 - **Value Delivered:** Ensures the domain layer remains 100% agnostic of URL query string parsing rules, establishing correct Hexagonal and clean boundaries.
@@ -54,6 +64,24 @@ The system will be a robust, deployable backend based strictly on Hexagonal Arch
   1. Relocate generic parsing files from `src/shared/domain/query/` to `src/apps/agroApi/shared/query/`.
   2. Relocate context-specific parsers to the same shared directory or alongside their specific controllers in `src/apps/agroApi/controllers/`.
   3. Correct all import references in Express controllers, tests, and the Awilix `container.ts` configuration.
+  ```
+
+### Iteration 1.2: Standardize and DRY HTTP Request Schemas (Technical Debt)
+
+- **Value Delivered:** Cleans up highly redundant validation logic in express-validator request schemas, preventing schema drift between creation and update rules.
+- **Definition of Done:** Request schemas across all endpoints (`Family`, `Plant`, `Bed`, etc.) refactored to use a reusable dictionary of base validation rules and dynamically generate mandatory/optional fields.
+- **Dependencies:** None.
+- **Risks:** Medium risk of breaking request-body mapping if validation chains are incorrectly configured.
+- **Prompt for /speckit.specify:**
+
+  ```text
+  STANDARDIZE AND DRY HTTP REQUEST SCHEMAS
+
+  WHY: The HTTP request validators (using express-validator) under `@src/apps/agroApi/routes/**` are highly repetitive, manual, and verbose.
+  WHAT:
+  1. Define base validation rule templates/factories for each domain aggregate schema (e.g. Family, Plant, Bed) to represent common field rules (types, formats, constraints) in a single place.
+  2. Dynamically derive standard Create (mandatory/optional mix) and Update (all-optional patch-safe leaves) schemas from these templates.
+  3. Ensure all automated BDD cucumber tests and unit integration tests pass successfully with no regression on validation payloads.
   ```
 
 ### Iteration 2: Relocate Mongo Primitives to Shared Domain

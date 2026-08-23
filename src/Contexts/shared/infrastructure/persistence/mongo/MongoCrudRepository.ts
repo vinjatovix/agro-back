@@ -1,7 +1,7 @@
 import type { CollationOptions, FindCursor } from 'mongodb';
 import { diffObjects } from '../../../../../shared/domain/diff/diffObjects.js';
 import type { UnknownRecord } from '../../../../../shared/domain/types/UnknownRecord.js';
-import { createError } from '../../../../../shared/errors/index.js';
+import { DomainNotFoundException } from '../../../../shared/domain/errors/index.js';
 import { Username } from '../../../../Auth/domain/value-objects/Username.js';
 import { updateMetadata } from '../../../application/utils/updateMetadata.js';
 import type { QueryOptions } from '../../../../../shared/domain/query/interfaces/QueryOptions.js';
@@ -60,7 +60,9 @@ export abstract class MongoCrudRepository<
     });
 
     if (!document) {
-      throw createError.notFound(`${this.entityName()} not found: ${id}`);
+      throw new DomainNotFoundException(
+        `${this.entityName()} not found: ${id}`
+      );
     }
 
     return this.toDomain(document);
@@ -158,7 +160,7 @@ export abstract class MongoCrudRepository<
     const result = await collection.updateOne({ _id: mongoId }, updateQuery);
 
     if (result.matchedCount === 0) {
-      throw createError.notFound(
+      throw new DomainNotFoundException(
         `${this.entityName()} not found: ${current.id}`
       );
     }

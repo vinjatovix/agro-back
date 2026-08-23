@@ -5,6 +5,7 @@ import { Coordinates } from '../../../../../../src/shared/domain/value-objects/C
 import { UuidMother } from '../../../../shared/fixtures/UuidMother.js';
 import { PlantInstanceMother } from '../mothers/PlantInstanceMother.js';
 import { PlantInstanceScenarios } from '../scenarios/PlantInstanceScenarios.js';
+import { InvalidArgumentException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 
 describe('PlantInstance', () => {
   it('should create a valid plant instance', () => {
@@ -72,7 +73,7 @@ describe('PlantInstance', () => {
         instanceStatus: PlantInstanceLifecycleStatus.ACTIVE,
         removedAt: new Date()
       })
-    ).toThrow('Invalid PlantInstance');
+    ).toThrow(InvalidArgumentException);
   });
 
   it('should allow removal date when plant is removed', () => {

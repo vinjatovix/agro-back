@@ -1,4 +1,8 @@
 import { UpdatePasswordLocal } from '../../../../../src/Contexts/Auth/application/useCases/UpdatePasswordLocal.js';
+import {
+  DomainNotFoundException,
+  DomainUnauthorizedException
+} from '../../../../../src/Contexts/shared/domain/errors/index.js';
 import { Username } from '../../../../../src/Contexts/Auth/domain/value-objects/Username.js';
 import { PasswordHash } from '../../../../../src/Contexts/Auth/domain/value-objects/PasswordHash.js';
 import { Uuid } from '../../../../../src/Contexts/shared/domain/valueObject/Uuid.js';
@@ -38,7 +42,9 @@ describe('UpdatePasswordLocal', () => {
 
     expect(async () => {
       await updatePassword.run(PAYLOAD, CURRENT_USER);
-    }).rejects.toThrow(expect.objectContaining({ name: 'NotFoundError' }));
+    }).rejects.toThrow(
+      expect.objectContaining({ name: 'DomainNotFoundException' })
+    );
   });
 
   it('should throw an error when the password is invalid', () => {
@@ -49,7 +55,7 @@ describe('UpdatePasswordLocal', () => {
       await updatePassword.run(PAYLOAD, CURRENT_USER);
     }).rejects.toThrow(
       expect.objectContaining({
-        name: 'UnauthorizedError',
+        name: 'DomainUnauthorizedException',
         message: 'Invalid credentials'
       })
     );
@@ -65,7 +71,7 @@ describe('UpdatePasswordLocal', () => {
       await updatePassword.run(request, CURRENT_USER);
     }).rejects.toThrow(
       expect.objectContaining({
-        name: 'UnauthorizedError',
+        name: 'DomainUnauthorizedException',
         message: 'Passwords do not match'
       })
     );
@@ -82,7 +88,7 @@ describe('UpdatePasswordLocal', () => {
       await updatePassword.run(request, CURRENT_USER);
     }).rejects.toThrow(
       expect.objectContaining({
-        name: 'UnauthorizedError',
+        name: 'DomainUnauthorizedException',
         message: 'New password must be different from old password'
       })
     );

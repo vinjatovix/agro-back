@@ -1,5 +1,8 @@
 import { MongoServerError } from 'mongodb';
-import { createError } from '../../../../../shared/errors/index.js';
+import {
+  DomainConflictException,
+  InvalidArgumentException
+} from '../../../domain/errors/index.js';
 import { MONGO_ERROR_CODES } from './mongoErrorCodes.js';
 
 const DUPLICATE_OR_CONFLICT_CODES = [
@@ -43,22 +46,26 @@ export class MongoErrorHandler {
             ? JSON.stringify(err.errorResponse.keyValue)
             : '{}';
 
-        throw createError.conflict(`Duplicate document with ${keyValue}`);
+        throw new DomainConflictException(
+          `Duplicate document with ${keyValue}`
+        );
       }
 
-      throw createError.conflict(`Index error: ${message}`);
+      throw new DomainConflictException(`Index error: ${message}`);
     }
 
     if (isInArray(VALIDATION_CODES, code)) {
       if (code === MONGO_ERROR_CODES.VALIDATION_ERROR) {
-        throw createError.badRequest(`Document validation failed: ${message}`);
+        throw new InvalidArgumentException(
+          `Document validation failed: ${message}`
+        );
       }
 
-      throw createError.badRequest(message);
+      throw new InvalidArgumentException(message);
     }
 
     if (code === MONGO_ERROR_CODES.BSON_OBJECT_TOO_LARGE) {
-      throw createError.badRequest('Document exceeds maximum BSON size');
+      throw new InvalidArgumentException('Document exceeds maximum BSON size');
     }
 
     throw err;

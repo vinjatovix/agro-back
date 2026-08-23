@@ -3,7 +3,7 @@ import type { Family } from '../../../../../src/Contexts/Agro/Families/domain/en
 import type { FamilyRepository } from '../../../../../src/Contexts/Agro/Families/domain/repositories/interfaces/FamilyRepository.js';
 import type { FamilyPrimitives } from '../../../../../src/Contexts/Agro/Families/domain/types/FamilyPrimitives.js';
 import { familyDomainMapper } from '../../../../../src/Contexts/Agro/Families/mappers/familyDomainMapper.js';
-import { createError } from '../../../../../src/shared/errors/index.js';
+import { DomainNotFoundException } from '../../../../../src/Contexts/shared/domain/errors/index.js';
 import { BaseMongoCrudRepositoryMock } from '../../__mocks__/BaseMongoCrudRepositoryMock.js';
 
 export class FamilyRepositoryMock
@@ -19,7 +19,7 @@ export class FamilyRepositoryMock
     );
 
     if (!family) {
-      throw createError.notFound(`Family not found: ${slug}`);
+      throw new DomainNotFoundException(`Family not found: ${slug}`);
     }
 
     return family;

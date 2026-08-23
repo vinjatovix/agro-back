@@ -1,6 +1,6 @@
 import { MonthSet } from '../../../../../shared/domain/value-objects/MonthSet.js';
 import { Range } from '../../../../../shared/domain/value-objects/Range.js';
-import { createError } from '../../../../../shared/errors/index.js';
+import { InvalidArgumentException } from '../../../../shared/domain/errors/index.js';
 import type { PlantSowingPrimitives } from '../entities/types/PlantSowingPrimitives.js';
 import type { PlantSowingProps } from './interfaces/PlantSowingProps.js';
 import type { SowingMethod } from './interfaces/SowingMethod.js';
@@ -24,24 +24,28 @@ export class PlantSowing {
 
   private validate(props: PlantSowingProps) {
     if (!props.methods?.direct?.depthCm) {
-      throw createError.badRequest('PlantSowing.direct.depthCm is required');
+      throw new InvalidArgumentException(
+        'PlantSowing.direct.depthCm is required'
+      );
     }
     if (props.methods.starter && !props.methods.starter.depthCm) {
-      throw createError.badRequest('PlantSowing.starter.depthCm is required');
+      throw new InvalidArgumentException(
+        'PlantSowing.starter.depthCm is required'
+      );
     }
 
     if (props.months.isEmpty()) {
-      throw createError.badRequest(
+      throw new InvalidArgumentException(
         'PlantSowing.months must have at least one month'
       );
     }
     if (props.seedsPerHole.min <= 0 || props.seedsPerHole.max <= 0) {
-      throw createError.badRequest(
+      throw new InvalidArgumentException(
         'PlantSowing.seedsPerHole must be greater than 0'
       );
     }
     if (props.germinationDays.min <= 0 || props.germinationDays.max <= 0) {
-      throw createError.badRequest(
+      throw new InvalidArgumentException(
         'PlantSowing.germinationDays must be greater than 0'
       );
     }
@@ -69,10 +73,14 @@ export class PlantSowing {
 
   static fromPrimitives(p: PlantSowingPrimitives): PlantSowing {
     if (!p.methods?.direct?.depthCm) {
-      throw createError.badRequest('PlantSowing.direct.depthCm is required');
+      throw new InvalidArgumentException(
+        'PlantSowing.direct.depthCm is required'
+      );
     }
     if (p.methods.starter && !p.methods.starter.depthCm) {
-      throw createError.badRequest('PlantSowing.starter.depthCm is required');
+      throw new InvalidArgumentException(
+        'PlantSowing.starter.depthCm is required'
+      );
     }
 
     const { direct, starter } = p.methods;

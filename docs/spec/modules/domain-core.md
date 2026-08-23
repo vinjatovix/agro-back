@@ -122,6 +122,22 @@ IMPORTANT:
 
 ---
 
+### 5.1 DOMAIN EXCEPTIONS (NEW)
+
+Business rule and constraint validation failures throw pure, technology-agnostic exceptions.
+
+Hierarchy:
+
+- `DomainException` (abstract base, supports field-specific error dictionaries)
+  - `InvalidArgumentException` (validation / format violations)
+  - `DomainNotFoundException` (query / entity absence)
+  - `DomainConflictException` (state mutation / concurrency / invariant violations)
+  - `DomainUnauthorizedException` (access control rules)
+
+The domain throws these exceptions directly by instantiating them using the standard `new` operator.
+
+---
+
 ## 6. BOUNDARY RULES
 
 Domain MUST NOT depend on:
