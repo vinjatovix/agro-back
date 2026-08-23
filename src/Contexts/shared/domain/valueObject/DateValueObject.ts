@@ -1,4 +1,4 @@
-import { createError } from '../../../../shared/errors/index.js';
+import { InvalidArgumentException } from '../errors/index.js';
 
 export class DateValueObject {
   readonly value: Date;
@@ -16,7 +16,7 @@ export class DateValueObject {
     const parsedDate = new Date(value);
 
     if (Number.isNaN(parsedDate.getTime())) {
-      throw createError.badRequest(
+      throw new InvalidArgumentException(
         `<DateValueObject> does not allow the value <${value}>`
       );
     }

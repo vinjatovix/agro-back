@@ -1,17 +1,17 @@
-import { createError } from '../../errors/index.js';
+import { InvalidArgumentException } from '../../../Contexts/shared/domain/errors/index.js';
 
 export class MonthSet {
   private readonly months: Set<number>;
 
   constructor(months: number[]) {
     if (!Array.isArray(months)) {
-      throw new TypeError('MonthSet must be an array');
+      throw new InvalidArgumentException('MonthSet must be an array');
     }
 
     const normalized = months
       .map((m) => {
         if (!Number.isInteger(m) || m < 1 || m > 12) {
-          throw createError.badRequest(`Invalid month: ${m}`);
+          throw new InvalidArgumentException(`Invalid month: ${m}`);
         }
         return m;
       })

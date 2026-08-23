@@ -1,5 +1,5 @@
 import type { UnknownRecord } from '../../../../shared/domain/types/UnknownRecord.js';
-import { createError } from '../../../../shared/errors/index.js';
+import { DomainUnauthorizedException } from '../../../shared/domain/errors/index.js';
 import type { EncrypterTool } from '../../../shared/plugins/EncrypterTool.js';
 import { buildLogger } from '../../../shared/plugins/logger.plugin.js';
 import type { AuthRepository } from '../../domain/repositories/interfaces/AuthRepository.js';
@@ -24,14 +24,14 @@ export class ValidateMail {
   async run({ token }: ValidateMailRequest): Promise<string> {
     const validToken = await this.encrypter.verifyToken(token);
     if (!validToken) {
-      throw createError.auth(INVALID_TOKEN_MESSAGE);
+      throw new DomainUnauthorizedException(INVALID_TOKEN_MESSAGE);
     }
 
     const email = this.extractEmailFromToken(validToken);
 
     const storedUser = await this.repository.search(email);
     if (!storedUser) {
-      throw createError.auth(INVALID_TOKEN_MESSAGE);
+      throw new DomainUnauthorizedException(INVALID_TOKEN_MESSAGE);
     }
 
     const userToPatch = UserPatch.fromPrimitives({
@@ -44,7 +44,7 @@ export class ValidateMail {
 
     const newToken = await this.encrypter.refreshToken(token);
     if (!newToken) {
-      throw createError.auth(INVALID_TOKEN_MESSAGE);
+      throw new DomainUnauthorizedException(INVALID_TOKEN_MESSAGE);
     }
 
     return newToken;
@@ -53,7 +53,7 @@ export class ValidateMail {
   private extractEmailFromToken(decodedToken: UnknownRecord): string {
     const email = decodedToken['email'];
     if (typeof email !== 'string' || !email) {
-      throw createError.auth(INVALID_TOKEN_MESSAGE);
+      throw new DomainUnauthorizedException(INVALID_TOKEN_MESSAGE);
     }
 
     return email;

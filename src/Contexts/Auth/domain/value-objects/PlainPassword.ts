@@ -1,4 +1,4 @@
-import { createError } from '../../../../shared/errors/index.js';
+import { InvalidArgumentException } from '../../../shared/domain/errors/index.js';
 
 export class PlainPassword {
   static readonly MIN_LENGTH = 8;
@@ -26,26 +26,28 @@ export class PlainPassword {
 
   private static ensureIsValid(value: unknown): void {
     if (typeof value !== 'string') {
-      throw createError.badRequest(
+      throw new InvalidArgumentException(
         `<PlainPassword> does not allow the value <${String(value)}>`
       );
     }
 
     if (value.length < PlainPassword.MIN_LENGTH) {
-      throw createError.badRequest(
+      throw new InvalidArgumentException(
         `<PlainPassword> must be at least ${PlainPassword.MIN_LENGTH} characters long`
       );
     }
 
     if (value.length > PlainPassword.MAX_LENGTH) {
-      throw createError.badRequest(
+      throw new InvalidArgumentException(
         `<PlainPassword> must be less than ${PlainPassword.MAX_LENGTH} characters long`
       );
     }
 
     for (const { regex, message } of PlainPassword.RULES) {
       if (!regex.test(value)) {
-        throw createError.badRequest(`<PlainPassword> must include ${message}`);
+        throw new InvalidArgumentException(
+          `<PlainPassword> must include ${message}`
+        );
       }
     }
   }

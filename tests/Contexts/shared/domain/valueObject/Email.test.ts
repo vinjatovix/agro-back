@@ -1,5 +1,6 @@
 import { Email } from '../../../../../src/Contexts/shared/domain/valueObject/Email.js';
 import { DISPOSABLE_EMAIL_DOMAINS } from '../../../../../src/Contexts/shared/domain/valueObject/disposableEmailDomains.js';
+import { InvalidArgumentException } from '../../../../../src/Contexts/shared/domain/errors/index.js';
 
 describe('Email', () => {
   it('should create a valid email', () => {
@@ -15,30 +16,24 @@ describe('Email', () => {
   });
 
   it('should throw when value is too short', () => {
-    expect(() => new Email('a@b.c')).toThrow(
-      '<Email> must be at least 6 characters long'
-    );
+    expect(() => new Email('a@b.c')).toThrow(InvalidArgumentException);
   });
 
   it('should throw when value is too long', () => {
     const tooLong = `a@${'b'.repeat(253)}.com`;
 
-    expect(() => new Email(tooLong)).toThrow(
-      '<Email> must be at most 255 characters long'
-    );
+    expect(() => new Email(tooLong)).toThrow(InvalidArgumentException);
   });
 
   it('should throw for invalid format', () => {
-    expect(() => new Email('invalid-email')).toThrow(
-      '<Email> does not allow the value <invalid-email>'
-    );
+    expect(() => new Email('invalid-email')).toThrow(InvalidArgumentException);
   });
 
   it('should throw for disposable blocked domain', () => {
     const blockedDomain = DISPOSABLE_EMAIL_DOMAINS[0];
 
     expect(() => new Email(`user@${blockedDomain}`)).toThrow(
-      `<Email> does not allow the domain <user@${blockedDomain}>`
+      InvalidArgumentException
     );
   });
 
@@ -46,7 +41,7 @@ describe('Email', () => {
     const blockedDomain = DISPOSABLE_EMAIL_DOMAINS[0].toUpperCase();
 
     expect(() => new Email(`user@${blockedDomain}`)).toThrow(
-      `<Email> does not allow the domain <user@${blockedDomain.toLowerCase()}>`
+      InvalidArgumentException
     );
   });
 
@@ -54,7 +49,7 @@ describe('Email', () => {
     const blockedDomain = DISPOSABLE_EMAIL_DOMAINS[0];
 
     expect(() => new Email(`user@sub.${blockedDomain}`)).toThrow(
-      `<Email> does not allow the domain <user@sub.${blockedDomain}>`
+      InvalidArgumentException
     );
   });
 

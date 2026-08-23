@@ -97,7 +97,7 @@ By addressing these issues in a **Phase 0: Consolidation & Refactoring** stage, 
 
 These tasks are designed to be executed sequentially as a "Phase 0" before diving into Fase 1 feature development.
 
-### Task 0.1: Decouple Domain from HTTP Semantics
+### Task 0.1: Decouple Domain from HTTP Semantics [COMPLETED]
 
 - **Objective:** Completely remove `HttpError` dependencies from the Domain layer.
 - **Action Steps:**

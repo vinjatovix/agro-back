@@ -2,8 +2,10 @@ import type { NextFunction, Request, Response } from 'express';
 import httpStatus from 'http-status';
 
 import type { AppLogger } from '../../../Contexts/shared/plugins/logger.plugin.js';
+import { DomainException } from '../../../Contexts/shared/domain/errors/index.js';
 import { HttpError } from '../../../shared/errors/index.js';
 import type { ApiErrorResponse } from '../shared/interfaces/ApiErrorResponse.js';
+import { domainExceptionMapper } from './helpers/index.js';
 
 type ErrorHandlerDeps = {
   logger: AppLogger;
@@ -18,6 +20,18 @@ export const errorHandler =
         ...(err.errors && { errors: err.errors })
       } satisfies ApiErrorResponse);
       return;
+    }
+
+    if (err instanceof DomainException) {
+      const domainStatusCode = domainExceptionMapper(err);
+
+      if (domainStatusCode !== undefined) {
+        res.status(domainStatusCode).json({
+          message: err.message,
+          ...(err.errors && { errors: err.errors })
+        } satisfies ApiErrorResponse);
+        return;
+      }
     }
 
     if (err instanceof URIError) {

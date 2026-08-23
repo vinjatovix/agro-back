@@ -1,5 +1,5 @@
 import { deepFreeze } from '../../../../../shared/domain/utils/deepFreeze.js';
-import { createError } from '../../../../../shared/errors/index.js';
+import { InvalidArgumentException } from '../../../../shared/domain/errors/index.js';
 import { AggregateRoot } from '../../../../shared/domain/entities/AggregateRoot.js';
 import { Metadata, Uuid } from '../../../../shared/domain/valueObject/index.js';
 import { PlantKnowledge } from '../value-objects/index.js';
@@ -20,10 +20,10 @@ export class Plant extends AggregateRoot<Uuid> {
 
   private validateProps(props: PlantProps) {
     if (props.status === PlantStatus.ACTIVE && props.deletedAt) {
-      throw createError.badRequest('Active plant cannot have deletedAt');
+      throw new InvalidArgumentException('Active plant cannot have deletedAt');
     }
     if (props.status === PlantStatus.DELETED && !props.deletedAt) {
-      throw createError.badRequest('Deleted plant must have deletedAt');
+      throw new InvalidArgumentException('Deleted plant must have deletedAt');
     }
   }
 

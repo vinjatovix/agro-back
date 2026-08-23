@@ -1,6 +1,6 @@
 import { CreateBed } from '../../../../../../src/Contexts/Agro/Beds/application/useCases/CreateBed.js';
 import { bedApiMapper } from '../../../../../../src/Contexts/Agro/Beds/mappers/bedApiMapper.js';
-import { createError } from '../../../../../../src/shared/errors/index.js';
+import { DomainConflictException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { random } from '../../../../shared/fixtures/random.js';
 import { UuidMother } from '../../../../shared/fixtures/UuidMother.js';
 import { BedRepositoryMock } from '../../__mocks__/BedRepositoryMock.js';
@@ -31,8 +31,8 @@ describe('CreateBed', () => {
     const bed = bedApiMapper.fromCreateInputToDomain(input, USER_NAME);
     repository.addToStorage(bed);
 
-    await expect(useCase.execute(input, USER_NAME)).rejects.toEqual(
-      createError.conflict(`Bed already exists: ${input.id}`)
+    await expect(useCase.execute(input, USER_NAME)).rejects.toThrow(
+      new DomainConflictException(`Bed already exists: ${input.id}`)
     );
 
     repository.assertSaveNotCalled();

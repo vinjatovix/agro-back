@@ -1,4 +1,4 @@
-import { createError } from '../../../../shared/errors/index.js';
+import { DomainUnauthorizedException } from '../../../shared/domain/errors/index.js';
 import {
   buildLogger,
   type EncrypterTool
@@ -23,17 +23,17 @@ export class LoginUserLocal {
   async run({ email, password }: LoginUserRequest): Promise<string> {
     const storedUser = await this.repository.search(email);
     if (!storedUser) {
-      throw createError.auth(INVALID_CREDENTIALS_MESSAGE);
+      throw new DomainUnauthorizedException(INVALID_CREDENTIALS_MESSAGE);
     }
 
     const localPassword = storedUser.password;
     if (!localPassword) {
-      throw createError.auth(INVALID_CREDENTIALS_MESSAGE);
+      throw new DomainUnauthorizedException(INVALID_CREDENTIALS_MESSAGE);
     }
 
     const success = this.encrypter.compare(password, localPassword.value);
     if (!success) {
-      throw createError.auth(INVALID_CREDENTIALS_MESSAGE);
+      throw new DomainUnauthorizedException(INVALID_CREDENTIALS_MESSAGE);
     }
 
     const token = await this.encrypter.generateToken({
@@ -44,7 +44,7 @@ export class LoginUserLocal {
     });
 
     if (!token) {
-      throw createError.auth(TOKEN_GENERATION_ERROR_MESSAGE);
+      throw new DomainUnauthorizedException(TOKEN_GENERATION_ERROR_MESSAGE);
     }
 
     logger.info(`User <${storedUser.username.value}> logged in`);

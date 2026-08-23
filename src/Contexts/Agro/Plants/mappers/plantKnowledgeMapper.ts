@@ -1,4 +1,4 @@
-import { createError } from '../../../../shared/errors/index.js';
+import { InvalidArgumentException } from '../../../shared/domain/errors/index.js';
 import type { PlantKnowledgePrimitives } from '../domain/entities/types/PlantKnowledgePrimitives.js';
 import type { PlantKnowledgeProps } from '../domain/value-objects/interfaces/PlantKnowledgeProps.js';
 import { PlantKnowledge } from '../domain/value-objects/PlantKnowledge.js';
@@ -55,7 +55,7 @@ export const plantKnowledgeMapper = {
   },
   fromPrimitives(primitives?: PlantKnowledgePrimitives): PlantKnowledge {
     if (!primitives) {
-      throw createError.badRequest(
+      throw new InvalidArgumentException(
         'PlantKnowledgePrimitives is required to create PlantKnowledge'
       );
     }

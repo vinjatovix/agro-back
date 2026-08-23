@@ -1,4 +1,7 @@
-import { createError } from '../../../../shared/errors/index.js';
+import {
+  DomainNotFoundException,
+  DomainUnauthorizedException
+} from '../../../shared/domain/errors/index.js';
 import { Uuid } from '../../../shared/domain/valueObject/index.js';
 import {
   buildLogger,
@@ -64,11 +67,11 @@ export class UpdatePasswordLocal {
     const storedUser = await this.repository.search(user.email);
 
     if (!storedUser) {
-      throw createError.notFound(`User <${user.id}>`);
+      throw new DomainNotFoundException(`User <${user.id}>`);
     }
 
     if (!storedUser.password) {
-      throw createError.auth(INVALID_CREDENTIALS_MESSAGE);
+      throw new DomainUnauthorizedException(INVALID_CREDENTIALS_MESSAGE);
     }
 
     this.ensureOldPasswordMatches(
@@ -90,7 +93,7 @@ export class UpdatePasswordLocal {
   ): void {
     const success = this.encrypter.compare(oldPassword, storedPasswordHash);
     if (!success) {
-      throw createError.auth(INVALID_CREDENTIALS_MESSAGE);
+      throw new DomainUnauthorizedException(INVALID_CREDENTIALS_MESSAGE);
     }
   }
 
@@ -99,7 +102,7 @@ export class UpdatePasswordLocal {
     repeatPassword: string
   ): void {
     if (password !== repeatPassword) {
-      throw createError.auth(PASSWORDS_DO_NOT_MATCH_MESSAGE);
+      throw new DomainUnauthorizedException(PASSWORDS_DO_NOT_MATCH_MESSAGE);
     }
   }
 
@@ -108,7 +111,9 @@ export class UpdatePasswordLocal {
     oldPassword: string
   ): void {
     if (password === oldPassword) {
-      throw createError.auth(PASSWORD_MUST_DIFFER_FROM_OLD_MESSAGE);
+      throw new DomainUnauthorizedException(
+        PASSWORD_MUST_DIFFER_FROM_OLD_MESSAGE
+      );
     }
   }
 }

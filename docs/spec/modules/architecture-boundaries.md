@@ -43,9 +43,10 @@ Query objects are treated as:
 
 - no DTO in domain
 - no repository in spatial
-- no express in domain
+- no express in domain (specifically, `HttpError` and `createError` are strictly forbidden inside domain Value Objects, Entities, and Domain Services)
 - no business logic inside API layer
 - no business logic inside persistence layer
+- domain-level business rule and validation violations MUST only throw pure `DomainException`s, decoupled from transport status codes.
 
 ---
 

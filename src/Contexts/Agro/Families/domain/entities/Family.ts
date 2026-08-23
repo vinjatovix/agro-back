@@ -1,4 +1,4 @@
-import { createError } from '../../../../../shared/errors/index.js';
+import { InvalidArgumentException } from '../../../../shared/domain/errors/index.js';
 import { AggregateRoot } from '../../../../shared/domain/entities/AggregateRoot.js';
 import type { Metadata } from '../../../../shared/domain/valueObject/Metadata.js';
 import type { Uuid } from '../../../../shared/domain/valueObject/Uuid.js';
@@ -51,21 +51,23 @@ export class Family extends AggregateRoot<Uuid> {
   }
 
   private validate(props: FamilyProps): void {
-    if (!props.slug) throw createError.badRequest('Family.slug is required');
-    if (!props.name) throw createError.badRequest('Family.name is required');
-    if (!props.scientificName)
-      throw createError.badRequest('Family.scientificName is required');
-
-    if (!Array.isArray(props.aliases)) {
-      throw createError.badRequest('Family.aliases must be an array');
+    const requiredKeys: Array<keyof FamilyProps> = [
+      'slug',
+      'name',
+      'scientificName',
+      'metadata'
+    ];
+    for (const key of requiredKeys) {
+      if (!props[key]) {
+        throw new InvalidArgumentException(`Family.${key} is required`);
+      }
     }
 
-    if (!Array.isArray(props.highlights)) {
-      throw createError.badRequest('Family.highlights must be an array');
-    }
-
-    if (!props.metadata) {
-      throw createError.badRequest('Family.metadata is required');
+    const arrayKeys: Array<keyof FamilyProps> = ['aliases', 'highlights'];
+    for (const key of arrayKeys) {
+      if (!Array.isArray(props[key])) {
+        throw new InvalidArgumentException(`Family.${key} must be an array`);
+      }
     }
   }
 

@@ -1,6 +1,12 @@
 import { randomInt } from 'node:crypto';
 import { PlantSowing } from '../../../../../../src/Contexts/Agro/Plants/domain/value-objects/PlantSowing.js';
+import {
+  MonthSet,
+  Range
+} from '../../../../../../src/shared/domain/value-objects/index.js';
+import type { SowingMethod } from '../../../../../../src/Contexts/Agro/Plants/domain/value-objects/interfaces/SowingMethod.js';
 import { random } from '../../../../shared/fixtures/random.js';
+import { InvalidArgumentException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 
 describe('PlantSowing (value object)', () => {
   const randomRange = (
@@ -34,7 +40,7 @@ describe('PlantSowing (value object)', () => {
           direct: directMethod()
         }
       })
-    ).toThrow('PlantSowing.months must have at least one month');
+    ).toThrow(InvalidArgumentException);
   });
 
   it('should throw if direct method is missing', () => {
@@ -46,8 +52,19 @@ describe('PlantSowing (value object)', () => {
     } as unknown as Parameters<typeof PlantSowing.fromPrimitives>[0];
 
     expect(() => PlantSowing.fromPrimitives(input)).toThrow(
-      'PlantSowing.direct.depthCm is required'
+      InvalidArgumentException
     );
+
+    // Test direct constructor validation
+    expect(
+      () =>
+        new PlantSowing({
+          months: null as unknown as MonthSet,
+          seedsPerHole: null as unknown as Range,
+          germinationDays: null as unknown as Range,
+          methods: { direct: null as unknown as SowingMethod }
+        })
+    ).toThrow('PlantSowing.direct.depthCm is required');
   });
 
   it('should throw if starter exists but depth is missing', () => {
@@ -60,8 +77,22 @@ describe('PlantSowing (value object)', () => {
     } as unknown as Parameters<typeof PlantSowing.fromPrimitives>[0];
 
     expect(() => PlantSowing.fromPrimitives(input)).toThrow(
-      'PlantSowing.starter.depthCm is required'
+      InvalidArgumentException
     );
+
+    // Test direct constructor validation
+    expect(
+      () =>
+        new PlantSowing({
+          months: null as unknown as MonthSet,
+          seedsPerHole: null as unknown as Range,
+          germinationDays: null as unknown as Range,
+          methods: {
+            direct: { depthCm: true as unknown as Range },
+            starter: {} as unknown as SowingMethod
+          }
+        })
+    ).toThrow('PlantSowing.starter.depthCm is required');
   });
 
   it('should build correctly from valid primitives', () => {
@@ -90,5 +121,25 @@ describe('PlantSowing (value object)', () => {
     });
 
     expect(sowing.methods.starter).toBeDefined();
+  });
+
+  it('should throw if seedsPerHole min or max is <= 0', () => {
+    expect(() =>
+      PlantSowing.fromPrimitives({
+        ...buildBase(),
+        seedsPerHole: { min: 0, max: 0 },
+        methods: { direct: directMethod() }
+      })
+    ).toThrow(InvalidArgumentException);
+  });
+
+  it('should throw if germinationDays min or max is <= 0', () => {
+    expect(() =>
+      PlantSowing.fromPrimitives({
+        ...buildBase(),
+        germinationDays: { min: 0, max: 0 },
+        methods: { direct: directMethod() }
+      })
+    ).toThrow(InvalidArgumentException);
   });
 });

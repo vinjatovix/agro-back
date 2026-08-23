@@ -1,4 +1,4 @@
-import { createError } from '../../../../shared/errors/index.js';
+import { InvalidArgumentException } from '../errors/index.js';
 import { DISPOSABLE_EMAIL_DOMAINS } from './disposableEmailDomains.js';
 
 export class Email {
@@ -32,13 +32,13 @@ export class Email {
 
   private static ensureLength(value: string): void {
     if (value.length < Email.MIN_LENGTH) {
-      throw createError.badRequest(
+      throw new InvalidArgumentException(
         `<Email> must be at least ${Email.MIN_LENGTH} characters long`
       );
     }
 
     if (value.length > Email.MAX_LENGTH) {
-      throw createError.badRequest(
+      throw new InvalidArgumentException(
         `<Email> must be at most ${Email.MAX_LENGTH} characters long`
       );
     }
@@ -53,7 +53,7 @@ export class Email {
     );
 
     if (isBlockedDomain) {
-      throw createError.badRequest(
+      throw new InvalidArgumentException(
         `<Email> does not allow the domain <${value}>`
       );
     }
@@ -61,7 +61,7 @@ export class Email {
 
   private static ensureIsEmailAddress(value: string): void {
     if (!Email.EMAIL_REGEX.test(value)) {
-      throw createError.badRequest(
+      throw new InvalidArgumentException(
         `<Email> does not allow the value <${value}>`
       );
     }

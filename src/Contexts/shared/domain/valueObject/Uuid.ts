@@ -1,5 +1,5 @@
 import { validate, v4 as uuidv4 } from 'uuid';
-import { createError } from '../../../../shared/errors/index.js';
+import { InvalidArgumentException } from '../errors/index.js';
 
 export class Uuid {
   readonly value: string;
@@ -28,7 +28,9 @@ export class Uuid {
 
   private static ensureIsValidUuid(id: string): void {
     if (!Uuid.isValid(id)) {
-      throw createError.badRequest(`<Uuid> does not allow the value <${id}>`);
+      throw new InvalidArgumentException(
+        `<Uuid> does not allow the value <${id}>`
+      );
     }
   }
 

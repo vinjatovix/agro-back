@@ -1,4 +1,4 @@
-import { createError } from '../../../../shared/errors/index.js';
+import { InvalidArgumentException } from '../errors/index.js';
 
 export class StringValueObject {
   readonly value: string;
@@ -17,7 +17,7 @@ export class StringValueObject {
 
   protected static ensureType(value: unknown): string {
     if (typeof value !== 'string') {
-      throw createError.badRequest(
+      throw new InvalidArgumentException(
         `<${this.name}> does not allow the value <${String(value)}>`
       );
     }
@@ -41,7 +41,7 @@ export class StringValueObject {
           ? `less than ${minLength}`
           : `more than ${maxLength}`;
 
-      throw createError.badRequest(
+      throw new InvalidArgumentException(
         `<${this.name}> <${value}> has ${message} characters`
       );
     }

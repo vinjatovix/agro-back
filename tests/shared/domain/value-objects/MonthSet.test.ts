@@ -1,4 +1,5 @@
 import { MonthSet } from '../../../../src/shared/domain/value-objects/MonthSet.js';
+import { InvalidArgumentException } from '../../../../src/Contexts/shared/domain/errors/index.js';
 
 describe('MonthSet', () => {
   it('should create valid MonthSet', () => {
@@ -9,13 +10,15 @@ describe('MonthSet', () => {
   });
 
   it('should throw if not array', () => {
-    expect(() => new MonthSet(null as unknown as number[])).toThrow();
+    expect(() => new MonthSet(null as unknown as number[])).toThrow(
+      InvalidArgumentException
+    );
   });
 
   it('should throw for invalid months', () => {
-    expect(() => new MonthSet([0])).toThrow();
-    expect(() => new MonthSet([13])).toThrow();
-    expect(() => new MonthSet([1.5])).toThrow();
+    expect(() => new MonthSet([0])).toThrow(InvalidArgumentException);
+    expect(() => new MonthSet([13])).toThrow(InvalidArgumentException);
+    expect(() => new MonthSet([1.5])).toThrow(InvalidArgumentException);
   });
 
   it('should create empty set', () => {

@@ -9,6 +9,7 @@ import { Metadata } from '../../../../../../src/Contexts/shared/domain/valueObje
 import { bedDomainMapper } from '../../../../../../src/Contexts/Agro/Beds/mappers/bedDomainMapper.js';
 import { PositiveNumber } from '../../../../../../src/Contexts/shared/domain/valueObject/PositiveNumber.js';
 import { StringValueObject } from '../../../../../../src/Contexts/shared/domain/valueObject/StringValueObject.js';
+import { DomainConflictException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 
 describe('Bed (unit)', () => {
   let validatePlacement: jest.Mock;
@@ -241,9 +242,7 @@ describe('Bed (unit)', () => {
       spatialService
     );
 
-    expect(() => bed.markAsDeleted()).toThrow(
-      'Cannot delete a bed that has plants'
-    );
+    expect(() => bed.markAsDeleted()).toThrow(DomainConflictException);
 
     expect(bed.isDeleted).toBe(false);
   });
@@ -254,7 +253,7 @@ describe('Bed (unit)', () => {
     bed.markAsDeleted();
 
     expect(() => bed.addPlant(plant, toSpatial(plant), [])).toThrow(
-      'Cannot add a plant to a deleted bed'
+      DomainConflictException
     );
 
     expect(bed.plantInstances).toHaveLength(0);
@@ -263,6 +262,6 @@ describe('Bed (unit)', () => {
   it('should not allow marking as deleted an already deleted bed', () => {
     bed.markAsDeleted();
 
-    expect(() => bed.markAsDeleted()).toThrow('Bed is already deleted');
+    expect(() => bed.markAsDeleted()).toThrow(DomainConflictException);
   });
 });

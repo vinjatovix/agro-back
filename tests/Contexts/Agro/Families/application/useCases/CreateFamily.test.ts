@@ -1,5 +1,5 @@
 import { CreateFamily } from '../../../../../../src/Contexts/Agro/Families/application/useCases/CreateFamily.js';
-import { createError } from '../../../../../../src/shared/errors/index.js';
+import { DomainConflictException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { UuidMother } from '../../../../shared/fixtures/UuidMother.js';
 import { FamilyRepositoryMock } from '../../__mocks__/FamilyRepositoryMock.js';
 import { FamilyScenarios } from '../../domain/mothers/FamilyScenarios.js';
@@ -41,7 +41,7 @@ describe('CreateFamily', () => {
     const dto = FamilyScenarios.createDtoBase({ id: id.value });
 
     await expect(useCase.execute(dto, USER)).rejects.toThrow(
-      createError.conflict(`Family already exists: ${dto.id}`)
+      new DomainConflictException(`Family already exists: ${dto.id}`)
     );
     repository.assertSaveNotCalled();
   });
