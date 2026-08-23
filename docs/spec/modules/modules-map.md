@@ -282,12 +282,14 @@ Rules:
 
 Rules:
 
-- API input → Query DSL Contract transformation
-- MUST implement Query DSL Contract rules
-- no domain logic
-- deterministic parsing required
-- invalid filters must be safely handled or rejected
-- no domain logic allowed
+- Belongs to the API Delivery Mechanism (located in `src/apps/agroApi/shared/query/`).
+- API input → Query DSL Contract transformation.
+- MUST implement Query DSL Contract rules.
+- Translates raw Express request queries into clean Application Layer QueryOptions.
+- No business or domain logic allowed.
+- Deterministic parsing required.
+- Invalid filters must be safely handled or rejected.
+- May throw transport-layer/HTTP errors or domain validation exceptions during translation.
 
 ---
 
