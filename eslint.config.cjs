@@ -62,5 +62,13 @@ module.exports = defineConfig([
     }
   },
 
-  globalIgnores(['**/dist/', '**/node_modules/', 'commitlint.config.js'])
+  globalIgnores([
+    '**/dist/',
+    '**/node_modules/',
+    '**/coverage/',
+    '**/docker/',
+    'eslint.config.cjs',
+    'commitlint.config.cjs',
+    'cucumber.mjs'
+  ])
 ]);

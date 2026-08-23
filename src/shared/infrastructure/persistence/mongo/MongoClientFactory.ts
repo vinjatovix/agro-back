@@ -41,12 +41,13 @@ export class MongoClientFactory {
       );
     }
 
-    if (
-      process.env.NODE_ENV === 'test' &&
-      config.connectionString.includes('mongodb.net')
-    ) {
+    const isTesting =
+      process.env.NODE_ENV === 'test' ||
+      process.env.JEST_WORKER_ID !== undefined;
+
+    if (isTesting && config.connectionString.includes('mongodb.net')) {
       throw new Error(
-        'MongoClientFactory: Connecting to Mongo Atlas (mongodb.net) in test environment is strictly forbidden to prevent accidental data loss.'
+        'MongoClientFactory: Connecting to Mongo Atlas (mongodb.net) in a test environment is strictly forbidden to prevent accidental data loss.'
       );
     }
 

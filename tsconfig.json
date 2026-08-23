@@ -27,6 +27,13 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts"],
+  "include": [
+    "src/**/*.ts",
+    "tests/**/*.ts",
+    "setupTests.ts",
+    "jest.config.ts",
+    "scripts/**/*.ts",
+    "migrations/**/*.ts"
+  ],
   "exclude": ["node_modules"]
 }
