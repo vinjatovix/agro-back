@@ -1,7 +1,8 @@
 import { config } from 'dotenv';
 
 config({
-  path: '.env.test'
+  path: '.env.test',
+  override: true
 });
 
 const {
