@@ -2,6 +2,7 @@
 .gemini
 .codegraph
 .specify
+/tmp
 
 # Logs
 logs
