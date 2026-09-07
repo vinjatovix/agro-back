@@ -1,8 +1,51 @@
 name: Build
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: Install dependencies
+        run: |
+          npm ci
+
+      - name: Run Shai-Hulud Integrity Scanner (Warn Only)
+        run: |
+          curl -fsSL --retry 3 --retry-delay 2 https://raw.githubusercontent.com/vinjatovix/shai-hulud-integrity-scanner/refs/heads/main/scan-project.sh > /tmp/scan-project.sh
+          chmod +x /tmp/scan-project.sh
+          /tmp/scan-project.sh . --warn-only --exclude-dir=".specify" | tee scan_report.txt
+
+      - name: Comment PR on Medium Risk
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          if grep -q "MEDIUM RISK" scan_report.txt; then
+            REPORT_CONTENT=$(cat scan_report.txt)
+            cat << EOF > comment.md
+          ### ⚠️ Shai-Hulud Scanner - Warnings Detected
+          The pipeline completed successfully, but manual review is required for the following security findings:
+
+          \`\`\`text
+          $REPORT_CONTENT
+          \`\`\`
+          EOF
+            gh pr comment ${{ github.event.pull_request.number }} --body-file comment.md
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build:
     runs-on: ubuntu-latest
     env:
