@@ -17,8 +17,10 @@ RESTORE_PASSWORD=rootPassword
 set -e
 
 print() {
-  printf "\n\n\n# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #\n%s\n# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #\n\n\n" "$1"
-}
+  local message="$1"
+  printf "\n\n\n# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #\n%s\n# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #\n\n\n" "$message"
+  return 0
+}   
 
 if [[ $ENV_DUMP == "PRO" && $PASSWORD ]]; then
   HOST=

@@ -1,0 +1,1379 @@
+openapi: 3.0.3
+
+info:
+  title: AgroApp API
+  version: 1.0.0
+  description: API for managing plants and user authentication in the AgroApp application.
+  termsOfService: http://example.com/terms/
+  contact:
+    name: AgroApp Support
+    email: vinjadevix@gmail.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+tags:
+  - name: Health
+    description: Endpoint for health checks.
+  - name: Auth
+    description: Endpoints for user authentication and management.
+  - name: Families
+    description: Endpoints for managing plant families.
+  - name: Plants
+    description: Endpoints for managing plant data.
+  - name: Beds
+    description: Endpoints for managing garden beds.
+
+paths:
+  /api/v1/health:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+
+  /api/v1/Auth/register:
+    post:
+      tags: [Auth]
+      summary: Register user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterUserRequest'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {}
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/v1/Auth/login:
+    post:
+      tags: [Auth]
+      summary: Login user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginUserRequest'
+      responses:
+        '200':
+          description: JWT token
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [token]
+                properties:
+                  token:
+                    type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/v1/Auth/google:
+    post:
+      tags: [Auth]
+      summary: Authenticate with Google
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthenticateWithGoogleRequest'
+      responses:
+        '200':
+          description: JWT token
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [token]
+                properties:
+                  token:
+                    type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/v1/Auth/validate/{token}:
+    get:
+      tags: [Auth]
+      summary: Validate email
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Email validated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/v1/Auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh token
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: New token
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [token]
+                properties:
+                  token:
+                    type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/v1/Auth/update:
+    post:
+      tags: [Auth]
+      summary: Update password
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePasswordRequest'
+      responses:
+        '200':
+          description: Password updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/v1/families:
+    get:
+      tags: [Families]
+      summary: Get all families
+
+      parameters:
+        - in: query
+          name: filter
+          style: deepObject
+          explode: true
+          schema:
+            type: object
+            example:
+              name: 'Rosaceae'
+              aliases:
+                hasAny: ['Rose family', 'Rosids']
+        - in: query
+          name: sort
+          style: deepObject
+          explode: true
+          schema:
+            $ref: '#/components/schemas/SortOptions'
+        - in: query
+          name: pagination
+          style: deepObject
+          explode: true
+          schema:
+            $ref: '#/components/schemas/PaginationParams'
+
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Family'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+    post:
+      tags: [Families]
+      summary: Create family
+      security:
+        - bearerAuth: []
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFamily'
+
+      responses:
+        '201':
+          description: Family created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Family'
+
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+  /api/v1/families/{idOrSlug}:
+    get:
+      tags: [Families]
+      summary: Get family by id or slug
+      parameters:
+        - name: idOrSlug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Family'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    patch:
+      tags: [Families]
+      summary: Update family
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateFamily'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Family'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/v1/plants:
+    get:
+      tags: [Plants]
+      summary: Get all plants
+
+      parameters:
+        - in: query
+          name: filter
+          style: deepObject
+          explode: true
+          schema:
+            type: object
+            example:
+              family:
+                eq: ca4fc5c8-3c52-4922-80c4-ea8ecda1f545
+              sowingMonths:
+                hasAny: [3, 4, 5]
+        - in: query
+          name: sort
+          style: deepObject
+          explode: true
+          schema:
+            $ref: '#/components/schemas/SortOptions'
+        - in: query
+          name: pagination
+          style: deepObject
+          explode: true
+          schema:
+            $ref: '#/components/schemas/PaginationParams'
+
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Plant'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationResponse'
+
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+    post:
+      tags: [Plants]
+      summary: Create plant
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePlant'
+      responses:
+        '201':
+          description: Plant created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plant'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+  /api/v1/plants/{id}:
+    get:
+      tags: [Plants]
+      summary: Get plant by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plant'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    patch:
+      tags: [Plants]
+      summary: Update plant
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePlant'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plant'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    delete:
+      tags: [Plants]
+      summary: Delete plant
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: No content
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/v1/beds:
+    get:
+      tags: [Beds]
+      summary: Get user beds
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of beds
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Bed'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    post:
+      tags: [Beds]
+      summary: Create bed
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBed'
+      responses:
+        '201':
+          description: Bed created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bed'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+  /api/v1/beds/{id}:
+    get:
+      tags: [Beds]
+      summary: Get bed by id
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Bed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bed'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    patch:
+      tags: [Beds]
+      summary: Update bed
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBed'
+      responses:
+        '200':
+          description: Updated bed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bed'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    delete:
+      tags: [Beds]
+      summary: Delete bed
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: No content
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Metadata:
+      type: object
+      required:
+        - createdAt
+        - createdBy
+        - updatedAt
+        - updatedBy
+      properties:
+        createdAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+        updatedBy:
+          type: string
+
+    PaginationResponse:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 10
+        totalPages:
+          type: integer
+          example: 1
+        totalItems:
+          type: integer
+          example: 42
+      required:
+        - page
+        - limit
+        - totalPages
+        - totalItems
+
+    FilterOperators:
+      type: object
+      additionalProperties: true
+
+    SortOptions:
+      type: object
+      additionalProperties:
+        type: string
+        enum: [asc, desc]
+
+    PaginationParams:
+      type: object
+      required: [page, limit]
+      properties:
+        page:
+          type: integer
+          minimum: 1
+          example: 1
+        limit:
+          type: integer
+          minimum: 1
+          example: 10
+
+    QueryParams:
+      type: object
+      properties:
+        filter:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties: true
+
+        sort:
+          $ref: '#/components/schemas/SortOptions'
+
+        pagination:
+          $ref: '#/components/schemas/PaginationParams'
+
+        include:
+          type: array
+          items:
+            type: string
+
+    # ================= AUTH =================
+
+    LoginUserRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+
+    RegisterUserRequest:
+      type: object
+      required: [id, email, username, password, repeatPassword]
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        username:
+          type: string
+        password:
+          type: string
+        repeatPassword:
+          type: string
+
+    AuthenticateWithGoogleRequest:
+      type: object
+      required: [idToken]
+      properties:
+        idToken:
+          type: string
+
+    UpdatePasswordRequest:
+      type: object
+      required: [password, repeatPassword, oldPassword]
+      properties:
+        password:
+          type: string
+        repeatPassword:
+          type: string
+        oldPassword:
+          type: string
+
+    # ================= RANGE =================
+
+    Range:
+      type: object
+      required: [min, max]
+      properties:
+        min:
+          type: number
+        max:
+          type: number
+
+    # ================= FAMILY =================
+
+    Family:
+      type: object
+      required:
+        - id
+        - slug
+        - name
+        - scientificName
+        - shortDescription
+        - highlights
+      properties:
+        id:
+          type: string
+          format: uuid
+
+        slug:
+          type: string
+
+        name:
+          type: string
+
+        scientificName:
+          type: string
+
+        shortDescription:
+          type: string
+
+        highlights:
+          type: array
+          items:
+            type: string
+
+        aliases:
+          type: array
+          items:
+            type: string
+          nullable: true
+
+        extra:
+          type: object
+          nullable: true
+          properties:
+            order:
+              type: string
+            subfamilies:
+              type: array
+              items:
+                type: string
+            distribution:
+              type: string
+            speciesCount:
+              type: integer
+              minimum: 1
+          additionalProperties: false
+
+    CreateFamily:
+      type: object
+      required:
+        - id
+        - slug
+        - name
+        - scientificName
+        - shortDescription
+        - highlights
+      properties:
+        id:
+          type: string
+          format: uuid
+
+        slug:
+          type: string
+          minLength: 1
+
+        name:
+          type: string
+          minLength: 1
+
+        aliases:
+          type: array
+          items:
+            type: string
+          nullable: true
+
+        scientificName:
+          type: string
+          minLength: 1
+
+        shortDescription:
+          type: string
+          minLength: 1
+
+        highlights:
+          type: array
+          items:
+            type: string
+
+        extra:
+          type: object
+          nullable: true
+          properties:
+            order:
+              type: string
+            distribution:
+              type: string
+            speciesCount:
+              type: integer
+              minimum: 1
+            subfamilies:
+              type: array
+              items:
+                type: string
+          additionalProperties: false
+
+    UpdateFamily:
+      type: object
+      properties:
+        slug:
+          type: string
+        name:
+          type: string
+        scientificName:
+          type: string
+        shortDescription:
+          type: string
+        highlights:
+          type: array
+          items:
+            type: string
+        aliases:
+          type: array
+          items:
+            type: string
+          nullable: true
+        extra:
+          type: object
+          nullable: true
+          properties:
+            order:
+              type: string
+              nullable: true
+            distribution:
+              type: string
+              nullable: true
+            speciesCount:
+              type: integer
+              nullable: true
+              minimum: 1
+            subfamilies:
+              type: array
+              nullable: true
+              items:
+                type: string
+          additionalProperties: false
+    # ================= PLANT =================
+
+    Plant:
+      type: object
+      required: [id, identity, traits, phenology]
+      properties:
+        id:
+          type: string
+
+        identity:
+          type: object
+          required: [name, family]
+          properties:
+            name:
+              type: object
+              required: [primary]
+              properties:
+                primary:
+                  type: string
+                aliases:
+                  type: array
+                  items:
+                    type: string
+            scientificName:
+              type: string
+              nullable: true
+            family:
+              type: string
+
+        traits:
+          type: object
+          required: [lifecycle, size, spacingCm]
+          properties:
+            lifecycle:
+              type: string
+              enum: [annual, biennial, perennial]
+
+            size:
+              type: object
+              properties:
+                height:
+                  $ref: '#/components/schemas/Range'
+                spread:
+                  $ref: '#/components/schemas/Range'
+
+            spacingCm:
+              $ref: '#/components/schemas/Range'
+
+        phenology:
+          type: object
+          properties:
+            sowing:
+              type: object
+              required: [months, seedsPerHole, germinationDays, methods]
+              properties:
+                months:
+                  type: array
+                  items:
+                    type: number
+
+                seedsPerHole:
+                  $ref: '#/components/schemas/Range'
+
+                germinationDays:
+                  $ref: '#/components/schemas/Range'
+
+                methods:
+                  type: object
+                  required: [direct]
+                  properties:
+                    direct:
+                      type: object
+                      required: [depthCm]
+                      properties:
+                        depthCm:
+                          $ref: '#/components/schemas/Range'
+                    starter:
+                      type: object
+                      properties:
+                        depthCm:
+                          $ref: '#/components/schemas/Range'
+
+            flowering:
+              type: object
+              properties:
+                months:
+                  type: array
+                  items:
+                    type: number
+                pollination:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                    agents:
+                      type: array
+                      items:
+                        type: string
+
+            harvest:
+              type: object
+              properties:
+                months:
+                  type: array
+                  items:
+                    type: number
+                description:
+                  type: string
+
+        knowledge:
+          $ref: '#/components/schemas/PlantKnowledge'
+
+    CreatePlant:
+      $ref: '#/components/schemas/Plant'
+
+    UpdatePlant:
+      type: object
+      properties:
+        identity:
+          type: object
+          properties:
+            name:
+              type: object
+              properties:
+                primary:
+                  type: string
+                aliases:
+                  type: array
+                  items:
+                    type: string
+            scientificName:
+              type: string
+              nullable: true
+            family:
+              type: string
+
+        traits:
+          type: object
+          properties:
+            lifecycle:
+              type: string
+              enum: [annual, biennial, perennial]
+            size:
+              type: object
+              properties:
+                height:
+                  $ref: '#/components/schemas/Range'
+                spread:
+                  $ref: '#/components/schemas/Range'
+            spacingCm:
+              $ref: '#/components/schemas/Range'
+
+        phenology:
+          type: object
+          properties:
+            sowing:
+              type: object
+              properties:
+                months:
+                  type: array
+                  items:
+                    type: number
+                seedsPerHole:
+                  $ref: '#/components/schemas/Range'
+                germinationDays:
+                  $ref: '#/components/schemas/Range'
+                methods:
+                  type: object
+                  properties:
+                    direct:
+                      type: object
+                      required: [depthCm]
+                      properties:
+                        depthCm:
+                          $ref: '#/components/schemas/Range'
+                    starter:
+                      type: object
+                      properties:
+                        depthCm:
+                          $ref: '#/components/schemas/Range'
+
+            flowering:
+              type: object
+              properties:
+                months:
+                  type: array
+                  items:
+                    type: number
+                pollination:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                    agents:
+                      type: array
+                      items:
+                        type: string
+
+            harvest:
+              type: object
+              properties:
+                months:
+                  type: array
+                  items:
+                    type: number
+                description:
+                  type: string
+
+        knowledge:
+          $ref: '#/components/schemas/PlantKnowledge'
+
+    # ================= KNOWLEDGE =================
+
+    PlantKnowledge:
+      type: object
+      nullable: true
+      properties:
+        soil:
+          type: object
+          properties:
+            ph:
+              $ref: '#/components/schemas/Range'
+            availableDepthCm:
+              $ref: '#/components/schemas/Range'
+
+        rootSystem:
+          type: object
+          properties:
+            type:
+              type: string
+            depthCm:
+              $ref: '#/components/schemas/Range'
+            spreadCm:
+              $ref: '#/components/schemas/Range'
+
+        watering:
+          type: object
+          properties:
+            frequency:
+              type: string
+            amountMm:
+              type: number
+            conditions:
+              type: array
+              items:
+                type: string
+
+        light:
+          type: object
+          properties:
+            hoursMin:
+              type: number
+            type:
+              type: string
+            preference:
+              type: string
+
+        pruning:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              intensity:
+                type: string
+              season:
+                type: string
+              frequencyPerYear:
+                type: number
+
+        propagation:
+          type: object
+          additionalProperties: true
+
+        ecology:
+          type: object
+          properties:
+            strategicBenefits:
+              type: array
+              items:
+                type: string
+
+        resources:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              url:
+                type: string
+              title:
+                type: string
+              source:
+                type: string
+              tags:
+                type: array
+                items:
+                  type: string
+
+        notes:
+          type: array
+          items:
+            type: string
+
+    # ================= BEDS =================
+
+    Bed:
+      type: object
+      required: [id, userId, width, height, plantInstances, metadata, deleted]
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        name:
+          type: string
+        width:
+          type: number
+        height:
+          type: number
+        depth:
+          type: number
+        plantInstances:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlantInstance'
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+        deleted:
+          type: boolean
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    CreateBed:
+      type: object
+      required: [id, width, height]
+      properties:
+        id:
+          type: string
+        width:
+          type: number
+        height:
+          type: number
+        plantInstances:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlantInstance'
+
+    UpdateBed:
+      type: object
+      properties:
+        width:
+          type: number
+        height:
+          type: number
+        plantInstances:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlantInstance'
+
+    #  ================= PLANT INSTANCES =================
+
+    PlantInstance:
+      type: object
+      required:
+        - id
+        - userId
+        - plantId
+        - position
+        - growthStatus
+        - instanceStatus
+        - plantedAt
+      properties:
+        id:
+          type: string
+          format: string
+
+        userId:
+          type: string
+          format: string
+
+        plantId:
+          type: string
+          format: string
+
+        position:
+          type: object
+          required: [x, y]
+          properties:
+            x:
+              type: number
+            y:
+              type: number
+
+        growthStatus:
+          type: string
+
+        instanceStatus:
+          type: string
+          enum:
+            - ACTIVE
+            - REMOVED
+
+        plantedAt:
+          type: string
+          format: date-time
+
+        removedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+        variety:
+          type: string
+          nullable: true
+
+        notes:
+          type: string
+          nullable: true
+
+  responses:
+    UnauthorizedError:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [message]
+            properties:
+              message:
+                type: string
+
+    ForbiddenError:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [message]
+            properties:
+              message:
+                type: string
+
+    ConflictError:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [message]
+            properties:
+              message:
+                type: string
+
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [message]
+            properties:
+              message:
+                type: string
+              errors:
+                type: object
+                additionalProperties:
+                  type: string
+
+    NotFoundError:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [message]
+            properties:
+              message:
+                type: string

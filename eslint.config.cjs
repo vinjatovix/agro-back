@@ -3,7 +3,6 @@ const { defineConfig, globalIgnores } = require('eslint/config');
 const globals = require('globals');
 const tsParser = require('@typescript-eslint/parser');
 const typescriptEslint = require('@typescript-eslint/eslint-plugin');
-const prettier = require('eslint-plugin-prettier');
 const js = require('@eslint/js');
 
 const { FlatCompat } = require('@eslint/eslintrc');
@@ -16,14 +15,16 @@ const compat = new FlatCompat({
 
 module.exports = defineConfig([
   {
+    linterOptions: {
+      reportUnusedDisableDirectives: false
+    },
+
     languageOptions: {
       globals: {
         ...globals.node
       },
-
       parser: tsParser,
       sourceType: 'module',
-
       parserOptions: {
         project: './tsconfig.json',
         tsconfigRootDir: __dirname
@@ -31,8 +32,7 @@ module.exports = defineConfig([
     },
 
     plugins: {
-      '@typescript-eslint': typescriptEslint,
-      prettier
+      '@typescript-eslint': typescriptEslint
     },
 
     extends: compat.extends(
@@ -43,8 +43,6 @@ module.exports = defineConfig([
     ),
 
     rules: {
-      'prettier/prettier': 'error',
-
       '@typescript-eslint/no-misused-promises': [
         'error',
         {
@@ -63,5 +61,14 @@ module.exports = defineConfig([
       ]
     }
   },
-  globalIgnores(['**/dist/', '**/node_modules/'])
+
+  globalIgnores([
+    '**/dist/',
+    '**/node_modules/',
+    '**/coverage/',
+    '**/docker/',
+    'eslint.config.cjs',
+    'commitlint.config.cjs',
+    'cucumber.mjs'
+  ])
 ]);

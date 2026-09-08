@@ -1,0 +1,28 @@
+[
+  {
+    "id": "user_1",
+    "email": "john.doe@example.com",
+    "usernaname": "John Doe",
+    "password": "passwordhash123",
+    "emailValidated": true,
+    "authMethods": [
+      {
+        "provider": "google",
+        "linkedAt": "2024-01-01T12:00:00Z",
+        "providerUserId": "google_user_123"
+      },
+      {
+        "provider": "local",
+        "linkedAt": "2024-01-01T12:00:00Z",
+        "passwordHash": "passwordhash123"
+      }
+    ],
+    "roles": ["admin", "collaborator", "user"],
+    "metadata": {
+      "createdAt": "2024-01-01T12:00:00Z",
+      "createdBy": "system",
+      "updatedAt": "2024-01-01T12:00:00Z",
+      "updatedBy": "system"
+    }
+  }
+]

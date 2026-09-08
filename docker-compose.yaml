@@ -1,0 +1,10 @@
+services:
+  agro-back:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: agro-back:1.0.0
+    ports:
+      - '3000:3000'
+    env_file:
+      - ./.env
