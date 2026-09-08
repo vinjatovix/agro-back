@@ -1,7 +1,7 @@
 # MODULE: PLANT
 
-version: 1.1.0
-source-spec: v1.1.0
+version: 1.3.0
+source-spec: v1.3.0
 status: formalized (derived from codebase snapshot)
 
 ---
@@ -82,6 +82,15 @@ Rules:
     spread: Range;
   }
   spacingCm: Range;
+  // [TARGET STATE (Pending Iteration 12)]
+  ecological?: {
+    edibility: boolean;
+    toxicity: 'none' | 'low' | 'high';
+    attractsPollinators: boolean;
+    invasivePotential: boolean; // Note: Invasiveness depends heavily on local geography
+  }
+  // [TARGET STATE (Pending Iteration 63)]
+  stratum?: 'root' | 'ground_cover' | 'herbaceous' | 'shrub' | 'low_canopy' | 'overstory_canopy' | 'climber';
 }
 ```
 
@@ -90,6 +99,8 @@ Rules:
 - lifecycle → biological growth pattern
 - size → expected physical bounds
 - spacingCm → **advisory spatial constraint (NOT enforcement)**
+- ecological → **[TARGET STATE (Pending Iteration 12)]** optional attributes used for quick banners and ecological context
+- stratum → **[TARGET STATE (Pending Iteration 63)]** optional canopy/strata classification used by the spatial system to bypass geometric 2D overlap warnings in polyculture companion planting guilds (e.g. root layers occupying the same 2D footprint as trellised climbers).
 
 #### Important boundary rule
 
@@ -101,51 +112,104 @@ Spacing is:
 
 ### 4.3 Phenology (time behavior model)
 
-#### Sowing
+#### Sowing `[TARGET STATE (Pending Iteration 30)]`
 
-Encapsulated as:
+Encapsulated under `phenology.sowing` as an **optional, structured submodel (PlantSowing)**. For plants that are sterile or only propagated vegetatively (such as Russian Comfrey _Symphytum x uplandicum_ / _Bocking 14_ which has no viable seeds), the `sowing` block can be completely omitted (`null` or `undefined`).
 
-- seedsPerHole
-- germinationDays
-- months
-- methods (direct / starter)
+If present, `PlantSowing` comprises:
 
-This is a **structured sub-aggregate (PlantSowing)**
+- `seedsPerHole`: Range (min and max seeds to sow per station)
+- `germinationDays`: Range (min and max days for sprouting)
+- `seedViabilityYears`: PositiveNumber `[TARGET STATE (Pending Iteration 52)]` (optional average lifespan in years of the seeds)
+- `months`: MonthSet (the allowed calendar months for sowing)
+- `methods`: Object containing specific sowing methods and their depths:
+  - `direct`: SowingMethod (mandatory, containing `depthCm: Range` for direct soil sowing)
+  - `nursery`: SowingMethod (optional, containing `depthCm: Range` for starter seedbed cells; **`[TARGET STATE (Pending Iteration 30)]`** - currently named `starter` in the codebase and slated to be renamed to `nursery` in Iteration 30)
 
 Rules:
 
-- validation is strict at construction time
-- months must not be empty
-- depth constraints must exist
+- Validation is strict at construction time if the `sowing` block is provided.
+- `months` must not be empty if `sowing` is present.
+- If a plant is sterile or vegetatively-only propagated, the system bypasses `sowing` validation completely.
 
 ---
 
 #### Flowering
 
-- months
-- pollination (optional)
+- `months`: MonthSet
+- `pollination` (optional):
+  - `type`: PollinationType
+  - `agents`: string[] (optional list of animal/insect vectors)
 
 ---
 
 #### Harvest
 
-- months
-- description (optional)
+- `months`: MonthSet
+- `description` (optional)
 
 ---
 
-### 4.4 Knowledge (ecological reference layer)
+### 4.4 Knowledge (ecological & propagation reference layer)
+
+The `knowledge` field contains rich agronomic and ecological information (optional, represented by `PlantKnowledge`). This layer does not enforce hard domain constraints, but serves as the reference database for companions, soil profiles, and care routines.
+
+#### 4.4.1 Propagation Knowledge `[TARGET STATE (Pending Iteration 12)]`
+
+Instead of a flat array of keywords, propagation methods are defined as a rich structured object under `knowledge.propagation.methods` where each active propagation technique is mapped by name (e.g., `'division'`, `'cutting'`, `'layering'`, `'seed'`, `'sucker'`, `'grafting'`) to its own biological requirements:
 
 ```ts
-knowledge?: PlantKnowledge
+type PropagationMethodDetails = {
+  season: 'spring' | 'summer' | 'autumn' | 'winter';
+  bestPractices: string[];
+  estimatedTimeWeeks?: Range;
+};
 ```
+
+This structured object allows the system to support diverse, multi-method cultivation strategies simultaneously, perfectly mirroring physical gardening reality (e.g., a single shrub variety like Blackberry or Raspberry being propagated via both stem cuttings and root division, while Russian Comfrey is listed with only crown division).
+
+#### 4.4.2 Core Ecological & Soil Knowledge
+
+- `soil`:
+  - `ph`: Range (advisory pH tolerance, e.g. `[6.0, 6.8]`)
+  - `availableDepthCm`: Range (advisory minimum and maximum soil depth needed)
+- `rootSystem`:
+  - `type`: fibrous | taproot | tuberous | rhizomatous
+  - `depthCm`: Range (advisory root depth)
+  - `spreadCm`: Range (advisory root spread)
+- `watering`:
+  - `frequency`: string (e.g., `'weekly'`)
+  - `conditions`: string[]
+- `light`:
+  - `hoursMin`: number (minimum sun hours needed)
+  - `type`: full_sun | partial_shade | full_shade
+  - `preference`: string (e.g. `'all_day'`)
+- `ecology`:
+  - `strategicBenefits`: string[] (list of ecological advantages like "attracts pollinators")
+- `resources`: PlantResource[] (rich media and article attachments):
+  ```ts
+  type PlantResource = {
+    type: 'image' | 'video' | 'article';
+    url: string;
+    title?: string;
+    source?: string;
+    tags?: string[];
+  };
+  ```
+- `notes`: string[] (general agronomic notes)
+
+#### 4.4.3 Media Storage & Upload Strategy (PlantResource) `[TARGET STATE]`
+
+To prevent RAM saturation on the Node.js API and manage operational costs, binary file uploads (`multipart/form-data`) through the API are strictly prohibited. The system handles media attachments in two phases:
+
+- **Phase 1 (Current State):** The `url` field inside `PlantResource` only accepts external links (e.g., Wikimedia Commons, YouTube, or external blogs). Admins "Bring Your Own URL".
+- **Phase 2 `[TARGET STATE]`:** To support native file uploads securely, the system will implement **Presigned URLs via Google Cloud Storage (GCS)**. The frontend will request a temporary signed URL from the API, and upload the binary file directly to the GCP bucket, completely bypassing the Node.js backend.
 
 Rules:
 
-- optional
-- may default to empty object
-- never embedded logic
-- pure reference layer only
+- Optional, may default to empty object.
+- Never contains embedded business logic.
+- Pure reference layer only.
 
 ---
 
@@ -167,6 +231,10 @@ Rules:
 
 ---
 
+_(Note on Standardization Target State `[TARGET STATE (Pending Iteration 39)]`: Standardizing the Plant lifecycle status to lowercase `status: 'active' | 'removed'` and `deletedAt` to match the global unified soft-deletion pattern across all aggregates is planned as a domain refactoring in Iteration 39)._
+
+---
+
 ### 5.2 Validation invariants
 
 #### Status consistency
@@ -183,6 +251,14 @@ This is enforced in constructor.
 - props are deeply frozen
 - domain state cannot be mutated externally
 - only controlled mutations via explicit methods
+
+---
+
+### 5.4 Social Interactions Invariant `[TARGET STATE (Pending Iteration 29)]`
+
+- Social interactions (Likes and Dislikes) MUST NOT be stored as arrays of user IDs inside the Plant aggregate root or document.
+- To prevent write contention, lock bottlenecks under high concurrency, and document size bloat (MongoDB 16MB limit), interactions must be persisted in a separate, dedicated collection (e.g. `plant_social_interactions`).
+- They are projected into the `Plant` aggregate strictly as read-only numeric counters (`likesCount`, `dislikesCount`) desensitized from individual user IDs.
 
 ---
 
@@ -273,15 +349,17 @@ Plant must remain pure.
 
 ---
 
-## 10. QUERY SUPPORT (NEW)
+## 10. QUERY SUPPORT
 
-Plant collection endpoints support the global Query System.
+Plant collection query operations support the global Query System.
 
 ---
 
 ### 10.1 Find all Plants
 
-GET /api/v1/plants
+Operations for retrieving all plants support unified search criteria.
+
+_Note: For the exact HTTP verbs, status codes, and routing parameters exposing these rules, see **api-layer.md**._
 
 Supports:
 

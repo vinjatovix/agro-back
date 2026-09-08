@@ -5,7 +5,7 @@ Feature: Validate token
   I want to validate my token
 
   Background:
-    Given a POST request to "/api/v1/Auth/register" with body
+    Given a POST request to "/api/v1/auth/register" with body
       """
       {
         "id": "2e8d3eb6-ef91-4fa0-84f6-3a7f7a8ca3e8",
@@ -26,13 +26,13 @@ Feature: Validate token
       """
 
   Scenario: Valid token
-    Given a GET request to "/api/v1/Auth/validate/current-user-token"
+    Given a GET request to "/api/v1/auth/validate/current-user-token"
     Then the response status code should be 200
     And the response body should include an auth token
     And response matches OpenAPI contract
 
   Scenario: Invalid token
-    Given a GET request to "/api/v1/Auth/validate/dasda"
+    Given a GET request to "/api/v1/auth/validate/dasda"
     Then the response status code should be 401
     And the response body should be
       """

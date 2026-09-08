@@ -1,7 +1,7 @@
 # MODULE: TESTING
 
-version: 1.2.0
-source-spec: v1.0.0
+version: 1.3.0
+source-spec: v1.3.0
 status: stable
 
 ---
@@ -100,7 +100,7 @@ Rules:
 
 ---
 
-### 2.5 BDD / Cucumber Tests
+### 2.5 ATDD / Cucumber Tests
 
 Scope:
 
@@ -132,13 +132,14 @@ Added coverage:
 
 ## 4. ASSERTION RULES
 
-- NO dependency on exact error strings
-- use semantic matching only
-- avoid brittle snapshots unless stable contract (OpenAPI)
-- asserting raw error strings is allowed ONLY when explicitly defined by validation contract
-- PATCH responses MUST be treated as full aggregate snapshots (not partial fragments)
+- NO dependency on exact error strings beyond those defined by the Zod validation contract.
+- Use semantic matching and verify dot-notation path keys.
+- Avoid brittle snapshots unless stable contract (OpenAPI).
+- **`[TARGET STATE (Pending Iterations 9, 10, 12, 13 & 14)]`** Cucumber ATDD `.feature` tests will assert against clean, idiomatic Zod error messages (e.g., `"Required"`, `"Invalid UUID"`). Legacy express-validator error formats are fully retired.
+- PATCH responses MUST be treated as full aggregate snapshots (not partial fragments).
+- **Spatial Validation Testing Impact:** When migrating spatial calculations to a non-blocking advisory model, tests that previously asserted hard exceptions on collisions or borders MUST be refactored to verify warning lists in the response payload. Exact $0\text{cm}$ geometric collisions (impossible overlays) are the only physical exception that continues to assert hard HTTP 400 errors.
 
-Contract tests enforce full-response strict equality against OpenAPI. BDD tests MAY use partial matching for readability.
+Contract tests enforce full-response strict equality against OpenAPI. ATDD tests MAY use partial matching for readability.
 
 ---
 
@@ -172,7 +173,7 @@ Seeders are allowed to:
 
 ---
 
-## 7. WORLD MODEL (BDD)
+## 7. WORLD MODEL (ATDD)
 
 Cucumber tests MAY define:
 
@@ -208,7 +209,7 @@ Extended state usage:
 - mutation testing
 - contract-driven test generation
 - scenario-based DSL expansion
-- BDD step definition modularization (Cucumber scalability layer)
+- ATDD step definition modularization (Cucumber scalability layer) `[TARGET STATE (Pending Iteration 16)]`
   - current step file structure is becoming too large
   - steps MUST be split by bounded context (Plant, Bed, Auth, Query, etc.)
   - shared steps MUST be extracted into reusable step utilities

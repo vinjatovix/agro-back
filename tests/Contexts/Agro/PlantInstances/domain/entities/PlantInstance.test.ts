@@ -1,5 +1,5 @@
 import { CropGrowthStatus } from '../../../../../../src/Contexts/Agro/PlantInstances/domain/entities/types/CropGrowthStatus.js';
-import { PlantInstanceLifecycleStatus } from '../../../../../../src/Contexts/Agro/PlantInstances/domain/entities/types/PlantLifeCicleStatus.js';
+import { PlantInstanceLifecycleStatus } from '../../../../../../src/Contexts/Agro/PlantInstances/domain/entities/types/PlantLifecycleStatus.js';
 import { PlantInstance } from '../../../../../../src/Contexts/Agro/PlantInstances/domain/entities/PlantInstance.js';
 import { Coordinates } from '../../../../../../src/shared/domain/value-objects/Coordinates.js';
 import { UuidMother } from '../../../../shared/fixtures/UuidMother.js';

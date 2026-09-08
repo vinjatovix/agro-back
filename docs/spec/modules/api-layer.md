@@ -1,7 +1,7 @@
 # APPLICATION CONTRACT (API SURFACE)
 
-version: 1.2.0
-source-spec: v1.1.0
+version: 1.3.0
+source-spec: v1.3.0
 status: evolving
 
 ---
@@ -30,129 +30,53 @@ The system exposes the following domain resources:
 - Events
 - Users / Auth
 - Families
-- Pests
-- Diseases
-- Remedies
-- Fertilizers
+- Anomalies
+- GardenInputs
+- SeedBank (seed inventories & germination tests)
 - Plant Relations (companion system)
 - Ecological Attributes
 
 ---
 
-## 3. AUTH SYSTEM
+## 3. AUTH SYSTEM & USER SESSIONS
 
-### 3.1 Providers
+All authentication, session, JWT payload, and user profile location management details have been consolidated into their own dedicated specification:
 
-- local (email/password)
-- google OAuth
+> See **Module: Authentication & Identity (auth.md)**
 
-### 3.2 Features
+### 3.1 Exposed Endpoints
 
-- user registration
-- login
-- token refresh
-- email validation
-- password update
-
-### 3.3 Pending infrastructure
-
-- email delivery service integration (e.g. SendGrid)
-- enforcement of email verification flow
-- full Google OAuth validation hardening
+> **For exposed HTTP endpoints, routing, payloads, and REST semantics, refer strictly to Module: OpenAPI Contract (openapi.md).**
 
 ---
 
-## 4. QUERY SYSTEM (NEW)
+## 4. QUERY SYSTEM TRANSPORT
 
-This section defines query parameter behavior for all list endpoints (GET collections).
+This section defines the transport-level HTTP query parameter behavior for all collection endpoints (GET list endpoints).
 
-### IMPORTANT BOUNDARY RULE
+### 4.1 IMPORTANT BOUNDARY RULE
 
-This module defines **HTTP query shape only**.
+This module defines **HTTP transport query representation only** (e.g., deepObject encoding shape).
 
-Query semantics (operators, filtering behavior, sorting rules, pagination rules) are defined in:
+All semantic rules, CSV parsing rules, operator mapping (`eq`, `contains`, `has`, `hasAny`, etc.), pagination coercion, and sorting mechanics are defined exclusively in:
 
-> **Query DSL Contract v1.0.0**
+> **Query DSL Contract v1.3.0 (query-dsl-contract.md)**
+> **Module: Query (query.md)**
 
----
+### 4.2 DeepObject Transport Representation
 
-### 4.1 Supported Query Features
+Queries are passed using deepObject parameter encoding.
 
-All collection endpoints MAY support:
+For detailed descriptions and concrete examples of the query string transport parameters, refer strictly to **Module: Query DSL Contract (query-dsl-contract.md) Section 8**.
 
-- filtering (Query DSL Contract v1.0.0)
-- sorting (Query DSL Contract v1.0.0)
-- pagination (Query DSL Contract v1.0.0)
-- include (future expansion)
+### 4.3 Validation Boundary Rule
 
----
+- Unknown filter keys or invalid operators are rejected by the Validation Layer at the boundary.
+- The Query Parser assumes validated input. Invalid or malformed structures MUST NOT reach the persistence layer.
 
-### 4.2 Pagination
+### 4.4 JSON:API Sparse Fields `[TARGET STATE (Pending Iteration 19)]`
 
-Query shape:
-
-- `page`: number (string input allowed)
-- `limit`: number (string input allowed)
-
-Rules:
-
-- default: `page = 1`, `limit = 20`
-- values are coerced from string → number
-- must be positive integers
-
----
-
-### 4.3 Sorting
-
-Rules:
-
-- format: `{ field: "asc" | "desc" }`
-- field validity and behavior defined in Query DSL Contract v1.0.0
-- invalid directions are rejected at validation layer
-
----
-
-### 4.4 Filter DSL
-
-Filters are passed as structured objects.
-
-All filter semantics are defined in:
-
-> **Query DSL Contract v1.0.0**
-
-This includes:
-
-- eq
-- contains
-- startsWith
-- endsWith
-- has
-- hasAny
-- gt / gte / lt / lte
-
-OpenAPI only defines transport structure.
-
----
-
-### 4.5 CSV Parsing Rules
-
-- values are split by comma
-- whitespace is trimmed
-- empty values are removed
-
-Example:
-
-```
-"a, , b" → ["a","b"]
-```
-
----
-
-### 4.6 Validation Boundary Rule
-
-- unknown filter keys are rejected by Validation Layer
-- Query Parser assumes validated input
-- invalid query structures MUST NOT reach persistence layer
+The Query Parser extracts JSON:API options to dynamically limit fields and preload relations.
 
 ---
 
@@ -160,28 +84,16 @@ Example:
 
 ### 5.1 Plants
 
-- POST /api/v1/plants (implemented) (admin)
-- GET /api/v1/plants (implemented) (public)
-- GET /api/v1/plants/:id (implemented) (public)
-- PATCH /api/v1/plants/:id (implemented) (admin)
-- DELETE /api/v1/plants/:id (implemented) (admin)
+> **For exposed HTTP endpoints, routing, payloads, and REST semantics, refer strictly to Module: OpenAPI Contract (openapi.md).**
 
 #### Access control
 
-- GET /api/v1/plants → public (no authentication required)
-- POST /api/v1/plants → admin only
-- PATCH /api/v1/plants/:id → admin only
-- DELETE /api/v1/plants/:id → admin only
+- Read access is public.
+- Write access requires admin or collaborator roles (Pending Iteration 26).
 
 #### Query support
 
-GET /api/v1/plants supports:
-
-- filtering (Query DSL Contract v1.0.0)
-- sorting (Query DSL Contract v1.0.0)
-- pagination (Query DSL Contract v1.0.0)
-- include (future)
-- populate (future)
+List endpoints support filtering, sorting, and pagination (as defined in Query DSL Contract v1.3.0).
 
 ---
 
@@ -195,7 +107,7 @@ Behavior:
 
 ---
 
-### 5.1.2 PATCH /api/v1/plants/:id (admin)
+### 5.1.2 Partial Updates (admin | collaborator)
 
 Behavior:
 
@@ -205,124 +117,110 @@ Behavior:
 
 ---
 
-### 5.2 PlantInstances (user)
+### 5.2 PlantInstances (user) `[TARGET STATE (Pending Iterations 38 & 56)]`
 
-Represents a real instance of a Plant placed in a Bed.
+Represents a real instance of a Plant placed in a Bed, managed as its own standalone aggregate with a dedicated repository and endpoints.
 
-Endpoints pending implementation:
+The PlantInstance properties include a `warnings` field (an array of strings), representing calculated spatial, spacing, or biological companion alerts. Rather than executing heavy distance/overlapping computations on-the-fly during every standard `GET` call, these warnings are computed once and **persisted directly** during layout save mutations. Thus, standard `GET` requests read pre-computed warnings instantly in $O(1)$ time.
 
-- POST /api/v1/plant-instances
-- GET /api/v1/plant-instances/:id
-- GET /api/v1/plant-instances?bedId=
-- PATCH /api/v1/plant-instances/:id
-- DELETE /api/v1/plant-instances/:id
+> **For exposed HTTP endpoints, routing, payloads, and REST semantics, refer strictly to Module: OpenAPI Contract (openapi.md).**
 
----
+_Note on Deletion:_ Removing a plant instance MUST execute a soft delete by changing its status to `'removed'` and setting `deletedAt` (ISODate) to preserve event history integrity. This soft delete immediately liberates the spatial occupancy of the instance, allowing new plant instances to be placed in that same location without collision alerts.
 
-### 5.3 Beds (user)
+#### 5.2.1 Transplant API `[TARGET STATE (Pending Iteration 75)]`
 
-- POST /api/v1/beds
-- GET /api/v1/beds/:id
-- GET /api/v1/beds
-- PATCH /api/v1/beds/:id
-- DELETE /api/v1/beds/:id
+- **Endpoint:** `POST /api/v1/plant-instances/:id/transplant`
+- **Behavior:** Takes a target `bedId` and coordinates `(x, y)`. Executes on-the-fly Bed boundary validations, geometric/volumetric spatial collision tests, and companion plant proximity checks.
+- **State Transition:** Updates the instance's `bedId`, `position` coordinates `(x, y)`, and sets `growthStatus` to `'vegetative'`.
+- **Events:** Registers a `'transplant'` Event in the chronological cultivation log.
 
 ---
 
-### 5.4 Events (user)
+### 5.3 Beds & Layout Canvas (user) `[TARGET STATE (Pending Iterations 56, 66 & 67)]`
 
-Lifecycle events associated with PlantInstances.
+In addition to traditional CRUD actions, the Beds API supports interactive spatial canvas layouts (e.g. drag-and-drop design using KonvaJS) through two specialized endpoints:
 
-Endpoints pending implementation:
+#### 5.3.1 Dry-Run Layout Simulation (Stateless)
 
-- POST /api/v1/events
-- GET /api/v1/events
-- GET /api/v1/events/:id
-- PATCH /api/v1/events/:id
-- GET /api/v1/events?plantInstanceId=
-- DELETE /api/v1/events/:id
+- **Endpoint:** `POST /api/v1/beds/:id/layout/validate`
+- **Behavior:** Receives a proposed list of plant instances with coordinates. Runs the spatial engine in-memory, checking boundaries, overlapping, microclimatic exposure, and 36-month rotation history.
+- **Database Action:** None (0 writes).
+- **Response:** Returns the full `ecologicalReport` and calculated crop warnings. Useful for drawing real-time visual feedback circles on the UI during drag-and-drop.
 
----
+#### 5.3.2 Consolidated Batch Save (Transactional) `[TARGET STATE (Pending Iteration 67)]`
 
-### 5.5 Users
+- **Endpoint:** `PUT /api/v1/beds/:id/layout`
+- **Behavior:** Clears previous active plant instances for this Bed and batch-persists the new layout coordinates in a single database transaction.
+- **Database Action:** Transactional update. Pre-calculates and persists the resulting `ecologicalReport` on the `Bed` document and the calculated `warnings` on each `PlantInstance` document, optimizing all subsequent read operations.
+- **Events:** Dispatches a unified `BedLayoutSaved` event to Kafka post-commit for asynchronous care schedule recalculations.
 
-- POST /api/v1/auth/register (public)
-- POST /api/v1/auth/login (public)
-- POST /api/v1/auth/google (public)
-- POST /api/v1/auth/refresh (user)
-- POST /api/v1/auth/update (user)
-- GET /api/v1/auth/validate/:token (user)
-
-#### Roles
-
-- admin
-- collaborator
-- user
+> **For exposed HTTP endpoints, routing, payloads, and REST semantics, refer strictly to Module: OpenAPI Contract (openapi.md).**
 
 ---
 
-### 5.6 Pests
+### 5.4 Events (user) `[TARGET STATE (Pending Iterations 70 & 72)]`
 
-pending implementation
+Lifecycle events associated with Beds or PlantInstances (governed by the explicit `scope: 'bed' | 'instance'` field).
 
-- GET /api/v1/pests
-- GET /api/v1/pests/:id
+> **For exposed HTTP endpoints, routing, payloads, and REST semantics, refer strictly to Module: OpenAPI Contract (openapi.md).**
 
----
+Event payloads require `scope` and `bedId`; `plantInstanceId` is only allowed and mandatory if `scope === 'instance'`. If `scope === 'bed'`, `plantInstanceId` is forbidden, and the presence of `plantId` (UUID) is governed by strict agronomic rules:
 
-### 5.7 Diseases
-
-pending implementation
-
-- GET /api/v1/diseases
-- GET /api/v1/diseases/:id
+- **`harvest`**: `plantId` is **mandatory** in the payload to identify the harvested botanical species.
+- **`pruning`**: `plantId` is **optional** in the payload to optionally target a specific botanical species in a mixed bed.
+- **`watering`, `fertilization`, `treatment`**: `plantId` is **forbidden** because these soil/environmental actions are applied to the entire Bed container.
 
 ---
 
-### 5.8 Remedies
+### 5.5 Users `[TARGET STATE (Pending Iteration 10)]`
 
-pending implementation
+All endpoints, payload schemas, and session configurations for local registration, standard login, multi-provider OAuth, token refreshing, and geolocation update are specified in **auth.md**.
 
-- GET /api/v1/remedies
-- GET /api/v1/remedies/:id
-
----
-
-### 5.9 Fertilizers
-
-pending implementation
-
-- GET /api/v1/fertilizers
-- GET /api/v1/fertilizers/:id
+_Exposed endpoints contract can be referenced in Section 3.1 of this document._
 
 ---
 
-### 5.10 Families
+### 5.6 Anomalies `[TARGET STATE (Pending Iteration 34)]`
 
-- POST /api/v1/families (admin)
-- GET /api/v1/families (public)
-- GET /api/v1/families/:id (public)
+Unifies pests, diseases (pathogens), physiological disorders, and weeds into a single domain concept under Phase 4 (Iteration 34).
 
-pending implementation:
-
-- PATCH /api/v1/families/:id (admin)
-- DELETE /api/v1/families/:id (admin)
-
-Families list endpoints MAY support Query DSL filtering, sorting, and pagination as defined in Query DSL Contract v1.0.0.
+> **For exposed HTTP endpoints, routing, payloads, and REST semantics, refer strictly to Module: OpenAPI Contract (openapi.md).**
 
 ---
 
-### 5.11 Plant Relations
+### 5.7 GardenInputs `[TARGET STATE (Pending Iteration 35)]`
+
+Unifies organic remedies, treatments, repellents, and organic fertilizers into a single domain concept under Phase 4 (Iteration 35).
+
+> **For exposed HTTP endpoints, routing, payloads, and REST semantics, refer strictly to Module: OpenAPI Contract (openapi.md).**
+
+---
+
+### 5.8 Seed Bank (user) `[TARGET STATE (Pending Iteration 52)]`
+
+Manages seed packets (lots), quantities, and germination test runs as a private user-owned inventory.
+
+> **For exposed HTTP endpoints, routing, payloads, and REST semantics, refer strictly to Module: OpenAPI Contract (openapi.md).**
+
+_Note on Germination tests:_ Logging a germination test triggers dynamic `germinationRate` recalculation.
+
+---
+
+### 5.9 Families
+
+> **For exposed HTTP endpoints, routing, payloads, and REST semantics, refer strictly to Module: OpenAPI Contract (openapi.md).**
+
+_Note on Lookups:_ Read endpoints support polymorphic lookups by ID or Slug. Polymorphic lookups for mutations are pending Iteration 27.
+
+Families list endpoints supports Query DSL filtering, sorting, and pagination as defined in Query DSL Contract v1.3.0.
+
+---
+
+### 5.10 Plant Relations `[TARGET STATE (Pending Iteration 32)]`
 
 Represents companion planting relationships.
 
-pending implementation
-
-- POST /api/v1/plant-relations (admin)
-- GET /api/v1/plant-relations (public)
-- GET /api/v1/plant-relations/:id (public)
-- PATCH /api/v1/plant-relations/:id (admin)
-- DELETE /api/v1/plant-relations/:id (admin)
+> **For exposed HTTP endpoints, routing, payloads, and REST semantics, refer strictly to Module: OpenAPI Contract (openapi.md).**
 
 ---
 
@@ -330,19 +228,7 @@ pending implementation
 
 All endpoints MUST return a consistent error structure.
 
-```ts
-type ApiErrorResponse = {
-  message: string;
-  errors?: Record<string, string>;
-};
-```
-
-Validation errors:
-
-- dot-notation paths
-- deterministic messages
-- aligned with EPIC 13
-- must handle invalid URI encoding safely (no raw URIError leaks)
+Refer strictly to **Module: Validation (validation.md) Section 4 and 5** for the canonical definition of the `ApiErrorResponse` type and the structured validation error behaviors.
 
 ---
 
@@ -356,7 +242,20 @@ Validation errors:
 
 ---
 
-## 8. GENERAL RULES
+## 8. IDEMPOTENCY PROTECTION (MUTATIONS) `[TARGET STATE]`
+
+To guarantee resilience against network instability (e.g., poor 3G/4G connectivity in the field) where a mobile client might automatically retry a `POST` request due to a dropped response, the API enforces an idempotency boundary:
+
+- **Target Scope:** All critical state-mutating endpoints (primarily `POST` requests for resource creation like `Events`, `Beds`, and `PlantInstances`) MUST support an `Idempotency-Key` HTTP header.
+- **Client Responsibility:** The client/frontend generates a unique UUID (v4) for every distinct mutation attempt and attaches it to the `Idempotency-Key` header.
+- **Backend Execution (Atomic Lock Strategy):**
+  1. The API middleware intercepts the request and attempts to acquire an **atomic lock** in the fast cache (e.g., using Redis `SETNX`) using the `Idempotency-Key`.
+  2. If the lock is successfully acquired, the request passes through the Domain/Application logic. The resulting successful HTTP response body and status code are cached against the `Idempotency-Key` with a strict Time-To-Live (TTL, e.g., 24 hours), replacing the lock.
+  3. If the lock cannot be acquired (indicating a concurrent network retry in the exact same millisecond) or if a cached response already exists, the middleware immediately short-circuits the controller execution. It returns either a `409 Conflict` (if still processing) or the cached HTTP response, completely bypassing the database and preventing race conditions leading to accidental data duplication (e.g., double-logging a harvest event).
+
+---
+
+## 9. GENERAL RULES
 
 - No business logic in API layer
 - No direct domain exposure
@@ -367,12 +266,12 @@ Validation errors:
 
 ---
 
-## 9. CURRENT STATUS
+## 10. CURRENT STATUS
 
 ### Implemented
 
 - Plants, Beds: READ + CREATE + PATCH + DELETE
-- Families: READ + CREATE
+- Families: READ + CREATE + PATCH (DELETE is pending `[TARGET STATE (Pending Iteration 27)]`)
 - Auth system (functional end-to-end, Swagger tested)
 - validation middleware (partial → evolving)
 - error handling (structured)
@@ -381,15 +280,15 @@ Validation errors:
 
 - PlantInstances
 - Events system
-- Pest/Disease/Remedy system
 
 ### Missing
 
+- Anomalies and GardenInputs system (Mock Data Only)
 - email provider integration
 
 ---
 
-## 10. CONTRACT PRINCIPLE
+## 11. CONTRACT PRINCIPLE
 
 This document defines the external contract of the system.
 
@@ -397,16 +296,18 @@ Any change affecting this module is a breaking change and MUST be versioned.
 
 ---
 
-## 11. DEPENDENCY INJECTION STRATEGY
+## 12. DEPENDENCY INJECTION STRATEGY
 
-The system uses --Awilix PROXY MODE-- as the active dependency injection mechanism.
+The system uses **Awilix PROXY MODE** as the active dependency injection mechanism.
 
 ### Current state
 
-- Controllers are resolved via proxy container property access
-- No manual binding is required
-- Dependencies are lazily resolved at runtime through the container proxy
-- Controller wiring is simplified and declarative
+- Proxy mode is enabled, allowing controllers and services to receive dependencies lazily by property name destructuring.
+- Manual bindings are currently maintained inside `src/apps/agroApi/container.ts` using explicit registrations (e.g., `asClass`, `asFunction`, `asValue`).
+
+### Target State `[TARGET STATE (Pending Iteration 15)]`
+
+- **Awilix Auto-Wiring**: Automate registrations through dynamic directory scanning (e.g. `container.loadModules`), completely eliminating the need for manual bindings inside `container.ts`.
 
 ### Impact
 
@@ -416,7 +317,7 @@ The system uses --Awilix PROXY MODE-- as the active dependency injection mechani
 
 ---
 
-## 12. FINAL NOTE
+## 13. FINAL NOTE
 
 This document defines the external contract of the system.
 

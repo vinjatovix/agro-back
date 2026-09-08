@@ -105,7 +105,7 @@ describe('MongoQueryTranslator', () => {
     it('should ignore empty conditions', () => {
       const result = MongoQueryTranslator.toMongo({
         name: undefined,
-        aliases: { includes: undefined },
+        aliases: { has: undefined },
         count: { gt: undefined }
       });
 

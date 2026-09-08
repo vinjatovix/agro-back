@@ -1,7 +1,7 @@
 # MODULE: KNOWLEDGE SYSTEM
 
-version: 1.1.0
-source-spec: v1.1.0
+version: 1.3.0
+source-spec: v1.3.0
 status: stable
 
 ---
@@ -32,77 +32,73 @@ Rules:
 
 ## 3. KNOWLEDGE ENTITIES
 
-### 3.1 Pest
+### 3.1 Anomaly
 
-Represents organisms that negatively affect plants.
+Unifies pests, diseases (pathogens), physiological disorders, and weeds into a single diagnostic concept.
 
 #### Fields
 
-- id
+- id (UUID)
 - name
-- affects: Plant IDs
+- classification: pest | pathogen | disorder | weed
+- description
 - symptoms: string[]
+- causes: string[]
+- affectedPlants: Plant IDs (UUIDs)
+- treatments: GardenInput IDs (UUIDs) `[TARGET STATE (Pending Iteration 36)]` (models the therapeutic relationship directly at the document level)
 
 #### Rules
 
 - can affect multiple plants
 - symptoms are descriptive only
-- no behavioral logic
+- no behavioral domain logic
 
 ---
 
-### 3.2 Disease
+### 3.2 GardenInput
 
-Represents plant pathology conditions.
+Unifies organic remedies, ecological treatments, repellents, bio-stimulants, and organic/permacultural fertilizers (including Korean Natural Farming and JADAM preparations).
 
 #### Fields
 
-- id
-- name
-- affectedPlants
-- symptoms
-- severity (optional)
+- `id`: UUID (value object)
+- `name`: string
+- `type`: `nutrition` | `defense`
+- `subType`: `fungicide` | `insecticide` | `repellent` | `fertilizer` | `bio-stimulant`
+- `nutritionalProfile`: (optional object mapping N-P-K percentages or ratios, and lists of micro-elements like Calcium (Ca), Iron (Fe), Magnesium (Mg), Silicon (Si))
+- `recipe`: (optional object representing a home-made preparation)
+  - `ingredients`: string[] (list of required materials/plants, e.g. "compost", "fresh nettles")
+  - `fermentationType`: `alluring` | `aerobic` | `anaerobic` | `none`
+  - `preparationTimeDays`: integer (time needed for fermentation or infusion)
+  - `instructions`: string[] (step-by-step preparation tutorial)
+- `application`: (optional object with dosage instructions)
+  - `dilutionRatio`: string (e.g., "1:10", "1:500")
+  - `method`: `foliar` | `irrigation` | `soil`
+  - `frequencyDays`: integer (how often to apply)
+- `safetyWarnings`: string[] (optional safety instructions)
+
+#### 3.2.1 `[TARGET STATE (Pending Iteration 37)]` Organic Dilution Calculator Service
+
+- **Purpose:** A mobile-friendly utility to help farmers calculate precise input-to-water ratios in the field, preventing calculation mistakes that lead to under-dosing (ineffective treatment) or over-dosing (phytotoxicity/crop leaf burn).
+- **Service Inputs:**
+  - `sprayTankVolumeLiters`: number (the volume of the farmer's knapsack sprayer or irrigation tank, e.g., 15 L or 20 L).
+  - `dilutionRatio`: string (retrieved from the target `GardenInput` or customized, parsed as `1:N`, e.g., `1:500` for JADAM Microorganism Solution - JMS).
+- **Service Outputs:**
+  - `inputVolumeMl`: number (the exact dosage of the organic input required, in milliliters).
+  - `waterVolumeLiters`: number (the exact volume of water to mix, in liters).
+- **Calculation Formulation:**
+  - Given a dilution ratio of `1:N` where `N` is the dilution factor:
+    $$\text{inputVolumeMl} = \frac{\text{sprayTankVolumeLiters} \times 1000}{N}$$
+    $$\text{waterVolumeLiters} = \text{sprayTankVolumeLiters} - \left(\frac{\text{inputVolumeMl}}{1000}\right)$$
+  - _Example:_ For a 15 L spray tank and a 1:500 dilution:
+    - $\text{inputVolumeMl} = \frac{15 \times 1000}{500} = 30\text{ mL}$ of preparation.
+    - $\text{waterVolumeLiters} = 15 - 0.03 = 14.97\text{ L}$ of water.
 
 ---
 
-### 3.3 Remedy
-
-Represents treatments for pests and diseases.
-
-#### Fields
-
-- id
-- name
-- type: organic | chemical | biological
-- application:
-  - method
-  - frequency
-  - dosage
-
-- effectiveAgainst: Pest | Disease IDs
-
 ---
 
-### 3.4 Fertilizer
-
-Represents nutrient inputs for plant growth.
-
-#### Fields
-
-- id
-- name
-- npk:
-  - n
-  - p
-  - k
-
-- application:
-  - frequency
-  - amount
-
----
-
-### 3.5 Plant Attributes
+### 3.3 Plant Attributes
 
 Represents ecological or functional properties of plants.
 
@@ -121,65 +117,17 @@ Represents ecological or functional properties of plants.
 
 ### 3.6 Plant Relations Graph
 
-Defines ecological interactions between plants.
+All biological and ecological companion interactions between plant species are now defined and managed under their own dedicated specification:
 
-This is a **global directed weighted graph**.
-
-#### Fields
-
-- plantA
-- plantB
-- type:
-  - beneficial
-  - harmful
-  - neutral
-
-- strength: 1-5
-- distance constraints:
-  - minDistance
-  - maxDistance
-
-- reason (human-readable explanation)
-
-#### Rules
-
-- graph is global (not per plant)
-- relationships are directional
-- distance constraints affect spatial system indirectly
-- used for recommendations and planning, NOT enforcement
+> See **Module: Plant Relations (plant-relation.md)**
 
 ---
 
 ### 3.7 Family Taxonomy
 
-Represents botanical classification units used by Plant entities.
+All botanical classification units and taxonomical metadata are defined and managed under their own dedicated specification:
 
-Families are part of the Knowledge System because they are **global taxonomic reference data**, not domain behavior.
-
-#### Fields
-
-- id
-- slug
-- name
-- aliases: string[]
-- scientificName
-- shortDescription (optional)
-- highlights: string[]
-- extra (optional):
-  - order
-  - distribution
-  - speciesCount
-
----
-
-#### Rules
-
-- Family is a READ-ONLY dataset
-- Family does NOT evolve via domain logic
-- Family is referenced by Plant.family
-- Family has no behavior or lifecycle
-- Family is globally consistent across the system
-- Family is NOT part of Plant aggregate
+> See **Module: Family (family.md)**
 
 ---
 
@@ -187,10 +135,10 @@ Families are part of the Knowledge System because they are **global taxonomic re
 
 ### 4.1 What Knowledge System DOES
 
-- models ecological relationships
+- models ecological relationships (via Plant Relations integration)
 - provides agronomic intelligence
 - supports decision-making systems
-- defines taxonomic datasets (e.g. Family)
+- references taxonomic datasets (e.g. Family)
 - feeds simulation layers
 
 ---
@@ -199,7 +147,7 @@ Families are part of the Knowledge System because they are **global taxonomic re
 
 - does not enforce planting rules
 - does not validate Plant aggregates
-- does not manage persistence
+- does not manage persistence of core aggregates
 - does not handle spatial placement
 - does not execute events
 
@@ -213,9 +161,8 @@ Plants reference knowledge via IDs:
 
 ```ts
 plant.knowledgeRefs = {
-  pests: string[],
-  diseases: string[],
-  remedies: string[],
+  anomalies: string[], // references to Anomaly IDs
+  inputs: string[],    // references to GardenInput IDs
   attributes: string[]
 }
 ```
@@ -223,7 +170,7 @@ plant.knowledgeRefs = {
 And taxonomy:
 
 ```ts
-plant.identity.family → Knowledge.Family.id
+plant.identity.family → Family.id
 ```
 
 No embedded knowledge objects allowed.
@@ -234,10 +181,8 @@ No embedded knowledge objects allowed.
 
 Events may reference:
 
-- pests
-- diseases
-- remedies
-- fertilizers
+- anomalies
+- inputs
 - family (optional contextual enrichment)
 
 But NEVER embed logic from them.
@@ -254,29 +199,7 @@ Indirect influence only:
 
 ---
 
-## 6. PLANT RELATIONSHIP GRAPH SEMANTICS
-
-The graph is:
-
-- global
-- weighted
-- directional
-- non-deterministic in enforcement (recommendation-only)
-
-Used for:
-
-- companion planting suggestions
-- pest prevention strategies
-- ecological optimization
-
-Not used for:
-
-- collision detection
-- placement validation
-
----
-
-## 7. EXTENSIBILITY RULES
+## 6. EXTENSIBILITY RULES
 
 New knowledge types MUST:
 
@@ -293,15 +216,16 @@ Allowed extensions:
 
 ---
 
-## 8. CURRENT STATUS
+## 7. CURRENT STATUS
+
+> ⚠️ **IMPORTANT NOTE ON PRODUCTION CODEBASE:**
+> Except for the **Family Taxonomy** (which is fully implemented and integrated as a domain aggregate), the components of the Knowledge System (Anomalies, GardenInputs, and the Relation Graph) are currently **mock data only** (located in the `mock_data/` directory) and are NOT yet implemented as production domain classes. They are planned for Phase 3 & Phase 4 of the system's roadmap.
 
 ### Implemented
 
-- pest model (partial)
-- fertilizer model (partial)
-- plant attributes (basic)
-- relation graph concept defined
-- family taxonomy (NEW - conceptual layer added)
+- Family taxonomy (integrated as a domain aggregate and fully operational)
+- Anomaly, GardenInput models (JSON mock datasets only)
+- Plant attributes (basic concept)
 
 ### Pending
 
@@ -309,11 +233,12 @@ Allowed extensions:
 - consistent schema enforcement
 - separation from domain types currently leaking
 - validation layer for knowledge integrity
-- recommendation engine (future layer)
+- therapeutic mapping execution (`treatments` list resolution) `[TARGET STATE (Pending Iteration 36)]`
+- Organic Dilution Calculator Service implementation `[TARGET STATE (Pending Iteration 37)]`
 
 ---
 
-## 9. ANTI-PATTERNS
+## 8. ANTI-PATTERNS
 
 The following are forbidden:
 
@@ -326,7 +251,7 @@ The following are forbidden:
 
 ---
 
-## 10. FUTURE EVOLUTION
+## 9. FUTURE EVOLUTION
 
 Planned extensions:
 
@@ -339,7 +264,7 @@ Planned extensions:
 
 ---
 
-## 11. FINAL NOTE
+## 10. FINAL NOTE
 
 The Knowledge System is the **intelligence layer of AgroApp**.
 
@@ -349,4 +274,4 @@ It must remain:
 - extensible
 - non-invasive to core domain logic
 
-Family taxonomy is explicitly part of this layer as a **global reference dataset**, not a domain aggregate.
+Family taxonomy and Plant Relations act as global reference datasets, but are implemented as their own independent Domain Aggregate Roots.

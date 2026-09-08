@@ -120,27 +120,6 @@ describe('GenericQueryParser', () => {
   });
 
   describe('array filter operators', () => {
-    it('parses includes operator', () => {
-      const query = {
-        filter: {
-          aliases: {
-            includes: 'foo'
-          }
-        }
-      };
-
-      const result = GenericQueryParser.parse(query);
-
-      expect(result).toEqual({
-        ...baseResult,
-        filter: {
-          aliases: {
-            includes: 'foo'
-          }
-        }
-      });
-    });
-
     it('parses hasAny operator with csv', () => {
       const query = {
         filter: {

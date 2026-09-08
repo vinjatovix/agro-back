@@ -1,7 +1,7 @@
 # MODULE: MODULES MAP
 
-version: 1.2.0
-source-spec: v1.1.0
+version: 1.3.0
+source-spec: v1.3.0
 status: stable
 
 ---
@@ -28,6 +28,7 @@ AgroApp follows a **modular layered architecture with strict boundaries**:
 - API is transport boundary
 - OpenAPI is HTTP contract authority layer
 - Query DSL Contract defines semantic query language
+- Auth system isolates session, JWT and user profile settings from business domain
 
 ---
 
@@ -59,11 +60,8 @@ Rules:
 /modules/knowledge.md
 ```
 
-- pests
-- diseases
-- remedies
-- fertilizers
-- plant relations graph
+- anomalies (unifying pests, pathogens, disorders, weeds)
+- garden-inputs (organic remedies, nutrition)
 
 Rules:
 
@@ -200,8 +198,8 @@ Rules:
 - integration tests (application, persistence)
 - e2e tests (API)
 - contract tests (OpenAPI validation)
-- query DSL tests (NEW)
-- shared utilities tests (NEW)
+- query DSL tests
+- shared utilities tests
 
 Rules:
 
@@ -213,21 +211,20 @@ Rules:
 
 ---
 
-### 3.10 Plant Instance System
+### 3.10 Plant Instance System `[TARGET STATE (Pending Iteration 38)]`
 
 ```sh
 /modules/plant-instance.md
 ```
 
-- runtime plant placement
-- spatial linkage
-- lifecycle tracking in relation to Beds
+- runtime plant placement and lifecycle tracking
+- spatial linkage inside Beds
 
 Rules:
 
-- depends on Plant
+- depends on Plant and Bed
 - interacts with Spatial System
-- no business logic
+- managed as standalone aggregate with its own dedicated repository
 
 ---
 
@@ -238,7 +235,7 @@ Rules:
 ```
 
 - spatial container
-- grouping of PlantInstances
+- coordinate system anchor
 - grid alignment anchor
 
 Rules:
@@ -246,10 +243,11 @@ Rules:
 - no plant logic
 - no event logic
 - no knowledge logic
+- **`[TARGET STATE (Pending Iteration 38)]`** completely decoupled from individual plant aggregates (not responsible for saving or retrieving plant instances)
 
 ---
 
-### 3.12 Families System (NEW)
+### 3.12 Families System
 
 ```sh
 /modules/family.md
@@ -267,7 +265,7 @@ Rules:
 
 ---
 
-### 3.13 Query System (NEW)
+### 3.13 Query System
 
 ```sh
 /modules/query.md
@@ -282,7 +280,7 @@ Rules:
 
 Rules:
 
-- Belongs to the API Delivery Mechanism (located in `src/apps/agroApi/shared/query/`).
+- **`[TARGET STATE (Pending Iteration 4)]`** Belongs to the API Delivery Mechanism (located in `src/apps/agroApi/shared/query/`). (Currently, `GenericQueryParser` and other parsing components temporarily reside in `src/shared/domain/query/`).
 - API input → Query DSL Contract transformation.
 - MUST implement Query DSL Contract rules.
 - Translates raw Express request queries into clean Application Layer QueryOptions.
@@ -293,10 +291,10 @@ Rules:
 
 ---
 
-### 3.14 Query DSL Contract (NEW)
+### 3.14 Query DSL Contract
 
 ```sh
-/modules/query-dsl.md
+/modules/query-dsl-contract.md
 ```
 
 - filter operators definition
@@ -315,7 +313,7 @@ Rules:
 
 ---
 
-### 3.15 Shared Utilities System (NEW)
+### 3.15 Shared Utilities System
 
 ```sh
 /modules/shared-utils.md
@@ -337,6 +335,121 @@ Rules:
 
 ---
 
+### 3.16 Seed Bank System `[TARGET STATE (Pending Iteration 52)]`
+
+```sh
+/modules/seed-bank.md
+```
+
+- SeedBatch aggregate root
+- seed inventories management (quantity tracking, unlimited stock bypass)
+- germination tests log (nested tracking and dynamic rate calculation)
+- commercial envelope properties tracking (packagedYear, direct expirationDate)
+
+Rules:
+
+- **`[TARGET STATE (Pending Iteration 52)]`** scoped to a single authenticated User
+- references a specific Plant ID for biological rules
+- managed via independent MongoDB collection `seed_batches`
+- does not depend on spatial or temporal placement logic (completely decoupled from Beds)
+
+---
+
+### 3.17 Authentication & Identity System (Auth)
+
+```sh
+/modules/auth.md
+```
+
+- local and OAuth providers
+- lightweight JWT contracts
+- user profile location and hemisphere resolution
+- user roles and authorization boundaries
+- low-latency Redis caching policies for geographic context
+
+Rules:
+
+- session and JWT payload MUST NOT contain business state (e.g. hemisphere)
+- profile attributes and location configurations are queried dynamically under-the-hood
+
+---
+
+### 3.18 Reminders System `[TARGET STATE (Pending Iterations 79 & 85)]`
+
+```sh
+/modules/reminders.md
+```
+
+- Reminder aggregate root and scheduling logic
+- Persistent care schedules (watering, fertilizing, pruning, harvesting, rotations)
+- Passive event-driven triggers and automatic rescheduling
+- Cascading invalidation rules on soft-delete or container emptiness
+- Meteorological adaptivity and weather precipitation delay overrides
+
+Rules:
+
+- Reminders are stateful, persisted records guaranteeing $O(1)$ read performance
+- Must support explicit Bed and Instance target scopes
+- Weather rain silencing is strictly bypassed for protected environments (indoors, greenhouse)
+
+---
+
+### 3.19 Plant Relations System `[TARGET STATE (Pending Iteration 32)]`
+
+```sh
+/modules/plant-relation.md
+```
+
+- PlantRelation aggregate root
+- directional companionship modeling (helps, helped by, avoids)
+- access security rules (admin | collaborator)
+
+Rules:
+
+- represented as a global directed biological graph
+- mutable by authorized roles only
+- referenced by ID only
+
+---
+
+### 3.20 Observability & Telemetry Pipeline `[TARGET STATE (Pending Iterations 48 & 43)]`
+
+```sh
+/modules/observability-pipeline.md
+```
+
+- Winston Kafka Transport adapter (equipped with bounded buffers).
+- Ingestion agent and router (Vector or Promtail).
+- Time-series log database (Grafana Loki).
+- Interactive dashboard server (Grafana).
+
+Rules:
+
+- Purely an infrastructure and systems telemetry module.
+- Strictly prohibited from containing business logic, agronomic rules, or accessing MongoDB.
+- Its data transport lifecycle must be 100% asynchronous and non-blocking.
+
+---
+
+### 3.21 Distributed Event Bus (Kafka) `[TARGET STATE (Pending Iterations 47, 48 & 50)]`
+
+```sh
+/modules/event-bus.md
+```
+
+- Event Bus Port (`EventBus`) and Handlers.
+- InMemory & Kafka adapter implementations (`kafkajs`).
+- Transactional Outbox publisher and MongoDB Change Streams listener.
+- Progressive Delay Retry Topics and Dead Letter Queue (DLQ).
+
+Rules:
+
+- Purely an application/infrastructure integration module for domain decouplings.
+- Handlers MUST be strictly idempotent, tracking processed events to prevent duplicates.
+- Message ordering is guaranteed via dynamic partitioning keys (`plantInstanceId` or `bedId`).
+
+---
+
 ## 4. DEPENDENCY RULES
 
 ```sh
@@ -345,6 +458,7 @@ API → Validation
 API → Query System
 API → Query DSL Contract
 API → OpenAPI (HTTP contract only)
+API → Auth
 Validation → Query System (optional delegation)
 Query System → Query DSL Contract
 Application → Domain
@@ -354,6 +468,22 @@ Persistence → Domain (mapping only)
 Testing → ALL MODULES (read-only, contract-aware)
 Shared Utils → (used by API, Testing, Validation only)
 Query DSL Contract → (no dependencies on transport or infra)
+SeedBank → Domain (references Plant, User)
+PlantInstance → SeedBank (references SeedBatch)
+Auth → Domain (references User, Email, Uuid)
+Reminders → Domain (references User, Uuid)
+Reminders → Bed (references Bed)
+Reminders → PlantInstance (references PlantInstance)
+Reminders → Events (re-calculates on logged Events)
+Spatial → PlantRelations (uses graph to compile reports)
+PlantRelations → Domain (references Plant, User)
+EventBus → Application (defines Port)
+EventBus Adapters (InMemory / Kafka) → EventBus (implements Port)
+Outbox Publisher → MongoDB (tails outbox via Change Stream)
+Outbox Publisher → EventBus (dispatches to Kafka)
+Winston Kafka Transport → Kafka App Logs Topic
+Vector Agent → Kafka App Logs Topic ➔ Loki
+Grafana → Loki
 ```
 
 ---
@@ -433,6 +563,20 @@ No mutation allowed
 
 ---
 
+### 5.9 Bed/PlantInstance ↔ Auth (Geographic Context Inheritance)
+
+- Beds and PlantInstances inherit geographic setting boundaries (like hemisphere) from the owning User's profile configuration defined in Auth module.
+
+---
+
+### 5.10 Reminders ↔ Core Systems
+
+- Reminders reference Beds and optional PlantInstances.
+- Deleting a Bed or soft-deleting a PlantInstance triggers automatic cascading invalidations (dismissal) of corresponding future Reminders.
+- Creating, editing, or deleting cultivation Events triggers automatic scheduling and adjustment of scheduled Reminders.
+
+---
+
 ## 6. SYSTEM BOUNDARIES SUMMARY
 
 | Module             | Responsibility             | Mutates Domain |
@@ -449,6 +593,10 @@ No mutation allowed
 | OpenAPI            | HTTP contract              | NO             |
 | Persistence        | Storage mapping            | NO             |
 | Families           | Taxonomy dataset           | NO             |
+| SeedBank           | Private seed inventories   | YES            |
+| Auth               | Session & profile security | NO             |
+| Reminders          | Stateful care schedules    | YES            |
+| Plant Relations    | Directed companion graph   | YES            |
 
 ---
 

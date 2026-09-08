@@ -41,7 +41,7 @@ paths:
                   status:
                     type: string
 
-  /api/v1/Auth/register:
+  /api/v1/auth/register:
     post:
       tags: [Auth]
       summary: Register user
@@ -64,7 +64,7 @@ paths:
         '400':
           $ref: '#/components/responses/ValidationError'
 
-  /api/v1/Auth/login:
+  /api/v1/auth/login:
     post:
       tags: [Auth]
       summary: Login user
@@ -88,7 +88,7 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
-  /api/v1/Auth/google:
+  /api/v1/auth/google:
     post:
       tags: [Auth]
       summary: Authenticate with Google
@@ -112,7 +112,7 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
-  /api/v1/Auth/validate/{token}:
+  /api/v1/auth/validate/{token}:
     get:
       tags: [Auth]
       summary: Validate email
@@ -135,7 +135,7 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
-  /api/v1/Auth/refresh:
+  /api/v1/auth/refresh:
     post:
       tags: [Auth]
       summary: Refresh token
@@ -155,7 +155,7 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
-  /api/v1/Auth/update:
+  /api/v1/auth/update:
     post:
       tags: [Auth]
       summary: Update password
@@ -283,6 +283,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFoundError'
 
+  /api/v1/families/{id}:
     patch:
       tags: [Families]
       summary: Update family

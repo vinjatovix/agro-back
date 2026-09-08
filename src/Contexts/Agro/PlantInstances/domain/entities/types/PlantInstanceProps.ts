@@ -1,7 +1,7 @@
 import type { Coordinates } from '../../../../../../shared/domain/value-objects/index.js';
 import type { Uuid } from '../../../../../shared/domain/valueObject/index.js';
 import type { CropGrowthStatus } from './CropGrowthStatus.js';
-import type { PlantInstanceLifecycleStatus } from './PlantLifeCicleStatus.js';
+import type { PlantInstanceLifecycleStatus } from './PlantLifecycleStatus.js';
 
 export type PlantInstanceProps = {
   id: Uuid;

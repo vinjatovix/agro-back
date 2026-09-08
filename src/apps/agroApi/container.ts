@@ -52,7 +52,6 @@ import {
 import {
   HealthController,
   type HealthControllerDependencies
-  // type HealthControllerDependencies
 } from './controllers/health/HealthController.js';
 import {
   CreatePlantController,

@@ -1,7 +1,7 @@
 # MODULE: QUERY DSL CONTRACT
 
-version: 1.0.0
-source-spec: v1.1.0
+version: 1.3.0
+source-spec: v1.3.0
 status: formalized (derived from feature tests + QueryOptions implementation)
 
 ---
@@ -108,11 +108,13 @@ matches if ANY value is present
 Operators:
 
 - eq
-- gte
-- lte
 
 Semantics:
-numeric comparison over comparable fields
+
+- eq: Represents the exact available environmental or physical value (e.g., soil pH, sunlight hours, available spacing). The domain-specific query mappers translate this single value under the hood to find plants whose biological optimal range covers it (exact-match-to-interval queries).
+
+Note on traditional comparison operators (gt, gte, lt, lte):
+These traditional range operators are fully supported at the infrastructure layer (GenericQueryParser and MongoQueryTranslator) as generic technical features for future modules (e.g., metric logging or telemetry). However, they are not active or exposed at the domain level (e.g., in `PlantFilter`) nor mapped by plant query mappers, since biological catalog queries adhere strictly to suitability-interval rules.
 
 ---
 
@@ -148,31 +150,56 @@ SortOptions = Record<string, 'asc' | 'desc'>;
 
 ## 6. PAGINATION SYSTEM
 
-### 6.1 Structure
+The system supports a dual pagination strategy to cover both static catalogs and high-frequency temporal logs.
+
+### 6.1 Offset Pagination (Current State)
+
+Used for master data, catalogs, and bounded collections where users need to jump to specific pages (e.g., `Plants`, `Families`, `SeedBatch`, `Beds`).
 
 ```ts
 PaginationParams {
-  page: number;
+  page: number; // 1-indexed
   limit: number;
 }
 ```
 
+#### Rules (Offset)
+
+- `page` starts at 1.
+- `limit` MUST be > 0.
+- Implementations MAY enforce a maximum limit.
+- Susceptible to skipped or duplicated records if concurrent inserts/deletions occur during navigation.
+
 ---
 
-### 6.2 Rules
+### 6.2 Cursor Pagination (Keyset) `[TARGET STATE (Pending Iteration 72)]`
 
-- page starts at 1
-- limit MUST be > 0
-- implementations MAY enforce max limit
+Used for immutable time-series data, high-volume logs, and infinite-scroll interfaces (e.g., `Events`, `Reminders`).
+
+```ts
+CursorPaginationParams {
+  cursor?: string; // Opaque base64 encoded string representing the last seen position (e.g., encoded _id or createdAt)
+  limit: number;
+}
+```
+
+#### Rules (Cursor) `[TARGET STATE (Pending Iteration 72)]`
+
+- `cursor` is optional on the first request. Subsequent requests pass the `nextCursor` returned in the previous response payload.
+- **Deterministic Tie-Breaker Rule:** To prevent ghost records or infinite scroll loops when multiple entities share the exact same timestamp (e.g., two events generated in the same millisecond), the `cursor` MUST ALWAYS encode a mathematically unique, time-sortable identifier.
+- **UUIDv7 Synergy:** Because the system enforces **UUIDv7** (which embeds a 48-bit timestamp followed by random data) for all domain entities, the entity's `id` itself acts as the perfect, native cursor. There is no longer a need to encode complex `[createdAt, _id]` tuples; the raw UUIDv7 string guarantees absolute $O(1)$ chronological sorting with deterministic tie-breaking.
+- Guarantees $O(1)$ database seeking performance on massive collections.
+- Immutable to concurrent inserts (users scrolling a feed will never see duplicated or skipped events).
 
 ---
 
-### 7. INCLUDE SYSTEM
+### 7. INCLUDE SYSTEM `[TARGET STATE (Pending Iteration 19)]`
 
-Optional field expansion mechanism.
+Optional field expansion and sparse field selection mechanism.
 
 ```ts
 include: string[]
+fields: Record<string, string[]>
 ```
 
 Rules:
