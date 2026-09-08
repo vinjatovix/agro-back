@@ -839,6 +839,7 @@ Then(
 
 Then('response matches OpenAPI contract', async function (this: CucumberWorld) {
   await assertResponseMatchesOpenAPI({
+    specPath: 'src/apps/agroApi/openapi/openapi.yaml',
     path: this.route!,
     method: this.method!,
     status: this.status!,

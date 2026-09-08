@@ -1,10 +1,13 @@
 import { assertResponseMatchesOpenAPI } from './assertResponseMatchesOpenAPI.js';
 
 describe('assertResponseMatchesOpenAPI', () => {
+  const specPath = 'src/apps/agroApi/openapi/openapi.yaml';
+
   describe('Basic scenarios (health endpoint)', () => {
     it('should pass if the body matches the schema', async () => {
       await expect(
         assertResponseMatchesOpenAPI({
+          specPath,
           path: '/api/v1/health',
           method: 'GET',
           status: 200,
@@ -16,6 +19,7 @@ describe('assertResponseMatchesOpenAPI', () => {
     it('should throw an error with detailed messages if a required field is missing', async () => {
       await expect(
         assertResponseMatchesOpenAPI({
+          specPath,
           path: '/api/v1/health',
           method: 'GET',
           status: 200,
@@ -29,6 +33,7 @@ describe('assertResponseMatchesOpenAPI', () => {
     it('should throw an error with detailed messages if a property has an invalid type', async () => {
       await expect(
         assertResponseMatchesOpenAPI({
+          specPath,
           path: '/api/v1/health',
           method: 'GET',
           status: 200,
@@ -68,6 +73,7 @@ describe('assertResponseMatchesOpenAPI', () => {
     it('should pass if a nested object with arrays matches the schema perfectly', async () => {
       await expect(
         assertResponseMatchesOpenAPI({
+          specPath,
           path: '/api/v1/families',
           method: 'GET',
           status: 200,
@@ -90,6 +96,7 @@ describe('assertResponseMatchesOpenAPI', () => {
 
       await expect(
         assertResponseMatchesOpenAPI({
+          specPath,
           path: '/api/v1/families',
           method: 'GET',
           status: 200,
@@ -106,6 +113,7 @@ describe('assertResponseMatchesOpenAPI', () => {
 
       await expect(
         assertResponseMatchesOpenAPI({
+          specPath,
           path: '/api/v1/families',
           method: 'GET',
           status: 200,
@@ -132,6 +140,7 @@ describe('assertResponseMatchesOpenAPI', () => {
 
       await expect(
         assertResponseMatchesOpenAPI({
+          specPath,
           path: '/api/v1/families',
           method: 'GET',
           status: 200,
@@ -158,6 +167,7 @@ describe('assertResponseMatchesOpenAPI', () => {
 
       await expect(
         assertResponseMatchesOpenAPI({
+          specPath,
           path: '/api/v1/families',
           method: 'GET',
           status: 200,
@@ -181,6 +191,7 @@ describe('assertResponseMatchesOpenAPI', () => {
 
       await expect(
         assertResponseMatchesOpenAPI({
+          specPath,
           path: '/api/v1/families',
           method: 'GET',
           status: 200,
