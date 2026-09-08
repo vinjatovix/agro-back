@@ -1,7 +1,7 @@
 # MODULE: FAMILY
 
-version: 1.0.0
-source-spec: v1.1.0
+version: 1.3.0
+source-spec: v1.3.0
 status: stable
 
 ---
@@ -29,27 +29,27 @@ The Families module is responsible for:
 
 Families is:
 
-- a taxonomy dataset
-- a read-only ecological reference system
-- a classification layer for Plant domain
+- a botanical taxonomy dataset
+- a Domain Aggregate Root mutable by administrators and collaborators
+- a classification layer for the Plant domain
 
 Families is NOT:
 
-- a behavioral system
-- a lifecycle manager
-- a mutable domain aggregate
+- an active lifecycle manager (like Bed or PlantInstance)
+- mutable by standard users
 
 ---
 
 ## 4. DATA MODEL
 
-Each Family MAY include:
+Each Family includes:
 
-- id
+- id (UUID)
 - name
-- scientific classification metadata
-- descriptive traits
-- optional ecological attributes
+- scientific classification metadata (scientificName, aliases)
+- descriptive traits (shortDescription, highlights)
+- extra (additional dynamic classification properties)
+- metadata (audit trails)
 
 ---
 
@@ -57,7 +57,7 @@ Each Family MAY include:
 
 ### 5.1 Families → Plant
 
-- Plants MAY reference a Family ID
+- Plants reference a Family ID
 - Family does not depend on Plant
 - Relationship is unidirectional
 
@@ -65,30 +65,34 @@ Each Family MAY include:
 
 ### 5.2 Families → Knowledge System
 
-- Families MAY overlap conceptually with ecological knowledge
-- Families remain independent dataset
+- Families overlap conceptually with ecological knowledge
+- Families remain an independent dataset
 - No direct coupling allowed
 
 ---
 
 ## 6. RULES
 
-- Families MUST be read-only
-- Families MUST NOT contain business logic
+- **`[TARGET STATE (Pending Iteration 26)]` Access Control & Security (Collaborator Role):** Read-only operations (catalog queries) are completely unauthenticated. Mutating operations (creation, updates, deletion) are currently implemented for the **Administrator** role. Authorizing the **Collaborator** role is strictly pending Iteration 26.
+- **Polymorphic idOrSlug Lookup:**
+  - **Read Operations (CURRENTLY IMPLEMENTED):** Queries targeting a family resource by its polymorphic identifier dynamically resolve the target (implemented in Express routing using the `:idOrSlug` parameter, refactored from `:slug`). If the identifier is a valid UUID, it retrieves the entity by `id`; otherwise, it evaluates it as an alphanumeric string and performs a lookup on the indexed `slug` property.
+  - **Mutation Operations `[TARGET STATE (Pending Iteration 27)]`:** Supporting polymorphic lookup (`idOrSlug`) on mutating endpoints (`PATCH`, `DELETE`) is strictly pending Iteration 27.
+- Families MUST NOT contain plant lifecycle business logic
 - Families MUST NOT depend on persistence layer
-- Families MUST NOT mutate at runtime
-- Families MUST be referenced by ID only
+
+_Note: For the exact HTTP verbs, status codes, and routing parameters exposing these rules, see **api-layer.md**._
 
 ---
 
 ## 7. CURRENT IMPLEMENTATION STATUS
 
-### Missing
+### Implemented
 
-- persistence definition
-- API endpoints
-- dataset seeding strategy
-- validation rules for family references
+- Core domain entity and Value Objects
+- Persistence mapping and MongoDB repository
+- API endpoints (create, retrieve, list, update) `[TARGET STATE (Pending Iteration 13)]`
+- Dataset seeding strategy (JSON-based)
+- Validation rules for family references
 
 ---
 

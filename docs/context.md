@@ -1,256 +1,276 @@
 # System Context: Agro-Back
 
-This document serves as a complete technical audit and source of truth for future iterations and development of integrations with the **Agro** backend.
+This document serves as the absolute technical baseline and source of truth for the **Agro** back-end. It details the actual implemented state of the codebase, maps it directly to the target architecture defined in the refined specification modules (`docs/spec/**`), and provides the gap analysis required to construct the new project roadmap.
 
 ---
 
-## 1. Real Purpose of the System
+## 1. Core System Purpose & Vision
 
-**Agro-Back** is an HTTP REST API designed for agricultural crop and urban garden management and planning. Unlike generic descriptions, the system acts as:
+**Agro-Back** is an enterprise-grade agricultural and urban garden layout planning engine. It operates as a biological and spatial calculator, going beyond simple CRUD operations to provide ecological intelligence. The system's vision is built on four core pillars:
 
-1.  **Spatial Distribution Validator:** Strictly controls the physical dimensions of the crop beds (`beds`) and calculates, using geometric algorithms, whether a plant (`plantInstance`) can be placed at specific coordinates without interfering with the recommended planting spacing of surrounding plants.
-2.  **Botanical Knowledge Catalog:** A structured query repository of reference plants (`plants`) and their botanical families (`families`), allowing users to plan based on light, watering, soil requirements, and sowing/harvesting calendars.
-3.  **Crop Lifecycle Manager:** Tracks and persists the growth state (`growthStatus` and `instanceStatus`) of planted crops.
-
----
-
-## 2. Modules Inventory
-
-The system is structured under a **lightweight Hexagonal Architecture approach with Domain-Driven Design (DDD) principles**. The modules ("Bounded Contexts") are organized in `src/Contexts/`:
-
-### A. Beds Module (`src/Contexts/Agro/Beds`)
-
-- **Real Purpose:** Manage the physical dimensions of cultivation spaces, as well as the assignment and removal of plants within them.
-- **Responsibilities:**
-  - Creation, update, listing, and soft deletion of crop beds associated with a specific user.
-  - Coordination of spatial plant placement by injecting the `BasicSpatialService`.
-- **Internal Dependencies:** Consumes `PlantInstances` (for embedded entities) and `Plants` (to verify reference planting spacing).
-- **Architectural Patterns:** **Aggregate Root** (`Bed` acts as the aggregate root containing and encapsulating the child entity `PlantInstance`).
-
-### B. Plants Module (`src/Contexts/Agro/Plants`)
-
-- **Real Purpose:** Catalog of botanical varieties, acting as the configuration dictionary for spacing, calendars, watering requirements, etc.
-- **Responsibilities:**
-  - Maintenance of the reference plants catalog (CRUD).
-  - Validation of the existence of its associated botanical family before creation.
-- **Internal Dependencies:** Consumes `Families` (to validate and integrate the botanical family of the plant).
-
-### C. Families Module (`src/Contexts/Agro/Families`)
-
-- **Real Purpose:** Taxonomically and culturally classify plants (e.g., Solanaceae, Legumes) for future grouping, crop rotation, or companion planting.
-- **Responsibilities:**
-  - Management of botanical family taxonomy (creation, editing, public listing).
-
-### D. PlantInstances Module (`src/Contexts/Agro/PlantInstances`)
-
-- **Real Purpose:** Represent a real plant sown by a user at a physical point within a crop bed.
-- **Responsibilities:**
-  - Define planting coordinates, growth state (`CropGrowthStatus`), lifecycle state (`PlantInstanceLifecycleStatus`), planting/removal date, and specific annotations.
-- **Patterns:** Subordinate entity (Entity / Value Object) without its own repository; it is persisted embedded in the `Bed` document.
-
-### E. Events Module (`src/Contexts/Agro/Events`)
-
-- **Real Purpose:** Historical tracking log of individual agricultural activities of the farmer (watering, fertilization, pruning, preventive/palliative treatments, harvests, transplants). It should not be confused with system "Event Sourcing"; these are logs of user activities on their plants.
-- **Evolution:** In future phases, it will serve to trigger automatic reminders and schedule recurring notifications (e.g., preventive treatments every 15 days, palliative treatments every 5 days, or seasonal pruning).
-- **Current State:** Domain and persistence mappers (`EventMapper`) and entities are implemented with exhaustive unit tests, but are **temporarily inactive** (no use cases or HTTP controllers in the container).
-
-### F. Authentication Module (`src/Contexts/Auth`)
-
-- **Real Purpose:** Local and federated user authentication, role control (user, admin), and secure credential issuance.
-- **Responsibilities:**
-  - User registration, local login, JWT token refresh, password change, and email validation.
-  - Verification and sign-in using Google Identity tokens (Google Sign-In).
-
-### G. Shared Module (`src/Contexts/shared`)
-
-- **Real Purpose:** Provide the common infrastructure base, security adapters, and generic data injection.
-- **Key Components:**
-  - Base Value Objects (`Uuid`, `Email`, `Metadata`, `StringValueObject`, `PositiveNumber`).
-  - Persistence abstractions (`MongoRepository`, `MongoCrudRepository` with pagination, ordering, and dynamic query DSL translation, and `MongoQueryTranslator`).
-  - Adapters/Plugins (`CryptAdapter` for bcrypt/JWT, `GoogleIdTokenVerifierAdapter` for Google Auth).
+1.  **Botanical Knowledge Catalog:** A taxonomical and cultural reference library of plants (`plants`) and families (`families`) describing optimal requirements (soil pH, sunlight exposure, root depths, watering) and seasonality calendars.
+2.  **Spatial Distribution Validator:** A pure computational geometry engine that evaluates plant placement coordinate-by-coordinate in real-time. It computes spacing constraints and boundary collisions in an advisory, non-blocking manner (generating warnings), except for impossible $0\text{cm}$ physical overlaps which are strictly blocked.
+3.  **Standalone Crop Instance Manager:** A temporal tracker of living crops (`plantInstance`) sown in physical spaces, tracking their growth phenology, establishment methods (nurseries vs. direct sowing), and dynamic warning lists.
+4.  **Chronological Journal & Suggested Care Engine:** An append-only historical log of cultivation events (watering, pruning, harvests) that passively drives stateful, cached care reminders, dynamically adaptive to local weather forecasts (precipitation rain-silencing).
 
 ---
 
-## 3. Real Technical Stack (Versions)
+## 2. Technical Stack & Boundaries
 
-- **Runtime:** Node.js v22.23.2 (Configured with `"type": "module"` for native ES Modules support).
-- **Language:** TypeScript v6.0.2 (Strict support).
-- **HTTP Framework:** Express v4.22.1.
-- **Dependency Injection (DI):** Awilix v13.0.3 and Awilix-Express v11.0.1 (Container-driven injection auto-loaded and scoped per request).
-- **Database / Persistence Engine:** MongoDB v7.1.1 (Official native driver).
-- **Logging & Observability:** Winston v3.19.0 + Winston-MongoDB v7.0.1.
-- **Security:** Helmet v8.1.0, Cors v2.8.6, Express-Rate-Limit v8.3.2, BcryptJS v3.0.3, Google-Auth-Library v10.6.2, JSONWebToken v9.0.3.
-- **Configuration:** Env-Var v7.5.0 for strict typing of environment variables.
-- **Migration Control:** Migrate-Mongo v14.0.7.
-- **Testing Frameworks:** Jest v30.3.0 (`ts-jest`), Cucumber v12.8.1 (BDD support), Supertest v7.2.2.
+The technical stack is strictly versioned and configured for high-performance, type-safe operations:
 
----
+- **Runtime Engine:** Node.js v22.23.2 (running with native ES Modules, `"type": "module"`).
+- **Language Specification:** TypeScript v6.0.2 in strict mode (no `any` types allowed).
+- **Web Framework:** Express v4.22.1.
+- **Dependency Injection (DI):** Awilix v13.0.3 and Awilix-Express v11.0.1 (scoped container-per-request).
+- **Database / Persistence:** MongoDB v7.1.1 (Official native driver, binary UUID keys).
+- **Logging & Diagnostics:** Winston v3.19.0.
+- **Testing Ecosystem:** Jest v30.3.0 (`ts-jest`), Cucumber v12.8.1 (BDD features), Supertest v7.2.2.
+- **Boundary Security:** Helmet v8.1.0, Cors v2.8.6, Express-Rate-Limit v8.3.2, BcryptJS v3.0.3, Google-Auth-Library v10.6.2, JSONWebToken v9.0.3.
 
-## 4. Detected Architectural Patterns
+### Tooling Transitions (Phase 0 Targets)
 
-1.  **DDD-Inspired Hexagonal Architecture (Lightweight):**
-    - `domain/`: Contains pure business logic (entities, value objects, repository contracts). Independent of frameworks and infrastructure.
-    - `application/`: Use cases that orchestrate domain calls. Do not interact directly with Express.
-    - `infrastructure/`: External adapters such as the MongoDB repository or encryption adapters.
-2.  **Aggregate Roots:**
-    - `Bed` is the aggregate root that encapsulates the lifecycle of `PlantInstance`. There is no separate database collection or repository for individual plants; they are always operated on and saved through the bed aggregate.
-3.  **Dependency Injection (DI) Container:**
-    - Awilix resolves all cabling at runtime (registered in `src/apps/agroApi/container.ts`). Prevents direct coupling between classes.
-4.  **Contract-First / Declarative Validation:**
-    - Request validation using `express-validator` schemas derived from the official OpenAPI contract (`openapi.yaml`). Responses are assertively validated in integration tests against the OpenAPI spec.
-5.  **Audit Diff Checking:**
-    - In update operations (e.g., `UpdateFamily`, `UpdateBed`), the current state is read, a utility patch is applied (`applyPatch`), a diff is performed to audit changes, and it is persisted with the acting user's metadata using `updateWithDiff`.
-6.  **Rich Domain Value Objects:**
-    - Value Objects such as `Email` or `Uuid` are responsible for validating their own business rules and invariants in the constructor. It is impossible to create an invalid instance of a Value Object.
+- **Request Validation:** Currently implemented using `express-validator` at the route boundary. The target state is migrating completely to **Zod**, utilizing a single source of schema truth to auto-generate the OpenAPI contract (`openapi.yaml`) and ensure zero contract drift.
+- **Database Migrations:** Currently, schema indexes are declared programmatically on repository startup. The target state is transitioning to formal database migrations versioned under the `migrations/` folder and executed via `migrate-mongo` v14.0.7 during bootstrap.
 
 ---
 
-## 5. Entry Points
+## 3. Architecture & Clean Boundaries
 
-The system exposes only **HTTP REST API** entry points:
+The codebase adheres strictly to **Clean DDD-Inspired Hexagonal Architecture**, maintaining absolute separation of concerns across layers:
 
-- **Main Server:** `src/index.ts` initializes HTTP listening and process error catchers (`uncaughtException`, `unhandledRejection`).
-- **Dynamic Routes (`src/apps/agroApi/routes/registerRoutes.ts`):** A glob scans at runtime all files matching `**/*.routes.{ts,js}` and registers endpoints in Express via **Awilix-Express Invokers** linked to the controllers' `run` methods.
+```
+[ HTTP REST / Express Controllers ] ──► [ Application Use Cases ] ──► [ Pure Domain Model (Entities, VOs) ]
+                 │                                                                     ▲
+                 ▼                                                                     │
+[ Validation Layer / Zod / OpenAPI ]                                          [ Spatial / Math Services ]
+                 │                                                                     ▲
+                 ▼                                                                     │
+[ Persistence Layer / Mongo Query Translators ] ───────────────────────────────────────┘
+```
 
-### Detailed Endpoints
+### Strict Architectural Boundaries
 
-1.  **Auth (`/api/v1/Auth`):** `POST /register`, `POST /login`, `POST /google`, `GET /validate/:token`, `POST /refresh`, `POST /update`.
-2.  **Beds (`/api/v1/beds`):** `POST /` (Create), `GET /` (List current user), `GET /:id` (Detail), `PATCH /:id` (Modify), `DELETE /:id` (Delete).
-3.  **Families (`/api/v1/families`):** `POST /` (Admin), `GET /:slug` (Public), `GET /` (Public), `PATCH /:id` (Admin).
-4.  **Plants (`/api/v1/plants`):** `POST /` (Admin), `GET /` (Public/Optional Auth), `GET /:id` (Public/Optional Auth), `PATCH /:id` (Admin), `DELETE /:id` (Admin).
-5.  **Health (`/api/v1/Health`):** `GET /` (Healthcheck).
-6.  **Errors (`/api/v1/error`):** `GET /` (Provoke a controlled error).
+1.  **Pure Domain Core:** The domain layer (`src/Contexts/*/domain`) is stateless, side-effect free, and holds zero technology dependencies. No database models, HTTP error structures, or framework utilities are allowed inside.
+2.  **No DTOs in Domain:** Data Transfer Objects only exist at the system boundary (API / Use Case inputs). The domain only receives validated aggregates, entities, and rich Value Objects.
+3.  **Audit Metadata Ownership:** Audit fields (`createdAt`, `updatedAt`, `createdBy`, `updatedBy`) are mutated in memory directly by domain methods prior to persistence, ensuring read-after-write queries (`findById` post-update) can be completely bypassed.
+4.  **CQRS Read-Only Bypass:** To maximize system throughput, read-only listings (GET queries) are officially permitted to bypass full rich domain aggregate hydration. Plain MongoDB projections map directly to boundary DTOs, validated by output schemas (Zod/OpenAPI).
+5.  **Repository Retrieval Contract:** Repositories function purely as data retrieval mechanisms. They return nullable values (`null` or `undefined`) when a record is absent and never throw domain-level exceptions (like `DomainNotFoundException`), shifting error enforcement strictly to application use cases.
 
 ---
 
-## 6. Data Model (MongoDB)
+## 4. Modules Gap Analysis (Current vs. Target State)
 
-The system operates with MongoDB and structures information into the following collections:
+To drive the new system roadmap, this section contrasts the current state of each module in the codebase against the target state defined in the refined specs.
+
+### A. Beds Module
+
+- **Current State in Code:**
+  - Logical container representing physical growing boundaries.
+  - Holds static physical dimensions (`width`, `height`, `depth`).
+  - **Logical Coupling:** Physically embeds the array of `plantInstances` within its aggregate root (`Bed.ts`) and stores them nested inside the `beds` collection in MongoDB.
+  - Soft-deletion uses a boolean flag (`deleted: boolean`) and timestamp (`deletedAt`).
+- **Target State (Spec v1.3.0):**
+  - **Decoupled Instances:** Completely detached from individual plant aggregates. Plant instances are persisted in their own independent `plant_instances` collection.
+  - **Soft Delete Standardization:** Standardized to lowercase `status: 'active' | 'removed'` with `deletedAt: ISODate | null`.
+  - **Resizing Validation Limits:** Modifying physical bed dimensions is validated against active plant instances. Resizing is strictly blocked (throwing a `DomainConflictException`) if any living crop center coordinate falls outside the proposed boundaries.
+  - **Optimistic Concurrency Control (OCC):** Bed versioning tracks placements atomically using MongoDB ACID Multi-Document Transactions.
+
+### B. PlantInstances Module
+
+- **Current State in Code:**
+  - Represented as a domain entity inside the Beds context directory structure (`src/Contexts/Agro/PlantInstances`), but has no application use cases, controllers, database collections, or repository interfaces of its own.
+  - Managed strictly as an embedded array element within the `beds` database collection.
+- **Target State (Spec v1.3.0):**
+  - **Standalone Bounded Context:** Re-architected as a standalone aggregate root (`PlantInstance`) with its own dedicated MongoDB collection (`plant_instances`) and `PlantInstanceRepository`.
+  - **Soft Delete & Space Liberation:** Standardized to `status: 'active' | 'removed'` with `deletedAt`. Soft-deleted instances are excluded from spatial checks, immediately liberating physical coordinates for subsequent plantings.
+  - **Nursery Sowing & Seedbed Lifecycle:** Supports direct sowing vs. nursery trays (`establishment: 'direct' | 'nursery'`). Starter tray instances have null coordinates. Sprouting events update the linked `SeedBatch` germination success logs on-the-fly.
+  - **Transplant Workflow:** Seedlings are moved to physical beds via a transplant endpoint, triggering on-the-fly spatial/collision validations and recording a `'transplant'` event.
+
+### C. Plants Module
+
+- **Current State in Code:**
+  - Catalog of biological species, fully implemented with rich value objects (calendars, sowing traits).
+  - Validation: Sowing block (`phenology.sowing`) is strictly mandatory.
+  - Knowledge block holds unstructured arrays of strings.
+- **Target State (Spec v1.3.0):**
+  - **Sowing Refinement:** Sowing block becomes **optional** to support sterile or vegetatively propagated crops (such as Russian Comfrey).
+  - **Structured Propagation:** Propagation methods are defined as detailed sub-objects mapping requirements (best practices, optimal seasons, estimated time weeks) per technique (division, cutting, seed).
+  - **Favorites & Social Interactions:** Integrated with a private `user_bookmarks` collection. Community popular indicators (likes/dislikes) are desensitized and projected as numeric counters on the `Plant` aggregate root, avoiding write contention and document size bloat.
+
+### D. Families Module
+
+- **Current State in Code:**
+  - Taxonomical classification fully implemented with CRUD, including public listings and custom seeders.
+  - Supports polymorphic read-only lookups (by UUID ID or alphanumeric string Slug) on GET routes.
+- **Target State (Spec v1.3.0):**
+  - **Polymorphic Mutation:** Extend polymorphic `idOrSlug` resolution to mutations (`PATCH`, `DELETE`).
+  - **Collaborator Role:** Authorization for a `collaborator` role to manage catalog taxonomies, separate from system administrators.
+
+### E. Botanical Companions Graph (Plant Relations)
+
+- **Current State in Code:**
+  - Mock JSON data only (`mock_data/plantRelations.json`). No domain classes, schemas, or APIs exist.
+- **Target State (Spec v1.3.0):**
+  - **Directed Biological Graph:** Represented by `PlantRelation` aggregate root and collection, describing directional synergies (`beneficial`, `harmful`, `neutral`) with explicit ecological reasons (e.g., Tomato-Basil companionship).
+  - **Proximity Calculations:** Feeds directly into the Spatial System, allowing companion distance evaluations inside the Bed designer.
+
+### F. Chronological Events Module
+
+- **Current State in Code:**
+  - Domain entities, value objects, and mapping mappers (`EventMapper`, `EventDocument`) are fully implemented and unit-tested for core operations (watering, pruning, harvests).
+  - **Temporarily Inactive:** Lacks application use cases, repositories, or HTTP controllers. No routes are wired.
+- **Target State (Spec v1.3.0):**
+  - **Scope-Based Journal:** Integrates an explicit `scope: 'bed' | 'instance'` field to track agricultural logs cleanly, preventing "magic nulls".
+  - **Dual-Scope Harvesting:** Harvesting is logged per-instance (tracking exact coordinates) or per-bed (requiring an explicit `plantId` in the payload) for aggregated logging.
+  - **Crop Rotation Heuristics:** Historical events over the past 36 months are analyzed to identify family repetitions (e.g., sequential Solanaceae plantings), generating soil-restoring suggestions.
+
+### G. Reminders & Care Engine
+
+- **Current State in Code:**
+  - Non-existent.
+- **Target State (Spec v1.3.0):**
+  - **State-Based Care Agenda:** Stateful, persisted `Reminder` records (`pending`, `completed`, `dismissed`) to avoid real-time calculation overhead, ensuring $O(1)$ read performance.
+  - **Passive Event-Driven Triggers:** Logged cultivation events passively mark reminders as completed and schedule subsequent tasks.
+  - **Cascading Invalidations:** Soft-deleting plant instances or removing beds triggers immediate, automatic cancellation/dismissal of future reminders.
+  - **Climatic Rain Silencing:** Integrates weather forecasts from Open-Meteo cached in Redis (2-hour TTL). Delays watering reminders when rain exceeds 5mm, with a protected environment bypass (indoor/greenhouse beds are never silenced).
+
+### H. Authentication & Identity (Auth)
+
+- **Current State in Code:**
+  - Local and Google Sign-In verification, JWT token generation, and secure routes.
+  - JWT payload carries minimum identifiers (`id`, `email`, `username`, `roles`).
+- **Target State (Spec v1.3.0):**
+  - **Location & Hemisphere Configuration:** User profiles store `postalCode`, `country`, and calculated `hemisphere` (north | south), cached in Redis. Checked dynamically during seasonality validations to prevent JWT payload bloat.
+  - **Verification Mailer:** Proper transactional mailer infrastructure to support account validation.
+
+---
+
+## 5. Technical Debt & Refactoring Backlog (Phase 0 Targets)
+
+The immediate focus to stabilize the codebase covers the following refactoring backlog:
+
+1.  **Relocate Query System to Delivery Layer:**
+    - _Symptom:_ `GenericQueryParser` and `QueryParserUtils` live in `src/shared/domain/query/`, coupling the domain core to Web/Express query representations.
+    - _Remedy:_ Relocate these technical utilities to the delivery layer (`src/apps/agroApi/shared/query/`).
+2.  **Purify Repository Retrieval Semantics:**
+    - _Symptom:_ `MongoCrudRepository` throws `DomainNotFoundException` directly from the infrastructure layer when a document is absent.
+    - _Remedy:_ Refactor to return `null` or `undefined`, shifting the exception-throwing logic strictly to application use cases.
+3.  **Decouple Mongo Primitives:**
+    - _Symptom:_ Database-specific types (like `MetadataPrimitives.ts`) live in infrastructure types folders.
+    - _Remedy:_ Relocate database-independent primitives to the shared domain space.
+4.  **Transition to Zod Schemas:**
+    - _Symptom:_ Route verification uses `express-validator` with manual schemas, leading to potential OpenAPI contract drift.
+    - _Remedy:_ Transition route boundaries to Zod, using schemas to drive runtime validation, TypeScript DTO compilation, and auto-generated Swagger documentation.
+5.  **Awilix DI Auto-Wiring:**
+    - _Symptom:_ `container.ts` contains verbose, manual registrations of every controller and use case.
+    - _Remedy:_ Automate registration through directory scanning (`container.loadModules`).
+6.  **Modularize ATDD Step Definitions:**
+    - _Symptom:_ Cucumber test steps are concentrated in a few large feature-dump files.
+    - _Remedy:_ Split step definitions by bounded context (Plant, Bed, Auth), extracting shared steps into reusable step utilities.
+
+---
+
+## 6. Realized Data Model (MongoDB)
+
+The current MongoDB collection schemas are detailed below, highlighting embedded elements:
 
 ### Collection: `users`
 
-Stores user credentials and profiles.
-
-- `_id`: MongoDB ObjectId (Stringified or Binary).
-- `email`: String (Indexed, unique).
-- `username`: String (Indexed, unique).
+- `_id`: Binary (UUID) - Primary Key.
+- `email`: String (Unique index).
+- `username`: String (Unique index).
 - `password`: String (Hashed via bcrypt, null if federated).
 - `emailValidated`: Boolean.
-- `authMethods`: Array of sub-documents (contains provider, e.g., `local`, `google`, and the date created/used).
-- `roles`: Array of Strings (e.g., `['user']`, `['admin']`).
+- `authMethods`: Array of sub-documents `[{ provider: string, createdAt: date }]`.
+- `roles`: Array of Strings (e.g. `['user']`, `['admin']`).
 - `metadata`: Audit object (`createdAt`, `updatedAt`, `createdBy`, `updatedBy`).
 
 ### Collection: `beds`
 
-Stores physical cultivation beds and their instanced plants.
-
-- `_id`: MongoDB ObjectId.
-- `userId`: MongoDB ObjectId (Foreign key pointing to `users`).
+- `_id`: Binary (UUID) - Primary Key.
+- `userId`: Binary (UUID) - Foreign Key.
 - `name`: String.
-- `width`: Number (Positive value).
-- `height`: Number (Positive value).
-- `depth`: Number (Positive value).
-- `plantInstances`: Array of sub-documents representing each plant:
-  - `id`: String (UUIDv4).
-  - `userId`: String (UUIDv4 of the owner).
-  - `plantId`: String (UUIDv4 pointing to a document in `plants`).
-  - `position`: Object `{ x: Number, y: Number }`.
-  - `growthStatus`: String (Enum: `germinating`, `seedling`, `vegetative`, `flowering`, `fruiting`, `harvesting`, `dormant`, `dead`).
-  - `instanceStatus`: String (Enum: `active`, `removed`).
-  - `plantedAt`: ISODate.
-  - `removedAt`: ISODate (Optional).
-  - `variety`: String (Optional).
-  - `notes`: String (Optional).
+- `width`: Number (Positive).
+- `height`: Number (Positive).
+- `depth`: Number (Positive).
+- `plantInstances`: Array of embedded crop documents:
+  - `_id`: Binary (UUID)
+  - `plantId`: Binary (UUID)
+  - `position`: Coordinates object `{ x: number, y: number }`
+  - `growthStatus`: String (Enum: `germinating`, `seedling`, etc.)
+  - `instanceStatus`: String (Enum: `active`, `removed`)
+  - `plantedAt`: ISODate
+  - `removedAt`: ISODate (Optional)
+  - `variety`: String (Optional)
+  - `notes`: String (Optional)
 - `metadata`: Audit object.
 - `deleted`: Boolean (Logical deletion flag).
 - `deletedAt`: ISODate (Optional).
 
 ### Collection: `families`
 
-Botanical families classification.
-
-- `_id`: MongoDB ObjectId.
-- `slug`: String (Indexed, unique).
+- `_id`: Binary (UUID) - Primary Key.
+- `slug`: String (Unique index).
 - `name`: String.
 - `aliases`: Array of Strings.
 - `scientificName`: String.
 - `shortDescription`: String.
 - `highlights`: Array of Strings.
-- `extra`: Dynamic JSON object with additional properties.
+- `extra`: Dynamic JSON.
 - `metadata`: Audit object.
 
 ### Collection: `plants`
 
-Base configuration of cultivable plants.
-
-- `_id`: MongoDB ObjectId.
-- `identity`: Object containing `{ name: String, scientificName: String, family: String (ID of family) }`.
-- `status`: String (e.g., `active`).
+- `_id`: Binary (UUID) - Primary Key.
+- `identity`: Object `{ name: { primary: string, aliases: string[] }, scientificName: string, family: string (ID) }`.
+- `status`: String (Enum: `ACTIVE`, `DELETED`).
 - `lifespan`: String.
-- `traits`: Object with spacing, depth, watering, light, and soil requirements.
-- `calendar`: Sowing and harvesting calendar.
-- `propagation`: Propagation methods.
+- `traits`: Object `{ size: { height: range, spread: range }, spacingCm: range }`.
+- `calendar`: Object `{ sowing: months, flowering: months, harvest: months }`.
+- `propagation`: Object `{ methods: string[] }`.
 - `metadata`: Audit object.
 
-### Collection: `changelog`
-
-Automatically generated by `migrate-mongo` for database version control.
-
 ---
 
-## 7. External Dependencies
+## 7. Entry Points & Routing Mechanism
 
-1.  **MongoDB Server:** The main database engine, configured locally in Docker via `docker-compose.yml` and instantiated with scripts to restore database dumps from remote environments.
-2.  **Google OAuth2 API:** Federated integration with Google to verify identities via id_tokens provided by frontend clients.
+Agro-Back implements an Express HTTP server starting at `src/index.ts`. All endpoints are registered dynamically via a glob scanner:
 
----
+- **Scanner (`src/apps/agroApi/routes/registerRoutes.ts`):** Scans the route directory at runtime, identifying files matching `**/*.routes.{ts,js}`.
+- **Invoker Resolution:** Route modules export an array of **Awilix-Express Invokers** (using `bindRun`) which lazily resolve controllers from the container per request.
+- **Structured Exceptions Middleware:** Domain and validation exceptions are intercepted by `errorHandler.ts` and mapped automatically to HTTP codes:
+  - `InvalidArgumentException` ──► **400 Bad Request**
+  - `DomainUnauthorizedException` ──► **401 Unauthenticated**
+  - `DomainForbiddenException` ──► **403 Forbidden**
+  - `DomainNotFoundException` ──► **404 Not Found**
+  - `DomainConflictException` ──► **409 Conflict**
 
-## 8. Observed Coding Conventions
+### Detailed Active Routes
 
-- **Strict Typing:** The use of `any` is not allowed. `unknown` is used and types are narrowed explicitly.
-- **File and Symbol Conventions:**
-  - Classes and Types: **PascalCase** (`Bed`, `User`).
-  - Methods, Functions, Variables: **camelCase** (`createBed`, `applyPatch`).
-  - Files: camelCase for utilities/mappers, PascalCase if the file primarily exports a class/type (`Bed.ts`).
-  - Constants: **UPPER_CASE** with underscores (`MAX_RETRIES`).
-- **Typed Error Handling:** The domain and application layers throw pure, framework-agnostic exceptions (extending `DomainException`, such as `InvalidArgumentException`, `DomainConflictException`, `DomainNotFoundException`, or `DomainUnauthorizedException`) rather than native JS errors. These domain exceptions are automatically intercepted by the global Express error-handling middleware and mapped to appropriate HTTP status codes and standard JSON error response structures, preventing HTTP concepts from leaking into the business core.
-
----
-
-## 9. Test Coverage per Module (Approximate)
-
-The test suite of this project is exceptionally robust, with an estimated global coverage of **~90%+**:
-
-- **Unit Tests (`tests/Contexts/**/\*.test.ts`):** 78 independent test files. Unit-test all use cases (`CreatePlant.test.ts`, `UpdateBed.test.ts`, `LoginUserLocal.test.ts`), domain entities, value objects, and infrastructure query translators.
-- **BDD Feature Tests (`tests/apps/agroApi/features/**/\*.feature`):** 21 functional specifications written in Gherkin (Cucumber). Runs against Express with a real Docker database container. Validates end-to-end integration, route security, rate-limiting quotas, and verifies that HTTP REST API responses strictly comply with `openapi.yaml` definitions.
-
----
-
-## 10. Technical Debt and Danger Zones
-
-1.  **Modules Awaiting Integration:**
-    - **Events Module (`Events`):** Its business logic and mapping are ready, awaiting integration into the container and API layer in future phases.
-    - **`addPlantToBed` Use Case:** Implemented in the application layer, but without an associated HTTP controller. Its deployment is planned for the start of the beds design phase.
-2.  **Lack of Local Database Migrations:**
-    - The `migrate-mongo` engine is configured, but the `migrations/1.0.0/` folder does not contain physical TS/JS migration files. This will be resolved by adopting the use of formal migrations.
-3.  **Lack of Direct Unit Tests on Controllers:**
-    - Express controllers delegated in Awilix lack Jest `.test.ts` files. This is mitigated by the exhaustive Cucumber BDD tests (`.feature`), but introduces a potential gap for Express exceptional logic.
-4.  **Bypass of Google Auth Configuration in CI:**
-    - In CI/CD pipelines, `GOOGLE_CLIENT_ID` is a placeholder, requiring strict environment injection in production.
-
----
-
-## 11. Design Decisions and Evolution Plan
-
-Based on the technical audit and strategic clarification with the team, the following design decisions are established to guide continuous development:
-
-1.  **Events Module Approach:**
-    - The `Events` module will be developed as a **historical log of the farmer's actions** on the garden (when they fertilized, when they pruned, treatments performed).
-    - Its primary purpose is to **feed the periodic reminders and alerts engine** (e.g., recurring preventive treatments every 15 days, palliative treatments every 5 days, or seasonal pruning).
-    - It **does not** act as a system event store (Event Sourcing) that alters or recreates the logical state of the beds.
-2.  **Beds Design and Instantiation Deployment:**
-    - The `addPlantToBed` use case and its respective HTTP API will be formally integrated in the **next evolutionary phase**.
-    - Once the plant catalog is consolidated (current phase finalized), the next iteration will address the visual design and spatial instantiation of plants inside crop beds using this use case.
-3.  **Persistence and Migration Strategy:**
-    - The **Formal Migrations** rule is adopted.
-    - All creations of collections, indexes, or structural transformations in MongoDB will be versioned and deployed via physical scripts controlled under the `migrations/` folder structure and executed using `migrate-mongo` during the deployment and startup lifecycle of the API.
+1.  **Auth (`/api/v1/auth`):**
+    - `POST /register` ──► Registers local credentials.
+    - `POST /login` ──► Standard local login.
+    - `POST /google` ──► Verifies Google ID tokens.
+    - `GET /validate/:token` ──► Validates registration token.
+    - `POST /refresh` ──► Renews session token.
+    - `POST /update` ──► Modifies profile password/credentials.
+2.  **Beds (`/api/v1/beds`):**
+    - `POST /` ──► Creates a bed.
+    - `GET /` ──► Lists beds of the authenticated user.
+    - `GET /:id` ──► Retrieves details of a specific bed.
+    - `PATCH /:id` ──► Partially updates a bed via the patch/diff system.
+    - `DELETE /:id` ──► Logically marks a bed as deleted.
+3.  **Families (`/api/v1/families`):**
+    - `POST /` ──► Creates a taxonomy (Admin only).
+    - `GET /` ──► Public paginated listing.
+    - `GET /:idOrSlug` ──► Polymorphic lookup by ID or Slug.
+    - `PATCH /:id` ──► Partially updates a family (Admin only).
+4.  **Plants (`/api/v1/plants`):**
+    - `POST /` ──► Creates a plant variety (Admin only).
+    - `GET /` ──► Public paginated listing.
+    - `GET /:id` ──► Retrieves a specific variety.
+    - `PATCH /:id` ──► Partially updates traits/phenology (Admin only).
+    - `DELETE /:id` ──► Soft-deletes a variety (Admin only).
+5.  **Health (`/api/v1/health`):**
+    - `GET /` ──► Returns database and system status.

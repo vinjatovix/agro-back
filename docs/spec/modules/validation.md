@@ -1,14 +1,14 @@
 # MODULE: VALIDATION
 
 version: 1.3.0
-source-spec: v1.1.0
+source-spec: v1.3.0
 status: stable
 
 ---
 
 ## 1. PURPOSE
 
-Validates inbound API requests at transport boundary level.
+Validates inbound API requests at the transport boundary level.
 
 ---
 
@@ -20,7 +20,7 @@ Validation is a **schema enforcement layer**, not a business logic layer.
 
 ## 3. RULES
 
-- express-validator is transport-only
+- Zod is the central tool used for all transport boundary validation and schema declarations. **`[TARGET STATE (Pending Iterations 9, 10, 12, 13 & 14)]`** (Currently, `express-validator` is used at the route boundary).
 - MUST NOT contain domain logic
 - MUST NOT enforce business rules
 - MUST be aligned with OpenAPI schemas
@@ -44,10 +44,9 @@ type ApiErrorResponse = {
 
 Validation errors MUST:
 
-- use field path as key
+- use field path as key in dot-notation format
 - be deterministic across environments
-- include a stable string message
-- MAY include raw invalid value inside message string
+- **`[TARGET STATE (Pending Iterations 9, 10, 12, 13 & 14)]`** include a stable, clean, and idiomatic string message provided natively by Zod (e.g., `"Required"`, `"Invalid UUID"`). (Currently, `express-validator` custom errors are returned).
 - MUST NOT require full object presence for PATCH requests
 
 Example:
@@ -56,7 +55,8 @@ Example:
 {
   "message": "Validation error",
   "errors": {
-    "id": "Invalid value at params. Value: invalid-id"
+    "identity.name.primary": "Required",
+    "id": "Invalid UUID"
   }
 }
 ```
@@ -74,7 +74,7 @@ checkExact() MUST:
 
 ---
 
-## 7. PATCH VALIDATION SEMANTICS (ADDED)
+## 7. PATCH VALIDATION SEMANTICS
 
 PATCH endpoints MUST:
 
@@ -86,7 +86,34 @@ PATCH endpoints MUST:
 
 ---
 
-## 8. OPENAPI ALIGNMENT RULE (ADDED)
+## 7.1 POPULATED RELATIONS VALIDATION (ZOD UNIONS) `[TARGET STATE (Pending Iteration 18)]`
+
+To support dynamic JSON:API relation population (e.g., `?include=family` resolving the `familyId` string into a structured object containing family `name` and `slug`) without making output schemas loose or fully partial, output validation schemas MUST use **Zod Unions (`z.union`)** on optionally populated relation fields.
+
+- **`[TARGET STATE (Pending Iteration 18)]`** For example, a `Plant` response schema's `family` field is strictly validated as either a valid UUID string OR a picked subset of the `Family` response schema:
+  `family: z.union([z.string().uuid(), FamilyResponseSchema.pick({ id: true, name: true, slug: true })])`
+- This ensures output schemas remain strictly typed, statically checked by TypeScript, and correctly defined in OpenAPI, without having to make the entire schema loose or optional.
+
+---
+
+## 7.2 ECOLOGICAL & PROPAGATION VALIDATION `[TARGET STATE (Pending Iterations 12 & 30)]`
+
+To support rich catalog data, Zod validation schemas for `Plant` creation/updates enforce strict, conditional, and typed validation:
+
+- **Ecological Traits (Iteration 12):** Validated as a typed nested object containing `edibility` (boolean), `toxicity` (enum), `attractsPollinators` (boolean), and `invasivePotential` (boolean).
+  - **Sowing & Propagation Validation (Iterations 12 & 30):**
+    - **Sowing Block (`phenology.sowing`):** Must be a structured yet **optional** block to support plants that are sterile or only propagated vegetatively (such as Russian Comfrey). When present, it must strictly validate:
+      - `seedsPerHole`: positive integer Range.
+      - `germinationDays`: positive integer Range.
+      - `months`: a non-empty array of valid months (`1` to `12`).
+      - `methods`: an object mapping `direct` (mandatory, with `depthCm` Range) and `nursery` (optional, with `depthCm` Range). Refer strictly to **Module: Plant (plant.md) Section 4.3** for the complete schema and the technical naming transition details from `'starter'` to `'nursery'`.
+    - **Propagation Methods (`knowledge.propagation.methods`):** Structured as a record mapping known propagation types (e.g., `seed`, `cutting`, `division`) to detail sub-objects containing `season` (enum), `bestPractices` (non-empty string array), and optional `estimatedTimeWeeks` Range.
+  - **Resources (`knowledge.resources`):** Validated as an array of typed attachments (`image` | `video` | `article`) with valid URLs and optional metadata (title, source, tags).
+- **Range Schema Invariant Helper:** Any numeric/integer interval range (`RangeSchema`) used across schemas must be validated at the boundary using a refine check to guarantee that `min <= max` holds true.
+
+---
+
+## 8. OPENAPI ALIGNMENT RULE
 
 Validation layer MUST:
 
@@ -103,167 +130,48 @@ Validation system currently includes rules affecting:
 - Plants endpoints
 - Beds endpoints (new full CRUD coverage)
 - Query DSL parsing (filters, sorting, pagination)
+- Health and Auth endpoints `[TARGET STATE (Pending Iteration 10)]`
+- Families endpoints `[TARGET STATE (Pending Iteration 13)]`
 
 All MUST maintain consistent error structure, PATCH behavior semantics, and query parsing rules.
 
 ---
 
-## 10. QUERY VALIDATION (UPDATED)
+## 10. QUERY VALIDATION
 
-Validation layer MUST validate query parameters used for filtering, sorting, and pagination.
+The validation layer MUST validate query parameters used for filtering, sorting, and pagination.
 
----
+All schemas MUST enforce the rules specified in the Query DSL Contract:
 
-### 10.1 FILTER DSL VALIDATION
+### 10.1 Filter DSL Schema Validation
 
-Filters MUST conform to the supported operator model:
+- **Operator Whitelist:** Enforce that only valid operators currently defined in **Query DSL Contract (query-dsl-contract.md)** are allowed. Reject any invalid or unmapped operators at the validation schema boundary.
+- **Null Rejection:** Reject explicit null values in filters (e.g., `{ name: { eq: null } }`).
+- **Type Compatibility:** Ensure query values align with operator expectations (e.g., reject arrays in `eq` operator, reject non-string values in string operators, reject non-numeric values in numeric operators).
+- **Nested Field Validation:** Ensure filters only target allowed nested domain paths.
+- **Detailed Parsing Delegation:** The parsing, CSV splitting, trimming, and type coercion implementation details are completely delegated to the **Query System (query.md)**.
 
-#### Supported operators
+### 10.2 Sorting Schema Validation
 
-- Equality: `eq`
-- String:
-  - `contains`
-  - `startsWith`
-  - `endsWith`
+- **Directions:** Only allow `"asc"` or `"desc"` directions. Reject invalid directions.
+- **Fields:** Verify that sorting fields are valid. Reject unknown sort keys when strict sorting is enabled.
 
-- Array:
-  - `includes`
-  - `hasAny` (CSV supported)
-  - `has` (CSV supported)
+### 10.3 Pagination Schema Validation
 
-- Numeric:
-  - `gt`
-  - `gte`
-  - `lt`
-  - `lte`
+- **Format:** Enforce positive integers.
+- **Defaults:** If parameters are missing, apply page = 1 and limit = 25 as defined by the contract.
 
 ---
 
-#### 10.1.1 Type coercion rules
+## 11. RESPONSIBILITY BOUNDARY
 
-- Numeric operators MUST coerce string numbers to `number`
-- Invalid numeric values MUST trigger validation errors
-- CSV values MUST be transformed into `string[]` by splitting on `,`
-- Whitespace in CSV values MUST be trimmed
-- Empty CSV entries MUST be ignored
+- **Validation Layer:** Responsible for strict schema enforcement, operator whitelisting, and query structure validation.
+- **Persistence Layer:** Responsible for defensive tolerance (never trusts query input blindly; safely ignores unvalidated conditions instead of crashing).
+- **Query Layer:** Responsible for parsing, CSV normalization, and type coercion.
 
 ---
 
-#### 10.1.2 Invalid filter rules
-
-The following MUST be rejected:
-
-- null values in filters
-- arrays in `eq` operator
-- non-string values in string operators
-- invalid numeric values (NaN, non-parsable strings)
-
-Examples:
-
-- `{ name: null }`
-- `{ name: { eq: ["a"] } }` (arrays not allowed in eq) must use has `{ sowingMonths: { has: [1,2,3] } }`
-- `{ name: { eq: 123 } }` (expected string)
-- `{ count: { gt: "abc" } }` (invalid number)
-
----
-
-#### 10.1.3 Operator consistency rules
-
-- A single field MAY include multiple operators if semantically valid
-- Conflicting operator combinations SHOULD be rejected when ambiguous
-  (e.g. invalid type combinations per implementation constraints)
-
----
-
-### 10.2 SORTING VALIDATION
-
-Sorting MUST:
-
-- use valid field names
-- use only allowed directions:
-  - `asc`
-  - `desc`
-
-- reject invalid direction values
-- allow empty sort object
-
----
-
-### 10.3 PAGINATION VALIDATION
-
-Pagination MUST:
-
-- enforce positive integers
-- coerce numeric strings to numbers
-- apply defaults when missing:
-  - page = 1
-  - limit = 20
-
-- enforce maximum limits if defined by API layer
-
----
-
-### 10.4 QUERY PARSER ERROR BEHAVIOR
-
-Query parsing errors MUST:
-
-- throw deterministic validation errors
-- distinguish between:
-  - type errors (expected string/number)
-  - structural errors (invalid filter object)
-  - semantic errors (unsupported operator usage)
-
-Error messages SHOULD remain stable for contract testing.
-
----
-
-### 10.5 RESPONSIBILITY BOUNDARY
-
-- Validation layer → strict enforcement + query DSL parsing
-- Persistence layer → defensive tolerance (never trusts query input blindly)
-
----
-
-## 11. QUERY VALIDATION (NEW)
-
-Validation layer MUST validate query parameters used for filtering, sorting, and pagination.
-
-This includes full support for:
-
-- GenericQueryParser rules
-- QueryParserUtils normalization
-- CSV parsing
-- numeric coercion
-- include/sort parsing
-
----
-
-## 12. QUERY PARSER UTILITIES ALIGNMENT
-
-Validation MUST remain consistent with utility behavior:
-
-- `parseCsv()`:
-  - splits by comma
-  - trims values
-  - removes empty entries
-
-- `toNumber()`:
-  - returns fallback if invalid
-  - supports string conversion
-
-- `parseSort()`:
-  - accepts valid JSON or object form
-  - only allows `asc | desc`
-  - returns undefined if invalid
-
-- `parseInclude()`:
-  - accepts CSV or array
-  - coerces values to string
-  - rejects invalid types (returns undefined)
-
----
-
-## 13. FUTURE EVOLUTION
+## 12. FUTURE EVOLUTION
 
 - schema generation from OpenAPI
 - optional Zod migration layer

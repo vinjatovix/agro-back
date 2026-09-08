@@ -8,6 +8,6 @@ export type EqFilter<T> = {
   gte?: never;
   lt?: never;
   lte?: never;
-  includes?: never;
-  includesSome?: never;
+  has?: never;
+  hasAny?: never;
 };

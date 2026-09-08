@@ -5,7 +5,7 @@ Feature: Update Password
   I want to be able to update my password
 
   Background:
-    Given a POST request to "/api/v1/Auth/register" with body
+    Given a POST request to "/api/v1/auth/register" with body
       """
       {
         "id": "5242b159-af34-459b-b371-ce2b647c56a1",
@@ -27,7 +27,7 @@ Feature: Update Password
         "password": "#aD3fe2.0%"
       }
       """
-    And a POST user request to "/api/v1/Auth/update" with body
+    And a POST user request to "/api/v1/auth/update" with body
       """
       {
         "oldPassword": "#aD3fe2.0%",
@@ -52,7 +52,7 @@ Feature: Update Password
         "password": "Sup3rSecretPassword!"
       }
       """
-    And a POST user request to "/api/v1/Auth/update" with body
+    And a POST user request to "/api/v1/auth/update" with body
       """
       {
         "oldPassword": "Wr0ngPassw0rd!",
@@ -77,7 +77,7 @@ Feature: Update Password
         "password": "Sup3rSecretPassword!"
       }
       """
-    And a POST user request to "/api/v1/Auth/update" with body
+    And a POST user request to "/api/v1/auth/update" with body
       """
       {
         "oldPassword": "#aD3fe2.0%",
@@ -105,7 +105,7 @@ Feature: Update Password
         "password": "#aD3fe2.0%"
       }
       """
-    And a POST user request to "/api/v1/Auth/update" with body
+    And a POST user request to "/api/v1/auth/update" with body
       """
       {
         "oldPassword": "#aD3fe2.0%",

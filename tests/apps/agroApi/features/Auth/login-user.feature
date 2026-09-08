@@ -5,7 +5,7 @@ Feature: Login
   I want to be able to login
 
   Background:
-    Given a POST request to "/api/v1/Auth/register" with body
+    Given a POST request to "/api/v1/auth/register" with body
       """
       {
         "id": "f4529c3f-c474-4386-ac48-ce769f1c86ea",
@@ -20,7 +20,7 @@ Feature: Login
     And response matches OpenAPI contract
 
   Scenario: Login with valid credentials
-    Given a POST request to "/api/v1/Auth/login" with body
+    Given a POST request to "/api/v1/auth/login" with body
       """
       {
         "email": "login@aa.com",
@@ -32,7 +32,7 @@ Feature: Login
     And response matches OpenAPI contract
 
   Scenario: Fail with invalid credentials
-    Given a POST request to "/api/v1/Auth/login" with body
+    Given a POST request to "/api/v1/auth/login" with body
       """
       {
         "email": "login@aa.com",
@@ -49,7 +49,7 @@ Feature: Login
     And response matches OpenAPI contract
 
   Scenario: Fail with non-existent user
-    Given a POST request to "/api/v1/Auth/login" with body
+    Given a POST request to "/api/v1/auth/login" with body
       """
       {
         "email": "nonexistent@aa.com",

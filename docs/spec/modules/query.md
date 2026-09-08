@@ -1,7 +1,7 @@
 # MODULE: QUERY
 
-version:1.1.0
-source-spec: v1.1.0
+version: 1.3.0
+source-spec: v1.3.0
 status: active
 
 ---
@@ -9,6 +9,11 @@ status: active
 ## 1. PURPOSE
 
 Define a unified system for parsing, validating and normalizing API query parameters across the application.
+
+### Location & Relocation target `[TARGET STATE (Pending Iteration 4)]`
+
+- **Current State:** The `GenericQueryParser` and associated parsing utilities temporarily reside inside `src/shared/domain/query/` (under active relocation `[IN PROGRESS (Iteration 4)]`).
+- **Target State:** As part of Clean Architecture boundaries (Iteration 1), these technical components belong exclusively to the API Delivery mechanism and will be relocated to `src/apps/agroApi/shared/query/`, leaving the domain core fully pure and agnostic of parsing details.
 
 ---
 
@@ -30,25 +35,15 @@ The Query Module is responsible for:
 
 Central parser for transforming raw query objects into a structured query model.
 
-Supports:
+#### Semantic Contract Exception
 
-#### Filters
+All semantic rules, matching behaviors, and operator definitions are defined exclusively in **Module: Query DSL Contract (query-dsl-contract.md)**.
 
-- `eq` → strict equality
-- `has` → CSV → array normalization
-- `hasAny` → CSV → array intersection input
-- `contains` → substring match
-- `startsWith` → prefix match
-- `endsWith` → suffix match
+The `GenericQueryParser` is strictly a technical parser responsible for:
 
-#### Numeric operators
-
-- `gt`
-- `gte`
-- `lt`
-- `lte`
-
-All numeric values MUST be coerced from string → number.
+- Mapping raw incoming HTTP query params into the internal representation.
+- Splitting comma-separated values (CSVs) into arrays for array-based operators (`has`, `hasAny`).
+- Coercing string values to numbers for technical numeric comparisons (`gt`, `gte`, `lt`, `lte`).
 
 ---
 
@@ -90,13 +85,14 @@ Rules:
 
 ---
 
-#### parseInclude(value)
+#### parseInclude(value) `[TARGET STATE (Pending Iteration 19)]`
 
 - supports:
   - CSV string
   - array input
 
 - normalizes all values to string[]
+- supports JSON:API fields and sparse fieldset extraction
 - invalid input → undefined
 
 ---

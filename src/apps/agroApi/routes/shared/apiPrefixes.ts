@@ -1,6 +1,6 @@
 export const API_PREFIXES = {
-  auth: '/api/v1/Auth',
-  health: '/api/v1/Health',
+  auth: '/api/v1/auth',
+  health: '/api/v1/health',
   testError: '/api/v1/error',
   families: '/api/v1/families',
   plants: '/api/v1/plants',

@@ -1,7 +1,7 @@
 # MODULE: PERSISTENCE + PATCH SYSTEM CORE
 
 version: 1.3.0
-source-spec: v1.1.0
+source-spec: v1.3.0
 status: stable
 
 ---
@@ -30,6 +30,7 @@ This module includes:
 - MongoRepository specialized base abstraction
 - PlantRepository implementation
 - BedRepository implementation
+- PlantInstanceRepository implementation
 - Patch/diff system
 - DeepPartial update model
 - DTO mapping layer
@@ -73,11 +74,19 @@ Used for partial updates.
 
 #### Update flow
 
-1. current persisted state is loaded
-2. patch is applied to create "next state"
-3. resulting state is validated against domain rules
-4. ONLY if validation passes → persistence update is executed
-5. persistence layer applies deterministic diff between states
+1. Current persisted state is loaded.
+2. Explicit business method on the Aggregate Root is called (or patch is applied) to create the "next state" in memory.
+3. Domain aggregate updates its own internal audit `metadata` (e.g., `updatedAt` and `updatedBy`) _in memory_ as part of the state transition.
+4. Resulting state is validated against domain rules.
+5. ONLY if validation passes -> persistence `updateWithDiff` is executed with the validated next state.
+6. Persistence layer applies the deterministic diff between states.
+7. **`[TARGET STATE (Pending Iteration 8)]`** The application use case immediately returns the in-memory aggregate, completely eliminating any redundant `findById` post-update reads.
+
+---
+
+### CRITICAL RULE: METADATA OWNERSHIP
+
+The persistence layer (`updateWithDiff`, repositories, or DB-level triggers) MUST NOT dynamically alter or inject metadata values (like `updatedAt` or `updatedBy`) under the hood. All audit metadata is owned strictly by the Domain/Application layers and must be synchronized in memory before the persistence step.
 
 ---
 
@@ -99,7 +108,7 @@ Persistence MUST ONLY receive a **validated final state transition**.
 
 ## 5. REPOSITORY CONTRACT
 
-### 5.1 MongoCrudRepository (NEW)
+### 5.1 MongoCrudRepository
 
 Shared abstraction for CRUD repositories across aggregates.
 
@@ -162,15 +171,30 @@ Responsibilities:
 
 ---
 
+### 5.4.1 PlantInstanceRepository `[TARGET STATE (Pending Iteration 38)]`
+
+Specialized repository for PlantInstance aggregate.
+
+Responsibilities:
+
+- persistence of PlantInstancePrimitives
+- CRUD operations via MongoCrudRepository (standalone `plant_instances` collection)
+- retrieving active plant instances associated with a specific `bedId`
+- uses shared diff/patch pipeline
+
+---
+
 ### 5.5 REPOSITORY RETRIEVAL SEMANTICS
 
-#### 5.5.1 Retrieval Contract Principle
+#### 5.5.1 Retrieval Contract Principle `[TARGET STATE (Pending Iteration 5)]`
 
 Repositories MAY return `null` or `undefined` when an entity does not exist in persistence.
 
 Repositories MUST NOT interpret absence as a domain error.
 
 Repositories MUST NOT throw domain-level exceptions (e.g. notFound, forbidden).
+
+_Migration Note: In the current codebase, `MongoCrudRepository` (along with concrete implementations like `MongoFamilyRepository`) throws `DomainNotFoundException` directly when an entity is not found by ID or slug in `findById`. Refactoring repositories to return null and shifting exception-throwing logic entirely to application use cases is a target state slated for Iterations 5 & 6._
 
 ---
 
@@ -299,9 +323,9 @@ This rule ensures:
 
 ---
 
-### 5.7 MIGRATIONS
+### 5.7 MIGRATIONS `[TARGET STATE (Pending Iteration 17)]`
 
-#### 5.7.1 Purpose
+#### 5.7.1 Purpose `[TARGET STATE (Pending Iteration 17)]`
 
 Migrations are infrastructure lifecycle tools responsible for evolving the MongoDB schema over time.
 
@@ -399,13 +423,13 @@ This layer only TRANSLATES the Query DSL into database queries.
 
 All filter/sort/pagination semantics are defined in:
 
-> **Query DSL Contract v1.0.0**
+> **Query DSL Contract v1.3.0**
 
 Rules:
 
-- filter operators (eq, contains, gt, lte, etc.) are defined in Query DSL Contract v1.0.0
-- sort semantics are defined in Query DSL Contract v1.0.0
-- pagination semantics are defined in Query DSL Contract v1.0.0
+- filter operators are defined in Query DSL Contract v1.3.0
+- sort semantics are defined in Query DSL Contract v1.3.0
+- pagination semantics are defined in Query DSL Contract v1.3.0
 - this module ONLY implements translation to MongoDB query operators
 
 Supported translation targets:
@@ -429,6 +453,13 @@ A `MongoQueryTranslator` is responsible for:
 
 ---
 
+##### 5.8.4.1 Query Regex Sanitization `[TARGET STATE (Pending Iteration 11)]`
+
+To secure the database against Regular Expression Injection vulnerabilities (ReDoS) and malicious filter bypasses on public endpoints, user-provided search parameters (like `contains`, `startsWith`, `endsWith`) MUST be sanitized.
+The `MongoQueryTranslator` (and other query mappers like `FamilyQueryMapper`) MUST pass all raw string input used in regex operations through the `escapeRegex` utility prior to query compilation and execution.
+
+---
+
 #### 5.8.5 Defensive Behavior (CRITICAL)
 
 Persistence layer MUST tolerate malformed or partial filter conditions.
@@ -447,7 +478,7 @@ This ensures robustness against imperfect upstream input.
 
 | Concern           | Layer                       |
 | ----------------- | --------------------------- |
-| Query semantics   | Query DSL Contract v1.0.0   |
+| Query semantics   | Query DSL Contract v1.3.0   |
 | Query parsing     | API / Validation layer      |
 | Query translation | Persistence layer           |
 | Query execution   | Persistence layer (MongoDB) |
@@ -471,6 +502,51 @@ Persistence MUST NOT enforce validation rules.
 
 ---
 
+#### 5.8.8 CQRS Read-Only Bypass `[TARGET STATE (Pending Iteration 18)]`
+
+To optimize memory and CPU usage on search, list, and GET endpoints, the read pathway **is officially permitted to bypass full Domain aggregate hydration**.
+
+- List/query repositories are permitted to return plain DTOs or primitives mapped directly from MongoDB documents.
+- They are not required to instantiate domain Entities, Value Objects, or perform domain-level constructor validations during pure read operations.
+- **Output DTO Validation**: While database-direct modifications are not expected, output validation schemas (Zod) in the API layer MUST be used to validate the response DTO contract, ensuring a robust safety net against data inconsistency with minimal performance friction.
+- Dynamic fields and projected counts (e.g., counting plant instances inside a Bed) are resolved directly via MongoDB pipelines or mappers without domain aggregate overhead.
+- This bypass is strictly prohibited for write operations (POST, PATCH, DELETE).
+
+_(Note: For the architectural boundary enforcement rules governing this bypass, see **Module: Architecture Boundaries (architecture-boundaries.md) Sec. 7.1**)_
+
+---
+
+### 5.9 ACID TRANSACTIONS & CACHING INFRASTRUCTURE `[TARGET STATE (Pending Iterations 25 & 42)]`
+
+#### 5.9.1 MongoDB ACID Multi-Document Transactions `[TARGET STATE (Pending Iterations 41 & 42)]`
+
+To maintain strict data integrity across detached collections (e.g. creating a standalone `PlantInstance` while simultaneously incrementing the `version` on its associated `Bed` for Optimistic Concurrency Control):
+
+- Concrete usecases MUST coordinate writes using **MongoDB ACID Transactions (`ClientSession`)**.
+- The `MongoRepository` layer must support accepting and forwarding an optional `session` object to MongoDB driver write methods.
+- Transactions are executed over the MongoDB Single-Node Replica Set configured for the local development docker-compose environment or MongoDB Atlas in production.
+- If any operation fails or a version conflict occurs, the session is aborted, guaranteeing atomic rolls.
+
+#### 5.9.1.1 Data Locality & Sharding Constraints (Future-Proofing) `[TARGET STATE]`
+
+To prevent severe latency penalties and deadlocks caused by "Distributed Transactions" when the database scales horizontally across multiple nodes (Sharding):
+
+- All cross-collection transactional workflows MUST be strictly isolated to a single Tenant (the User).
+- **Shard Key Architecture:** All private, mutable collections that participate in ACID transactions together (`beds`, `plant_instances`, `events`, `reminders`, `seed_batches`) MUST include `userId` as the primary prefix of their Shard Key strategy.
+- **Rationale:** By anchoring data to the `userId`, MongoDB guarantees that the entirety of a user's digital garden resides on the exact same physical shard (Data Locality). This ensures that any ACID transaction executed by a user is mathematically local to a single node, preserving ultra-low latency and preventing cluster-wide distributed locks.
+
+#### 5.9.2 Redis Cache Infrastructure `[TARGET STATE (Pending Iteration 25)]`
+
+To optimize external service integrations (such as Open-Meteo Weather or Geocoding APIs) and protect against API rate limits, database lookups, and high latency:
+
+- The system defines a technology-agnostic `CacheRepository` port in the shared infrastructure/application layer.
+- An adapter `RedisCacheRepository` implements this port using the official `redis` package.
+- **Weather Cache Policy `[TARGET STATE]` (Multi-Tenant Optimization):** Weather forecasts MUST NEVER be cached using user-specific (`userId`) or bed-specific (`bedId`) keys, as this would trigger redundant API calls for thousands of neighboring users. Instead, weather records are cached using a **shared, normalized geospatial key** (e.g., a `GeoHash` of precision 4 or 5 covering a ~20km radius, or a concatenated `country:postalCode` string) with a **2-hour Time-To-Live (TTL)**. The first user in a region requesting the weather hydrates the cache, serving $O(1)$ responses to all other users in that region for the next two hours, drastically minimizing external API consumption.
+- **User Location Cache Policy:** Resolved user-profile location configurations (`postalCode`, `country`, `timezone`, and `hemisphere`) are cached in Redis with a configurable, short Time-To-Live (TTL) to allow $O(1)$ in-memory resolution on subsequent crop placement or rendering requests, preventing database query bottlenecks on concurrent operations.
+- **Resilient Fallback & Local Consistency Policy:** The caching service catches connection/unreachable errors on Redis and automatically falls back to an in-memory local JavaScript cache, ensuring the application remains functional even during Redis downtime. To minimize the risk of geographical data inconsistency across distributed instances during Redis downtime (e.g., if a user updates their hemisphere/location), the local in-memory fallback cache enforces a **very short TTL (e.g., 30 seconds)**, combined with **immediate programmatic cache invalidation** on the profile write/update path inside the same process instance.
+
+---
+
 ## 6. SERIALIZATION CONTRACT
 
 Domain objects MUST NOT be responsible for persistence serialization.
@@ -482,6 +558,8 @@ All transformations between:
 - DTO → Domain
 
 MUST be handled by dedicated mapper modules.
+
+- **`[TARGET STATE (Pending Iteration 1)]` Separation of Persistence Primitives:** Under Clean Architecture, the domain layer must never depend on infrastructure or database models. This means primitive type structures currently residing inside `src/Contexts/shared/infrastructure/persistence/mongo/types/` (such as `MetadataPrimitives.ts`) are relocated to `src/Contexts/shared/domain/` (Iteration 1) to secure complete boundary purity.
 
 ---
 

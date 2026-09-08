@@ -4,7 +4,7 @@ Feature: Register a new user
   I want to register a new user
 
   Scenario: Register a valid user
-    Given a POST request to "/api/v1/Auth/register" with body
+    Given a POST request to "/api/v1/auth/register" with body
       """
       {
         "id": "f7b8fce8-0a57-431a-b81e-4f1cc196412a",
@@ -19,7 +19,7 @@ Feature: Register a new user
     And response matches OpenAPI contract
 
   Scenario: Existing id
-    Given a POST request to "/api/v1/Auth/register" with body
+    Given a POST request to "/api/v1/auth/register" with body
       """
       {
         "id": "f7b8fce8-0a57-431a-b81e-4f1cc196412b",
@@ -30,7 +30,7 @@ Feature: Register a new user
       }
       """
     Then the response status code should be 201
-    Given a POST request to "/api/v1/Auth/register" with body
+    Given a POST request to "/api/v1/auth/register" with body
       """
       {
         "id": "f7b8fce8-0a57-431a-b81e-4f1cc196412b",
@@ -51,7 +51,7 @@ Feature: Register a new user
 
 
   Scenario: Existing email
-    Given a POST request to "/api/v1/Auth/register" with body
+    Given a POST request to "/api/v1/auth/register" with body
       """
       {
         "id": "082e014a-e718-4df5-a6a2-6f463e4b9ab3",
@@ -63,7 +63,7 @@ Feature: Register a new user
       """
     Then the response status code should be 201
 
-    Given a POST request to "/api/v1/Auth/register" with body
+    Given a POST request to "/api/v1/auth/register" with body
       """
       {
         "id": "9b2fddbd-3ef4-406d-a2e5-de781af1b2ae",
@@ -83,7 +83,7 @@ Feature: Register a new user
     And response matches OpenAPI contract
 
   Scenario: Password and repeat password are different
-    Given a POST request to "/api/v1/Auth/register" with body
+    Given a POST request to "/api/v1/auth/register" with body
       """
       {
         "id": "2e4320b8-105c-4dfd-b6d6-e4255664f848",
@@ -106,7 +106,7 @@ Feature: Register a new user
     And response matches OpenAPI contract
 
   Scenario: Invalid arguments
-    Given a POST request to "/api/v1/Auth/register" with body
+    Given a POST request to "/api/v1/auth/register" with body
       """
       {
         "email": "aaJaa",
