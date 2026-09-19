@@ -1,16 +1,18 @@
-import dotenv from 'dotenv';
-import { AgroBackApp } from './apps/backend/AgroBackApp.js';
-import { buildLogger } from './Contexts/shared/plugins/loggerPlugin.js';
-
-dotenv.config();
+import { AgroBackApp } from './apps/agroApi/AgroBackApp.js';
+import { envs } from './apps/agroApi/config/plugins/envs.plugin.js';
+import { buildLogger } from './Contexts/shared/plugins/logger.plugin.js';
 
 const logger = buildLogger('agroAPI');
+const config = {
+  host: envs.HOST,
+  port: String(envs.PORT)
+};
 
 async function startServer() {
   try {
-    await new AgroBackApp().start(logger);
+    await new AgroBackApp(config).start(logger);
   } catch (err) {
-    logger.error('Error starting the application:', err);
+    console.error('Error starting the application:', err);
     process.exit(1);
   }
 }
@@ -18,7 +20,7 @@ async function startServer() {
 void startServer();
 
 process.on('uncaughtException', (err: Error) => {
-  logger.error(`Uncaught Exception: ${err.message}, ${err.stack}`);
+  console.error(`Uncaught Exception: ${err.message}, ${err.stack}`);
   process.exit(1);
 });
 
@@ -26,11 +28,11 @@ process.on(
   'unhandledRejection',
   (reason: unknown, promise: Promise<unknown>) => {
     if (reason instanceof Error) {
-      logger.error(
+      console.error(
         `Unhandled Rejection: ${reason.name} - ${reason.message}, ${reason.stack} ${JSON.stringify(promise)}`
       );
     } else {
-      logger.error(`Unhandled Rejection:  ${JSON.stringify(reason)}`);
+      console.error(`Unhandled Rejection:  ${JSON.stringify(reason)}`);
     }
     process.exit(1);
   }

@@ -1,0 +1,14 @@
+[
+  {
+    "_id": "attr_pollinator",
+    "key": "pollinator_attractor",
+    "label": "Atrae polinizadores",
+    "category": "benefit"
+  },
+  {
+    "_id": "attr_trap_crop",
+    "key": "trap_crop",
+    "label": "Planta trampa",
+    "category": "strategy"
+  }
+]

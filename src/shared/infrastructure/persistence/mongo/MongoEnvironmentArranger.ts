@@ -2,8 +2,10 @@ import { MongoClient } from 'mongodb';
 import { EnvironmentArranger } from '../../arranger/EnvironmentArranger.js';
 
 export class MongoEnvironmentArranger extends EnvironmentArranger {
-  constructor(private readonly DBClient: Promise<MongoClient>) {
+  private readonly DBClient: Promise<MongoClient>;
+  constructor({ DBClient }: { DBClient: Promise<MongoClient> }) {
     super();
+    this.DBClient = DBClient;
   }
 
   public async arrange(): Promise<void> {

@@ -1,5 +1,5 @@
-import { envs } from '../../../../apps/backend/config/plugins/envs.plugin.js';
-import type { MongoConfig } from './MongoConfig.js';
+import { envs } from '../../../../apps/agroApi/config/plugins/envs.plugin.js';
+import type { MongoConfig } from './interfaces/MongoConfig.js';
 
 const mongoConfig = {
   connection: envs.MONGO_CONNECTION,

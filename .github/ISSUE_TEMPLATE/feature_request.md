@@ -1,20 +1,80 @@
 ---
 name: Feature request
-about: Suggest an idea for this project
-title: ''
-labels: ''
+about: Propose a new feature or improvement
+title: '[FEATURE] '
+labels: feature
 assignees: ''
+---
+
+## Problem
+
+Describe the problem this feature solves.
+
+Example:
+
+> It is not possible to update a plant partially without sending the full payload.
 
 ---
 
-**Is your feature request related to a problem? Please describe.**
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+## Proposed solution
 
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
+Describe the expected behavior.
 
-**Describe alternatives you've considered**
-A clear and concise description of any alternative solutions or features you've considered.
+Be explicit:
 
-**Additional context**
-Add any other context or screenshots about the feature request here.
+- Endpoint (if applicable)
+- Input
+- Output
+- Business rules
+
+---
+
+## Example (API)
+
+```http
+PATCH /plants/:id
+```
+
+Request:
+
+```json
+{
+  "name": "New name"
+}
+```
+
+Response:
+
+```json
+{
+  "id": "...",
+  "name": "New name"
+}
+```
+
+---
+
+## Alternatives considered
+
+Other approaches that were evaluated.
+
+---
+
+## Impact
+
+- [ ] Domain
+- [ ] Application (use cases)
+- [ ] API (controllers/routes)
+- [ ] Infrastructure
+
+Explain briefly.
+
+---
+
+## Additional context
+
+Anything else relevant:
+
+- OpenAPI changes
+- backward compatibility
+- breaking changes
