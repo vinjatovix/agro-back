@@ -6,7 +6,7 @@ import { HttpController } from '../../shared/HttpController.js';
 import { familyDomainMapper } from '../../../../Contexts/Agro/Families/mappers/familyDomainMapper.js';
 
 type GetFamilyBySlugParams = {
-  slug: string;
+  idOrSlug: string;
 };
 
 export type GetFamilyBySlugControllerDependencies = {
@@ -32,11 +32,11 @@ export class GetFamilyBySlugController extends HttpController {
     next: NextFunction
   ) => {
     try {
-      const { slug } = req.params;
+      const { idOrSlug } = req.params;
 
-      const family = Uuid.isValid(slug)
-        ? await this.getFamilyById.execute(slug)
-        : await this.getFamilyBySlug.execute(slug);
+      const family = Uuid.isValid(idOrSlug)
+        ? await this.getFamilyById.execute(idOrSlug)
+        : await this.getFamilyBySlug.execute(idOrSlug);
 
       const response = familyDomainMapper.toPrimitives(family);
 

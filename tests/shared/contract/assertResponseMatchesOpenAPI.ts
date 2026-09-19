@@ -2,6 +2,7 @@ import SwaggerParser from '@apidevtools/swagger-parser';
 import path from 'node:path';
 import type { OpenAPIV3 } from 'openapi-types';
 import httpStatus from 'http-status';
+import { escapeRegex } from '../../../src/shared/utils/escapeRegex.js';
 
 type Input = {
   path: string;
@@ -10,10 +11,19 @@ type Input = {
   body: unknown;
 };
 
+type TypePredicate = (value: unknown) => boolean;
+
 const OPENAPI_PATH = path.resolve(
   process.cwd(),
   'src/apps/agroApi/openapi/openapi.yaml'
 );
+
+const typeValidators: Record<string, TypePredicate> = {
+  string: (value) => typeof value === 'string',
+  number: (value) => typeof value === 'number',
+  integer: (value) => Number.isInteger(value),
+  boolean: (value) => typeof value === 'boolean'
+};
 
 let cachedSpec: OpenAPIV3.Document | null = null;
 
@@ -30,13 +40,35 @@ async function loadSpec(): Promise<OpenAPIV3.Document> {
   return cachedSpec;
 }
 
-function matchPath(spec: OpenAPIV3.Document, inputPath: string): string | null {
-  const normalized = normalizePath(inputPath);
+function convertOpenApiPathToRegExp(openApiPath: string): RegExp {
+  const parameterPattern = /{[^}]+}/g;
+  const parameterPlaceholder = '__PARAMETER_PLACEHOLDER__';
+  const pathWithPlaceholders = openApiPath.replaceAll(
+    parameterPattern,
+    parameterPlaceholder
+  );
+  const escapedPath = escapeRegex(pathWithPlaceholders);
+  const regexPattern = escapedPath.replaceAll(parameterPlaceholder, '[^/]+');
+
+  return new RegExp('^' + regexPattern + '$');
+}
+
+function matchPath(
+  spec: OpenAPIV3.Document,
+  inputPath: string,
+  method: string
+): string | null {
+  const normalizedPath = normalizePath(inputPath);
+  const lowercaseMethod = method.toLowerCase();
 
   return (
-    Object.keys(spec.paths).find((p) => {
-      const regex = new RegExp('^' + p.replaceAll(/{[^}]+}/g, '[^/]+') + '$');
-      return regex.test(normalized);
+    Object.keys(spec.paths).find((openApiPath) => {
+      const pathItem = spec.paths[openApiPath];
+      const hasMethod = pathItem && lowercaseMethod in pathItem;
+      if (!hasMethod) return false;
+
+      const pathRegExp = convertOpenApiPathToRegExp(openApiPath);
+      return pathRegExp.test(normalizedPath);
     }) ?? null
   );
 }
@@ -47,209 +79,246 @@ function getResponseSchema(
   method: string,
   status: number
 ): OpenAPIV3.SchemaObject | null {
-  const normalizedPath = new URL(path, 'http://localhost').pathname;
-
-  const matchedPath = matchPath(spec, normalizedPath);
+  const pathWithoutQueryParams = new URL(path, 'http://localhost').pathname;
+  const matchedPath = matchPath(spec, pathWithoutQueryParams, method);
 
   if (!matchedPath) {
-    throw new Error(`Path not found in OpenAPI: ${normalizedPath}`);
+    throw new Error(`Path not found in OpenAPI: ${pathWithoutQueryParams}`);
   }
-
-  const pathItem = spec.paths[matchedPath];
 
   const operation =
-    pathItem?.[method.toLowerCase() as keyof OpenAPIV3.PathItemObject];
-
-  if (!operation || typeof operation === 'string') {
-    throw new Error(`Operation not found: ${method} ${normalizedPath}`);
+    spec.paths[matchedPath]?.[
+      method.toLowerCase() as keyof OpenAPIV3.PathItemObject
+    ];
+  if (
+    !operation ||
+    typeof operation !== 'object' ||
+    !('responses' in operation)
+  ) {
+    throw new Error(`Operation not found: ${method} ${pathWithoutQueryParams}`);
   }
 
-  const responses = (operation as OpenAPIV3.OperationObject).responses;
-
-  const response = responses?.[String(status)];
-
-  if (!response || typeof response === 'string') {
+  const response = operation.responses?.[String(status)];
+  if (!response || typeof response === 'string' || !('content' in response)) {
     throw new Error(
-      `Response not found: ${method} ${normalizedPath} ${status}`
+      `Response not found: ${method} ${pathWithoutQueryParams} ${status}`
     );
   }
 
-  const content = (response as OpenAPIV3.ResponseObject).content;
-
-  const schema = content?.['application/json']?.schema;
-
+  const schema = response.content?.['application/json']?.schema;
   return (schema as OpenAPIV3.SchemaObject) ?? null;
 }
-
-/**
- * =========================
- * TYPE GUARDS
- * =========================
- */
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function isPrimitiveValid(
+function validatePrimitive(
   schema: OpenAPIV3.SchemaObject,
-  value: unknown
-): boolean {
+  value: unknown,
+  path: string
+): string | null {
   if (value === null || value === undefined) {
-    return false;
+    return `[${path}] Expected ${schema.type ?? 'value'}, received null or undefined`;
   }
 
   if (schema.enum && !schema.enum.includes(value)) {
-    return false;
+    return `[${path}] Expected one of [${schema.enum.join(', ')}], received ${JSON.stringify(value)}`;
   }
 
-  switch (schema.type) {
-    case 'string':
-      return typeof value === 'string';
-
-    case 'number':
-      return typeof value === 'number';
-
-    case 'integer':
-      return Number.isInteger(value);
-
-    case 'boolean':
-      return typeof value === 'boolean';
-
-    default:
-      return true;
+  const expectedType = schema.type;
+  if (!expectedType) {
+    return null;
   }
+
+  const validator = typeValidators[expectedType];
+  if (validator && !validator(value)) {
+    return `[${path}] Expected ${expectedType}, received ${typeof value}`;
+  }
+
+  return null;
 }
-/**
- * =========================
- * VALIDATION CORE
- * =========================
- */
 
-function validateShape(body: unknown, schema: OpenAPIV3.SchemaObject): boolean {
+function validateShape(
+  body: unknown,
+  schema: OpenAPIV3.SchemaObject,
+  path = 'body'
+): string[] {
   if (body === null) {
-    return Boolean(schema.nullable);
+    if (!schema.nullable) {
+      return [`[${path}] Field is not nullable but received null`];
+    }
+    return [];
   }
 
   if (body === undefined) {
-    return false;
+    return [`[${path}] Field is required but received undefined`];
   }
 
-  return validateBySchemaType(body, schema);
+  return validateBySchemaType(body, schema, path);
 }
 
 function validateBySchemaType(
   body: unknown,
-  schema: OpenAPIV3.SchemaObject
-): boolean {
+  schema: OpenAPIV3.SchemaObject,
+  path: string
+): string[] {
   switch (schema.type) {
     case 'array':
-      return validateArray(body, schema);
+      return validateArray(body, schema, path);
 
     case 'object':
-      return validateObject(body, schema);
+      return validateObject(body, schema, path);
 
-    default:
-      return isPrimitiveValid(schema, body);
+    default: {
+      const primitiveError = validatePrimitive(schema, body, path);
+      return primitiveError ? [primitiveError] : [];
+    }
   }
 }
 
-function validateArray(body: unknown, schema: OpenAPIV3.SchemaObject): boolean {
+function validateArray(
+  body: unknown,
+  schema: OpenAPIV3.SchemaObject,
+  path: string
+): string[] {
   if (!Array.isArray(body)) {
-    return false;
+    return [`[${path}] Expected array, received ${typeof body}`];
   }
 
   if (schema.type !== 'array') {
-    return true;
+    return [];
   }
 
   const items = schema.items as OpenAPIV3.SchemaObject | undefined;
 
   if (!items) {
-    return true;
+    return [];
   }
 
-  return body.every((item) => validateShape(item, items));
+  return body.flatMap((item, index) =>
+    validateShape(item, items, `${path}[${index}]`)
+  );
+}
+
+function validateAdditionalProperties(
+  obj: Record<string, unknown>,
+  allowedKeys: string[],
+  additionalPropertiesSchema: OpenAPIV3.SchemaObject['additionalProperties'],
+  path: string
+): string[] {
+  return Object.keys(obj).flatMap((key) => {
+    if (allowedKeys.includes(key)) {
+      return [];
+    }
+
+    if (additionalPropertiesSchema === false) {
+      return [`[${path}] Key '${key}' is not allowed by OpenAPI schema`];
+    }
+
+    if (
+      typeof additionalPropertiesSchema === 'object' &&
+      additionalPropertiesSchema !== null
+    ) {
+      return validateShape(
+        obj[key],
+        additionalPropertiesSchema as OpenAPIV3.SchemaObject,
+        `${path}.${key}`
+      );
+    }
+
+    return [];
+  });
+}
+
+function validateDeclaredProperties(
+  obj: Record<string, unknown>,
+  properties: Record<
+    string,
+    OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject
+  >,
+  requiredFields: string[] | undefined,
+  path: string
+): string[] {
+  return Object.entries(properties).flatMap(([key, prop]) => {
+    const value = obj[key];
+    const propertySchema = prop as OpenAPIV3.SchemaObject;
+    const isRequired = requiredFields?.includes(key) ?? false;
+
+    return validateObjectField(
+      value,
+      propertySchema,
+      isRequired,
+      `${path}.${key}`
+    );
+  });
 }
 
 function validateObject(
   body: unknown,
-  schema: OpenAPIV3.SchemaObject
-): boolean {
+  schema: OpenAPIV3.SchemaObject,
+  path: string
+): string[] {
   if (!isObject(body)) {
-    return false;
+    return [`[${path}] Expected object, received ${typeof body}`];
   }
 
-  const props = schema.properties ?? {};
-  const obj = body;
+  const properties = schema.properties ?? {};
+  const requiredErrors = validateRequiredFields(body, schema.required, path);
 
-  if (!validateRequiredFields(obj, schema.required)) {
-    return false;
-  }
+  const additionalErrors = validateAdditionalProperties(
+    body,
+    Object.keys(properties),
+    schema.additionalProperties,
+    path
+  );
 
-  // additionalProperties: false
-  if (schema.additionalProperties === false) {
-    const allowedKeys = Object.keys(props);
+  const propertyErrors = validateDeclaredProperties(
+    body,
+    properties,
+    schema.required,
+    path
+  );
 
-    for (const key of Object.keys(obj)) {
-      if (!allowedKeys.includes(key)) {
-        return false;
-      }
-    }
-  }
-
-  for (const [key, prop] of Object.entries(props)) {
-    const value = obj[key];
-    const ps = prop as OpenAPIV3.SchemaObject;
-
-    const isRequired = schema.required?.includes(key) ?? false;
-
-    if (!validateObjectField(value, ps, isRequired)) {
-      return false;
-    }
-  }
-
-  return true;
+  return [...requiredErrors, ...additionalErrors, ...propertyErrors];
 }
 
 function validateRequiredFields(
   obj: Record<string, unknown>,
-  required?: string[]
-): boolean {
+  required: string[] | undefined,
+  path: string
+): string[] {
   if (!required) {
-    return true;
+    return [];
   }
 
-  for (const key of required) {
-    if (obj[key] === undefined) {
-      return false;
-    }
-  }
-
-  return true;
+  return required
+    .filter((key) => obj[key] === undefined)
+    .map((key) => `[${path}.${key}] Missing required field`);
 }
 
 function validateObjectField(
   value: unknown,
   schema: OpenAPIV3.SchemaObject,
-  isRequired: boolean
-): boolean {
+  isRequired: boolean,
+  path: string
+): string[] {
   if (value === undefined) {
-    return !isRequired;
+    if (isRequired) {
+      return [`[${path}] Field is required but received undefined`];
+    }
+    return [];
   }
 
   if (value === null) {
-    return Boolean(schema.nullable);
+    if (!schema.nullable) {
+      return [`[${path}] Field is not nullable but received null`];
+    }
+    return [];
   }
 
-  return validateShape(value, schema);
+  return validateShape(value, schema, path);
 }
-
-/**
- * =========================
- * PUBLIC API
- * =========================
- */
 
 export async function assertResponseMatchesOpenAPI({
   path,
@@ -257,9 +326,6 @@ export async function assertResponseMatchesOpenAPI({
   status,
   body
 }: Input): Promise<void> {
-  const spec = await loadSpec();
-  const schema = getResponseSchema(spec, path, method, status);
-
   if (status === httpStatus.NO_CONTENT) {
     const isEmpty =
       body === undefined ||
@@ -275,15 +341,18 @@ export async function assertResponseMatchesOpenAPI({
     return;
   }
 
+  const spec = await loadSpec();
+  const schema = getResponseSchema(spec, path, method, status);
+
   if (!schema) {
     throw new Error(`No schema found for ${method} ${path} ${status}`);
   }
 
-  const valid = validateShape(body, schema);
+  const errors = validateShape(body, schema, 'body');
 
-  if (!valid) {
+  if (errors.length > 0) {
     throw new Error(
-      `OpenAPI contract violation for ${method} ${path} ${status}`
+      `OpenAPI contract violation for ${method} ${path} ${status}.\nValidation errors:\n- ${errors.join('\n- ')}`
     );
   }
 }

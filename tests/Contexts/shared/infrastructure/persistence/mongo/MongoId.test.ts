@@ -27,7 +27,6 @@ describe('MongoId helpers', () => {
       const uuidWithSpaces = `  ${validUuid}  `;
       const result = toMongoId(uuidWithSpaces);
 
-      // UUID validation trims, so this should be treated as invalid
       expect(typeof result).toBe('string');
     });
   });

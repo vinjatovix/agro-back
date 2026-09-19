@@ -105,9 +105,7 @@ export class GenericQueryParser {
   }
 
   private static isStringOperator(operator: string): boolean {
-    return ['contains', 'startsWith', 'endsWith', 'includes'].includes(
-      operator
-    );
+    return ['contains', 'startsWith', 'endsWith'].includes(operator);
   }
 
   private static isArrayOperator(operator: string): boolean {

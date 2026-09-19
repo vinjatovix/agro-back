@@ -16,6 +16,6 @@ export type FilterOperators<T = Primitive> = {
 
   // array
   in?: T extends Primitive ? T[] : never;
-  includes?: T extends Primitive ? T : never;
-  includesSome?: T extends Primitive ? T[] : never;
+  has?: T extends Primitive ? T : never;
+  hasAny?: T extends Primitive ? T[] : never;
 };

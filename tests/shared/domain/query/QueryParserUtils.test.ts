@@ -1,5 +1,3 @@
-// QueryParserUtils.spec.ts
-
 import { QueryParserUtils } from '../../../../src/shared/domain/query/QueryParserUtils.js';
 
 describe('QueryParserUtils', () => {
