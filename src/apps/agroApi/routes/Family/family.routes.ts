@@ -26,7 +26,7 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
   );
 
   router.get(
-    `${prefix}/:slug`,
+    `${prefix}/:idOrSlug`,
     getFamilyBySlugReqSchema,
     validateReqSchema,
     familyApiInvoker('getFamilyBySlug')

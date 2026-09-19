@@ -1,7 +1,7 @@
-# MÓDULE: SHARED-UTILS
+# MODULE: SHARED-UTILS
 
-version:1.1.0
-source-spec: v1.1.0
+version: 1.3.0
+source-spec: v1.3.0
 status: active
 
 ---
@@ -196,8 +196,3 @@ Shared utils are heavily used in:
 ## 6. DEPENDENCIES
 
 - none (except minimal shared type guards like `isObject`, `isPrimitive`)
-
----
-
-Si quieres, en el siguiente paso puedo hacerte una cosa útil:
-👉 detectar **qué EPICs están ya parcialmente “cerrados sin decirlo” por estos cambios**, porque aquí ya hay bastante más madurez de la que refleja la spec.

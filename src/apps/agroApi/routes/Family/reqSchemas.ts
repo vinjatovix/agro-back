@@ -96,7 +96,7 @@ export const createFamilyReqSchema = [
 ];
 
 export const getFamilyBySlugReqSchema = [
-  param('slug').exists().isString().notEmpty(),
+  param('idOrSlug').exists().isString().notEmpty(),
   checkExact()
 ];
 

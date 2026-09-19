@@ -1,6 +1,6 @@
 import type { CoordinatesPrimitives } from '../../../../../../shared/domain/value-objects/interfaces/index.js';
 import type { CropGrowthStatus } from './CropGrowthStatus.js';
-import type { PlantInstanceLifecycleStatus } from './PlantLifeCicleStatus.js';
+import type { PlantInstanceLifecycleStatus } from './PlantLifecycleStatus.js';
 
 export type PlantInstancePrimitives = {
   id: string;

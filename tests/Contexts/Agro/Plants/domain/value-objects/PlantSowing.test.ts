@@ -55,7 +55,6 @@ describe('PlantSowing (value object)', () => {
       InvalidArgumentException
     );
 
-    // Test direct constructor validation
     expect(
       () =>
         new PlantSowing({
@@ -72,7 +71,7 @@ describe('PlantSowing (value object)', () => {
       ...buildBase(),
       methods: {
         direct: directMethod(),
-        starter: {} // inválido
+        starter: {}
       }
     } as unknown as Parameters<typeof PlantSowing.fromPrimitives>[0];
 
@@ -80,7 +79,6 @@ describe('PlantSowing (value object)', () => {
       InvalidArgumentException
     );
 
-    // Test direct constructor validation
     expect(
       () =>
         new PlantSowing({

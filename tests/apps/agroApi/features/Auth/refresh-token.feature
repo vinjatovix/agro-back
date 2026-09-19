@@ -5,7 +5,7 @@ Feature: Refresh token
   I want to refresh my token
 
   Background:
-    Given a POST request to "/api/v1/Auth/register" with body
+    Given a POST request to "/api/v1/auth/register" with body
       """
       {
         "id": "495e8197-c5a0-4a47-9f20-e9b49624e9f5",
@@ -26,7 +26,7 @@ Feature: Refresh token
       """
 
   Scenario: Refresh with valid user token
-    Given a POST user request to "/api/v1/Auth/refresh" with body
+    Given a POST user request to "/api/v1/auth/refresh" with body
       """
       {}
       """
@@ -35,7 +35,7 @@ Feature: Refresh token
     And response matches OpenAPI contract
 
   Scenario: Refresh without authentication token
-    Given a POST request to "/api/v1/Auth/refresh" with body
+    Given a POST request to "/api/v1/auth/refresh" with body
       """
       {}
       """

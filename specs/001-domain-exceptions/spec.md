@@ -63,7 +63,7 @@ The global exception handler middleware intercepts any unhandled `DomainExceptio
 ### Edge Cases
 
 - **Mismatched or Unmapped Domain Exceptions**:
-  - If a new subclass of `DomainException` is defined in the future but not explicitly mapped in the global exception handler, the middleware MUST log a warning and fallback to mapping it to a standard `500 Internal Server Error` to prevent leaking internal details while maintaining robustness.
+  - If a new subclass of `DomainException` is defined in the future but not explicitly mapped in the global exception handler, the middleware MUST log an error and fallback to mapping it to a standard `500 Internal Server Error` to prevent leaking internal details while maintaining robustness.
 - **Errors Occurring Outside HTTP Context**:
   - If a `DomainException` is thrown inside a background runner, seed script, or migration (which does not run within an Express request/response cycle), the exception must bubble up normally and print to standard error without crashing the server or attempting to map to HTTP status codes.
 
