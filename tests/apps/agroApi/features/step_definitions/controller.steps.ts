@@ -13,6 +13,8 @@ import {
 import { assert } from 'chai';
 import type { MongoClient } from 'mongodb';
 import type { Server } from 'node:http';
+import path from 'node:path';
+import { assertResponseMatchesOpenApi } from 'pure-openapi-assert';
 import request from 'supertest';
 
 import { AgroBackApp } from '../../../../../src/apps/agroApi/AgroBackApp.js';
@@ -31,7 +33,6 @@ import {
 
 import { UserMother } from '../../../../Contexts/Auth/domain/mothers/UserMother.js';
 import { random } from '../../../../Contexts/shared/fixtures/random.js';
-import { assertResponseMatchesOpenAPI } from '../../../../shared/contract/assertResponseMatchesOpenAPI.js';
 
 import {
   BedSeeder,
@@ -838,7 +839,11 @@ Then(
 );
 
 Then('response matches OpenAPI contract', async function (this: CucumberWorld) {
-  await assertResponseMatchesOpenAPI({
+  await assertResponseMatchesOpenApi({
+    specPath: path.resolve(
+      process.cwd(),
+      'src/apps/agroApi/openapi/openapi.yaml'
+    ),
     path: this.route!,
     method: this.method!,
     status: this.status!,
