@@ -282,15 +282,13 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '404':
           $ref: '#/components/responses/NotFoundError'
-
-  /api/v1/families/{id}:
     patch:
       tags: [Families]
       summary: Update family
       security:
         - bearerAuth: []
       parameters:
-        - name: id
+        - name: idOrSlug
           in: path
           required: true
           schema:

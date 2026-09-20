@@ -19,7 +19,7 @@ Contract-driven REST API for agricultural asset management.
 - **PATCH Semantics:** `undefined` fields are ignored; `null` explicitly deletes/clears fields. Domain validation must occur before persistence.
 - **Validation vs Business Logic:** Use `express-validator` strictly for transport/schema-shape checking. Never enforce business logic or DB checks in validation.
 - **Error Handling:** Use `shared/errors/index.ts` (`createError` factory). Let errors bubble up to global `errorHandler`.
-- **Contract Testing:** HTTP responses must match the OpenAPI contract (`assertResponseMatchesOpenAPI` / Gherkin step).
+- **Contract Testing:** HTTP responses must match the OpenAPI contract (`assertResponseMatchesOpenApi` / Gherkin step).
 - **Dependency Injection:** Config in `src/apps/agroApi/container.ts`. Use constructor injection.
 - **Imports Order:**
   1. **External dependencies** (from `package.json`): Node.js built-ins, then npm packages, **all alphabetical**.
