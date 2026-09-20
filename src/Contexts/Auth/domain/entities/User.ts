@@ -4,7 +4,7 @@ import {
   Metadata,
   Uuid
 } from '../../../shared/domain/valueObject/index.js';
-import type { MetadataPrimitives } from '../../../shared/infrastructure/persistence/mongo/types/index.js';
+import type { MetadataPrimitives } from '../../../shared/domain/MetadataPrimitives.js';
 import type { Serializable } from '../../../shared/domain/interfaces/Serializable.js';
 import {
   PasswordHash,

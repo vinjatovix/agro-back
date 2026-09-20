@@ -114,7 +114,7 @@ Rules:
 - immutable
 - self-validating
 - no infrastructure dependency
-- **`[TARGET STATE (Pending [Iteration 1](../../roadmap.md#iteration-1-relocate-mongo-primitives-to-shared-domain))]` Primitives Relocation:** To completely purge database-specific structures from the core model, any primitive types and helpers (such as `MetadataPrimitives.ts`) currently residing in `src/Contexts/shared/infrastructure/persistence/mongo/types/` must be relocated to the shared domain, ensuring zero outward dependency violations.
+- **Primitives Relocation (Completed):** To completely purge database-specific structures from the core model, primitive types and helpers (such as `MetadataPrimitives.ts`) reside inside `src/Contexts/shared/domain/`, ensuring zero outward dependency violations from the pure domain core.
 
 ---
 

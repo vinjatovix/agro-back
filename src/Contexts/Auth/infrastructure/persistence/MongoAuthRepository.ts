@@ -1,5 +1,5 @@
 import type { Binary, UUID } from 'bson';
-import type { MetadataPrimitives } from '../../../shared/infrastructure/persistence/mongo/types/MetadataPrimitives.js';
+import type { MetadataPrimitives } from '../../../shared/domain/MetadataPrimitives.js';
 import type { UserAuthMethodPrimitives } from '../../domain/value-objects/types/UserAuthMethodPrimitives.js';
 import type { AuthProvider } from '../../domain/value-objects/types/AuthProvider.js';
 import type { AuthRepository } from '../../domain/repositories/interfaces/AuthRepository.js';

@@ -1,4 +1,4 @@
-import type { MetadataPrimitives } from './MetadataPrimitives.js';
+import type { MetadataPrimitives } from '../../../../domain/MetadataPrimitives.js';
 
 export type WithId = {
   id: string;
