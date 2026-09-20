@@ -23,6 +23,12 @@ export class PlantSowing {
   }
 
   private validate(props: PlantSowingProps) {
+    this.validateMethods(props);
+    this.validateMonths(props);
+    this.validateRanges(props);
+  }
+
+  private validateMethods(props: PlantSowingProps) {
     if (!props.methods?.direct?.depthCm) {
       throw new InvalidArgumentException(
         'PlantSowing.direct.depthCm is required'
@@ -33,12 +39,17 @@ export class PlantSowing {
         'PlantSowing.starter.depthCm is required'
       );
     }
+  }
 
+  private validateMonths(props: PlantSowingProps) {
     if (props.months.isEmpty()) {
       throw new InvalidArgumentException(
         'PlantSowing.months must have at least one month'
       );
     }
+  }
+
+  private validateRanges(props: PlantSowingProps) {
     if (props.seedsPerHole.min <= 0 || props.seedsPerHole.max <= 0) {
       throw new InvalidArgumentException(
         'PlantSowing.seedsPerHole must be greater than 0'
