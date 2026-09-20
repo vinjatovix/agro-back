@@ -1,6 +1,9 @@
 import { type NextFunction, type Request, type Response } from 'express';
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
 import type { UpdateFamily } from '../../../../Contexts/Agro/Families/application/useCases/UpdateFamily.js';
+import type { GetFamilyById } from '../../../../Contexts/Agro/Families/application/useCases/GetFamilyById.js';
+import type { GetFamilyBySlug } from '../../../../Contexts/Agro/Families/application/useCases/GetFamilyBySlug.js';
+import { Uuid } from '../../../../Contexts/shared/domain/valueObject/Uuid.js';
 import type {
   UpdateFamilyDto,
   UpdateFamilyInput
@@ -13,21 +16,38 @@ import { familyDomainMapper } from '../../../../Contexts/Agro/Families/mappers/f
 
 export type UpdateFamilyControllerDependencies = {
   updateFamily: UpdateFamily;
+  getFamilyById: GetFamilyById;
+  getFamilyBySlug: GetFamilyBySlug;
 };
 
 export class UpdateFamilyController extends HttpController {
   protected readonly updateFamily: UpdateFamily;
+  protected readonly getFamilyById: GetFamilyById;
+  protected readonly getFamilyBySlug: GetFamilyBySlug;
 
-  constructor({ updateFamily }: UpdateFamilyControllerDependencies) {
+  constructor({
+    updateFamily,
+    getFamilyById,
+    getFamilyBySlug
+  }: UpdateFamilyControllerDependencies) {
     super();
     this.updateFamily = updateFamily;
+    this.getFamilyById = getFamilyById;
+    this.getFamilyBySlug = getFamilyBySlug;
   }
   run = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { id } = req.params;
-      if (!id) {
-        throw createError.badRequest('Family ID is required');
+      const { idOrSlug } = req.params;
+      if (!idOrSlug) {
+        throw createError.badRequest('Family ID or slug is required');
       }
+
+      const family = Uuid.isValid(idOrSlug)
+        ? await this.getFamilyById.execute(idOrSlug)
+        : await this.getFamilyBySlug.execute(idOrSlug);
+
+      const id = family.idValue;
+
       const dto = req.body as UpdateFamilyDto;
       const user = res.locals.user as UserSessionInfo;
 

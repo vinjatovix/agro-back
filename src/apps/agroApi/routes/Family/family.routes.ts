@@ -35,7 +35,7 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
   router.get(`${prefix}/`, familyApiInvoker('getAllFamilies'));
 
   router.patch(
-    `${prefix}/:id`,
+    `${prefix}/:idOrSlug`,
     auth,
     isAdmin,
     validateBody,
