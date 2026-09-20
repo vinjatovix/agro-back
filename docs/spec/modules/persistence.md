@@ -559,7 +559,7 @@ All transformations between:
 
 MUST be handled by dedicated mapper modules.
 
-- **`[TARGET STATE (Pending [Iteration 1](../../roadmap.md#iteration-1-relocate-mongo-primitives-to-shared-domain))]` Separation of Persistence Primitives:** Under Clean Architecture, the domain layer must never depend on infrastructure or database models. This means primitive type structures currently residing inside `src/Contexts/shared/infrastructure/persistence/mongo/types/` (such as `MetadataPrimitives.ts`) are relocated to `src/Contexts/shared/domain/` ([Iteration 1](../../roadmap.md#iteration-1-relocate-mongo-primitives-to-shared-domain)) to secure complete boundary purity.
+- **Separation of Persistence Primitives (Completed):** Under Clean Architecture, the domain layer must never depend on infrastructure or database models. This means primitive type structures (such as `MetadataPrimitives.ts`) reside inside `src/Contexts/shared/domain/` to secure complete boundary purity.
 
 ---
 

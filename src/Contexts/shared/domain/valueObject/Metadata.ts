@@ -1,4 +1,4 @@
-import type { MetadataPrimitives } from '../../infrastructure/persistence/mongo/types/index.js';
+import type { MetadataPrimitives } from '../MetadataPrimitives.js';
 import type { Serializable } from '../interfaces/Serializable.js';
 
 export class Metadata implements Serializable<MetadataPrimitives> {

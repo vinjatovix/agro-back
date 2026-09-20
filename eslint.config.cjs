@@ -43,7 +43,7 @@ module.exports = defineConfig([
     ),
 
     rules: {
-      "complexity": ["error", 10],
+      complexity: ['error', 10],
       '@typescript-eslint/no-misused-promises': [
         'error',
         {
