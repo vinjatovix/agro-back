@@ -399,8 +399,16 @@ const registerFamilyControllers = (container: AppContainer): void => {
         new GetAllFamiliesController({ listFamilies, familyQueryParser })
     ).scoped(),
     updateFamilyController: asFunction(
-      ({ updateFamily }: UpdateFamilyControllerDependencies) =>
-        new UpdateFamilyController({ updateFamily })
+      ({
+        updateFamily,
+        getFamilyById,
+        getFamilyBySlug
+      }: UpdateFamilyControllerDependencies) =>
+        new UpdateFamilyController({
+          updateFamily,
+          getFamilyById,
+          getFamilyBySlug
+        })
     ).scoped()
   });
 };

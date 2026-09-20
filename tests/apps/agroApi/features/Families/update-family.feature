@@ -34,6 +34,24 @@ Feature: Update Family
       """
     And response matches OpenAPI contract
 
+  Scenario: Admin updates a family by slug successfully
+    When I send a PATCH admin request to "/api/v1/families/<familySlug>" with body
+      """
+      {
+        "name": "Updated Family Name By Slug",
+        "scientificName": "Updatedus familiae slug"
+      }
+      """
+    Then the response status code should be 200
+    And the response body should contain
+      """
+      {
+        "name": "Updated Family Name By Slug",
+        "scientificName": "Updatedus familiae slug"
+      }
+      """
+    And response matches OpenAPI contract
+
   Scenario: Invalid payload returns 400
     When I send a PATCH admin request to "/api/v1/families/<familyId>" with body
       """

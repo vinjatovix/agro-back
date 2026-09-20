@@ -101,7 +101,7 @@ export const getFamilyBySlugReqSchema = [
 ];
 
 export const updateFamilyReqSchema = [
-  param('id').exists().isString().notEmpty(),
+  param('idOrSlug').exists().isString().notEmpty(),
   ...familyBaseValidators,
   checkExact()
 ];
