@@ -1,4 +1,4 @@
-import type { MetadataPrimitives } from '../../../../shared/infrastructure/persistence/mongo/types/MetadataPrimitives.js';
+import type { MetadataPrimitives } from '../../../../shared/domain/MetadataPrimitives.js';
 import type { UserAuthMethodPrimitives } from '../../value-objects/types/UserAuthMethodPrimitives.js';
 
 export interface UserPrimitives {
