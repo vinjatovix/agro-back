@@ -30,40 +30,61 @@ export class GenericQueryParser {
     const result: ParsedFilters = {};
 
     for (const [field, operators] of Object.entries(filters)) {
-      if (
-        !operators ||
-        typeof operators !== 'object' ||
-        Array.isArray(operators)
-      ) {
-        continue;
-      }
-
-      for (const [operator, rawValue] of Object.entries(
-        operators as Record<string, unknown>
-      )) {
-        if (typeof rawValue !== 'string' && !Array.isArray(rawValue)) {
-          throw createError.badRequest(
-            `Invalid value for filter '${field}.${operator}'`
-          );
-        }
-
-        if (
-          Array.isArray(rawValue) &&
-          rawValue.some((v) => typeof v !== 'string')
-        ) {
-          throw createError.badRequest(
-            `Invalid array value for filter '${field}.${operator}'`
-          );
-        }
-
-        result[field] ??= {};
-        const bucket = result[field];
-
-        this.applyOperatorFilter(bucket, field, operator, rawValue);
-      }
+      this.parseFieldOperators(result, field, operators);
     }
 
     return result;
+  }
+
+  private static parseFieldOperators(
+    result: ParsedFilters,
+    field: string,
+    operators: unknown
+  ): void {
+    if (
+      !operators ||
+      typeof operators !== 'object' ||
+      Array.isArray(operators)
+    ) {
+      return;
+    }
+
+    for (const [operator, rawValue] of Object.entries(
+      operators as Record<string, unknown>
+    )) {
+      this.validateFilterValue(field, operator, rawValue);
+
+      result[field] ??= {};
+      const bucket = result[field];
+
+      this.applyOperatorFilter(
+        bucket,
+        field,
+        operator,
+        rawValue as RawFilterValue
+      );
+    }
+  }
+
+  private static validateFilterValue(
+    field: string,
+    operator: string,
+    rawValue: unknown
+  ): void {
+    if (typeof rawValue !== 'string' && !Array.isArray(rawValue)) {
+      throw createError.badRequest(
+        `Invalid value for filter '${field}.${operator}'`
+      );
+    }
+
+    if (
+      Array.isArray(rawValue) &&
+      rawValue.some((v) => typeof v !== 'string')
+    ) {
+      throw createError.badRequest(
+        `Invalid array value for filter '${field}.${operator}'`
+      );
+    }
   }
 
   private static applyOperatorFilter(
