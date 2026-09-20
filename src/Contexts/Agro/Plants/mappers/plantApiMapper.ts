@@ -110,21 +110,38 @@ function mapTraits(
 function mapSowing(
   sowing: NonNullable<UpdatePlantDto['phenology']>['sowing']
 ): DeepPartial<PlantPrimitives['phenology']['sowing']> {
-  return {
-    ...(sowing?.months && { months: sowing.months }),
-    ...(sowing?.seedsPerHole && { seedsPerHole: sowing.seedsPerHole }),
-    ...(sowing?.germinationDays && {
-      germinationDays: sowing.germinationDays
-    }),
-    ...(sowing?.methods && {
-      methods: {
-        ...(sowing.methods?.direct && {
-          direct: { depthCm: sowing.methods.direct.depthCm }
-        }),
-        ...(sowing.methods?.starter && {
-          starter: { depthCm: sowing.methods.starter.depthCm }
-        })
-      }
-    })
-  };
+  if (!sowing) {
+    return {};
+  }
+
+  const result: DeepPartial<PlantPrimitives['phenology']['sowing']> = {};
+
+  if (sowing.months) result.months = sowing.months;
+  if (sowing.seedsPerHole) result.seedsPerHole = sowing.seedsPerHole;
+  if (sowing.germinationDays) result.germinationDays = sowing.germinationDays;
+  if (sowing.methods) result.methods = mapSowingMethods(sowing.methods);
+
+  return result;
+}
+
+function mapSowingMethods(
+  methods: NonNullable<
+    NonNullable<UpdatePlantDto['phenology']>['sowing']
+  >['methods']
+): DeepPartial<PlantPrimitives['phenology']['sowing']['methods']> {
+  if (!methods) {
+    return {};
+  }
+
+  const result: DeepPartial<PlantPrimitives['phenology']['sowing']['methods']> =
+    {};
+
+  if (methods.direct) {
+    result.direct = { depthCm: methods.direct.depthCm };
+  }
+  if (methods.starter) {
+    result.starter = { depthCm: methods.starter.depthCm };
+  }
+
+  return result;
 }
