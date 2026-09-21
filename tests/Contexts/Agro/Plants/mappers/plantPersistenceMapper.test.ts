@@ -1,7 +1,7 @@
+import { PlantStatus } from '../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantStatus.js';
+import { PollinationType } from '../../../../../src/Contexts/Agro/Plants/domain/entities/types/PollinationType.js';
 import { plantPersistenceMapper } from '../../../../../src/Contexts/Agro/Plants/mappers/plantPersistenceMapper.js';
 import { PlantFactory } from '../domain/mothers/PlantFactory.js';
-import { PollinationType } from '../../../../../src/Contexts/Agro/Plants/domain/entities/types/PollinationType.js';
-import { PlantStatus } from '../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantStatus.js';
 
 describe('PlantPersistenceMapper', () => {
   describe('toMongoDocument', () => {
@@ -90,7 +90,7 @@ describe('PlantPersistenceMapper', () => {
       const doc = plantPersistenceMapper.toMongoDocument(plant);
       const restored = plantPersistenceMapper.fromMongoDocument(doc);
 
-      expect(restored.id.value).toBe(plant.id.value);
+      expect(restored.id).toBe(plant.id);
       expect(restored.identity.name.primary).toBe(plant.identity.name.primary);
     });
 

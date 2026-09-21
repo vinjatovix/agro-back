@@ -1,21 +1,26 @@
 import { MonthSet } from '../../../../shared/domain/value-objects/MonthSet.js';
 import { Range } from '../../../../shared/domain/value-objects/Range.js';
 import { Metadata } from '../../../shared/domain/valueObject/Metadata.js';
-import { Uuid } from '../../../shared/domain/valueObject/Uuid.js';
 import {
   fromMongoId,
   toMongoId
 } from '../../../shared/infrastructure/persistence/mongo/MongoId.js';
 import { Plant } from '../domain/entities/Plant.js';
-import type { PlantProps } from '../domain/entities/types/PlantProps.js';
-import { PlantKnowledge } from '../domain/value-objects/PlantKnowledge.js';
-import { PlantLifecycle } from '../domain/value-objects/PlantLifecycle.js';
-import { PlantSowing } from '../domain/value-objects/PlantSowing.js';
+import type {
+  PlantKnowledgePrimitives,
+  PlantProps
+} from '../domain/entities/types/index.js';
+import type { PollinationType } from '../domain/entities/types/PollinationType.js';
+import { createPlantId } from '../domain/PlantId.js';
+import {
+  PlantKnowledge,
+  PlantLifecycle,
+  PlantSowing
+} from '../domain/value-objects/index.js';
 import type { MongoPlantDocument } from '../infrastructure/persistence/types/MongoPlantDocument.js';
 import type { PlantPersistenceMapper } from './interfaces/PlantPersistenceMapper.js';
+import { plantIdentityMapper } from './plantIdentityMapper.js';
 import { plantKnowledgeMapper } from './plantKnowledgeMapper.js';
-import { type PlantKnowledgePrimitives } from '../domain/entities/types/PlantKnowledgePrimitives.js';
-import type { PollinationType } from '../domain/entities/types/PollinationType.js';
 
 export const plantPersistenceMapper: PlantPersistenceMapper = {
   fromMongoDocument: function (document: MongoPlantDocument): Plant {
@@ -46,8 +51,8 @@ export const plantPersistenceMapper: PlantPersistenceMapper = {
     };
 
     const props: PlantProps = {
-      id: new Uuid(fromMongoId(document._id)),
-      identity: document.identity,
+      id: createPlantId(fromMongoId(document._id)),
+      identity: plantIdentityMapper.fromPrimitives(document.identity),
       traits: {
         lifecycle: PlantLifecycle.from(document.traits.lifecycle),
         size: {
@@ -101,8 +106,8 @@ export const plantPersistenceMapper: PlantPersistenceMapper = {
       : undefined;
 
     return {
-      _id: toMongoId(plant.id.value),
-      identity: plant.identity,
+      _id: toMongoId(plant.id),
+      identity: plantIdentityMapper.toPrimitives(plant.identity),
       traits: {
         lifecycle: plant.traits.lifecycle.getValue(),
         size: {

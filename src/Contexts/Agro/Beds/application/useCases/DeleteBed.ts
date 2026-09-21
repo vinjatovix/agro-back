@@ -1,8 +1,8 @@
-import {
-  DomainForbiddenException,
-  DomainConflictException
-} from '../../../../shared/domain/errors/index.js';
 import type { UserSessionInfo } from '../../../../Auth/application/index.js';
+import {
+  DomainConflictException,
+  DomainForbiddenException
+} from '../../../../shared/domain/errors/index.js';
 import type { BedRepository } from '../../domain/repositories/interfaces/BedRepository.js';
 
 export class DeleteBed {
@@ -11,7 +11,7 @@ export class DeleteBed {
   async execute(id: string, user: UserSessionInfo): Promise<void> {
     const bed = await this.bedRepository.findById(id);
 
-    if (bed.userId.value !== user.id) {
+    if (bed.userId !== user.id) {
       throw new DomainForbiddenException(
         `User ${user.username} does not have permission to delete this bed`
       );

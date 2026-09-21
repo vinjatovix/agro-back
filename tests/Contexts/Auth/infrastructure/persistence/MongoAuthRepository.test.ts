@@ -1,7 +1,7 @@
 import type { MongoClient } from 'mongodb';
 import {
-  createAppContainer,
-  type AppContainer
+  type AppContainer,
+  createAppContainer
 } from '../../../../../src/apps/agroApi/container.js';
 import type { AuthRepository } from '../../../../../src/Contexts/Auth/domain/repositories/interfaces/AuthRepository.js';
 import { EnvironmentArranger } from '../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
@@ -56,7 +56,7 @@ describe('MongoAuthRepository', () => {
     it('should update an existing user', async () => {
       const user = UserMother.random();
       await repository.save(user);
-      const userPatch = UserMother.randomPatch(user.id.value);
+      const userPatch = UserMother.randomPatch(user.id);
 
       await repository.update(userPatch, username);
 
@@ -99,7 +99,7 @@ describe('MongoAuthRepository', () => {
       const found = await repository.searchByProvider('google', providerUserId);
 
       expect(found).not.toBeNull();
-      expect(found?.id.value).toBe(user.id.value);
+      expect(found?.id).toBe(user.id);
       expect(found?.email.value).toBe(user.email.value);
     });
 
@@ -127,7 +127,7 @@ describe('MongoAuthRepository', () => {
       const user = UserMother.random();
       await repository.save(user);
 
-      const results = await repository.findByQuery({ id: user.id.value });
+      const results = await repository.findByQuery({ id: user.id });
 
       expect(results).toHaveLength(1);
       expect(results[0]?.username?.value).toBe(user.username.value);
@@ -155,12 +155,12 @@ describe('MongoAuthRepository', () => {
       await repository.save(user);
 
       const results = await repository.findByQuery({
-        id: user.id.value,
+        id: user.id,
         username: user.username.value
       });
 
       expect(results).toHaveLength(1);
-      expect(results[0]?.id?.value).toBe(user.id.value);
+      expect(results[0]?.id).toBe(user.id);
       expect(results[0]?.username?.value).toBe(user.username.value);
     });
 
@@ -173,8 +173,8 @@ describe('MongoAuthRepository', () => {
       const results = await repository.findByQuery({});
 
       expect(results).toHaveLength(2);
-      expect(results.map((result) => result.id?.value)).toEqual(
-        expect.arrayContaining([userA.id.value, userB.id.value])
+      expect(results.map((result) => result.id)).toEqual(
+        expect.arrayContaining([userA.id, userB.id])
       );
     });
   });

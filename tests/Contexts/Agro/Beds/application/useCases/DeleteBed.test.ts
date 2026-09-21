@@ -23,7 +23,7 @@ describe('DeleteBed', () => {
 
     repository.addToStorage(bed);
 
-    await useCase.execute(bed.id.value, USER);
+    await useCase.execute(bed.id, USER);
 
     expect(bed.isDeleted).toBe(true);
     repository.assertSaveHasBeenCalledWith(bed);
@@ -35,7 +35,7 @@ describe('DeleteBed', () => {
 
     repository.addToStorage(bed);
 
-    await useCase.execute(bed.id.value, USER);
+    await useCase.execute(bed.id, USER);
 
     repository.assertSaveNotCalled();
   });
@@ -60,7 +60,7 @@ describe('DeleteBed', () => {
       roles: ['user']
     };
 
-    await expect(useCase.execute(bed.id.value, otherUser)).rejects.toThrow(
+    await expect(useCase.execute(bed.id, otherUser)).rejects.toThrow(
       `User ${otherUser.username} does not have permission to delete this bed`
     );
   });
@@ -71,7 +71,7 @@ describe('DeleteBed', () => {
 
     repository.addToStorage(bed);
 
-    await expect(useCase.execute(bed.id.value, USER)).rejects.toThrow(
+    await expect(useCase.execute(bed.id, USER)).rejects.toThrow(
       'Cannot delete bed with plants. Remove plants or transplant them first.'
     );
   });

@@ -1,14 +1,14 @@
 import { Family } from '../../../../../src/Contexts/Agro/Families/domain/entities/Family.js';
+import { randomFamilyId } from '../../../../../src/Contexts/Agro/Families/domain/FamilyId.js';
 import { familyDomainMapper } from '../../../../../src/Contexts/Agro/Families/mappers/familyDomainMapper.js';
 import { Metadata } from '../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
 import { random } from '../../../shared/fixtures/random.js';
-import { UuidMother } from '../../../shared/fixtures/UuidMother.js';
 import { FamilyScenarios } from '../domain/mothers/FamilyScenarios.js';
 
 describe('familyDomainMapper', () => {
   describe('fromPrimitives', () => {
     const primitives = {
-      id: UuidMother.random().value,
+      id: randomFamilyId(),
       slug: random.word(),
       name: random.word(),
       aliases: [random.word(), random.word()],

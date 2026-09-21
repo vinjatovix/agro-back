@@ -4,17 +4,11 @@ import type { PlantKnowledgePrimitives } from '../../../domain/entities/types/Pl
 import type { PlantLifecycleValue } from '../../../domain/entities/types/PlantLifecycleValue.js';
 import type { PlantPrimitives } from '../../../domain/entities/types/PlantPrimitives.js';
 import type { PlantSowingPrimitives } from '../../../domain/entities/types/PlantSowingPrimitives.js';
+import type { IdentityPrimitives } from '../../../mappers/plantIdentityMapper.js';
 
 export type MongoPlantDocument = {
   _id: string | Binary | UUID;
-  identity: {
-    name: {
-      primary: string;
-      aliases?: string[];
-    };
-    family: string;
-    scientificName?: string;
-  };
+  identity: IdentityPrimitives;
 
   traits: {
     lifecycle: PlantLifecycleValue;

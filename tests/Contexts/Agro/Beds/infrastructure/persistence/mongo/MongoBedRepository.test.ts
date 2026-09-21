@@ -1,7 +1,7 @@
 import type { MongoClient } from 'mongodb';
 import {
-  createAppContainer,
-  type AppContainer
+  type AppContainer,
+  createAppContainer
 } from '../../../../../../../src/apps/agroApi/container.js';
 import type { BedPrimitives } from '../../../../../../../src/Contexts/Agro/Beds/domain/entities/types/BedPrimitives.js';
 import type { BedRepository } from '../../../../../../../src/Contexts/Agro/Beds/domain/repositories/interfaces/BedRepository.js';
@@ -11,9 +11,9 @@ import {
   DBClientFactory,
   DBConfigFactory
 } from '../../../../../../../src/shared/infrastructure/persistence/index.js';
+import { random } from '../../../../../shared/fixtures/random.js';
 import { PlantInstanceMother } from '../../../../PlantInstances/domain/mothers/PlantInstanceMother.js';
 import { BedFactory } from '../../../domain/mothers/BedFactory.js';
-import { random } from '../../../../../shared/fixtures/random.js';
 
 let container: AppContainer;
 let repository: BedRepository;
@@ -51,9 +51,9 @@ describe('MongoBedRepository', () => {
 
       await repository.save(bed);
 
-      const found = await repository.findById(bed.id.value);
+      const found = await repository.findById(bed.id);
 
-      expect(found.id.value).toBe(bed.id.value);
+      expect(found.id).toBe(bed.id);
       expect(found.width.value).toBe(bed.width.value);
       expect(found.height.value).toBe(bed.height.value);
       expect(found.name.value).toBe(bed.name.value);
@@ -74,11 +74,11 @@ describe('MongoBedRepository', () => {
       await repository.save(bed1);
       await repository.save(bed2);
 
-      const found1 = await repository.findById(bed1.id.value);
-      const found2 = await repository.findById(bed2.id.value);
+      const found1 = await repository.findById(bed1.id);
+      const found2 = await repository.findById(bed2.id);
 
-      expect(found1.id.value).toBe(bed1.id.value);
-      expect(found2.id.value).toBe(bed2.id.value);
+      expect(found1.id).toBe(bed1.id);
+      expect(found2.id).toBe(bed2.id);
     });
   });
 
@@ -88,7 +88,7 @@ describe('MongoBedRepository', () => {
 
       await repository.save(bed);
 
-      const exists = await repository.exists(bed.id.value);
+      const exists = await repository.exists(bed.id);
 
       expect(exists).toBe(true);
     });
@@ -108,14 +108,14 @@ describe('MongoBedRepository', () => {
       await repository.save(bed);
 
       const updated = {
-        id: bed.id.value,
+        id: bed.id,
         width: bed.width.value + 100,
         height: bed.height.value + 100
       } as unknown as BedPrimitives;
 
       await repository.updateWithDiff(current, updated, 'test-user');
 
-      const found = await repository.findById(bed.id.value);
+      const found = await repository.findById(bed.id);
 
       expect(found.width.value).toBe(updated.width);
       expect(found.height.value).toBe(updated.height);
@@ -130,8 +130,8 @@ describe('MongoBedRepository', () => {
       const newPlant = PlantInstanceMother.atPosition(10, 20);
 
       const updated = {
-        id: bed.id.value,
-        userId: bed.userId.value,
+        id: bed.id,
+        userId: bed.userId,
         name: bed.name.value,
         width: bed.width.value,
         depth: bed.depth.value,
@@ -161,10 +161,10 @@ describe('MongoBedRepository', () => {
       await repository.save(bed1);
       await repository.save(bed2);
 
-      const found = await repository.findByUserId(bed1.userId.value);
+      const found = await repository.findByUserId(bed1.userId);
 
       expect(found).toHaveLength(1);
-      expect(found[0]?.id.value).toBe(bed1.id.value);
+      expect(found[0]?.id).toBe(bed1.id);
     });
 
     it('should return empty array if user has no beds', async () => {

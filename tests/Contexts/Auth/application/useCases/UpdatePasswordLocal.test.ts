@@ -1,22 +1,27 @@
 import { UpdatePasswordLocal } from '../../../../../src/Contexts/Auth/application/useCases/UpdatePasswordLocal.js';
+import type { UserPatch } from '../../../../../src/Contexts/Auth/domain/entities/UserPatch.js';
+import {
+  createUserId,
+  randomUserId
+} from '../../../../../src/Contexts/Auth/domain/UserId.js';
+import { PasswordHash } from '../../../../../src/Contexts/Auth/domain/value-objects/PasswordHash.js';
+import { Username } from '../../../../../src/Contexts/Auth/domain/value-objects/Username.js';
 import {
   DomainNotFoundException,
   DomainUnauthorizedException
 } from '../../../../../src/Contexts/shared/domain/errors/index.js';
-import { Username } from '../../../../../src/Contexts/Auth/domain/value-objects/Username.js';
-import { PasswordHash } from '../../../../../src/Contexts/Auth/domain/value-objects/PasswordHash.js';
-import { Uuid } from '../../../../../src/Contexts/shared/domain/valueObject/Uuid.js';
 import { EmailMother } from '../../../shared/domain/mothers/EmailMother.js';
-import { CryptAdapterMock } from '../../__mocks__/CryptAdapterMock.js';
+import { random } from '../../../shared/fixtures/index.js';
 import { AuthRepositoryMock } from '../../__mocks__/AuthRepositoryMock.js';
-import { random, UuidMother } from '../../../shared/fixtures/index.js';
+import { CryptAdapterMock } from '../../__mocks__/CryptAdapterMock.js';
 
 const CURRENT_USER = {
-  id: UuidMother.random().value,
+  id: randomUserId(),
   username: new Username(
     random.word({ min: Username.MIN_LENGTH, max: Username.MAX_LENGTH })
   ).value,
-  email: EmailMother.random().value
+  email: EmailMother.random().value,
+  roles: []
 };
 
 const PAYLOAD = {
@@ -40,57 +45,40 @@ describe('UpdatePasswordLocal', () => {
     repository = new AuthRepositoryMock();
     updatePassword = new UpdatePasswordLocal(repository, encrypter);
 
-    expect(async () => {
-      await updatePassword.run(PAYLOAD, CURRENT_USER);
-    }).rejects.toThrow(
-      expect.objectContaining({ name: 'DomainNotFoundException' })
+    await expect(updatePassword.run(PAYLOAD, CURRENT_USER)).rejects.toThrow(
+      DomainNotFoundException
     );
   });
 
-  it('should throw an error when the password is invalid', () => {
+  it('should throw an error when the password is invalid', async () => {
     encrypter = new CryptAdapterMock({ login: false });
     updatePassword = new UpdatePasswordLocal(repository, encrypter);
 
-    expect(async () => {
-      await updatePassword.run(PAYLOAD, CURRENT_USER);
-    }).rejects.toThrow(
-      expect.objectContaining({
-        name: 'DomainUnauthorizedException',
-        message: 'Invalid credentials'
-      })
+    await expect(updatePassword.run(PAYLOAD, CURRENT_USER)).rejects.toThrow(
+      DomainUnauthorizedException
     );
   });
 
-  it('should throw an error when the password does not match', () => {
+  it('should throw an error when the password does not match', async () => {
     const request = {
       ...PAYLOAD,
       repeatPassword: 'differentPassword'
     };
 
-    expect(async () => {
-      await updatePassword.run(request, CURRENT_USER);
-    }).rejects.toThrow(
-      expect.objectContaining({
-        name: 'DomainUnauthorizedException',
-        message: 'Passwords do not match'
-      })
+    await expect(updatePassword.run(request, CURRENT_USER)).rejects.toThrow(
+      DomainUnauthorizedException
     );
   });
 
-  it('should throw an error when the password is the same as the old one', () => {
+  it('should throw an error when the password is the same as the old one', async () => {
     const request = {
       password: PAYLOAD.oldPassword,
       repeatPassword: PAYLOAD.oldPassword,
       oldPassword: PAYLOAD.oldPassword
     };
 
-    expect(async () => {
-      await updatePassword.run(request, CURRENT_USER);
-    }).rejects.toThrow(
-      expect.objectContaining({
-        name: 'DomainUnauthorizedException',
-        message: 'New password must be different from old password'
-      })
+    await expect(updatePassword.run(request, CURRENT_USER)).rejects.toThrow(
+      DomainUnauthorizedException
     );
   });
 
@@ -99,9 +87,11 @@ describe('UpdatePasswordLocal', () => {
 
     repository.assertUpdateHasBeenCalledWith(
       expect.objectContaining({
-        id: new Uuid(CURRENT_USER.id),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        id: createUserId(CURRENT_USER.id),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         password: expect.any(PasswordHash)
-      })
+      }) as UserPatch
     );
   });
 });

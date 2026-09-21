@@ -1,19 +1,19 @@
 import type { Binary, UUID } from 'bson';
-import type { MetadataPrimitives } from '../../../shared/domain/MetadataPrimitives.js';
-import type { UserAuthMethodPrimitives } from '../../domain/value-objects/types/UserAuthMethodPrimitives.js';
-import type { AuthProvider } from '../../domain/value-objects/types/AuthProvider.js';
-import type { AuthRepository } from '../../domain/repositories/interfaces/AuthRepository.js';
-import { User } from '../../domain/entities/User.js';
-import type { UserPatch } from '../../domain/entities/UserPatch.js';
 import type { Nullable } from '../../../../shared/domain/types/Nullable.js';
-import { MongoRepository } from '../../../shared/infrastructure/persistence/mongo/MongoRepository.js';
+import { updateMetadata } from '../../../shared/application/utils/updateMetadata.js';
+import type { MetadataPrimitives } from '../../../shared/domain/MetadataPrimitives.js';
 import {
   fromMongoId,
   toMongoId
 } from '../../../shared/infrastructure/persistence/mongo/MongoId.js';
+import { MongoRepository } from '../../../shared/infrastructure/persistence/mongo/MongoRepository.js';
+import { User } from '../../domain/entities/User.js';
+import type { UserPatch } from '../../domain/entities/UserPatch.js';
+import type { AuthRepository } from '../../domain/repositories/interfaces/AuthRepository.js';
+import { createUserId } from '../../domain/UserId.js';
+import type { AuthProvider } from '../../domain/value-objects/types/AuthProvider.js';
+import type { UserAuthMethodPrimitives } from '../../domain/value-objects/types/UserAuthMethodPrimitives.js';
 import { Username } from '../../domain/value-objects/Username.js';
-import { Uuid } from '../../../shared/domain/valueObject/Uuid.js';
-import { updateMetadata } from '../../../shared/application/utils/updateMetadata.js';
 
 export interface AuthDocument {
   _id: string | Binary | UUID;
@@ -39,7 +39,7 @@ export class MongoAuthRepository
 
   async save(user: User): Promise<void> {
     const mongoDocument = {
-      _id: toMongoId(user.id.value),
+      _id: toMongoId(user.id),
       ...user.toPrimitives()
     };
     await this.persist(mongoDocument);
@@ -48,7 +48,7 @@ export class MongoAuthRepository
   async update(user: UserPatch, username: Username): Promise<void> {
     const collection = this.collection();
 
-    const mongoId = toMongoId(user.id.value);
+    const mongoId = toMongoId(user.id);
 
     const document = {
       ...user.toPrimitives(),
@@ -99,7 +99,7 @@ export class MongoAuthRepository
       .toArray();
 
     return documents.map((doc) => ({
-      id: new Uuid(fromMongoId(doc._id)),
+      id: createUserId(fromMongoId(doc._id)),
       username: new Username(doc.username)
     }));
   }

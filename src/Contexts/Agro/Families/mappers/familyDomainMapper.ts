@@ -1,12 +1,12 @@
-import { Metadata } from '../../../shared/domain/valueObject/Metadata.js';
-import { Uuid } from '../../../shared/domain/valueObject/Uuid.js';
+import { Metadata } from '../../../shared/domain/valueObject/index.js';
 import { Family } from '../domain/entities/Family.js';
+import { createFamilyId } from '../domain/FamilyId.js';
 import type { FamilyDomainMapper } from './interfaces/FamilyDomainMapper.js';
 
 export const familyDomainMapper: FamilyDomainMapper = {
   toPrimitives(family) {
     return {
-      id: family.idValue,
+      id: family.id,
       slug: family.slug,
       name: family.name,
       aliases: family.aliases,
@@ -20,7 +20,7 @@ export const familyDomainMapper: FamilyDomainMapper = {
 
   fromPrimitives(primitives) {
     return Family.create({
-      id: Uuid.create(primitives.id),
+      id: createFamilyId(primitives.id),
       slug: primitives.slug,
       name: primitives.name,
       aliases: primitives.aliases,

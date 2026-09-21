@@ -1,17 +1,15 @@
 import type { AuthRepository } from '../../../../src/Contexts/Auth/domain/entities/types/index.js';
-import type { AuthProvider } from '../../../../src/Contexts/Auth/domain/value-objects/types/AuthProvider.js';
-import type { Nullable } from '../../../../src/shared/domain/types/Nullable.js';
-import {
-  Email,
-  Uuid
-} from '../../../../src/Contexts/shared/domain/valueObject/index.js';
-import { UserMother } from '../domain/mothers/UserMother.js';
+import type { User } from '../../../../src/Contexts/Auth/domain/entities/User.js';
+import type { UserPatch } from '../../../../src/Contexts/Auth/domain/entities/UserPatch.js';
+import { createUserId } from '../../../../src/Contexts/Auth/domain/UserId.js';
 import {
   PasswordHash,
   Username
 } from '../../../../src/Contexts/Auth/domain/value-objects/index.js';
-import type { User } from '../../../../src/Contexts/Auth/domain/entities/User.js';
-import type { UserPatch } from '../../../../src/Contexts/Auth/domain/entities/UserPatch.js';
+import type { AuthProvider } from '../../../../src/Contexts/Auth/domain/value-objects/types/AuthProvider.js';
+import { Email } from '../../../../src/Contexts/shared/domain/valueObject/index.js';
+import type { Nullable } from '../../../../src/shared/domain/types/Nullable.js';
+import { UserMother } from '../domain/mothers/UserMother.js';
 
 const DEFAULT_OPTIONS = { find: false };
 
@@ -55,7 +53,7 @@ export class AuthRepositoryMock implements AuthRepository {
         if (!this.isFindable) {
           return this.storage.filter((user) => {
             if (id) {
-              return user.id.value === id;
+              return user.id === id;
             }
             if (username) {
               return user.username.value === username;
@@ -65,7 +63,7 @@ export class AuthRepositoryMock implements AuthRepository {
         }
 
         const { password: _password, ...user } = UserMother.create({
-          id: new Uuid(id)
+          id: createUserId(id)
         });
         return [user];
       }

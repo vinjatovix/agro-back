@@ -1,8 +1,7 @@
 import type { Server } from 'node:http';
 import request, { type Response } from 'supertest';
-
-import { UuidMother } from '../../../../../Contexts/shared/fixtures/UuidMother.js';
 import type { BedPrimitives } from '../../../../../../src/Contexts/Agro/Beds/domain/entities/types/BedPrimitives.js';
+import { random } from '../../../../../Contexts/shared/fixtures/random.js';
 
 export const BedSeeder = (server: Server, token: string) => ({
   async createOne(
@@ -14,13 +13,14 @@ export const BedSeeder = (server: Server, token: string) => ({
       depth: number;
     }>
   ) {
-    const payload = {
-      id: overrides?.id ?? UuidMother.random().value,
-      name: overrides?.name ?? 'Test bed',
-      width: overrides?.width ?? 100,
-      height: overrides?.height ?? 100,
-      depth: overrides?.depth ?? 30
+    const defaults = {
+      id: random.uuid(),
+      name: 'Test bed',
+      width: 100,
+      height: 100,
+      depth: 30
     };
+    const payload = { ...defaults, ...overrides };
 
     const response: Response = await request(server)
       .post('/api/v1/beds')

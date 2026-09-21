@@ -2,5 +2,8 @@ export * from './DateValueObject.js';
 export * from './Email.js';
 export * from './StringValueObject.js';
 export * from './Uuid.js';
+export * from './Brand.js';
+export * from './UuidValidator.js';
 export * from './Metadata.js';
 export * from './PositiveNumber.js';
+export * from './BrandedId.js';

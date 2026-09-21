@@ -1,6 +1,6 @@
 import { CreateFamily } from '../../../../../../src/Contexts/Agro/Families/application/useCases/CreateFamily.js';
+import { randomFamilyId } from '../../../../../../src/Contexts/Agro/Families/domain/FamilyId.js';
 import { DomainConflictException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
-import { UuidMother } from '../../../../shared/fixtures/UuidMother.js';
 import { FamilyRepositoryMock } from '../../__mocks__/FamilyRepositoryMock.js';
 import { FamilyScenarios } from '../../domain/mothers/FamilyScenarios.js';
 
@@ -35,10 +35,10 @@ describe('CreateFamily', () => {
   });
 
   it('should throw conflict error if family already exists', async () => {
-    const id = UuidMother.random();
+    const id = randomFamilyId();
     const family = FamilyScenarios.domainRandom({ id });
     repository.addToStorage(family);
-    const dto = FamilyScenarios.createDtoBase({ id: id.value });
+    const dto = FamilyScenarios.createDtoBase({ id });
 
     await expect(useCase.execute(dto, USER)).rejects.toThrow(
       new DomainConflictException(`Family already exists: ${dto.id}`)

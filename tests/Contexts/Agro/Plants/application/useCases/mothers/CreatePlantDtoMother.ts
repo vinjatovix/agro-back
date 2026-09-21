@@ -3,6 +3,10 @@ import type { PlantLifecycleValue } from '../../../../../../../src/Contexts/Agro
 import { buildPatch } from '../../../../../../shared/dto/buildPatch.js';
 import { deepMerge } from '../../../../../../shared/dto/deepMerge.js';
 import { random } from '../../../../../shared/fixtures/index.js';
+import {
+  ASTERACEAE_FAMILY_ID,
+  SOLANACEAE_FAMILY_ID
+} from '../../../domain/mothers/PlantIdentityBuilder.js';
 
 const lifecycle = (): PlantLifecycleValue =>
   random.arrayElement(['annual', 'biennial', 'perennial']);
@@ -19,7 +23,7 @@ const base = (): CreatePlantDto => ({
     name: {
       primary: 'Tomato'
     },
-    family: 'solanaceae'
+    family: SOLANACEAE_FAMILY_ID
   },
 
   traits: {
@@ -73,7 +77,7 @@ export class CreatePlantDtoMother {
 
       identity: {
         name: { primary: 'Lettuce' },
-        family: 'asteraceae'
+        family: ASTERACEAE_FAMILY_ID
       },
 
       traits: {

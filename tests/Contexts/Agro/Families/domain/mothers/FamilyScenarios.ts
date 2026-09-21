@@ -1,15 +1,12 @@
+import type { CreateFamilyDto } from '../../../../../../src/Contexts/Agro/Families/application/useCases/interfaces/CreateFamilyDto.js';
+import { Family } from '../../../../../../src/Contexts/Agro/Families/domain/entities/Family.js';
+import { createFamilyId } from '../../../../../../src/Contexts/Agro/Families/domain/FamilyId.js';
 import type { FamilyExtraPrimitives } from '../../../../../../src/Contexts/Agro/Families/domain/types/FamilyExtraPrimitives.js';
 import type { FamilyProps } from '../../../../../../src/Contexts/Agro/Families/domain/types/FamilyProps.js';
 import type { MongoFamilyDocument } from '../../../../../../src/Contexts/Agro/Families/infrastructure/persistence/types/MongoFamilyDocument.js';
-
-import { Family } from '../../../../../../src/Contexts/Agro/Families/domain/entities/Family.js';
 import { Metadata } from '../../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
-import { Uuid } from '../../../../../../src/Contexts/shared/domain/valueObject/Uuid.js';
 import { toMongoId } from '../../../../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoId.js';
-
 import { random } from '../../../../shared/fixtures/random.js';
-import { UuidMother } from '../../../../shared/fixtures/UuidMother.js';
-import { type CreateFamilyDto } from '../../../../../../src/Contexts/Agro/Families/application/useCases/interfaces/CreateFamilyDto.js';
 
 const USER = 'test-user';
 
@@ -48,7 +45,7 @@ const commonExtra = {
 };
 
 const buildDomainBase = (): FamilyProps => ({
-  id: Uuid.create(UuidMother.random().value),
+  id: createFamilyId(random.uuid()),
   ...FAMILY_BASE_VALUES,
   metadata: Metadata.create(USER)
 });
@@ -76,7 +73,7 @@ export const FamilyScenarios = {
 
   domainRandom: (overrides?: Partial<FamilyProps>): Family => {
     return Family.create({
-      id: Uuid.create(UuidMother.random().value),
+      id: createFamilyId(random.uuid()),
       metadata: Metadata.create(USER),
       ...buildRandomPrimitives(),
       ...overrides
@@ -85,7 +82,7 @@ export const FamilyScenarios = {
 
   mongoBase: (): MongoFamilyDocument => {
     return {
-      _id: toMongoId(UuidMother.random().value),
+      _id: toMongoId(random.uuid()),
       ...FAMILY_BASE_VALUES,
       metadata: Metadata.create(USER).toPrimitives()
     };
@@ -102,7 +99,7 @@ export const FamilyScenarios = {
     overrides?: Partial<MongoFamilyDocument>
   ): MongoFamilyDocument => {
     return {
-      _id: toMongoId(UuidMother.random().value),
+      _id: toMongoId(random.uuid()),
       metadata: Metadata.create(USER).toPrimitives(),
       ...buildRandomPrimitives(),
       ...overrides
@@ -110,7 +107,7 @@ export const FamilyScenarios = {
   },
 
   createDtoBase: (overrides?: Partial<CreateFamilyDto>) => ({
-    id: UuidMother.random().value,
+    id: random.uuid(),
     ...FAMILY_BASE_VALUES,
     ...overrides
   }),

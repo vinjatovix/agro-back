@@ -1,11 +1,11 @@
+import { PlantInstance } from '../../../../../../src/Contexts/Agro/PlantInstances/domain/entities/PlantInstance.js';
 import { CropGrowthStatus } from '../../../../../../src/Contexts/Agro/PlantInstances/domain/entities/types/CropGrowthStatus.js';
 import { PlantInstanceLifecycleStatus } from '../../../../../../src/Contexts/Agro/PlantInstances/domain/entities/types/PlantLifecycleStatus.js';
-import { PlantInstance } from '../../../../../../src/Contexts/Agro/PlantInstances/domain/entities/PlantInstance.js';
+import { randomPlantInstanceId } from '../../../../../../src/Contexts/Agro/PlantInstances/domain/PlantInstanceId.js';
+import { InvalidArgumentException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { Coordinates } from '../../../../../../src/shared/domain/value-objects/Coordinates.js';
-import { UuidMother } from '../../../../shared/fixtures/UuidMother.js';
 import { PlantInstanceMother } from '../mothers/PlantInstanceMother.js';
 import { PlantInstanceScenarios } from '../scenarios/PlantInstanceScenarios.js';
-import { InvalidArgumentException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 
 describe('PlantInstance', () => {
   it('should create a valid plant instance', () => {
@@ -125,7 +125,7 @@ describe('PlantInstance', () => {
   });
 
   it('should preserve identity', () => {
-    const id = UuidMother.random();
+    const id = randomPlantInstanceId();
     const plant = PlantInstanceMother.create({
       id
     });

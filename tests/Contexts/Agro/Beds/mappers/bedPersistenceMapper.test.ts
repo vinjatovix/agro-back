@@ -66,8 +66,8 @@ describe('bedPersistenceMapper', () => {
 
       const bed = bedPersistenceMapper.fromMongoDocument(document);
 
-      expect(bed.id.value).toBe(original.id.value);
-      expect(bed.userId.value).toBe(original.userId.value);
+      expect(bed.id).toBe(original.id);
+      expect(bed.userId).toBe(original.userId);
 
       expect(bed.name.value).toBe(original.name.value);
 

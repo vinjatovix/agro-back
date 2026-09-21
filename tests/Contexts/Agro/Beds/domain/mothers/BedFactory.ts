@@ -1,31 +1,33 @@
+import { randomBedId } from '../../../../../../src/Contexts/Agro/Beds/domain/BedId.js';
 import { Bed } from '../../../../../../src/Contexts/Agro/Beds/domain/entities/Bed.js';
+import type { BedProps } from '../../../../../../src/Contexts/Agro/Beds/domain/entities/types/BedProps.js';
 import type { UserSessionInfo } from '../../../../../../src/Contexts/Auth/application/index.js';
+import {
+  createUserId,
+  randomUserId
+} from '../../../../../../src/Contexts/Auth/domain/UserId.js';
 import { Metadata } from '../../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
-import { Uuid } from '../../../../../../src/Contexts/shared/domain/valueObject/Uuid.js';
-import { random } from '../../../../shared/fixtures/random.js';
-import { UuidMother } from '../../../../shared/fixtures/UuidMother.js';
-import { PlantInstanceMother } from '../../../PlantInstances/domain/mothers/PlantInstanceMother.js';
 import { PositiveNumber } from '../../../../../../src/Contexts/shared/domain/valueObject/PositiveNumber.js';
 import { StringValueObject } from '../../../../../../src/Contexts/shared/domain/valueObject/StringValueObject.js';
-import type { BedProps } from '../../../../../../src/Contexts/Agro/Beds/domain/entities/types/BedProps.js';
+import { random } from '../../../../shared/fixtures/random.js';
+import { PlantInstanceMother } from '../../../PlantInstances/domain/mothers/PlantInstanceMother.js';
 
 type BedOverrides = Partial<BedProps>;
 
 function baseBed(overrides: BedOverrides = {}): BedProps {
-  return {
-    id: overrides.id ?? UuidMother.random(),
-    userId: overrides.userId ?? UuidMother.random(),
-    name:
-      overrides.name ??
-      new StringValueObject(`Bed ${random.integer({ min: 1, max: 100 })}`),
-    width: overrides.width ?? PositiveNumber.create(100),
-    height: overrides.height ?? PositiveNumber.create(200),
-    depth: overrides.depth ?? PositiveNumber.create(30),
-    plantInstances: overrides.plantInstances ?? [],
-    metadata: overrides.metadata ?? Metadata.create('test'),
-    deleted: overrides.deleted ?? false,
-    ...(overrides.deletedAt && { deletedAt: overrides.deletedAt })
+  const defaults: BedProps = {
+    id: randomBedId(),
+    userId: randomUserId(),
+    name: new StringValueObject(`Bed ${random.integer({ min: 1, max: 100 })}`),
+    width: PositiveNumber.create(100),
+    height: PositiveNumber.create(200),
+    depth: PositiveNumber.create(30),
+    plantInstances: [],
+    metadata: Metadata.create('test'),
+    deleted: false
   };
+
+  return { ...defaults, ...overrides };
 }
 
 function randomSize() {
@@ -72,8 +74,8 @@ export class BedFactory {
     return Bed.create({
       ...baseBed(),
       ...randomSize(),
-      id: UuidMother.random(),
-      userId: new Uuid(user.id),
+      id: randomBedId(),
+      userId: createUserId(user.id),
       name: randomName(),
       plantInstances: withPlants ? [PlantInstanceMother.create()] : [],
       metadata: Metadata.create(user.username),

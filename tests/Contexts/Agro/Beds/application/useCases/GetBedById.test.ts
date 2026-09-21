@@ -17,14 +17,14 @@ describe('GetBedById', () => {
     repository.addToStorage(bed);
     const user = {
       username: 'test-user',
-      id: bed.userId.value,
+      id: bed.userId,
       email: 'test-user@example.com',
       roles: ['user']
     };
 
-    await useCase.execute(bed.id.value, user);
+    await useCase.execute(bed.id, user);
 
-    repository.assertFindByIdHasBeenCalledWith(bed.id.value);
+    repository.assertFindByIdHasBeenCalledWith(bed.id);
   });
 
   it('should throw not found error when bed does not exist', async () => {
@@ -51,8 +51,8 @@ describe('GetBedById', () => {
       roles: ['user']
     };
 
-    await expect(useCase.execute(bed.id.value, otherUser)).rejects.toThrow(
-      `You do not have access to this bed: ${bed.id.value}`
+    await expect(useCase.execute(bed.id, otherUser)).rejects.toThrow(
+      `You do not have access to this bed: ${bed.id}`
     );
   });
 });

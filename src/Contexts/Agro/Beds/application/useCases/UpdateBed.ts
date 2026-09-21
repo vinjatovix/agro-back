@@ -1,6 +1,6 @@
 import { applyPatch } from '../../../../../shared/domain/patch/applyPatch.js';
-import { DomainForbiddenException } from '../../../../shared/domain/errors/index.js';
 import type { UserSessionInfo } from '../../../../Auth/application/index.js';
+import { DomainForbiddenException } from '../../../../shared/domain/errors/index.js';
 import type { Bed } from '../../domain/entities/Bed.js';
 import type { BedRepository } from '../../domain/repositories/interfaces/BedRepository.js';
 import { bedDomainMapper } from '../../mappers/bedDomainMapper.js';
@@ -12,7 +12,7 @@ export class UpdateBed {
   async execute(patch: BedPatch, user: UserSessionInfo): Promise<Bed> {
     const bed = await this.bedRepository.findById(patch.id);
 
-    if (bed.userId.value !== user.id) {
+    if (bed.userId !== user.id) {
       throw new DomainForbiddenException(
         `User ${user.id} is not allowed to update this bed`
       );

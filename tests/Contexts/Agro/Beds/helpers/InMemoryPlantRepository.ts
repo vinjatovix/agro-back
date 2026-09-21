@@ -9,7 +9,7 @@ export class InMemoryPlantRepository implements PlantRepository {
 
   // eslint-disable-next-line @typescript-eslint/require-await
   async save(plant: Plant): Promise<void> {
-    this.plants.set(plant.id.value, plant);
+    this.plants.set(plant.id, plant);
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
@@ -20,8 +20,12 @@ export class InMemoryPlantRepository implements PlantRepository {
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
-  async findAll(): Promise<Plant[]> {
-    return Array.from(this.plants.values());
+  async findAll(): Promise<{ data: Plant[]; total: number }> {
+    const plantsArray = Array.from(this.plants.values());
+    return {
+      data: plantsArray,
+      total: plantsArray.length
+    };
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
@@ -52,8 +56,8 @@ export function createPlantCatalog() {
 
   const plantRepository = new InMemoryPlantRepository(
     new Map([
-      [tomato.id.value, tomato],
-      [lettuce.id.value, lettuce]
+      [tomato.id, tomato],
+      [lettuce.id, lettuce]
     ])
   );
 

@@ -1,5 +1,7 @@
 import type { PositiveNumber } from '../../../../shared/domain/valueObject/PositiveNumber.js';
-import type { Uuid } from '../../../../shared/domain/valueObject/Uuid.js';
+import type { BedId } from '../../../Beds/domain/BedId.js';
+import type { FertilizerId } from '../FertilizerId.js';
+import type { ProductId } from '../ProductId.js';
 
 export type WateringData = {
   amountLiters: PositiveNumber;
@@ -25,7 +27,7 @@ export type FertilizerType = (typeof FertilizerTypeValues)[number];
 export type FertilizationData = {
   fertilizerType: FertilizerType;
   method: FertilizationMethod;
-  fertilizerId: Uuid;
+  fertilizerId: FertilizerId;
   amount: PositiveNumber;
   concentration: PositiveNumber;
 };
@@ -51,8 +53,8 @@ export type PruningData = {
 };
 
 export type TransplantData = {
-  fromBedId: Uuid;
-  toBedId: Uuid;
+  fromBedId: BedId;
+  toBedId: BedId;
 };
 
 export const TreatmentTargetValues = ['pest', 'fungus', 'disease'] as const;
@@ -61,7 +63,7 @@ export type TreatmentTarget = (typeof TreatmentTargetValues)[number];
 
 export type TreatmentData = {
   target: TreatmentTarget;
-  productId: Uuid;
+  productId: ProductId;
   dosage: PositiveNumber;
 };
 

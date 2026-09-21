@@ -2,16 +2,17 @@ import type { DeepPartial } from '../../../../shared/domain/patch/interfaces/Dee
 import { MonthSet } from '../../../../shared/domain/value-objects/MonthSet.js';
 import { Range } from '../../../../shared/domain/value-objects/Range.js';
 import { Metadata } from '../../../shared/domain/valueObject/Metadata.js';
-import { Uuid } from '../../../shared/domain/valueObject/Uuid.js';
 import type { CreatePlantDto } from '../application/useCases/interfaces/CreatePlantDto.js';
 import type { UpdatePlantDto } from '../application/useCases/interfaces/UpdatePlantDto.js';
 import { Plant } from '../domain/entities/Plant.js';
 import type { PlantPrimitives } from '../domain/entities/types/PlantPrimitives.js';
 import type { PlantProps } from '../domain/entities/types/PlantProps.js';
+import { createPlantId } from '../domain/PlantId.js';
 import { PlantKnowledge } from '../domain/value-objects/PlantKnowledge.js';
 import { PlantLifecycle } from '../domain/value-objects/PlantLifecycle.js';
 import { PlantSowing } from '../domain/value-objects/PlantSowing.js';
 import type { PlantApiMapper } from './interfaces/PlantApiMapper.js';
+import { plantIdentityMapper } from './plantIdentityMapper.js';
 import { plantKnowledgeMapper } from './plantKnowledgeMapper.js';
 
 export const plantApiMapper: PlantApiMapper = {
@@ -37,8 +38,8 @@ export const plantApiMapper: PlantApiMapper = {
       : PlantKnowledge.empty();
 
     const props: PlantProps = {
-      id: Uuid.create(dto.id),
-      identity: dto.identity,
+      id: createPlantId(dto.id),
+      identity: plantIdentityMapper.fromPrimitives(dto.identity),
       traits: {
         lifecycle: PlantLifecycle.from(dto.traits.lifecycle),
         size: {

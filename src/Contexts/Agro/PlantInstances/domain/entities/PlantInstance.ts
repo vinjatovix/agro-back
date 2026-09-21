@@ -1,12 +1,17 @@
 import { Coordinates } from '../../../../../shared/domain/value-objects/index.js';
+import { createUserId } from '../../../../Auth/domain/UserId.js';
 import { InvalidArgumentException } from '../../../../shared/domain/errors/index.js';
 import type { Serializable } from '../../../../shared/domain/interfaces/Serializable.js';
-import { Uuid } from '../../../../shared/domain/valueObject/index.js';
+import { createPlantId, type PlantId } from '../../../Plants/domain/PlantId.js';
+import {
+  createPlantInstanceId,
+  type PlantInstanceId
+} from '../PlantInstanceId.js';
 import {
   type CropGrowthStatus,
+  PlantInstanceLifecycleStatus,
   type PlantInstancePrimitives,
-  type PlantInstanceProps,
-  PlantInstanceLifecycleStatus
+  type PlantInstanceProps
 } from './types/index.js';
 
 export class PlantInstance implements Serializable<PlantInstancePrimitives> {
@@ -14,7 +19,7 @@ export class PlantInstance implements Serializable<PlantInstancePrimitives> {
     this.assertInvariants(props);
   }
 
-  get id(): Uuid {
+  get id(): PlantInstanceId {
     return this.props.id;
   }
 
@@ -22,7 +27,7 @@ export class PlantInstance implements Serializable<PlantInstancePrimitives> {
     return this.props.position;
   }
 
-  get plantId(): Uuid {
+  get plantId(): PlantId {
     return this.props.plantId;
   }
 
@@ -36,9 +41,9 @@ export class PlantInstance implements Serializable<PlantInstancePrimitives> {
 
   toPrimitives(): PlantInstancePrimitives {
     const result: PlantInstancePrimitives = {
-      id: this.props.id.value,
-      userId: this.props.userId.value,
-      plantId: this.props.plantId.value,
+      id: this.props.id,
+      userId: this.props.userId,
+      plantId: this.props.plantId,
       position: this.props.position.toPrimitives(),
       growthStatus: this.props.growthStatus,
       instanceStatus: this.props.instanceStatus,
@@ -62,9 +67,9 @@ export class PlantInstance implements Serializable<PlantInstancePrimitives> {
 
   static fromPrimitives(p: PlantInstancePrimitives): PlantInstance {
     return new PlantInstance({
-      id: new Uuid(p.id),
-      userId: new Uuid(p.userId),
-      plantId: new Uuid(p.plantId),
+      id: createPlantInstanceId(p.id),
+      userId: createUserId(p.userId),
+      plantId: createPlantId(p.plantId),
       position: Coordinates.fromPrimitives(p.position),
       growthStatus: p.growthStatus,
       instanceStatus: p.instanceStatus,

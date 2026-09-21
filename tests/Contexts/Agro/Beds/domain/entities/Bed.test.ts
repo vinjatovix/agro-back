@@ -1,15 +1,17 @@
+import { randomBedId } from '../../../../../../src/Contexts/Agro/Beds/domain/BedId.js';
 import { Bed } from '../../../../../../src/Contexts/Agro/Beds/domain/entities/Bed.js';
-import { UuidMother } from '../../../../shared/fixtures/UuidMother.js';
-import { PlantInstanceMother } from '../../../PlantInstances/domain/mothers/PlantInstanceMother.js';
 import type {
-  SpatialService,
-  SpatialPlantModel
+  SpatialPlantModel,
+  SpatialService
 } from '../../../../../../src/Contexts/Agro/Beds/domain/services/spatial/interfaces/index.js';
-import { Metadata } from '../../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
 import { bedDomainMapper } from '../../../../../../src/Contexts/Agro/Beds/mappers/bedDomainMapper.js';
+import { randomPlantInstanceId } from '../../../../../../src/Contexts/Agro/PlantInstances/domain/PlantInstanceId.js';
+import { randomUserId } from '../../../../../../src/Contexts/Auth/domain/UserId.js';
+import { DomainConflictException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
+import { Metadata } from '../../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
 import { PositiveNumber } from '../../../../../../src/Contexts/shared/domain/valueObject/PositiveNumber.js';
 import { StringValueObject } from '../../../../../../src/Contexts/shared/domain/valueObject/StringValueObject.js';
-import { DomainConflictException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
+import { PlantInstanceMother } from '../../../PlantInstances/domain/mothers/PlantInstanceMother.js';
 
 describe('Bed (unit)', () => {
   let validatePlacement: jest.Mock;
@@ -29,8 +31,8 @@ describe('Bed (unit)', () => {
   const toSpatial = (
     plant: ReturnType<typeof PlantInstanceMother.atPosition>
   ): SpatialPlantModel => ({
-    id: plant.id.value,
-    plantId: plant.plantId.value,
+    id: plant.id,
+    plantId: plant.plantId,
     position: {
       x: plant.position.x,
       y: plant.position.y
@@ -51,8 +53,8 @@ describe('Bed (unit)', () => {
 
     bed = new Bed(
       {
-        id: UuidMother.random(),
-        userId: UuidMother.random(),
+        id: randomBedId(),
+        userId: randomUserId(),
         name: new StringValueObject(BED_NAME),
         width: PositiveNumber.create(BED_DIMENSION),
         height: PositiveNumber.create(BED_DIMENSION),
@@ -122,7 +124,7 @@ describe('Bed (unit)', () => {
     bed = new Bed(
       {
         id: bed.id,
-        userId: UuidMother.random(),
+        userId: randomUserId(),
         name: new StringValueObject(BED_NAME),
         width: PositiveNumber.create(BED_DIMENSION),
         height: PositiveNumber.create(BED_DIMENSION),
@@ -140,7 +142,7 @@ describe('Bed (unit)', () => {
   });
 
   it('should do nothing when removing non-existent plant', () => {
-    bed.removePlant(UuidMother.random());
+    bed.removePlant(randomPlantInstanceId());
 
     expect(bed.plantInstances).toHaveLength(0);
   });
@@ -151,7 +153,7 @@ describe('Bed (unit)', () => {
     bed = new Bed(
       {
         id: bed.id,
-        userId: UuidMother.random(),
+        userId: randomUserId(),
         name: new StringValueObject(BED_NAME),
         width: PositiveNumber.create(BED_DIMENSION),
         height: PositiveNumber.create(BED_DIMENSION),
@@ -167,13 +169,13 @@ describe('Bed (unit)', () => {
 
     expect(result).toEqual(
       expect.objectContaining({
-        id: bed.id.value,
+        id: bed.id,
         width: BED_DIMENSION,
         height: BED_DIMENSION,
         plantInstances: expect.arrayContaining([
           expect.objectContaining({
-            id: plant.id.value,
-            plantId: plant.plantId.value
+            id: plant.id,
+            plantId: plant.plantId
           })
         ]) as unknown[]
       })
@@ -230,7 +232,7 @@ describe('Bed (unit)', () => {
     bed = new Bed(
       {
         id: bed.id,
-        userId: UuidMother.random(),
+        userId: randomUserId(),
         name: new StringValueObject(BED_NAME),
         width: PositiveNumber.create(BED_DIMENSION),
         height: PositiveNumber.create(BED_DIMENSION),

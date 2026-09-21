@@ -1,8 +1,7 @@
 import { ValidateMail } from '../../../../../src/Contexts/Auth/application/useCases/ValidateMail.js';
-import { DomainUnauthorizedException } from '../../../../../src/Contexts/shared/domain/errors/index.js';
 import { UserPatch } from '../../../../../src/Contexts/Auth/domain/entities/UserPatch.js';
-import { CryptAdapterMock, AuthRepositoryMock } from '../../__mocks__/index.js';
 import { random } from '../../../shared/fixtures/index.js';
+import { AuthRepositoryMock, CryptAdapterMock } from '../../__mocks__/index.js';
 
 describe('ValidateMail', () => {
   let encrypter: CryptAdapterMock;
@@ -21,8 +20,10 @@ describe('ValidateMail', () => {
     await service.run({ token });
 
     encrypter.assertVerifyTokenHasBeenCalledWith(token);
-    repository.assertSearchHasBeenCalledWith(expect.any(String));
-    repository.assertUpdateHasBeenCalledWith(expect.any(UserPatch));
+    repository.assertSearchHasBeenCalledWith(expect.any(String) as string);
+    repository.assertUpdateHasBeenCalledWith(
+      expect.any(UserPatch) as UserPatch
+    );
     encrypter.assertRefreshTokenHasBeenCalledWith(token);
   });
 

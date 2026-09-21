@@ -1,18 +1,20 @@
+import type { UserId } from '../../../../Auth/domain/UserId.js';
 import { AggregateRoot } from '../../../../shared/domain/entities/AggregateRoot.js';
-import type { Uuid } from '../../../../shared/domain/valueObject/Uuid.js';
+import { DomainConflictException } from '../../../../shared/domain/errors/index.js';
+import type { Metadata } from '../../../../shared/domain/valueObject/Metadata.js';
+import type { PositiveNumber } from '../../../../shared/domain/valueObject/PositiveNumber.js';
+import type { StringValueObject } from '../../../../shared/domain/valueObject/StringValueObject.js';
+import type { PlantInstance } from '../../../PlantInstances/domain/entities/PlantInstance.js';
+import type { PlantInstanceId } from '../../../PlantInstances/domain/PlantInstanceId.js';
+import type { BedId } from '../BedId.js';
 import { BasicSpatialService } from '../services/index.js';
 import type {
   SpatialPlantModel,
   SpatialService
 } from '../services/spatial/interfaces/index.js';
-import type { PlantInstance } from '../../../PlantInstances/domain/entities/PlantInstance.js';
-import type { Metadata } from '../../../../shared/domain/valueObject/Metadata.js';
-import { DomainConflictException } from '../../../../shared/domain/errors/index.js';
-import type { PositiveNumber } from '../../../../shared/domain/valueObject/PositiveNumber.js';
-import type { StringValueObject } from '../../../../shared/domain/valueObject/StringValueObject.js';
 import type { BedProps } from './types/BedProps.js';
 
-export class Bed extends AggregateRoot<Uuid> {
+export class Bed extends AggregateRoot<BedId> {
   private readonly props: BedProps & { plantInstances: PlantInstance[] };
 
   constructor(
@@ -59,7 +61,7 @@ export class Bed extends AggregateRoot<Uuid> {
     return this.props.deletedAt;
   }
 
-  get userId(): Uuid {
+  get userId(): UserId {
     return this.props.userId;
   }
 
@@ -83,10 +85,8 @@ export class Bed extends AggregateRoot<Uuid> {
     this.props.plantInstances.push(plant);
   }
 
-  removePlant(plantId: Uuid): void {
-    const index = this.props.plantInstances.findIndex((p) =>
-      p.id.equals(plantId)
-    );
+  removePlant(plantId: PlantInstanceId): void {
+    const index = this.props.plantInstances.findIndex((p) => p.id === plantId);
 
     if (index === -1) return;
 

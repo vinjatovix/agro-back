@@ -23,9 +23,9 @@ describe('GetPlant', () => {
     const plant = PlantFactory.tomato();
     repository.addToStorage(plant);
 
-    await getPlant.execute(plant.id.value, USER);
+    await getPlant.execute(plant.id, USER);
 
-    repository.assertFindByIdHasBeenCalledWith(plant.id.value);
+    repository.assertFindByIdHasBeenCalledWith(plant.id);
   });
 
   it('should throw error when plant does not exist', async () => {
@@ -42,11 +42,11 @@ describe('GetPlant', () => {
     plant.markAsDeleted();
     repository.addToStorage(plant);
 
-    await expect(getPlant.execute(plant.id.value, USER)).rejects.toThrow(
-      `Plant not found: ${plant.id.value}`
+    await expect(getPlant.execute(plant.id, USER)).rejects.toThrow(
+      `Plant not found: ${plant.id}`
     );
 
-    repository.assertFindByIdHasBeenCalledWith(plant.id.value);
+    repository.assertFindByIdHasBeenCalledWith(plant.id);
   });
 
   it('should return plant if it is deleted but user has admin role', async () => {
@@ -54,10 +54,8 @@ describe('GetPlant', () => {
     plant.markAsDeleted();
     repository.addToStorage(plant);
 
-    await expect(getPlant.execute(plant.id.value, ADMIN)).resolves.toEqual(
-      plant
-    );
+    await expect(getPlant.execute(plant.id, ADMIN)).resolves.toEqual(plant);
 
-    repository.assertFindByIdHasBeenCalledWith(plant.id.value);
+    repository.assertFindByIdHasBeenCalledWith(plant.id);
   });
 });

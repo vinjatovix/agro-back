@@ -2,15 +2,14 @@ import {
   DomainConflictException,
   InvalidArgumentException
 } from '../../../shared/domain/errors/index.js';
-import {
-  Email,
-  Metadata,
-  Uuid
-} from '../../../shared/domain/valueObject/index.js';
+import { Email, Metadata } from '../../../shared/domain/valueObject/index.js';
 import {
   buildLogger,
   type EncrypterTool
 } from '../../../shared/plugins/index.js';
+import { User } from '../../domain/entities/User.js';
+import type { AuthRepository } from '../../domain/repositories/interfaces/AuthRepository.js';
+import { createUserId } from '../../domain/UserId.js';
 import {
   PasswordHash,
   PlainPassword,
@@ -18,9 +17,7 @@ import {
   Username,
   UserRoles
 } from '../../domain/value-objects/index.js';
-import type { AuthRepository } from '../../domain/repositories/interfaces/AuthRepository.js';
 import type { RegisterUserRequest } from '../interfaces/index.js';
-import { User } from '../../domain/entities/User.js';
 
 const logger = buildLogger('registerUser');
 const PASSWORDS_DO_NOT_MATCH_MESSAGE = 'Passwords do not match';
@@ -50,7 +47,7 @@ export class RegisterUserLocal {
     const date = new Date();
 
     const user = new User({
-      id: new Uuid(id),
+      id: createUserId(id),
       email: new Email(email),
       username: new Username(username),
       password: new PasswordHash(encryptedPassword),

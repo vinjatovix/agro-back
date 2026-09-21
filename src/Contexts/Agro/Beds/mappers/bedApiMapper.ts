@@ -1,18 +1,19 @@
+import { createUserId } from '../../../Auth/domain/UserId.js';
 import {
   Metadata,
   PositiveNumber,
-  StringValueObject,
-  Uuid
+  StringValueObject
 } from '../../../shared/domain/valueObject/index.js';
+import type { BedPatch } from '../application/useCases/interfaces/BedPatch.js';
+import { createBedId } from '../domain/BedId.js';
 import { Bed } from '../domain/entities/Bed.js';
 import type { BedApiMapper } from './interfaces/BedApiMapper.js';
-import type { BedPatch } from '../application/useCases/interfaces/BedPatch.js';
 
 export const bedApiMapper: BedApiMapper = {
   fromCreateInputToDomain(input, user) {
     return Bed.create({
-      id: new Uuid(input.id),
-      userId: new Uuid(input.userId),
+      id: createBedId(input.id),
+      userId: createUserId(input.userId),
       name: new StringValueObject(input.name),
       width: PositiveNumber.create(input.width),
       height: PositiveNumber.create(input.height),
@@ -25,7 +26,7 @@ export const bedApiMapper: BedApiMapper = {
 
   fromUpdateInputToPrimitivesPatch(input): BedPatch {
     return {
-      id: new Uuid(input.id).value,
+      id: createBedId(input.id),
       ...(input.name !== undefined && {
         name: new StringValueObject(input.name).value
       }),

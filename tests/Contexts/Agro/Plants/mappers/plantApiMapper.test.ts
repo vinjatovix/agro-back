@@ -1,6 +1,6 @@
+import { PollinationType } from '../../../../../src/Contexts/Agro/Plants/domain/entities/types/PollinationType.js';
 import { plantApiMapper } from '../../../../../src/Contexts/Agro/Plants/mappers/plantApiMapper.js';
 import { CreatePlantDtoMother } from '../application/useCases/mothers/CreatePlantDtoMother.js';
-import { PollinationType } from '../../../../../src/Contexts/Agro/Plants/domain/entities/types/PollinationType.js';
 
 const USER = 'test-user';
 
@@ -11,7 +11,7 @@ describe('PlantApiMapper', () => {
 
       const plant = plantApiMapper.fromCreateDto(dto, 'test-user');
 
-      expect(plant.id.value).toBe(dto.id);
+      expect(plant.id).toBe(dto.id);
       expect(plant.identity.name.primary).toBe(dto.identity.name.primary);
       expect(plant.traits.lifecycle.getValue()).toBe(dto.traits.lifecycle);
     });

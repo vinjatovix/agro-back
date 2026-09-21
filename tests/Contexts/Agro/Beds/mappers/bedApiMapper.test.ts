@@ -1,6 +1,6 @@
-import { bedApiMapper } from '../../../../../src/Contexts/Agro/Beds/mappers/bedApiMapper.js';
 import { Bed } from '../../../../../src/Contexts/Agro/Beds/domain/entities/Bed.js';
-import { UuidMother } from '../../../../Contexts/shared/fixtures/UuidMother.js';
+import { bedApiMapper } from '../../../../../src/Contexts/Agro/Beds/mappers/bedApiMapper.js';
+import { random } from '../../../../Contexts/shared/fixtures/random.js';
 import { CreateBedInputMother } from '../application/mothers/CreateBedInputMother.js';
 import { UpdateBedInputMother } from '../application/mothers/UpdateBedInputMother.js';
 
@@ -12,8 +12,8 @@ describe('bedApiMapper', () => {
       const bed = bedApiMapper.fromCreateInputToDomain(input, 'tester');
 
       expect(bed).toBeInstanceOf(Bed);
-      expect(bed.id.value).toBe(input.id);
-      expect(bed.userId.value).toBe(input.userId);
+      expect(bed.id).toBe(input.id);
+      expect(bed.userId).toBe(input.userId);
       expect(bed.name.value).toBe(input.name);
       expect(bed.width.value).toBe(input.width);
       expect(bed.height.value).toBe(input.height);
@@ -60,7 +60,7 @@ describe('bedApiMapper', () => {
 
     it('should include only provided fields', () => {
       const input = {
-        id: UuidMother.random().value,
+        id: random.uuid(),
         width: 300
       };
 
@@ -78,7 +78,7 @@ describe('bedApiMapper', () => {
 
     it('should always include id', () => {
       const input = {
-        id: UuidMother.random().value
+        id: random.uuid()
       };
 
       const patch = bedApiMapper.fromUpdateInputToPrimitivesPatch(input);

@@ -22,7 +22,7 @@ describe('EventMapper', () => {
 
       expect(event.type).toBe('watering');
       expect(event.data.amountLiters.value).toBe(doc.data.amountLiters);
-      expect(event.id.value).toBe(doc._id);
+      expect(event.id).toBe(doc._id);
     });
 
     it('should map fertilization document to domain event', () => {
@@ -34,7 +34,7 @@ describe('EventMapper', () => {
       >;
 
       expect(event.type).toBe('fertilization');
-      expect(event.data.fertilizerId.value).toBe(doc.data.fertilizerId);
+      expect(event.data.fertilizerId).toBe(doc.data.fertilizerId);
       expect(event.data.fertilizerType).toBe(doc.data.fertilizerType);
       expect(event.data.method).toBe(doc.data.method);
       expect(event.data.amount.value).toBe(doc.data.amount);
@@ -74,8 +74,8 @@ describe('EventMapper', () => {
       >;
 
       expect(event.type).toBe('transplant');
-      expect(event.data.fromBedId.value).toBe(doc.data.fromBedId);
-      expect(event.data.toBedId.value).toBe(doc.data.toBedId);
+      expect(event.data.fromBedId).toBe(doc.data.fromBedId);
+      expect(event.data.toBedId).toBe(doc.data.toBedId);
     });
 
     it('should map treatment document to domain event', () => {
@@ -88,7 +88,7 @@ describe('EventMapper', () => {
 
       expect(event.type).toBe('treatment');
       expect(event.data.target).toBe(doc.data.target);
-      expect(event.data.productId.value).toBe(doc.data.productId);
+      expect(event.data.productId).toBe(doc.data.productId);
       expect(event.data.dosage.value).toBe(doc.data.dosage);
     });
 
@@ -113,7 +113,7 @@ describe('EventMapper', () => {
       const doc = EventMapper.toPersistence(event) as WateringEventDocument;
       expect(doc.type).toBe('watering');
       expect(doc.data.amountLiters).toBe(event.data.amountLiters.value);
-      expect(doc._id).toBe(event.id.value);
+      expect(doc._id).toBe(event.id);
     });
 
     it('should map fertilization domain event to document', () => {
@@ -124,7 +124,7 @@ describe('EventMapper', () => {
       ) as FertilizationEventDocument;
 
       expect(doc.type).toBe('fertilization');
-      expect(doc.data.fertilizerId).toBe(event.data.fertilizerId.value);
+      expect(doc.data.fertilizerId).toBe(event.data.fertilizerId);
       expect(doc.data.fertilizerType).toBe(event.data.fertilizerType);
       expect(doc.data.method).toBe(event.data.method);
       expect(doc.data.amount).toBe(event.data.amount.value);
@@ -155,8 +155,8 @@ describe('EventMapper', () => {
       const doc = EventMapper.toPersistence(event) as TransplantEventDocument;
 
       expect(doc.type).toBe('transplant');
-      expect(doc.data.fromBedId).toBe(event.data.fromBedId.value);
-      expect(doc.data.toBedId).toBe(event.data.toBedId.value);
+      expect(doc.data.fromBedId).toBe(event.data.fromBedId);
+      expect(doc.data.toBedId).toBe(event.data.toBedId);
     });
 
     it('should map treatment domain event to document', () => {
@@ -166,7 +166,7 @@ describe('EventMapper', () => {
 
       expect(doc.type).toBe('treatment');
       expect(doc.data.target).toBe(event.data.target);
-      expect(doc.data.productId).toBe(event.data.productId.value);
+      expect(doc.data.productId).toBe(event.data.productId);
       expect(doc.data.dosage).toBe(event.data.dosage.value);
     });
 

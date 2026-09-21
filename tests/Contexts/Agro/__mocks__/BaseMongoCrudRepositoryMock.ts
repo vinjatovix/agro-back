@@ -1,15 +1,15 @@
 /* eslint-disable @typescript-eslint/require-await */
 
-import type { QueryOptions } from '../../../../src/shared/domain/query/interfaces/QueryOptions.js';
-import { applyPatch } from '../../../../src/shared/domain/patch/applyPatch.js';
 import {
-  DomainNotFoundException,
-  DomainConflictException
+  DomainConflictException,
+  DomainNotFoundException
 } from '../../../../src/Contexts/shared/domain/errors/index.js';
+import { applyPatch } from '../../../../src/shared/domain/patch/applyPatch.js';
 import type { PaginatedResult } from '../../../../src/shared/domain/query/interfaces/PaginatedResult.js';
+import type { QueryOptions } from '../../../../src/shared/domain/query/interfaces/QueryOptions.js';
 
 export abstract class BaseMongoCrudRepositoryMock<
-  TEntity extends { id: { value: string } },
+  TEntity extends { id: string },
   TPrimitives extends { id: string }
 > {
   protected readonly saveMock = jest.fn();
@@ -31,7 +31,7 @@ export abstract class BaseMongoCrudRepositoryMock<
       throw new DomainConflictException('Save failed');
     }
 
-    this.storage.set(entity.id.value, entity);
+    this.storage.set(entity.id, entity);
   }
 
   async findById(id: string): Promise<TEntity> {
@@ -102,7 +102,7 @@ export abstract class BaseMongoCrudRepositoryMock<
   /* ---------- helpers ---------- */
 
   addToStorage(entity: TEntity): void {
-    this.storage.set(entity.id.value, entity);
+    this.storage.set(entity.id, entity);
   }
 
   clear(): void {

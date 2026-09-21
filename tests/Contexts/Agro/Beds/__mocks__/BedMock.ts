@@ -1,10 +1,10 @@
 import type { Bed } from '../../../../../src/Contexts/Agro/Beds/domain/entities/Bed.js';
-import type { PlantInstance } from '../../../../../src/Contexts/Agro/PlantInstances/domain/entities/PlantInstance.js';
 import type { SpatialPlantModel } from '../../../../../src/Contexts/Agro/Beds/domain/services/spatial/interfaces/SpatialPlantModel.js';
-import { UuidMother } from '../../../shared/fixtures/UuidMother.js';
+import type { PlantInstance } from '../../../../../src/Contexts/Agro/PlantInstances/domain/entities/PlantInstance.js';
 import { Metadata } from '../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
 import { PositiveNumber } from '../../../../../src/Contexts/shared/domain/valueObject/PositiveNumber.js';
 import { StringValueObject } from '../../../../../src/Contexts/shared/domain/valueObject/StringValueObject.js';
+import { random } from '../../../../Contexts/shared/fixtures/random.js';
 
 type AddPlantCall = [PlantInstance, SpatialPlantModel, SpatialPlantModel[]];
 
@@ -16,8 +16,8 @@ export class BedMock {
 
   toBed(): Bed {
     return {
-      id: UuidMother.random(),
-      userId: UuidMother.random(),
+      id: random.uuid(),
+      userId: random.uuid(),
       name: new StringValueObject('Test Bed'),
       width: PositiveNumber.create(100),
       height: PositiveNumber.create(100),

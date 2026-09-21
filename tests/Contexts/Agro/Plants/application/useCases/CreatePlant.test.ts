@@ -19,7 +19,7 @@ describe('CreatePlant (use case)', () => {
     const family = FamilyScenarios.domainBase();
     familyRepository.addToStorage(family);
     const dto = CreatePlantDtoMother.custom({
-      'identity.family': family.id.value
+      'identity.family': family.id
     });
 
     repository.addToStorage(await useCase.execute(dto));
@@ -45,17 +45,17 @@ describe('CreatePlant (use case)', () => {
     const family = FamilyScenarios.domainBase();
     familyRepository.addToStorage(family);
     const dto = CreatePlantDtoMother.custom({
-      'identity.family': family.id.value
+      'identity.family': family.id
     });
 
     const plant = await useCase.execute(dto);
 
-    expect(plant.id.value).toBe(dto.id);
+    expect(plant.id).toBe(dto.id);
     expect(plant.identity.name.primary).toBe(dto.identity.name.primary);
 
     const stored = await repository.findById(dto.id);
 
-    expect(stored.id.value).toBe(plant.id.value);
+    expect(stored.id).toBe(plant.id);
     repository.assertSaveHasBeenCalledWith(plant);
   });
 
@@ -63,10 +63,10 @@ describe('CreatePlant (use case)', () => {
     const family = FamilyScenarios.domainBase();
     familyRepository.addToStorage(family);
     const dto1 = CreatePlantDtoMother.custom({
-      'identity.family': family.id.value
+      'identity.family': family.id
     });
     const dto2 = CreatePlantDtoMother.custom({
-      'identity.family': family.id.value
+      'identity.family': family.id
     });
 
     await useCase.execute(dto1);
@@ -81,7 +81,7 @@ describe('CreatePlant (use case)', () => {
     const family = FamilyScenarios.domainBase();
     familyRepository.addToStorage(family);
     const dto = CreatePlantDtoMother.custom({
-      'identity.family': family.id.value
+      'identity.family': family.id
     });
     delete dto.identity.scientificName;
 
@@ -94,7 +94,7 @@ describe('CreatePlant (use case)', () => {
     const family = FamilyScenarios.domainBase();
     familyRepository.addToStorage(family);
     const dto = CreatePlantDtoMother.custom({
-      'identity.family': family.id.value,
+      'identity.family': family.id,
       'identity.scientificName': 'Solanum lycopersicum'
     });
 
@@ -109,7 +109,7 @@ describe('CreatePlant (use case)', () => {
     const family = FamilyScenarios.domainBase();
     familyRepository.addToStorage(family);
     const dto = CreatePlantDtoMother.custom({
-      'identity.family': family.id.value
+      'identity.family': family.id
     });
 
     repository.simulateSaveFailure();

@@ -1,11 +1,12 @@
-import { Metadata, Uuid } from '../../../shared/domain/valueObject/index.js';
+import { Metadata } from '../../../shared/domain/valueObject/index.js';
 import { Family } from '../domain/entities/Family.js';
+import { createFamilyId } from '../domain/FamilyId.js';
 import type { FamilyApiMapper } from './interfaces/FamilyApiMapper.js';
 
 export const familyApiMapper: FamilyApiMapper = {
   fromCreateDto(dto, user) {
     return Family.create({
-      id: Uuid.create(dto.id),
+      id: createFamilyId(dto.id),
       slug: dto.slug,
       name: dto.name,
       aliases: dto.aliases,
@@ -19,7 +20,7 @@ export const familyApiMapper: FamilyApiMapper = {
 
   fromUpdateInputToPrimitivesPatch(input) {
     return {
-      id: new Uuid(input.id).value,
+      id: createFamilyId(input.id),
       ...(input.slug !== undefined && { slug: input.slug }),
       ...(input.name !== undefined && { name: input.name }),
       ...(input.aliases !== undefined && { aliases: input.aliases }),
