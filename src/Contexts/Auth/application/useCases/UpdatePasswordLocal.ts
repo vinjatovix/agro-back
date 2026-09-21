@@ -2,24 +2,24 @@ import {
   DomainNotFoundException,
   DomainUnauthorizedException
 } from '../../../shared/domain/errors/index.js';
-import { Uuid } from '../../../shared/domain/valueObject/index.js';
 import {
   buildLogger,
   type EncrypterTool
 } from '../../../shared/plugins/index.js';
+import type { User } from '../../domain/entities/User.js';
+import { UserPatch } from '../../domain/entities/UserPatch.js';
+import type { AuthRepository } from '../../domain/repositories/interfaces/AuthRepository.js';
+import { createUserId } from '../../domain/UserId.js';
 import {
   PasswordHash,
   PlainPassword,
   UserAuthMethod,
   Username
 } from '../../domain/value-objects/index.js';
-import type { AuthRepository } from '../../domain/entities/types/index.js';
 import type {
   UpdatePasswordRequest,
   UserSessionInfo
 } from '../interfaces/index.js';
-import { UserPatch } from '../../domain/entities/UserPatch.js';
-import type { User } from '../../domain/entities/User.js';
 
 const logger = buildLogger('updatePassword');
 const INVALID_CREDENTIALS_MESSAGE = 'Invalid credentials';
@@ -47,7 +47,7 @@ export class UpdatePasswordLocal {
       this.encrypter.hash(newPassword.value)
     );
     const userPatch = new UserPatch({
-      id: new Uuid(user.id),
+      id: createUserId(user.id),
       password: encryptedPassword,
       authMethods: storedUser.authMethods.map((method) =>
         method.isLocal()
@@ -57,7 +57,7 @@ export class UpdatePasswordLocal {
     });
 
     await this.repository.update(userPatch, new Username(user.username));
-    logger.info(`Updated User: <${userPatch.id.value}> by <${user.username}>`);
+    logger.info(`Updated User: <${userPatch.id}> by <${user.username}>`);
   }
 
   private async validatePatchAndGetStoredUser(

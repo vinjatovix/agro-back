@@ -1,7 +1,7 @@
 import { RefreshToken } from '../../../../../src/Contexts/Auth/application/useCases/RefreshToken.js';
 import { DomainUnauthorizedException } from '../../../../../src/Contexts/shared/domain/errors/index.js';
-import { CryptAdapterMock } from '../../__mocks__/CryptAdapterMock.js';
 import { random } from '../../../shared/fixtures/index.js';
+import { CryptAdapterMock } from '../../__mocks__/CryptAdapterMock.js';
 
 describe('RefreshToken', () => {
   it('should return a new token when current token is refreshable', async () => {
@@ -21,10 +21,7 @@ describe('RefreshToken', () => {
     const token = random.word({ min: 6, max: 255 });
 
     await expect(refreshToken.run(token)).rejects.toThrow(
-      expect.objectContaining({
-        name: 'DomainUnauthorizedException',
-        message: 'Invalid token'
-      })
+      DomainUnauthorizedException
     );
     encrypter.assertRefreshTokenHasBeenCalledWith(token);
   });

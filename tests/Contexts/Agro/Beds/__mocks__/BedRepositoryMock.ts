@@ -12,7 +12,7 @@ export class BedRepositoryMock
 {
   findByUserId(userId: string): Promise<Bed[]> {
     const beds = Array.from(this.storage.values()).filter((bed) => {
-      return bed.userId.value === userId;
+      return bed.userId === userId;
     });
     return Promise.resolve(beds);
   }

@@ -1,7 +1,7 @@
-import type { FilterOperators } from './types/FilterOperators.js';
-import { toMongoId } from './MongoId.js';
-import { Uuid } from '../../../domain/valueObject/Uuid.js';
 import type { Primitive } from '../../../../../shared/domain/types/Primitive.js';
+import { UuidValidator } from '../../../domain/valueObject/UuidValidator.js';
+import { toMongoId } from './MongoId.js';
+import type { FilterOperators } from './types/FilterOperators.js';
 
 type MongoValue = Record<string, unknown>;
 
@@ -39,7 +39,7 @@ export class MongoQueryTranslator {
       return value.map((v) => this.mapUuidValues(v));
     }
 
-    if (typeof value === 'string' && Uuid.isValid(value)) {
+    if (typeof value === 'string' && UuidValidator.isValid(value)) {
       return toMongoId(value);
     }
 

@@ -2,19 +2,18 @@ import { CreateBed } from '../../../../../../src/Contexts/Agro/Beds/application/
 import { bedApiMapper } from '../../../../../../src/Contexts/Agro/Beds/mappers/bedApiMapper.js';
 import { DomainConflictException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { random } from '../../../../shared/fixtures/random.js';
-import { UuidMother } from '../../../../shared/fixtures/UuidMother.js';
 import { BedRepositoryMock } from '../../__mocks__/BedRepositoryMock.js';
 
 describe('CreateBed', () => {
   let repository: BedRepositoryMock;
   let useCase: CreateBed;
   const USER_NAME = random.name();
-  const USER_ID = UuidMother.random().value;
+  const USER_ID = random.uuid();
   const BED_NAME = 'Test Bed';
 
-  const BED_UUID = UuidMother.random();
+  const BED_UUID = random.uuid();
   const input = {
-    id: BED_UUID.value,
+    id: BED_UUID,
     userId: USER_ID,
     name: BED_NAME,
     width: 100,
@@ -47,8 +46,8 @@ describe('CreateBed', () => {
   it('should return created bed', async () => {
     const result = await useCase.execute(input, USER_NAME);
 
-    expect(result.id.value).toBe(BED_UUID.value);
-    expect(result.userId.value).toBe(USER_ID);
+    expect(result.id).toBe(BED_UUID);
+    expect(result.userId).toBe(USER_ID);
     expect(result.width.value).toBe(input.width);
     expect(result.height.value).toBe(input.height);
     expect(result.depth.value).toBe(input.depth);

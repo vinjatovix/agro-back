@@ -1,25 +1,22 @@
 import { AggregateRoot } from '../../../shared/domain/entities/AggregateRoot.js';
-import {
-  Email,
-  Metadata,
-  Uuid
-} from '../../../shared/domain/valueObject/index.js';
-import type { MetadataPrimitives } from '../../../shared/domain/MetadataPrimitives.js';
 import type { Serializable } from '../../../shared/domain/interfaces/Serializable.js';
+import type { MetadataPrimitives } from '../../../shared/domain/MetadataPrimitives.js';
+import { Email, Metadata } from '../../../shared/domain/valueObject/index.js';
+import { createUserId, type UserId } from '../UserId.js';
 import {
   PasswordHash,
+  UserAuthMethod,
   Username,
-  UserRoles,
-  UserAuthMethod
+  UserRoles
 } from '../value-objects/index.js';
-import type { UserPrimitives } from './types/UserPrimitives.js';
 import type { UserAuthMethodPrimitives } from '../value-objects/types/index.js';
+import type { UserPrimitives } from './types/UserPrimitives.js';
 
 export class User
-  extends AggregateRoot<Uuid>
+  extends AggregateRoot<UserId>
   implements Serializable<UserPrimitives>
 {
-  readonly id: Uuid;
+  readonly id: UserId;
   readonly email: Email;
   readonly username: Username;
   readonly password?: PasswordHash;
@@ -38,7 +35,7 @@ export class User
     roles,
     metadata
   }: {
-    id: Uuid;
+    id: UserId;
     email: Email;
     username: Username;
     password?: PasswordHash;
@@ -71,7 +68,7 @@ export class User
 
   toPrimitives(): UserPrimitives {
     return {
-      id: this.id.value,
+      id: this.id,
       email: this.email.value,
       username: this.username.value,
       ...(this.password !== undefined && { password: this.password.value }),
@@ -102,7 +99,7 @@ export class User
     metadata: MetadataPrimitives;
   }): User {
     return new User({
-      id: new Uuid(id),
+      id: createUserId(id),
       email: new Email(email),
       username: new Username(username),
       ...(password !== undefined && { password: new PasswordHash(password) }),

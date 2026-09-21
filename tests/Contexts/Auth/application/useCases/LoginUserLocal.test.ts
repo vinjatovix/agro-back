@@ -1,5 +1,5 @@
 import { LoginUserLocal } from '../../../../../src/Contexts/Auth/application/useCases/LoginUserLocal.js';
-import { CryptAdapterMock, AuthRepositoryMock } from '../../__mocks__/index.js';
+import { AuthRepositoryMock, CryptAdapterMock } from '../../__mocks__/index.js';
 import { LoginUserRequestMother } from '../mothers/index.js';
 
 describe('LoginUserLocal', () => {
@@ -21,7 +21,7 @@ describe('LoginUserLocal', () => {
     repository.assertSearchHasBeenCalledWith(request.email);
     encrypter.assertCompareHasBeenCalledWith(
       request.password,
-      expect.any(String)
+      expect.any(String) as string
     );
   });
 
@@ -30,9 +30,7 @@ describe('LoginUserLocal', () => {
     loginUser = new LoginUserLocal(repository, encrypter);
     const request = LoginUserRequestMother.random();
 
-    expect(async () => {
-      await loginUser.run(request);
-    }).rejects.toThrow(`Invalid credentials`);
+    await expect(loginUser.run(request)).rejects.toThrow(`Invalid credentials`);
   });
 
   it('should throw an error when the password is invalid', async () => {
@@ -40,8 +38,6 @@ describe('LoginUserLocal', () => {
     loginUser = new LoginUserLocal(repository, encrypter);
     const request = LoginUserRequestMother.random();
 
-    expect(async () => {
-      await loginUser.run(request);
-    }).rejects.toThrow(`Invalid credentials`);
+    await expect(loginUser.run(request)).rejects.toThrow(`Invalid credentials`);
   });
 });

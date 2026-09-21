@@ -1,20 +1,23 @@
-import { Metadata } from '../../../shared/domain/valueObject/Metadata.js';
-import { PositiveNumber } from '../../../shared/domain/valueObject/PositiveNumber.js';
-import { StringValueObject } from '../../../shared/domain/valueObject/StringValueObject.js';
-import { Uuid } from '../../../shared/domain/valueObject/Uuid.js';
+import { createUserId } from '../../../Auth/domain/UserId.js';
+import {
+  Metadata,
+  PositiveNumber,
+  StringValueObject
+} from '../../../shared/domain/valueObject/index.js';
 import {
   fromMongoId,
   toMongoId
 } from '../../../shared/infrastructure/persistence/mongo/MongoId.js';
 import { PlantInstance } from '../../PlantInstances/domain/entities/PlantInstance.js';
+import { createBedId } from '../domain/BedId.js';
 import { Bed } from '../domain/entities/Bed.js';
 import type { BedPersistenceMapper } from './interfaces/BedPersistenceMapper.js';
 
 export const bedPersistenceMapper: BedPersistenceMapper = {
   fromMongoDocument(document) {
     return Bed.create({
-      id: Uuid.create(fromMongoId(document._id)),
-      userId: Uuid.create(fromMongoId(document.userId)),
+      id: createBedId(fromMongoId(document._id)),
+      userId: createUserId(fromMongoId(document.userId)),
       name: new StringValueObject(document.name),
       width: PositiveNumber.create(document.width),
       height: PositiveNumber.create(document.height),
@@ -30,8 +33,8 @@ export const bedPersistenceMapper: BedPersistenceMapper = {
 
   toMongoDocument(bed) {
     return {
-      _id: toMongoId(bed.id.value),
-      userId: toMongoId(bed.userId.value),
+      _id: toMongoId(bed.id),
+      userId: toMongoId(bed.userId),
       name: bed.name.value,
       width: bed.width.value,
       height: bed.height.value,

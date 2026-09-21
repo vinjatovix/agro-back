@@ -48,7 +48,7 @@ describe('UpdateBed', () => {
     await expect(
       useCase.execute(
         {
-          id: bed.id.value,
+          id: bed.id,
           width: 150,
           height: 250
         },
@@ -60,7 +60,7 @@ describe('UpdateBed', () => {
   it('should update bed width and height', async () => {
     await useCase.execute(
       {
-        id: bed.id.value,
+        id: bed.id,
         width: bed.width.value + 50,
         height: bed.height.value + 50,
         depth: bed.depth.value
@@ -70,12 +70,12 @@ describe('UpdateBed', () => {
 
     repository.assertUpdateHasBeenCalledWith(
       expect.objectContaining({
-        id: bed.id.value,
+        id: bed.id,
         width: bed.width.value,
         height: bed.height.value
       }) as BedPrimitives,
       expect.objectContaining({
-        id: bed.id.value,
+        id: bed.id,
         width: bed.width.value + 50,
         height: bed.height.value + 50,
         depth: bed.depth.value
@@ -87,7 +87,7 @@ describe('UpdateBed', () => {
   it('should return the updated bed', async () => {
     const updated = await useCase.execute(
       {
-        id: bed.id.value,
+        id: bed.id,
         width: bed.width.value + 50,
         height: bed.height.value + 50
       },

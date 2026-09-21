@@ -1,17 +1,17 @@
 import { Metadata } from '../../../shared/domain/valueObject/Metadata.js';
-import { Uuid } from '../../../shared/domain/valueObject/Uuid.js';
 import {
   fromMongoId,
   toMongoId
 } from '../../../shared/infrastructure/persistence/mongo/MongoId.js';
 import { Family } from '../domain/entities/Family.js';
+import { createFamilyId } from '../domain/FamilyId.js';
 import type { MongoFamilyDocument } from '../infrastructure/persistence/types/MongoFamilyDocument.js';
 import type { FamilyPersistenceMapper } from './interfaces/FamilyPersistenceMapper.js';
 
 export const familyPersistenceMapper: FamilyPersistenceMapper = {
   fromMongoDocument: function (document: MongoFamilyDocument): Family {
     return Family.create({
-      id: Uuid.create(fromMongoId(document._id)),
+      id: createFamilyId(fromMongoId(document._id)),
       slug: document.slug,
       name: document.name,
       aliases: document.aliases,
@@ -24,7 +24,7 @@ export const familyPersistenceMapper: FamilyPersistenceMapper = {
   },
   toMongoDocument: function (family: Family): MongoFamilyDocument {
     return {
-      _id: toMongoId(family.idValue),
+      _id: toMongoId(family.id),
       slug: family.slug,
       name: family.name,
       aliases: family.aliases,

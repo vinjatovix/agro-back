@@ -2,11 +2,9 @@ import type { PlantLightPrimitives } from '../../../../../../src/Contexts/Agro/P
 import type { PruningTypePrimitives } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PruningPrimitves.js';
 import type { Seasons } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/Seasons.js';
 import type { WateringFrequency } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/WateringFrequency.js';
-
 import { PlantKnowledge } from '../../../../../../src/Contexts/Agro/Plants/domain/value-objects/PlantKnowledge.js';
 import { RootSystem } from '../../../../../../src/Contexts/Agro/Plants/domain/value-objects/RootSystem.js';
 import { SoilProfile } from '../../../../../../src/Contexts/Agro/Plants/domain/value-objects/SoilProfile.js';
-
 import { random } from '../../../../shared/fixtures/random.js';
 
 const baseSoil = (
@@ -163,12 +161,7 @@ export const PlantKnowledgeBuilder = {
       {
         type: random.arrayElement(['maintenance', 'rejuvenation', 'shaping']),
         intensity: random.arrayElement(['light', 'moderate', 'hard']),
-        season: random.arrayElement([
-          'spring',
-          'summer',
-          'autumn',
-          'winter'
-        ]) as Seasons,
+        season: random.arrayElement(['spring', 'summer', 'autumn', 'winter']),
         frequencyPerYear: random.integer({ min: 1, max: 4 }),
         ...(random.boolean()
           ? { bestPractices: [random.word({ min: 3, max: 8 })] }

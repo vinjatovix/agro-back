@@ -15,7 +15,7 @@ describe('DeletePlant use case', () => {
 
     repository.addToStorage(plant);
 
-    await useCase.execute(plant.id.value);
+    await useCase.execute(plant.id);
 
     expect(plant.isDeleted()).toBe(true);
     repository.assertSaveHasBeenCalledWith(plant);
@@ -27,7 +27,7 @@ describe('DeletePlant use case', () => {
 
     repository.addToStorage(plant);
 
-    await useCase.execute(plant.id.value);
+    await useCase.execute(plant.id);
 
     repository.assertSaveNotCalled();
   });

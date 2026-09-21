@@ -1,15 +1,20 @@
-import type { EventDocument } from '../../infrastructure/persistence/types/EventDocument.js';
-import type { DomainEvent } from '../types/DomainEvent.js';
+import { createUserId } from '../../../../Auth/domain/UserId.js';
 import { PositiveNumber } from '../../../../shared/domain/valueObject/PositiveNumber.js';
-import { Uuid } from '../../../../shared/domain/valueObject/Uuid.js';
+import { createBedId } from '../../../Beds/domain/BedId.js';
+import { createPlantInstanceId } from '../../../PlantInstances/domain/PlantInstanceId.js';
+import type { EventDocument } from '../../infrastructure/persistence/types/EventDocument.js';
+import { createEventId } from '../EventId.js';
+import { createFertilizerId } from '../FertilizerId.js';
+import { createProductId } from '../ProductId.js';
+import type { DomainEvent } from '../types/DomainEvent.js';
 
 export const EventMapper = {
   toDomain(doc: EventDocument): DomainEvent {
     const base = {
-      id: new Uuid(doc._id),
-      plantInstanceId: new Uuid(doc.plantInstanceId),
-      bedId: new Uuid(doc.bedId),
-      userId: new Uuid(doc.userId),
+      id: createEventId(doc._id),
+      plantInstanceId: createPlantInstanceId(doc.plantInstanceId),
+      bedId: createBedId(doc.bedId),
+      userId: createUserId(doc.userId),
       date: new Date(doc.date),
       ...(doc.notes ? { notes: doc.notes } : {}),
       metadata: {
@@ -32,7 +37,7 @@ export const EventMapper = {
           ...base,
           type: 'fertilization',
           data: {
-            fertilizerId: new Uuid(doc.data.fertilizerId),
+            fertilizerId: createFertilizerId(doc.data.fertilizerId),
             fertilizerType: doc.data.fertilizerType,
             method: doc.data.method,
             amount: PositiveNumber.create(doc.data.amount),
@@ -61,8 +66,8 @@ export const EventMapper = {
           ...base,
           type: 'transplant',
           data: {
-            fromBedId: new Uuid(doc.data.fromBedId),
-            toBedId: new Uuid(doc.data.toBedId)
+            fromBedId: createBedId(doc.data.fromBedId),
+            toBedId: createBedId(doc.data.toBedId)
           }
         } satisfies Extract<DomainEvent, { type: 'transplant' }>;
 
@@ -72,7 +77,7 @@ export const EventMapper = {
           type: 'treatment',
           data: {
             target: doc.data.target,
-            productId: new Uuid(doc.data.productId),
+            productId: createProductId(doc.data.productId),
             dosage: PositiveNumber.create(doc.data.dosage)
           }
         } satisfies Extract<DomainEvent, { type: 'treatment' }>;
@@ -81,10 +86,10 @@ export const EventMapper = {
 
   toPersistence(event: DomainEvent): EventDocument {
     const base = {
-      _id: event.id.value,
-      plantInstanceId: event.plantInstanceId.value,
-      bedId: event.bedId.value,
-      userId: event.userId.value,
+      _id: event.id,
+      plantInstanceId: event.plantInstanceId,
+      bedId: event.bedId,
+      userId: event.userId,
       date: event.date.toISOString(),
       ...(event.notes ? { notes: event.notes } : {}),
       metadata: {
@@ -107,7 +112,7 @@ export const EventMapper = {
           ...base,
           type: 'fertilization',
           data: {
-            fertilizerId: event.data.fertilizerId.value,
+            fertilizerId: event.data.fertilizerId,
             fertilizerType: event.data.fertilizerType,
             method: event.data.method,
             amount: event.data.amount.value,
@@ -136,8 +141,8 @@ export const EventMapper = {
           ...base,
           type: 'transplant',
           data: {
-            fromBedId: event.data.fromBedId.value,
-            toBedId: event.data.toBedId.value
+            fromBedId: event.data.fromBedId,
+            toBedId: event.data.toBedId
           }
         } satisfies Extract<EventDocument, { type: 'transplant' }>;
 
@@ -147,7 +152,7 @@ export const EventMapper = {
           type: 'treatment',
           data: {
             target: event.data.target,
-            productId: event.data.productId.value,
+            productId: event.data.productId,
             dosage: event.data.dosage.value
           }
         } satisfies Extract<EventDocument, { type: 'treatment' }>;

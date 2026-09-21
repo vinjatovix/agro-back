@@ -1,10 +1,10 @@
 import { addPlantToBed } from '../../../../../../src/Contexts/Agro/Beds/application/useCases/addPlantToBed.js';
 import type { PlantInstance } from '../../../../../../src/Contexts/Agro/PlantInstances/domain/entities/PlantInstance.js';
 import type { Plant } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/Plant.js';
+import { PlantInstanceMother } from '../../../PlantInstances/domain/mothers/PlantInstanceMother.js';
 import { PlantRepositoryMock } from '../../../Plants/__mocks__/PlantRepositoryMock.js';
 import { PlantFactory } from '../../../Plants/domain/mothers/PlantFactory.js';
 import { BedMock } from '../../__mocks__/BedMock.js';
-import { PlantInstanceMother } from '../../../PlantInstances/domain/mothers/PlantInstanceMother.js';
 import { BedRepositoryMock } from '../../__mocks__/BedRepositoryMock.js';
 
 const DEFAULT_PLANT_SPACING = 50;
@@ -44,16 +44,14 @@ describe('addPlantToBed', () => {
     bedMock.assertAddPlantCalledWith(
       plantInstance,
       {
-        id: plantInstance.id.value,
-        plantId: plantInstance.plantId.value,
+        id: plantInstance.id,
+        plantId: plantInstance.plantId,
         position: plantInstance.position,
         spacingCm: DEFAULT_PLANT_SPACING
       },
       []
     );
-    plantRepository.assertFindByIdHasBeenCalledWith(
-      plantInstance.plantId.value
-    );
+    plantRepository.assertFindByIdHasBeenCalledWith(plantInstance.plantId);
   });
 
   it('maps existing bed plants into spatial models', async () => {
@@ -74,8 +72,8 @@ describe('addPlantToBed', () => {
     const existingSpatial = bedMock.getLastExistingSpatialPlant();
     expect(existingSpatial).toHaveLength(1);
     expect(existingSpatial[0]).toEqual({
-      id: existing.id.value,
-      plantId: existing.plantId.value,
+      id: existing.id,
+      plantId: existing.plantId,
       position: existing.position,
       spacingCm: DEFAULT_PLANT_SPACING
     });
@@ -120,9 +118,6 @@ describe('addPlantToBed', () => {
 
     const existingSpatial = bedMock.getLastExistingSpatialPlant();
     expect(existingSpatial).toHaveLength(2);
-    expect(existingSpatial.map((p) => p.id)).toEqual([
-      p1.id.value,
-      p2.id.value
-    ]);
+    expect(existingSpatial.map((p) => p.id)).toEqual([p1.id, p2.id]);
   });
 });

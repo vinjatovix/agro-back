@@ -1,13 +1,8 @@
+import { randomBedId } from '../../../../../../src/Contexts/Agro/Beds/domain/BedId.js';
+import { randomEventId } from '../../../../../../src/Contexts/Agro/Events/domain/EventId.js';
+import { randomFertilizerId } from '../../../../../../src/Contexts/Agro/Events/domain/FertilizerId.js';
+import { randomProductId } from '../../../../../../src/Contexts/Agro/Events/domain/ProductId.js';
 import type { DomainEvent } from '../../../../../../src/Contexts/Agro/Events/domain/types/DomainEvent.js';
-import type {
-  WateringEventDocument,
-  FertilizationEventDocument,
-  PruningEventDocument,
-  HarvestEventDocument,
-  TransplantEventDocument,
-  TreatmentEventDocument
-} from '../../../../../../src/Contexts/Agro/Events/infrastructure/persistence/types/EventDocument.js';
-
 import {
   FertilizationMethodValues,
   FertilizerTypeValues,
@@ -15,18 +10,26 @@ import {
   PruningTypeValues,
   TreatmentTargetValues
 } from '../../../../../../src/Contexts/Agro/Events/domain/types/EventData.js';
-
+import type {
+  FertilizationEventDocument,
+  HarvestEventDocument,
+  PruningEventDocument,
+  TransplantEventDocument,
+  TreatmentEventDocument,
+  WateringEventDocument
+} from '../../../../../../src/Contexts/Agro/Events/infrastructure/persistence/types/EventDocument.js';
+import { randomPlantInstanceId } from '../../../../../../src/Contexts/Agro/PlantInstances/domain/PlantInstanceId.js';
+import { randomUserId } from '../../../../../../src/Contexts/Auth/domain/UserId.js';
 import { PositiveNumber } from '../../../../../../src/Contexts/shared/domain/valueObject/PositiveNumber.js';
 import { random } from '../../../../shared/fixtures/random.js';
-import { UuidMother } from '../../../../shared/fixtures/UuidMother.js';
 
 const DomainEventFactoryBase = {
   base() {
     return {
-      id: UuidMother.random(),
-      plantInstanceId: UuidMother.random(),
-      bedId: UuidMother.random(),
-      userId: UuidMother.random(),
+      id: randomEventId(),
+      plantInstanceId: randomPlantInstanceId(),
+      bedId: randomBedId(),
+      userId: randomUserId(),
       date: new Date(),
       metadata: {
         createdAt: new Date()
@@ -38,10 +41,10 @@ const DomainEventFactoryBase = {
 const toEventDocumentPrimitives = (
   base: ReturnType<typeof DomainEventFactoryBase.base>
 ) => ({
-  _id: base.id.value,
-  plantInstanceId: base.plantInstanceId.value,
-  bedId: base.bedId.value,
-  userId: base.userId.value,
+  _id: base.id,
+  plantInstanceId: base.plantInstanceId,
+  bedId: base.bedId,
+  userId: base.userId,
   date: base.date.toISOString(),
   metadata: {
     createdAt: base.metadata.createdAt.toISOString()
@@ -100,7 +103,7 @@ export const EventFactory = {
         ...DomainEventFactoryBase.base(),
         type: 'fertilization',
         data: {
-          fertilizerId: UuidMother.random(),
+          fertilizerId: randomFertilizerId(),
           fertilizerType: random.arrayElement(FertilizerTypeValues),
           method: random.arrayElement(FertilizationMethodValues),
           amount: PositiveNumber.create(random.integer({ min: 1, max: 20 })),
@@ -139,8 +142,8 @@ export const EventFactory = {
         ...DomainEventFactoryBase.base(),
         type: 'transplant',
         data: {
-          fromBedId: UuidMother.random(),
-          toBedId: UuidMother.random()
+          fromBedId: randomBedId(),
+          toBedId: randomBedId()
         }
       };
     },
@@ -151,7 +154,7 @@ export const EventFactory = {
         type: 'treatment',
         data: {
           target: random.arrayElement(TreatmentTargetValues),
-          productId: UuidMother.random(),
+          productId: randomProductId(),
           dosage: PositiveNumber.create(random.integer({ min: 1, max: 10 }))
         }
       };
@@ -177,7 +180,7 @@ export const EventFactory = {
       return createEventDocument(
         'fertilization',
         {
-          fertilizerId: UuidMother.random().value,
+          fertilizerId: randomFertilizerId(),
           fertilizerType: random.arrayElement(FertilizerTypeValues),
           method: random.arrayElement(FertilizationMethodValues),
           amount: random.integer({ min: 1, max: 20 }),
@@ -218,8 +221,8 @@ export const EventFactory = {
       return createEventDocument(
         'transplant',
         {
-          fromBedId: UuidMother.random().value,
-          toBedId: UuidMother.random().value
+          fromBedId: randomBedId(),
+          toBedId: randomBedId()
         },
         overrides
       );
@@ -232,7 +235,7 @@ export const EventFactory = {
         'treatment',
         {
           target: random.arrayElement(TreatmentTargetValues),
-          productId: UuidMother.random().value,
+          productId: randomProductId(),
           dosage: random.integer({ min: 1, max: 10 })
         },
         overrides

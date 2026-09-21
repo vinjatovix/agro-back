@@ -1,11 +1,12 @@
 import { deepFreeze } from '../../../../../shared/domain/utils/deepFreeze.js';
-import { InvalidArgumentException } from '../../../../shared/domain/errors/index.js';
 import { AggregateRoot } from '../../../../shared/domain/entities/AggregateRoot.js';
-import { Metadata, Uuid } from '../../../../shared/domain/valueObject/index.js';
+import { InvalidArgumentException } from '../../../../shared/domain/errors/index.js';
+import { Metadata } from '../../../../shared/domain/valueObject/index.js';
+import type { PlantId } from '../PlantId.js';
 import { PlantKnowledge } from '../value-objects/index.js';
-import { PlantStatus, type PlantProps } from './types/index.js';
+import { type PlantProps, PlantStatus } from './types/index.js';
 
-export class Plant extends AggregateRoot<Uuid> {
+export class Plant extends AggregateRoot<PlantId> {
   private readonly props: PlantProps;
   status: PlantStatus;
   deletedAt?: Date | undefined;

@@ -1,20 +1,23 @@
+import { randomFamilyId } from '../../../../../../src/Contexts/Agro/Families/domain/FamilyId.js';
 import { Plant } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/Plant.js';
 import { PlantStatus } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantStatus.js';
+import { randomPlantId } from '../../../../../../src/Contexts/Agro/Plants/domain/PlantId.js';
 import { PlantKnowledge } from '../../../../../../src/Contexts/Agro/Plants/domain/value-objects/PlantKnowledge.js';
 import { PlantLifecycle } from '../../../../../../src/Contexts/Agro/Plants/domain/value-objects/PlantLifecycle.js';
 import { PlantSowing } from '../../../../../../src/Contexts/Agro/Plants/domain/value-objects/PlantSowing.js';
+import { InvalidArgumentException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { Metadata } from '../../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
 import { MonthSet } from '../../../../../../src/shared/domain/value-objects/MonthSet.js';
 import { Range } from '../../../../../../src/shared/domain/value-objects/Range.js';
-import { UuidMother } from '../../../../shared/fixtures/UuidMother.js';
-import { InvalidArgumentException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
+
+const randomFamilyIdValue = randomFamilyId();
 
 const buildPlant = () => {
   return new Plant({
-    id: UuidMother.random(),
+    id: randomPlantId(),
     identity: {
       name: { primary: 'Tomato' },
-      family: 'solanaceae'
+      family: randomFamilyIdValue
     },
     traits: {
       lifecycle: PlantLifecycle.from('annual'),
@@ -53,7 +56,7 @@ describe('Plant (aggregate root)', () => {
     const plant = buildPlant();
 
     expect(plant.identity.name.primary).toBe('Tomato');
-    expect(plant.identity.family).toBe('solanaceae');
+    expect(plant.identity.family).toBe(randomFamilyIdValue);
   });
 
   it('should expose traits correctly', () => {
@@ -72,10 +75,10 @@ describe('Plant (aggregate root)', () => {
 
   it('should default knowledge to empty when not provided via create()', () => {
     const plant = Plant.create({
-      id: UuidMother.random(),
+      id: randomPlantId(),
       identity: {
         name: { primary: 'Tomato' },
-        family: 'solanaceae'
+        family: randomFamilyIdValue
       },
       traits: {
         lifecycle: PlantLifecycle.from('annual'),
@@ -124,10 +127,10 @@ describe('Plant (aggregate root)', () => {
 
   it('should default status to ACTIVE when not provided', () => {
     const plant = Plant.create({
-      id: UuidMother.random(),
+      id: randomPlantId(),
       identity: {
         name: { primary: 'Tomato' },
-        family: 'solanaceae'
+        family: randomFamilyIdValue
       },
       traits: {
         lifecycle: PlantLifecycle.from('annual'),
@@ -163,10 +166,10 @@ describe('Plant (aggregate root)', () => {
     expect(
       () =>
         new Plant({
-          id: UuidMother.random(),
+          id: randomPlantId(),
           identity: {
             name: { primary: 'Tomato' },
-            family: 'solanaceae'
+            family: randomFamilyIdValue
           },
           traits: {
             lifecycle: PlantLifecycle.from('annual'),
@@ -197,10 +200,10 @@ describe('Plant (aggregate root)', () => {
   it('should not allow Plant.create with DELETED status and no deletedAt', () => {
     expect(() => {
       Plant.create({
-        id: UuidMother.random(),
+        id: randomPlantId(),
         identity: {
           name: { primary: 'Tomato' },
-          family: 'solanaceae'
+          family: randomFamilyIdValue
         },
         traits: {
           lifecycle: PlantLifecycle.from('annual'),

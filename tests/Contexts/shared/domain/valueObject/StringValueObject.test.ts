@@ -1,5 +1,5 @@
-import { StringValueObject } from '../../../../../src/Contexts/shared/domain/valueObject/StringValueObject.js';
 import { InvalidArgumentException } from '../../../../../src/Contexts/shared/domain/errors/index.js';
+import { StringValueObject } from '../../../../../src/Contexts/shared/domain/valueObject/StringValueObject.js';
 
 describe('StringValueObject', () => {
   describe('constructor and toString', () => {
@@ -19,21 +19,21 @@ describe('StringValueObject', () => {
     });
 
     it('should throw when value is not a string', () => {
-      expect(() => new StringValueObject(123 as any)).toThrow(
+      expect(() => new StringValueObject(123 as unknown as string)).toThrow(
         InvalidArgumentException
       );
     });
 
     it('should throw when value is null', () => {
-      expect(() => new StringValueObject(null as any)).toThrow(
+      expect(() => new StringValueObject(null as unknown as string)).toThrow(
         InvalidArgumentException
       );
     });
 
     it('should throw when value is undefined', () => {
-      expect(() => new StringValueObject(undefined as any)).toThrow(
-        InvalidArgumentException
-      );
+      expect(
+        () => new StringValueObject(undefined as unknown as string)
+      ).toThrow(InvalidArgumentException);
     });
   });
 
