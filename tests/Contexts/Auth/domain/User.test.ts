@@ -10,7 +10,7 @@ describe('User', () => {
   it('should expose all fields with their values', () => {
     const user = UserMother.random();
 
-    expect(typeof user.id.value).toBe('string');
+    expect(typeof user.id).toBe('string');
     expect(typeof user.email.value).toBe('string');
     expect(typeof user.username.value).toBe('string');
     expect(typeof user.password?.value).toBe('string');
@@ -34,7 +34,7 @@ describe('User', () => {
       const primitives = user.toPrimitives();
 
       expect(primitives).toMatchObject({
-        id: user.id.value,
+        id: user.id,
         email: user.email.value,
         username: user.username.value,
         password: user.password?.value,
@@ -48,7 +48,7 @@ describe('User', () => {
     const user = UserMother.random();
     const primitives = user.toPrimitives();
 
-    expect(primitives.id).toBe(user.id.value);
+    expect(primitives.id).toBe(user.id);
     expect(primitives.email).toBe(user.email.value);
     expect(primitives.username).toBe(user.username.value);
     expect(primitives.password).toBe(user.password?.value);

@@ -8,8 +8,8 @@ describe('bedDomainMapper', () => {
 
       const primitives = bedDomainMapper.toPrimitives(bed);
 
-      expect(primitives.id).toBe(bed.id.value);
-      expect(primitives.userId).toBe(bed.userId.value);
+      expect(primitives.id).toBe(bed.id);
+      expect(primitives.userId).toBe(bed.userId);
       expect(primitives.name).toBe(bed.name.value);
       expect(primitives.width).toBe(bed.width.value);
       expect(primitives.height).toBe(bed.height.value);
@@ -58,8 +58,8 @@ describe('bedDomainMapper', () => {
 
       const bed = bedDomainMapper.fromPrimitives(primitives);
 
-      expect(bed.id.value).toBe(primitives.id);
-      expect(bed.userId.value).toBe(primitives.userId);
+      expect(bed.id).toBe(primitives.id);
+      expect(bed.userId).toBe(primitives.userId);
       expect(bed.name.value).toBe(primitives.name);
 
       expect(bed.width.value).toBe(primitives.width);

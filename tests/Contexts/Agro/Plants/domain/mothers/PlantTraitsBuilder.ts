@@ -1,4 +1,3 @@
-import type { PlantLifecycleValue } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantLifecycleValue.js';
 import type { PlantProps } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantProps.js';
 import { PlantLifecycle } from '../../../../../../src/Contexts/Agro/Plants/domain/value-objects/PlantLifecycle.js';
 import { Range } from '../../../../../../src/shared/domain/value-objects/Range.js';
@@ -19,11 +18,7 @@ export const PlantTraitsBuilder = {
   random(): PlantProps['traits'] {
     return {
       lifecycle: PlantLifecycle.from(
-        random.arrayElement([
-          'annual',
-          'perennial',
-          'biennial'
-        ]) as PlantLifecycleValue
+        random.arrayElement(['annual', 'perennial', 'biennial'])
       ),
       size: {
         height: new Range(

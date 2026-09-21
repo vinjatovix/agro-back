@@ -37,7 +37,7 @@ export class LoginUserLocal {
     }
 
     const token = await this.encrypter.generateToken({
-      id: storedUser.id.value,
+      id: storedUser.id,
       email: storedUser.email.value,
       username: storedUser.username.value,
       roles: storedUser.roles.value

@@ -2,6 +2,11 @@ import type { RegisterUserRequest } from '../../../../../src/Contexts/Auth/appli
 import { User } from '../../../../../src/Contexts/Auth/domain/entities/User.js';
 import { UserPatch } from '../../../../../src/Contexts/Auth/domain/entities/UserPatch.js';
 import {
+  createUserId,
+  randomUserId,
+  type UserId
+} from '../../../../../src/Contexts/Auth/domain/UserId.js';
+import {
   PasswordHash,
   UserAuthMethod,
   Username,
@@ -9,12 +14,10 @@ import {
 } from '../../../../../src/Contexts/Auth/domain/value-objects/index.js';
 import {
   Email,
-  Metadata,
-  Uuid
+  Metadata
 } from '../../../../../src/Contexts/shared/domain/valueObject/index.js';
-
 import { EmailMother } from '../../../shared/domain/mothers/EmailMother.js';
-import { random, UuidMother } from '../../../shared/fixtures/index.js';
+import { random } from '../../../shared/fixtures/index.js';
 import { UserRolesMother } from './UserRolesMother.js';
 
 export class UserMother {
@@ -28,7 +31,7 @@ export class UserMother {
     roles,
     metadata
   }: {
-    id?: Uuid;
+    id?: UserId;
     email?: Email;
     username?: Username;
     password?: PasswordHash;
@@ -39,7 +42,7 @@ export class UserMother {
   } = {}): User {
     const user = username ?? new Username(random.word({ min: 4, max: 20 }));
     return new User({
-      id: id ?? Uuid.random(),
+      id: id ?? randomUserId(),
       email: email ?? EmailMother.random(),
       username: user,
       password: password ?? UserMother.randomPasswordHash(),
@@ -63,15 +66,12 @@ export class UserMother {
   }
 
   static random(id?: string): User {
-    return (
-      (id && this.create({ id: new Uuid(id) })) ||
-      this.create({ id: UuidMother.random() })
-    );
+    return this.create({ id: createUserId(id ?? random.uuid()) });
   }
 
   static randomPatch(id: string): UserPatch {
     return new UserPatch({
-      id: new Uuid(id),
+      id: createUserId(id),
       password: UserMother.randomPasswordHash(),
       emailValidated: random.boolean(),
       roles: UserRolesMother.random()

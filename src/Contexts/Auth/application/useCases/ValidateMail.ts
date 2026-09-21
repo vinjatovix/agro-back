@@ -2,8 +2,8 @@ import type { UnknownRecord } from '../../../../shared/domain/types/UnknownRecor
 import { DomainUnauthorizedException } from '../../../shared/domain/errors/index.js';
 import type { EncrypterTool } from '../../../shared/plugins/EncrypterTool.js';
 import { buildLogger } from '../../../shared/plugins/logger.plugin.js';
-import type { AuthRepository } from '../../domain/repositories/interfaces/AuthRepository.js';
 import { UserPatch } from '../../domain/entities/UserPatch.js';
+import type { AuthRepository } from '../../domain/repositories/interfaces/AuthRepository.js';
 
 const logger = buildLogger('validateMail');
 const INVALID_TOKEN_MESSAGE = 'Invalid token';
@@ -35,7 +35,7 @@ export class ValidateMail {
     }
 
     const userToPatch = UserPatch.fromPrimitives({
-      id: storedUser.id.value,
+      id: storedUser.id,
       emailValidated: true
     });
 

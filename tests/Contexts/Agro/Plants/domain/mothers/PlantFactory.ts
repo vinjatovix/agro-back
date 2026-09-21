@@ -1,8 +1,8 @@
 import { Plant } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/Plant.js';
 import type { PlantProps } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantProps.js';
+import { randomPlantId } from '../../../../../../src/Contexts/Agro/Plants/domain/PlantId.js';
 import { PlantKnowledge } from '../../../../../../src/Contexts/Agro/Plants/domain/value-objects/PlantKnowledge.js';
 import { Metadata } from '../../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
-import { UuidMother } from '../../../../shared/fixtures/UuidMother.js';
 import { PlantIdentityBuilder } from './PlantIdentityBuilder.js';
 import { PlantKnowledgeBuilder } from './PlantKnowledgeBuilder.js';
 import { PlantPhenologyBuilder } from './PlantPhenologyBuilder.js';
@@ -11,7 +11,7 @@ import { PlantTraitsBuilder } from './PlantTraitsBuilder.js';
 export class PlantFactory {
   static create(overrides: Partial<PlantProps> = {}): Plant {
     return new Plant({
-      id: overrides.id ?? UuidMother.random(),
+      id: overrides.id ?? randomPlantId(),
       identity: overrides.identity ?? PlantIdentityBuilder.generic(),
       traits: overrides.traits ?? PlantTraitsBuilder.generic(),
       phenology: overrides.phenology ?? PlantPhenologyBuilder.generic(),
@@ -22,7 +22,7 @@ export class PlantFactory {
 
   static random(overrides: Partial<PlantProps> = {}): Plant {
     return new Plant({
-      id: overrides.id ?? UuidMother.random(),
+      id: overrides.id ?? randomPlantId(),
       identity: overrides.identity ?? PlantIdentityBuilder.random(),
       traits: overrides.traits ?? PlantTraitsBuilder.random(),
       phenology: overrides.phenology ?? PlantPhenologyBuilder.random(),
@@ -33,7 +33,7 @@ export class PlantFactory {
 
   static full(overrides: Partial<PlantProps> = {}): Plant {
     return new Plant({
-      id: overrides.id ?? UuidMother.random(),
+      id: overrides.id ?? randomPlantId(),
       identity: overrides.identity ?? PlantIdentityBuilder.withScientificName(),
       traits: overrides.traits ?? PlantTraitsBuilder.random(),
       phenology: overrides.phenology ?? PlantPhenologyBuilder.full(),
@@ -44,7 +44,7 @@ export class PlantFactory {
 
   static tomato(overrides: Partial<PlantProps> = {}): Plant {
     return new Plant({
-      id: overrides.id ?? UuidMother.random(),
+      id: overrides.id ?? randomPlantId(),
       identity: overrides.identity ?? PlantIdentityBuilder.tomato(),
       traits: overrides.traits ?? PlantTraitsBuilder.tomato(),
       phenology: overrides.phenology ?? PlantPhenologyBuilder.tomato(),
@@ -55,7 +55,7 @@ export class PlantFactory {
 
   static lettuce(overrides: Partial<PlantProps> = {}): Plant {
     return new Plant({
-      id: overrides.id ?? UuidMother.random(),
+      id: overrides.id ?? randomPlantId(),
       identity: overrides.identity ?? PlantIdentityBuilder.lettuce(),
       traits: overrides.traits ?? PlantTraitsBuilder.lettuce(),
       phenology: overrides.phenology ?? PlantPhenologyBuilder.lettuce(),

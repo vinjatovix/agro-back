@@ -3,8 +3,7 @@ import { PasswordHash } from '../../../../../src/Contexts/Auth/domain/value-obje
 import { Username } from '../../../../../src/Contexts/Auth/domain/value-objects/Username.js';
 import { UserRoles } from '../../../../../src/Contexts/Auth/domain/value-objects/UserRoles.js';
 import { Email } from '../../../../../src/Contexts/shared/domain/valueObject/Email.js';
-import { Uuid } from '../../../../../src/Contexts/shared/domain/valueObject/Uuid.js';
-import { CryptAdapterMock, AuthRepositoryMock } from '../../__mocks__/index.js';
+import { AuthRepositoryMock, CryptAdapterMock } from '../../__mocks__/index.js';
 import { RegisterUserRequestMother } from '../mothers/RegisterUserRequestMother.js';
 
 describe('RegisterUserLocal', () => {
@@ -26,11 +25,17 @@ describe('RegisterUserLocal', () => {
     repository.assertSearchHasBeenCalledWith(request.email);
     repository.assertSaveHasBeenCalledWith(
       expect.objectContaining({
-        id: expect.any(Uuid),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        id: expect.any(String),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         email: expect.any(Email),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         username: expect.any(Username),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         password: expect.any(PasswordHash),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         emailValidated: expect.any(Boolean),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         roles: expect.any(UserRoles)
       })
     );
@@ -43,21 +48,21 @@ describe('RegisterUserLocal', () => {
     repository = new AuthRepositoryMock({ find: true });
     registerUser = new RegisterUserLocal(repository, encrypter);
 
-    await expect(async () => {
-      await registerUser.run(request);
-    }).rejects.toThrow(`User with id ${request.id} already exists`);
+    await expect(registerUser.run(request)).rejects.toThrow(
+      `User with id ${request.id} already exists`
+    );
   });
 
   it('should throw an error when password confirmation does not match', async () => {
     const request = RegisterUserRequestMother.random();
     const hashSpy = jest.spyOn(encrypter, 'hash');
 
-    await expect(async () => {
-      await registerUser.run({
+    await expect(
+      registerUser.run({
         ...request,
         repeatPassword: 'DifferentPassword1*'
-      });
-    }).rejects.toThrow('Passwords do not match');
+      })
+    ).rejects.toThrow('Passwords do not match');
 
     expect(hashSpy).not.toHaveBeenCalled();
   });

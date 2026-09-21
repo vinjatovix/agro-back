@@ -1,5 +1,3 @@
-import type { Uuid } from '../valueObject/Uuid.js';
-
-export abstract class AggregateRoot<TId = Uuid> {
+export abstract class AggregateRoot<TId extends string> {
   constructor(public readonly id: TId) {}
 }

@@ -1,7 +1,7 @@
 import type { Server } from 'node:http';
 import request, { type Response } from 'supertest';
-import { UuidMother } from '../../../../../Contexts/shared/fixtures/UuidMother.js';
 import type { PlantPrimitives } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantPrimitives.js';
+import { random } from '../../../../../Contexts/shared/fixtures/random.js';
 import { buildPatch } from '../../../../../shared/dto/buildPatch.js';
 import { deepMerge } from '../../../../../shared/dto/deepMerge.js';
 
@@ -9,7 +9,7 @@ export const PlantSeeder = (httpServer: Server, token: string) => {
   return {
     async create(overrides = {}) {
       const base = {
-        id: UuidMother.random().value,
+        id: random.uuid(),
         identity: {
           name: { primary: 'Test plant' },
           family: 'fam_test'

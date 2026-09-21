@@ -1,23 +1,20 @@
 import { DomainUnauthorizedException } from '../../../shared/domain/errors/index.js';
-import {
-  Email,
-  Metadata,
-  Uuid
-} from '../../../shared/domain/valueObject/index.js';
+import { Email, Metadata } from '../../../shared/domain/valueObject/index.js';
 import {
   buildLogger,
   type EncrypterTool,
   type GoogleIdTokenVerifierTool
 } from '../../../shared/plugins/index.js';
+import { User } from '../../domain/entities/User.js';
+import { UserPatch } from '../../domain/entities/UserPatch.js';
+import type { AuthRepository } from '../../domain/repositories/interfaces/AuthRepository.js';
+import { randomUserId } from '../../domain/UserId.js';
 import {
   UserAuthMethod,
   Username,
   UserRoles
 } from '../../domain/value-objects/index.js';
-import type { AuthRepository } from '../../domain/repositories/interfaces/AuthRepository.js';
 import type { AuthenticateWithGoogleRequest } from '../interfaces/index.js';
-import { User } from '../../domain/entities/User.js';
-import { UserPatch } from '../../domain/entities/UserPatch.js';
 
 const logger = buildLogger('authenticateWithGoogle');
 const INVALID_GOOGLE_TOKEN_MESSAGE = 'Invalid Google token';
@@ -112,7 +109,7 @@ export class AuthenticateWithGoogle {
     const date = new Date();
 
     const user = new User({
-      id: Uuid.random(),
+      id: randomUserId(),
       email: new Email(email),
       username,
       emailValidated: true,
@@ -154,7 +151,7 @@ export class AuthenticateWithGoogle {
 
   private async generateAuthToken(user: User): Promise<string> {
     const token = await this.encrypter.generateToken({
-      id: user.id.value,
+      id: user.id,
       email: user.email.value,
       username: user.username.value,
       roles: user.roles.value

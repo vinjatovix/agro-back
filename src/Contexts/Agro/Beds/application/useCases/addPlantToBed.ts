@@ -1,8 +1,8 @@
+import type { PlantInstance } from '../../../PlantInstances/domain/entities/PlantInstance.js';
 import type { PlantRepository } from '../../../Plants/domain/repositories/interfaces/PlantRepository.js';
 import type { Bed } from '../../domain/entities/Bed.js';
-import type { PlantInstance } from '../../../PlantInstances/domain/entities/PlantInstance.js';
-import type { SpatialPlantModel } from '../../domain/services/spatial/interfaces/SpatialPlantModel.js';
 import type { BedRepository } from '../../domain/repositories/interfaces/BedRepository.js';
+import type { SpatialPlantModel } from '../../domain/services/spatial/interfaces/SpatialPlantModel.js';
 import { bedDomainMapper } from '../../mappers/bedDomainMapper.js';
 
 export type AddPlantToBedParams = {
@@ -20,13 +20,13 @@ export async function addPlantToBed({
   bedRepository,
   user
 }: AddPlantToBedParams): Promise<void> {
-  const plantData = await plantRepository.findById(plantInstance.plantId.value);
+  const plantData = await plantRepository.findById(plantInstance.plantId);
 
   const spacingCm = plantData.traits.spacingCm.max;
 
   const newPlantSpatial: SpatialPlantModel = {
-    id: plantInstance.id.value,
-    plantId: plantInstance.plantId.value,
+    id: plantInstance.id,
+    plantId: plantInstance.plantId,
     position: {
       x: plantInstance.position.x,
       y: plantInstance.position.y
@@ -36,11 +36,11 @@ export async function addPlantToBed({
 
   const existingSpatialPlants: SpatialPlantModel[] = await Promise.all(
     bed.plantInstances.map(async (p) => {
-      const data = await plantRepository.findById(p.plantId.value);
+      const data = await plantRepository.findById(p.plantId);
 
       return {
-        id: p.id.value,
-        plantId: p.plantId.value,
+        id: p.id,
+        plantId: p.plantId,
         position: {
           x: p.position.x,
           y: p.position.y

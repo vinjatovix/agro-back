@@ -3,7 +3,7 @@ import {
   MonthSet,
   Range
 } from '../../../../shared/domain/value-objects/index.js';
-import { Metadata, Uuid } from '../../../shared/domain/valueObject/index.js';
+import { Metadata } from '../../../shared/domain/valueObject/index.js';
 import type { CreatePlantDto } from '../application/useCases/interfaces/CreatePlantDto.js';
 import type { UpdatePlantDto } from '../application/useCases/interfaces/UpdatePlantDto.js';
 import { Plant } from '../domain/entities/Plant.js';
@@ -12,11 +12,13 @@ import type {
   PlantPrimitives,
   PlantProps
 } from '../domain/entities/types/index.js';
+import { createPlantId } from '../domain/PlantId.js';
 import {
   PlantKnowledge,
   PlantLifecycle,
   PlantSowing
 } from '../domain/value-objects/index.js';
+import { plantIdentityMapper } from './plantIdentityMapper.js';
 import { plantKnowledgeMapper } from './plantKnowledgeMapper.js';
 
 export interface PlantMapper {
@@ -53,8 +55,8 @@ export const plantDomainMapper = {
     );
 
     return {
-      id: plant.id.value,
-      identity: plant.identity,
+      id: plant.id,
+      identity: plantIdentityMapper.toPrimitives(plant.identity),
       traits: {
         lifecycle: plant.traits.lifecycle.getValue(),
         size: {
@@ -93,8 +95,8 @@ export const plantDomainMapper = {
     };
 
     const props: PlantProps = {
-      id: new Uuid(primitives.id),
-      identity: primitives.identity,
+      id: createPlantId(primitives.id),
+      identity: plantIdentityMapper.fromPrimitives(primitives.identity),
       traits: {
         lifecycle: PlantLifecycle.from(primitives.traits.lifecycle),
         size: {

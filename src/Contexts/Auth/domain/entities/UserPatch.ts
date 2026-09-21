@@ -1,13 +1,13 @@
-import { Uuid } from '../../../shared/domain/valueObject/index.js';
+import { createUserId, type UserId } from '../UserId.js';
 import {
   PasswordHash,
-  UserRoles,
-  UserAuthMethod
+  UserAuthMethod,
+  UserRoles
 } from '../value-objects/index.js';
-import { type UserAuthMethodPrimitives } from '../value-objects/types/UserAuthMethodPrimitives.js';
+import type { UserAuthMethodPrimitives } from '../value-objects/types/UserAuthMethodPrimitives.js';
 
 export class UserPatch {
-  readonly id: Uuid;
+  readonly id: UserId;
   readonly password?: PasswordHash;
   readonly emailValidated?: boolean;
   readonly authMethods?: UserAuthMethod[];
@@ -20,7 +20,7 @@ export class UserPatch {
     authMethods,
     roles
   }: {
-    id: Uuid;
+    id: UserId;
     password?: PasswordHash;
     emailValidated?: boolean;
     authMethods?: UserAuthMethod[];
@@ -43,7 +43,7 @@ export class UserPatch {
 
   toPrimitives() {
     return {
-      id: this.id.value,
+      id: this.id,
       ...(this.password !== undefined && { password: this.password.value }),
       ...(this.emailValidated !== undefined && {
         emailValidated: this.emailValidated
@@ -69,7 +69,7 @@ export class UserPatch {
     roles?: string[];
   }) {
     return new UserPatch({
-      id: new Uuid(id),
+      id: createUserId(id),
       ...(password !== undefined && { password: new PasswordHash(password) }),
       ...(emailValidated !== undefined && { emailValidated }),
       ...(authMethods !== undefined && {

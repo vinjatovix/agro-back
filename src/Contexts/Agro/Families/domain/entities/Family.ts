@@ -1,11 +1,11 @@
-import { InvalidArgumentException } from '../../../../shared/domain/errors/index.js';
 import { AggregateRoot } from '../../../../shared/domain/entities/AggregateRoot.js';
+import { InvalidArgumentException } from '../../../../shared/domain/errors/index.js';
 import type { Metadata } from '../../../../shared/domain/valueObject/Metadata.js';
-import type { Uuid } from '../../../../shared/domain/valueObject/Uuid.js';
+import type { FamilyId } from '../FamilyId.js';
 import type { FamilyExtraPrimitives } from '../types/FamilyExtraPrimitives.js';
 import type { FamilyProps } from '../types/FamilyProps.js';
 
-export class Family extends AggregateRoot<Uuid> {
+export class Family extends AggregateRoot<FamilyId> {
   private readonly props: FamilyProps;
 
   private constructor(props: FamilyProps) {
@@ -15,7 +15,7 @@ export class Family extends AggregateRoot<Uuid> {
   }
 
   get idValue(): string {
-    return this.id.value;
+    return this.id;
   }
 
   get slug(): string {

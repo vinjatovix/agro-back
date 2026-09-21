@@ -1,18 +1,18 @@
+import type { MongoClient } from 'mongodb';
 import {
-  createAppContainer,
-  type AppContainer
+  type AppContainer,
+  createAppContainer
 } from '../../../../../../../src/apps/agroApi/container.js';
+import { randomFamilyId } from '../../../../../../../src/Contexts/Agro/Families/domain/FamilyId.js';
 import type { FamilyRepository } from '../../../../../../../src/Contexts/Agro/Families/domain/repositories/interfaces/FamilyRepository.js';
 import type { FamilyPrimitives } from '../../../../../../../src/Contexts/Agro/Families/domain/types/FamilyPrimitives.js';
 import { familyDomainMapper } from '../../../../../../../src/Contexts/Agro/Families/mappers/familyDomainMapper.js';
 import type { EnvironmentArranger } from '../../../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
-import { UuidMother } from '../../../../../shared/fixtures/UuidMother.js';
-import { FamilyScenarios } from '../../../domain/mothers/FamilyScenarios.js';
 import {
   DBClientFactory,
   DBConfigFactory
 } from '../../../../../../../src/shared/infrastructure/persistence/index.js';
-import type { MongoClient } from 'mongodb';
+import { FamilyScenarios } from '../../../domain/mothers/FamilyScenarios.js';
 
 let container: AppContainer;
 let repository: FamilyRepository;
@@ -162,7 +162,7 @@ describe('MongoFamilyRepository', () => {
 
     it('should throw not found error if family does not exist', async () => {
       const nonExistingFamily = FamilyScenarios.domainRandom({
-        id: UuidMother.random()
+        id: randomFamilyId()
       });
 
       await expect(

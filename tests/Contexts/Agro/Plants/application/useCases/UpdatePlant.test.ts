@@ -25,7 +25,7 @@ describe('UpdatePlant use case', () => {
 
     await useCase.execute(
       {
-        id: plant.id.value,
+        id: plant.id,
         identity: {
           name: {
             primary: 'New name'
@@ -35,7 +35,7 @@ describe('UpdatePlant use case', () => {
       'user-1'
     );
 
-    const updated = await repository.findById(plant.id.value);
+    const updated = await repository.findById(plant.id);
 
     expect(updated.identity.name.primary).toBe('New name');
   });
@@ -47,7 +47,7 @@ describe('UpdatePlant use case', () => {
 
     await useCase.execute(
       {
-        id: plant.id.value,
+        id: plant.id,
         traits: {
           lifecycle: 'perennial',
           size: {
@@ -58,7 +58,7 @@ describe('UpdatePlant use case', () => {
       'user-1'
     );
 
-    const updated = await repository.findById(plant.id.value);
+    const updated = await repository.findById(plant.id);
 
     expect(updated.traits.lifecycle.getValue()).toBe('perennial');
     expect(updated.traits.size.height.min).toBe(20);
@@ -74,7 +74,7 @@ describe('UpdatePlant use case', () => {
 
     await useCase.execute(
       {
-        id: plant.id.value,
+        id: plant.id,
         identity: {
           name: { primary: 'New name' }
         }
@@ -82,7 +82,7 @@ describe('UpdatePlant use case', () => {
       'user-1'
     );
 
-    const updated = await repository.findById(plant.id.value);
+    const updated = await repository.findById(plant.id);
 
     expect(updated.traits.size.height.min).toBe(plant.traits.size.height.min);
   });
@@ -94,7 +94,7 @@ describe('UpdatePlant use case', () => {
 
     await useCase.execute(
       {
-        id: plant.id.value,
+        id: plant.id,
         identity: {
           scientificName: 'New scientific name'
         }
@@ -102,7 +102,7 @@ describe('UpdatePlant use case', () => {
       'user-1'
     );
 
-    const updated = await repository.findById(plant.id.value);
+    const updated = await repository.findById(plant.id);
 
     expect(updated.identity.scientificName).toBe('New scientific name');
   });
@@ -114,7 +114,7 @@ describe('UpdatePlant use case', () => {
 
     await useCase.execute(
       {
-        id: plant.id.value,
+        id: plant.id,
         identity: {
           scientificName: null
         }
@@ -154,7 +154,7 @@ describe('UpdatePlant use case', () => {
 
     await useCase.execute(
       {
-        id: plant.id.value,
+        id: plant.id,
         identity: {
           name: { primary: 'Updated name' }
         }
@@ -177,6 +177,7 @@ describe('UpdatePlant use case', () => {
       'user-1'
     );
   });
+
   it('should update family when provided', async () => {
     const plant = PlantFactory.random();
     const current = plantDomainMapper.toPrimitives(plant);
@@ -187,9 +188,9 @@ describe('UpdatePlant use case', () => {
 
     await useCase.execute(
       {
-        id: plant.id.value,
+        id: plant.id,
         identity: {
-          family: family.id.value
+          family: family.id
         }
       },
       'user-1'
@@ -200,7 +201,7 @@ describe('UpdatePlant use case', () => {
       expect.objectContaining({
         ...plantDomainMapper.toPrimitives(plant),
         identity: expect.objectContaining({
-          family: family.id.value
+          family: family.id
         }) as Partial<PlantPrimitives>['identity']
       }) as Partial<PlantPrimitives>,
       'user-1'
@@ -216,7 +217,7 @@ describe('UpdatePlant use case', () => {
     await expect(
       useCase.execute(
         {
-          id: plant.id.value,
+          id: plant.id,
           identity: {
             family
           }

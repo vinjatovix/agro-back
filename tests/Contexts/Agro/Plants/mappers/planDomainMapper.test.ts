@@ -7,7 +7,7 @@ describe('PlantDomainMapper', () => {
 
     const p = plantDomainMapper.toPrimitives(plant);
 
-    expect(p.id).toBe(plant.id.value);
+    expect(p.id).toBe(plant.id);
     expect(p.identity.name.primary).toBe(plant.identity.name.primary);
     expect(p.traits.lifecycle).toBe(plant.traits.lifecycle.getValue());
   });

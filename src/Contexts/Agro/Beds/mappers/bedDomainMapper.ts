@@ -1,19 +1,20 @@
+import { createUserId } from '../../../Auth/domain/UserId.js';
 import {
   Metadata,
   PositiveNumber,
-  StringValueObject,
-  Uuid
+  StringValueObject
 } from '../../../shared/domain/valueObject/index.js';
 import { PlantInstance } from '../../PlantInstances/domain/entities/PlantInstance.js';
-import type { BedPrimitives } from '../domain/entities/types/BedPrimitives.js';
+import { createBedId } from '../domain/BedId.js';
 import { Bed } from '../domain/entities/Bed.js';
+import type { BedPrimitives } from '../domain/entities/types/BedPrimitives.js';
 import type { BedDomainMapper } from './interfaces/BedDomainMapper.js';
 
 export const bedDomainMapper: BedDomainMapper = {
   toPrimitives(bed: Bed): BedPrimitives {
     return {
-      id: bed.id.value,
-      userId: bed.userId.value,
+      id: bed.id,
+      userId: bed.userId,
       name: bed.name.value,
       width: bed.width.value,
       height: bed.height.value,
@@ -27,8 +28,8 @@ export const bedDomainMapper: BedDomainMapper = {
 
   fromPrimitives(primitives: BedPrimitives): Bed {
     return Bed.create({
-      id: new Uuid(primitives.id),
-      userId: new Uuid(primitives.userId),
+      id: createBedId(primitives.id),
+      userId: createUserId(primitives.userId),
       name: new StringValueObject(primitives.name),
       width: PositiveNumber.create(primitives.width),
       height: PositiveNumber.create(primitives.height),
