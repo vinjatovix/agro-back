@@ -57,11 +57,11 @@ CultivationLogs ARE:
 
 Each CultivationLog includes:
 
-- id (UUID value object)
-- userId (UUID)
+- id (EventId branded UUID)
+- userId (UserId branded UUID)
 - scope (explicit enum: `'bed'` | `'instance'`) — **`[TARGET STATE (Pending [Iteration 70](../../roadmap.md#iteration-70-implement-append-only-cultivationlog-aggregate-with-scopes))]`** (The current codebase strictly maps all logs to a specific plant instance ID and lacks a scope field).
-- bedId (UUID) — always present to group entries physically
-- plantInstanceId (UUID) — mandatory only if `scope === 'instance'`; MUST NOT exist if `scope === 'bed'` (as the log targets the whole container).
+- bedId (BedId branded UUID) — always present to group entries physically
+- plantInstanceId (PlantInstanceId branded UUID) — mandatory only if `scope === 'instance'`; MUST NOT exist if `scope === 'bed'` (as the log targets the whole container).
 - type (discriminated union)
 - date
 - data (type-specific payload, which may contain an optional/mandatory `plantId` when `scope === 'bed'` for specific allowed log types to target a botanical species) — **`[TARGET STATE (Pending [Iteration 70](../../roadmap.md#iteration-70-implement-append-only-cultivationlog-aggregate-with-scopes))]`**
@@ -126,7 +126,7 @@ The `data` field is strictly typed per event.
 
 ```ts
 {
-  fertilizerId: Uuid;
+  fertilizerId: FertilizerId;
   fertilizerType: FertilizerType;
   method: FertilizationMethod;
   amount: PositiveNumber;
@@ -140,7 +140,7 @@ The `data` field is strictly typed per event.
 {
   type: PruningType;
   intensity: PruningIntensity;
-  plantId?: Uuid; // Optional if scope === 'bed' to target/filter a specific botanical variety in the bed; implicitly resolved if scope === 'instance'
+  plantId?: PlantId; // Optional if scope === 'bed' to target/filter a specific botanical variety in the bed; implicitly resolved if scope === 'instance'
 }
 ```
 
@@ -150,7 +150,7 @@ The `data` field is strictly typed per event.
 {
   yieldGrams: PositiveNumber;
   isFinal: boolean; // `[TARGET STATE]` true if this harvest terminates the plant instance's lifecycle (triggering 'harvested' state and freeing space), false for partial/successive harvests
-  plantId?: Uuid; // Mandatory if scope === 'bed' to identify the harvested botanical variety; implicitly resolved if scope === 'instance'
+  plantId?: PlantId; // Mandatory if scope === 'bed' to identify the harvested botanical variety; implicitly resolved if scope === 'instance'
 }
 ```
 
@@ -158,8 +158,8 @@ The `data` field is strictly typed per event.
 
 ```ts
 {
-  fromBedId: Uuid;
-  toBedId: Uuid;
+  fromBedId: BedId;
+  toBedId: BedId;
 }
 ```
 
@@ -168,7 +168,7 @@ The `data` field is strictly typed per event.
 ```ts
 {
   target: TreatmentTarget;
-  productId: Uuid;
+  productId: ProductId;
   dosage: PositiveNumber;
 }
 ```
@@ -238,8 +238,8 @@ To prevent conflation between the Agricultural Event logs (this module) and the 
 - Strongly typed discriminated union (`DomainEvent`)
 - Domain ↔ persistence mapper (`EventMapper`)
 - Persistence document model (`EventDocument`)
-- Value objects:
-  - `Uuid`
+- Value objects & Branded IDs:
+  - Branded IDs (`EventId`, `FertilizerId`, `ProductId`, `PlantId`, `BedId`)
   - `PositiveNumber`
 
 - Domain factories (test mothers)
