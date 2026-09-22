@@ -12,6 +12,7 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [domain-core.md](spec/modules/domain-core.md)
 
+- **Status**: Completed
 - **Value delivered**: Secures domain purity by eliminating infrastructure type leakage.
 - **Definition of Done**: `MetadataPrimitives.ts` is moved to the shared domain folder; imports are updated.
 - **Dependencies**: None.
@@ -27,6 +28,7 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [domain-core.md](spec/modules/domain-core.md)
 
+- **Status**: Completed
 - **Value delivered**: Prevents primitive obsession and type blindness across aggregate IDs.
 - **Definition of Done**: `Uuid` class is replaced with TypeScript intersection types (e.g., `type PlantId = string & { __brand: 'PlantId' }`).
 - **Dependencies**: None.
@@ -42,6 +44,7 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [domain-core.md](spec/modules/domain-core.md)
 
+- **Status**: Completed
 - **Value delivered**: Optimizes MongoDB B-Tree insert operations and provides native chronological sorting.
 - **Definition of Done**: ID factories generate UUIDv7. Validation schemas accept both UUIDv4 and UUIDv7.
 - **Dependencies**: Iteration 2.

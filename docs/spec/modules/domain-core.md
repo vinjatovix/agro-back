@@ -85,21 +85,21 @@ Responsible for:
 
 ## 3. VALUE OBJECTS & BRANDED TYPES
 
-- **Functional Branded Types `[TARGET STATE (Pending [Iteration 2](../../roadmap.md#iteration-2-implement-functional-branded-types))]`**:
-  - To prevent "Primitive Obsession" and structural type blindness, all identity fields (such as `PlantId`, `BedId`, `UserId`, `FamilyId`) MUST be modeled as **Functional Branded Types** (TypeScript intersection types) rather than instances of a generic class or raw strings:
+- **Functional Branded Types (Completed):**
+  - To prevent "Primitive Obsession" and structural type blindness, all identity fields (such as `PlantId`, `BedId`, `UserId`, `FamilyId`, `PlantInstanceId`, `EventId`, `FertilizerId`, `ProductId`) are modeled as **Functional Branded Types** (TypeScript intersection types) rather than instances of a generic class or raw strings:
     ```typescript
-    declare const __brand: unique symbol;
-    export type PlantId = string & { readonly [__brand]: 'PlantId' };
+    export type Brand<K, T> = K & { readonly __brand: T };
+    export type PlantId = Brand<string, 'PlantId'>;
     ```
-  - **Type Safety**: The compiler will prevent passing a `BedId` where a `PlantId` is expected.
-  - **Performance & Serialisation**: At runtime, these are plain native strings, resulting in zero allocation overhead, simplified mapping, and effortless API serialization without requiring `.value` destructuring or `.toPrimitives()` mapping.
+  - **Type Safety**: The compiler prevents passing a `BedId` where a `PlantId` is expected.
+  - **Performance & Serialization**: At runtime, these are plain native strings, resulting in zero allocation overhead, simplified mapping, and effortless API serialization without requiring `.value` destructuring or `.toPrimitives()` mapping.
   - **Comparison**: Simple string equality checks (`idA === idB`) are used instead of method calls like `.equals()`.
 
-- **`[TARGET STATE (Pending [Iteration 3](../../roadmap.md#iteration-3-standardize-uuidv7-generation))]` UUIDv7 Standardization:**
-  - To optimize database write performance (B-Tree append-only inserts) and natively support perfect chronological cursor pagination, identity factory objects (e.g., `PlantId.random()`) MUST exclusively generate **UUIDv7**.
-  - **Backward Compatibility:** The validation schemas (Zod) and factory parsing functions (e.g., `PlantId.create(value)`) MUST continue to accept any valid UUID format (including the legacy UUIDv4). This guarantees absolute backward compatibility with the ~1900 pre-seeded entities (`Plants`, `Families`) already existing in the development databases, requiring zero data migration.
+- **UUIDv7 Standardization (Completed):**
+  - To optimize database write performance (B-Tree append-only inserts) and natively support perfect chronological cursor pagination, identity generator utilities (`createIdGenerator<T>(entityName)`) exclusively generate **UUIDv7** when invoking `.random()`.
+  - **Backward Compatibility:** The validation schemas (Zod) and generator parsing functions (`.create(value)` via `UuidValidator.isValid()`) continue to accept any valid UUID format (including legacy UUIDv4). This guarantees absolute backward compatibility with pre-seeded entities (`Plants`, `Families`) already existing in development and production databases, requiring zero data migration.
 
-- Uuid (Legacy class, to be retired in [Iteration 2](../../roadmap.md#iteration-2-implement-functional-branded-types))
+- BrandedId (`Brand<string, Tag>`, `createIdGenerator`, `UuidValidator`)
 - StringValueObject
 - DateValueObject
 - PositiveNumber

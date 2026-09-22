@@ -1,4 +1,5 @@
 import Chance from 'chance';
+import { v4 as uuidv4, v7 as uuidv7 } from 'uuid';
 
 class Random {
   private readonly chance: Chance.Chance;
@@ -30,12 +31,16 @@ class Random {
     return toLowerCase ? name.toLowerCase() : name;
   }
 
-  public uuid(isV4: boolean = true): string {
-    return this.chance.guid({ version: isV4 ? 4 : 5 });
+  public uuid(): string {
+    return uuidv7();
   }
 
-  public guid(isV4: boolean = true): string {
-    return this.uuid(isV4);
+  public legacyUuid(): string {
+    return uuidv4();
+  }
+
+  public guid(): string {
+    return this.uuid();
   }
 
   public url(): string {

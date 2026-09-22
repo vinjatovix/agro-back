@@ -131,7 +131,7 @@ This hybrid flow guarantees that layout-dependent physics (climates, seasons) ar
 ## 7. BOUNDARY RULES
 
 - **No Shared State:** The authentication session state (specifically, the JWT payload) MUST NOT carry any business-oriented or operational properties (e.g., `postalCode`, `country`, `latitude`, `longitude`, or `hemisphere`).
-- **No Direct Domain Exposure:** Authentication primitives are mapped to domain-specific Value Objects (`Email`, `Uuid`, etc.) only at the boundary level.
+- **No Direct Domain Exposure:** Authentication primitives are mapped to domain-specific Value Objects and branded types (`Email`, `UserId`, etc.) only at the boundary level.
 - **`[TARGET STATE (Pending [Iteration 25](../../roadmap.md#iteration-25-implement-mailer-port-and-local-bypass))]` Local Development Email Validation Bypass:** The local email validation check is strictly enforced in production/staging environments, blocking unvalidated local logins until activated. However, to prevent developer deadlocks prior to full mailer integration ([Iteration 26](../../roadmap.md#iteration-26-implement-email-account-activation-flow)), the login system implements a temporary validation bypass strictly constrained to local development environments (`NODE_ENV === 'development'`), enabling local testing and rapid prototyping.
 
 ### 7.1 Account Deletion & Right to be Forgotten (GDPR) `[TARGET STATE]`

@@ -1,9 +1,9 @@
 import { type NextFunction, type Request, type Response } from 'express';
 import type { GetFamilyById } from '../../../../Contexts/Agro/Families/application/useCases/GetFamilyById.js';
 import type { GetFamilyBySlug } from '../../../../Contexts/Agro/Families/application/useCases/GetFamilyBySlug.js';
-import { Uuid } from '../../../../Contexts/shared/domain/valueObject/Uuid.js';
-import { HttpController } from '../../shared/HttpController.js';
 import { familyDomainMapper } from '../../../../Contexts/Agro/Families/mappers/familyDomainMapper.js';
+import { UuidValidator } from '../../../../Contexts/shared/domain/valueObject/index.js';
+import { HttpController } from '../../shared/HttpController.js';
 
 type GetFamilyBySlugParams = {
   idOrSlug: string;
@@ -34,7 +34,7 @@ export class GetFamilyBySlugController extends HttpController {
     try {
       const { idOrSlug } = req.params;
 
-      const family = Uuid.isValid(idOrSlug)
+      const family = UuidValidator.isValid(idOrSlug)
         ? await this.getFamilyById.execute(idOrSlug)
         : await this.getFamilyBySlug.execute(idOrSlug);
 
