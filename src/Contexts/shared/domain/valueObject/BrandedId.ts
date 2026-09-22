@@ -1,19 +1,27 @@
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { InvalidArgumentException } from '../errors/InvalidArgumentException.js';
 import { UuidValidator } from './UuidValidator.js';
 
-export function createIdGenerator<T extends string>(entityName: string) {
+export interface IdGenerator<T extends string> {
+  create(value: string): T;
+  random(): T;
+}
+
+export function createIdGenerator<T extends string>(
+  entityName: string
+): IdGenerator<T> {
   return {
     create(value: string): T {
-      if (!UuidValidator.isValid(value)) {
+      const trimmedValue = value.trim();
+      if (!UuidValidator.isValid(trimmedValue)) {
         throw new InvalidArgumentException(
-          `${entityName} <${value}> is not a valid UUID v4`
+          `${entityName} <${value}> is not a valid UUID`
         );
       }
-      return value as T;
+      return trimmedValue as T;
     },
     random(): T {
-      return uuidv4() as T;
+      return uuidv7() as T;
     }
   };
 }

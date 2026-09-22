@@ -3,14 +3,19 @@ import {
   toMongoId,
   fromMongoId
 } from '../../../../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoId.js';
+import { random } from '../../../fixtures/random.js';
 
 describe('MongoId helpers', () => {
-  const validUuid = '550e8400-e29b-41d4-a716-446655440000';
+  const VALID_V4 = random.legacyUuid();
+  const VALID_V7 = random.uuid();
   const invalidUuid = 'not-a-uuid';
 
   describe('toMongoId', () => {
-    it('should convert valid UUID string to Binary', () => {
-      const result = toMongoId(validUuid);
+    it.each([
+      ['legacy UUIDv4', VALID_V4],
+      ['UUIDv7', VALID_V7]
+    ])('should convert %s string to Binary', (_description, value) => {
+      const result = toMongoId(value);
 
       expect(result).toBeInstanceOf(Binary);
       expect((result as Binary).sub_type).toBe(Binary.SUBTYPE_UUID);
@@ -24,7 +29,7 @@ describe('MongoId helpers', () => {
     });
 
     it('should handle UUID string with whitespace', () => {
-      const uuidWithSpaces = `  ${validUuid}  `;
+      const uuidWithSpaces = `  ${VALID_V7}  `;
       const result = toMongoId(uuidWithSpaces);
 
       expect(typeof result).toBe('string');
@@ -38,18 +43,24 @@ describe('MongoId helpers', () => {
       expect(result).toBe(invalidUuid);
     });
 
-    it('should convert UUID instance to string', () => {
-      const uuid = new UUID(validUuid);
+    it.each([
+      ['legacy UUIDv4', VALID_V4],
+      ['UUIDv7', VALID_V7]
+    ])('should convert %s UUID instance to string', (_description, value) => {
+      const uuid = new UUID(value);
       const result = fromMongoId(uuid);
 
-      expect(result).toBe(validUuid);
+      expect(result).toBe(value);
     });
 
-    it('should convert Binary UUID to string', () => {
-      const binary = new UUID(validUuid).toBinary();
+    it.each([
+      ['legacy UUIDv4', VALID_V4],
+      ['UUIDv7', VALID_V7]
+    ])('should convert %s Binary UUID to string', (_description, value) => {
+      const binary = new UUID(value).toBinary();
       const result = fromMongoId(binary);
 
-      expect(result).toBe(validUuid);
+      expect(result).toBe(value);
     });
 
     it('should convert non-UUID Binary to string', () => {
@@ -80,11 +91,14 @@ describe('MongoId helpers', () => {
   });
 
   describe('toMongoId and fromMongoId round-trip', () => {
-    it('should round-trip valid UUID through both functions', () => {
-      const mongoId = toMongoId(validUuid);
+    it.each([
+      ['legacy UUIDv4', VALID_V4],
+      ['UUIDv7', VALID_V7]
+    ])('should round-trip %s through both functions', (_description, value) => {
+      const mongoId = toMongoId(value);
       const result = fromMongoId(mongoId);
 
-      expect(result).toBe(validUuid);
+      expect(result).toBe(value);
     });
 
     it('should round-trip non-UUID string through both functions', () => {
