@@ -150,22 +150,19 @@ To drive the new system roadmap, this section contrasts the current state of eac
 
 The immediate focus to stabilize the codebase covers the following refactoring backlog:
 
-1.  **Relocate Query System to Delivery Layer:**
-    - _Symptom:_ `GenericQueryParser` and `QueryParserUtils` live in `src/shared/domain/query/`, coupling the domain core to Web/Express query representations.
-    - _Remedy:_ Relocate these technical utilities to the delivery layer (`src/apps/agroApi/shared/query/`).
-2.  **Purify Repository Retrieval Semantics:**
+1.  **Purify Repository Retrieval Semantics:**
     - _Symptom:_ `MongoCrudRepository` throws `DomainNotFoundException` directly from the infrastructure layer when a document is absent.
     - _Remedy:_ Refactor to return `null` or `undefined`, shifting the exception-throwing logic strictly to application use cases.
-3.  **Decouple Mongo Primitives:**
+2.  **Decouple Mongo Primitives:**
     - _Symptom:_ Database-specific types (like `MetadataPrimitives.ts`) live in infrastructure types folders.
     - _Remedy:_ Relocate database-independent primitives to the shared domain space.
-4.  **Transition to Zod Schemas:**
+3.  **Transition to Zod Schemas:**
     - _Symptom:_ Route verification uses `express-validator` with manual schemas, leading to potential OpenAPI contract drift.
     - _Remedy:_ Transition route boundaries to Zod, using schemas to drive runtime validation, TypeScript DTO compilation, and auto-generated Swagger documentation.
-5.  **Awilix DI Auto-Wiring:**
+4.  **Awilix DI Auto-Wiring:**
     - _Symptom:_ `container.ts` contains verbose, manual registrations of every controller and use case.
     - _Remedy:_ Automate registration through directory scanning (`container.loadModules`).
-6.  **Modularize ATDD Step Definitions:**
+5.  **Modularize ATDD Step Definitions:**
     - _Symptom:_ Cucumber test steps are concentrated in a few large feature-dump files.
     - _Remedy:_ Split step definitions by bounded context (Plant, Bed, Auth), extracting shared steps into reusable step utilities.
 

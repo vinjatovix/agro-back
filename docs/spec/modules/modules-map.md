@@ -280,7 +280,7 @@ Rules:
 
 Rules:
 
-- **`[TARGET STATE (Pending [Iteration 4](../../roadmap.md#iteration-4-relocate-query-parser-to-api-layer))]`** Belongs to the API Delivery Mechanism (located in `src/apps/agroApi/shared/query/`). (Currently, `GenericQueryParser` and other parsing components temporarily reside in `src/shared/domain/query/`).
+- **`[COMPLETED ([Iteration 4](../../roadmap.md#iteration-4-relocate-query-parser-to-api-layer))]`** Belongs to the API Delivery Mechanism (located in `src/apps/agroApi/query/`). ✅ `GenericQueryParser` and other parsing components have been relocated from the domain core.
 - API input → Query DSL Contract transformation.
 - MUST implement Query DSL Contract rules.
 - Translates raw Express request queries into clean Application Layer QueryOptions.

@@ -10,10 +10,10 @@ status: active
 
 Define a unified system for parsing, validating and normalizing API query parameters across the application.
 
-### Location & Relocation target `[TARGET STATE (Pending [Iteration 4](../../roadmap.md#iteration-4-relocate-query-parser-to-api-layer))]`
+### Location & Relocation target `[COMPLETED ([Iteration 4](../../roadmap.md#iteration-4-relocate-query-parser-to-api-layer))]`
 
-- **Current State:** The `GenericQueryParser` and associated parsing utilities temporarily reside inside `src/shared/domain/query/` (under active relocation `[IN PROGRESS ([Iteration 4](../../roadmap.md#iteration-4-relocate-query-parser-to-api-layer))]`).
-- **Target State:** As part of Clean Architecture boundaries ([Iteration 1](../../roadmap.md#iteration-1-relocate-mongo-primitives-to-shared-domain)), these technical components belong exclusively to the API Delivery mechanism and will be relocated to `src/apps/agroApi/shared/query/`, leaving the domain core fully pure and agnostic of parsing details.
+- **Current State:** The `GenericQueryParser` and associated parsing utilities reside inside `src/apps/agroApi/query/` (relocated as part of [Iteration 4](../../roadmap.md#iteration-4-relocate-query-parser-to-api-layer)).
+- **Target State:** ✅ Achieved. As part of Clean Architecture boundaries, these technical components are now exclusively within the API Delivery mechanism at `src/apps/agroApi/query/`, leaving the domain core fully pure and agnostic of parsing details.
 
 ---
 
