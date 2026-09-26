@@ -1,4 +1,4 @@
-import type { SortOptions } from './interfaces/SortOptions.js';
+import type { SortOptions } from '../../../shared/domain/query/interfaces/index.js';
 
 export class QueryParserUtils {
   static parseCsv(value: unknown): string[] {
@@ -20,8 +20,12 @@ export class QueryParserUtils {
     return Number.isFinite(n) ? n : fallback;
   }
 
-  static coerce(value: string): string | number | boolean {
+  static coerce(value: string | number | boolean): string | number | boolean {
     if (value === null || value === undefined) return value;
+    if (typeof value === 'boolean' || typeof value === 'number') return value;
+
+    if (value === 'true') return true;
+    if (value === 'false') return false;
 
     if (
       typeof value === 'string' &&
