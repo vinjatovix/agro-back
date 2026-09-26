@@ -38,9 +38,10 @@ export class MongoAuthRepository
   }
 
   async save(user: User): Promise<void> {
+    const { id: _, ...userPrimitives } = user.toPrimitives();
     const mongoDocument = {
       _id: toMongoId(user.id),
-      ...user.toPrimitives()
+      ...userPrimitives
     };
     await this.persist(mongoDocument);
   }
@@ -49,9 +50,10 @@ export class MongoAuthRepository
     const collection = this.collection();
 
     const mongoId = toMongoId(user.id);
+    const { id: _, ...userPrimitives } = user.toPrimitives();
 
     const document = {
-      ...user.toPrimitives(),
+      ...userPrimitives,
       ...(username && updateMetadata(username))
     };
 
