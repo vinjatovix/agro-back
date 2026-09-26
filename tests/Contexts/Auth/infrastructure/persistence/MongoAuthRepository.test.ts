@@ -9,6 +9,7 @@ import {
   DBClientFactory,
   DBConfigFactory
 } from '../../../../../src/shared/infrastructure/persistence/index.js';
+import { toMongoId } from '../../../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoId.js';
 import { UserMother } from '../../domain/mothers/UserMother.js';
 
 let container: AppContainer;
@@ -49,6 +50,13 @@ describe('MongoAuthRepository', () => {
       const user = UserMother.random();
 
       await repository.save(user);
+
+      const rawDocument = await client
+        .db()
+        .collection('users')
+        .findOne({ _id: toMongoId(user.id) });
+
+      expect(rawDocument).not.toHaveProperty('id');
     });
   });
 
@@ -70,6 +78,13 @@ describe('MongoAuthRepository', () => {
       });
       expect(updatedUser?.authMethods).toBeDefined();
       expect(updatedUser?.authMethods[0]?.provider).toBe('local');
+
+      const rawDocument = await client
+        .db()
+        .collection('users')
+        .findOne({ _id: toMongoId(user.id) });
+
+      expect(rawDocument).not.toHaveProperty('id');
     });
   });
 
