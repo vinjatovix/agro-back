@@ -60,8 +60,9 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [modules-map.md](spec/modules/modules-map.md), [api-layer.md](spec/modules/api-layer.md), [query.md](spec/modules/query.md)
 
+- **Status**: Completed
 - **Value delivered**: Isolates transport-level parsing from the pure domain core.
-- **Definition of Done**: `GenericQueryParser` and utilities are moved to `src/apps/agroApi/shared/query/`.
+- **Definition of Done**: `GenericQueryParser` and utilities are moved to `src/apps/agroApi/query/`.
 - **Dependencies**: None.
 - **Risks**: Import resolution errors in controllers.
 - **Prompt for /speckit.specify**:
