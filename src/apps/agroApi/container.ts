@@ -112,8 +112,7 @@ import {
   type GetAllFamiliesControllerDependencies
 } from './controllers/Families/index.js';
 import { familyPersistenceMapper } from '../../Contexts/Agro/Families/mappers/familyPersistenceMapper.js';
-import { FamilyQueryParser } from '../../Contexts/Agro/Families/application/query/FamilyQueryParser.js';
-import { PlantQueryParser } from '../../Contexts/Agro/Plants/application/query/PlantQueryParser.js';
+import { FamilyQueryParser, PlantQueryParser } from './query/index.js';
 import { PlantQueryMapper } from '../../Contexts/Agro/Plants/infrastructure/persistence/mongo/mappers/PlantQueryMapper.js';
 import {
   UpdateFamilyController,

@@ -4,7 +4,7 @@ import { HttpController } from '../../shared/HttpController.js';
 import type { ListPlants } from '../../../../Contexts/Agro/Plants/application/useCases/ListPlants.js';
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
 import { plantDomainMapper } from '../../../../Contexts/Agro/Plants/mappers/plantDomainMapper.js';
-import type { PlantQueryParser } from '../../../../Contexts/Agro/Plants/application/query/PlantQueryParser.js';
+import { type PlantQueryParser } from '../../query/index.js';
 
 export type GetAllPlantsControllerDependencies = {
   listPlants: ListPlants;

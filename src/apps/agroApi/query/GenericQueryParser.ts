@@ -1,8 +1,10 @@
-import type { QueryOptions } from './interfaces/QueryOptions.js';
-import type { PaginationParams } from './interfaces/PaginationParams.js';
+import type {
+  PaginationParams,
+  QueryOptions
+} from '../../../shared/domain/query/interfaces/index.js';
+import type { Primitive } from '../../../shared/domain/types/Primitive.js';
+import { createError } from '../../../shared/errors/index.js';
 import { QueryParserUtils } from './QueryParserUtils.js';
-import type { Primitive } from '../types/Primitive.js';
-import { createError } from '../../errors/index.js';
 
 type ParsedFilterValue = Primitive | Primitive[];
 
@@ -148,11 +150,32 @@ export class GenericQueryParser {
       );
     }
 
-    bucket.eq = QueryParserUtils.coerce(String(parsedValue));
+    bucket.eq =
+      typeof parsedValue === 'boolean'
+        ? parsedValue
+        : QueryParserUtils.coerce(String(parsedValue));
   }
 
   private static normalizePagination(pagination?: unknown): PaginationParams {
-    const obj = (pagination ?? {}) as Record<string, unknown>;
+    if (!pagination || typeof pagination !== 'object') {
+      return { page: 1, limit: 25 };
+    }
+
+    const obj = pagination as Record<string, unknown>;
+
+    if (obj.page !== undefined) {
+      const pageNum = Number(obj.page);
+      if (Number.isNaN(pageNum) || pageNum <= 0) {
+        throw createError.badRequest('pagination.page must be greater than 0');
+      }
+    }
+
+    if (obj.limit !== undefined) {
+      const limitNum = Number(obj.limit);
+      if (Number.isNaN(limitNum) || limitNum <= 0) {
+        throw createError.badRequest('pagination.limit must be greater than 0');
+      }
+    }
 
     return {
       page: QueryParserUtils.toNumber(obj.page, 1),
