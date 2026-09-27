@@ -69,7 +69,8 @@ export const plantDomainMapper = {
       knowledge,
       metadata: plant.metadata.toPrimitives(),
       status: plant.status,
-      deletedAt: plant.deletedAt ? plant.deletedAt.toISOString() : null
+      deletedAt: plant.deletedAt ? plant.deletedAt.toISOString() : null,
+      version: plant.version
     };
   },
 
@@ -108,7 +109,8 @@ export const plantDomainMapper = {
       phenology,
       knowledge: this.mapKnowledge(primitives.knowledge),
       metadata: Metadata.fromPrimitives(primitives.metadata),
-      status: primitives.status
+      status: primitives.status,
+      version: primitives.version
     };
 
     if (primitives.deletedAt) {

@@ -7,6 +7,7 @@ import type { Nullable } from '../../../../../../shared/domain/types/Nullable.js
 
 export interface PlantRepository {
   findById(id: string): Promise<Nullable<Plant>>;
+  findActiveById(id: string): Promise<Nullable<Plant>>;
   save(plant: Plant): Promise<void>;
   updateWithDiff(
     current: PlantPrimitives,

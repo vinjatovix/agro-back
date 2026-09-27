@@ -2,7 +2,10 @@ import type { CollationOptions, FindCursor } from 'mongodb';
 import { diffObjects } from '../../../../../shared/domain/diff/diffObjects.js';
 import type { Nullable } from '../../../../../shared/domain/types/Nullable.js';
 import type { UnknownRecord } from '../../../../../shared/domain/types/UnknownRecord.js';
-import { DomainNotFoundException } from '../../../../shared/domain/errors/index.js';
+import {
+  DomainConflictException,
+  DomainNotFoundException
+} from '../../../../shared/domain/errors/index.js';
 import { Username } from '../../../../Auth/domain/value-objects/Username.js';
 import { updateMetadata } from '../../../application/utils/updateMetadata.js';
 import type { QueryOptions } from '../../../../../shared/domain/query/interfaces/QueryOptions.js';
@@ -23,6 +26,10 @@ export abstract class MongoCrudRepository<
   protected abstract toDomain(doc: TDocument): TDomain;
   protected abstract toMongoDocument(entity: TDomain): TDocument;
   protected abstract entityName(): string;
+
+  protected activeFilter(): Record<string, unknown> {
+    return {};
+  }
 
   protected applySort(cursor: FindCursor, sort?: SortOptions): void {
     if (!sort) return;
@@ -54,17 +61,22 @@ export abstract class MongoCrudRepository<
   }
 
   async findById(id: string): Promise<Nullable<TDomain>> {
-    const collection = this.collection();
+    return this.findOneDomain({ _id: toMongoId(id) });
+  }
 
-    const document = await collection.findOne<TDocument>({
-      _id: toMongoId(id)
+  async findActiveById(id: string): Promise<Nullable<TDomain>> {
+    return this.findOneDomain({
+      _id: toMongoId(id),
+      ...this.activeFilter()
     });
+  }
 
-    if (document === null) {
-      return null;
-    }
+  protected async findOneDomain(
+    filter: Record<string, unknown>
+  ): Promise<Nullable<TDomain>> {
+    const document = await this.collection().findOne<TDocument>(filter);
 
-    return this.toDomain(document);
+    return document === null ? null : this.toDomain(document);
   }
 
   async save(entity: TDomain & { id: { value: string } }): Promise<void> {
@@ -148,7 +160,8 @@ export abstract class MongoCrudRepository<
     const updateQuery: {
       $set?: UnknownRecord;
       $unset?: Record<string, ''>;
-    } = {};
+      $inc: Record<string, number>;
+    } = { $inc: { version: 1 } };
 
     updateQuery.$set = hasSet ? { ...patch.set, ...metadata } : metadata;
 
@@ -156,12 +169,32 @@ export abstract class MongoCrudRepository<
       updateQuery.$unset = patch.unset;
     }
 
-    const result = await collection.updateOne({ _id: mongoId }, updateQuery);
+    const activeDocumentFilter = { _id: mongoId, ...this.activeFilter() };
 
-    if (result.matchedCount === 0) {
-      throw new DomainNotFoundException(
-        `${this.entityName()} not found: ${current.id}`
+    // Optimistic concurrency: only write over the version that was read.
+    // Documents without a stored version are read as version 0.
+    const versionFilter =
+      current.version === 0
+        ? { $or: [{ version: 0 }, { version: { $exists: false } }] }
+        : { version: current.version };
+
+    const result = await collection.updateOne(
+      { ...activeDocumentFilter, ...versionFilter },
+      updateQuery
+    );
+
+    if (result.matchedCount > 0) return;
+
+    const isStale = (await collection.countDocuments(activeDocumentFilter)) > 0;
+
+    if (isStale) {
+      throw new DomainConflictException(
+        `${this.entityName()} was modified concurrently: ${current.id}`
       );
     }
+
+    throw new DomainNotFoundException(
+      `${this.entityName()} not found: ${current.id}`
+    );
   }
 }

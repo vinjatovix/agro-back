@@ -33,11 +33,19 @@ export function diffObjects(
           const nested = diffObjects(c, u, path);
           Object.assign(set, nested.set);
           Object.assign(unset, nested.unset);
-        } else if (c !== u) {
+        } else if (!isSameValue(c, u)) {
           set[path] = u;
         }
     }
   });
 
   return { set, unset };
+}
+
+function isSameValue(current: unknown, updated: unknown): boolean {
+  if (current instanceof Date && updated instanceof Date) {
+    return current.getTime() === updated.getTime();
+  }
+
+  return current === updated;
 }

@@ -63,4 +63,23 @@ describe('diffObjects', () => {
     expect(result.set).toEqual({});
     expect(result.unset).toEqual({});
   });
+
+  it('sets changed Date values as a whole', () => {
+    const current = { deletedAt: new Date('2024-01-01T00:00:00.000Z') };
+    const updated = { deletedAt: new Date('2024-06-01T00:00:00.000Z') };
+
+    const result = diffObjects(current, updated);
+
+    expect(result.set.deletedAt).toBe(updated.deletedAt);
+  });
+
+  it('ignores Date values with the same time', () => {
+    const current = { deletedAt: new Date('2024-01-01T00:00:00.000Z') };
+    const updated = { deletedAt: new Date('2024-01-01T00:00:00.000Z') };
+
+    const result = diffObjects(current, updated);
+
+    expect(result.set).toEqual({});
+    expect(result.unset).toEqual({});
+  });
 });

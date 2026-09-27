@@ -4,4 +4,5 @@ import type { MetadataPrimitives } from '../../../../domain/MetadataPrimitives.j
 export type Entity = {
   _id: string | Binary | UUID;
   metadata: MetadataPrimitives;
+  version: number;
 };

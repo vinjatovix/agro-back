@@ -6,6 +6,10 @@ import {
 import type { Plant } from '../../../../../../../src/Contexts/Agro/Plants/domain/entities/Plant.js';
 import type { PlantPrimitives } from '../../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantPrimitives.js';
 import type { PlantRepository } from '../../../../../../../src/Contexts/Agro/Plants/domain/repositories/interfaces/PlantRepository.js';
+import {
+  DomainConflictException,
+  DomainNotFoundException
+} from '../../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { plantDomainMapper } from '../../../../../../../src/Contexts/Agro/Plants/mappers/plantDomainMapper.js';
 import { ensureFound } from '../../../../../../../src/Contexts/shared/application/utils/ensureFound.js';
 import type { EnvironmentArranger } from '../../../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
@@ -96,6 +100,33 @@ describe('MongoPlantRepository', () => {
     });
   });
 
+  describe('findActiveById', () => {
+    it('should return an active plant', async () => {
+      const plant = PlantFactory.random();
+
+      await repository.save(plant);
+
+      const found = await repository.findActiveById(plant.id);
+
+      expect(found?.id).toBe(plant.id);
+    });
+
+    it('should return null when the plant is soft-deleted', async () => {
+      const plant = PlantFactory.random();
+      plant.markAsDeleted();
+
+      await repository.save(plant);
+
+      await expect(repository.findActiveById(plant.id)).resolves.toBeNull();
+    });
+
+    it('should return null when the plant does not exist', async () => {
+      await expect(
+        repository.findActiveById(random.uuid())
+      ).resolves.toBeNull();
+    });
+  });
+
   describe('updateWithDiff', () => {
     it('should update plant name', async () => {
       const plant = PlantFactory.random();
@@ -120,6 +151,30 @@ describe('MongoPlantRepository', () => {
       const result = await findExisting(plant.id);
 
       expect(result.identity.name.primary).toBe('New name');
+    });
+
+    it('should throw DomainConflictException when updating from a stale version', async () => {
+      const plant = PlantFactory.random();
+      const stale = plantDomainMapper.toPrimitives(plant);
+      await repository.save(plant);
+
+      const renamed = (primary: string): PlantPrimitives => ({
+        ...stale,
+        identity: {
+          ...stale.identity,
+          name: { ...stale.identity.name, primary }
+        }
+      });
+
+      await repository.updateWithDiff(stale, renamed('First writer'), 'user-1');
+
+      await expect(
+        repository.updateWithDiff(stale, renamed('Second writer'), 'user-1')
+      ).rejects.toThrow(DomainConflictException);
+
+      const result = await findExisting(plant.id);
+      expect(result.identity.name.primary).toBe('First writer');
+      expect(result.version).toBe(stale.version + 1);
     });
 
     it('should allow clearing scientificName when set to null', async () => {
@@ -282,6 +337,35 @@ describe('MongoPlantRepository', () => {
       await expect(
         repository.updateWithDiff(current, updated, 'user-1')
       ).rejects.toThrow(`Plant not found: ${plant.id}`);
+    });
+
+    it('should throw DomainNotFoundException when updating a soft-deleted plant', async () => {
+      const plant = PlantFactory.random();
+      plant.markAsDeleted();
+      const current = plantDomainMapper.toPrimitives(plant);
+
+      await repository.save(plant);
+
+      const updated = {
+        identity: {
+          name: {
+            primary: 'Updated Name'
+          }
+        }
+      } as unknown as PlantPrimitives;
+
+      await expect(
+        repository.updateWithDiff(current, updated, 'test-user')
+      ).rejects.toThrow(DomainNotFoundException);
+
+      await expect(
+        repository.updateWithDiff(current, updated, 'test-user')
+      ).rejects.toThrow(`Plant not found: ${plant.id}`);
+
+      const storedPlant = await findExisting(plant.id);
+      expect(storedPlant.identity.name.primary).toBe(
+        plant.identity.name.primary
+      );
     });
   });
   describe('exists', () => {

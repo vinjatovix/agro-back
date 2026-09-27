@@ -27,7 +27,8 @@ export const bedPersistenceMapper: BedPersistenceMapper = {
         : [],
       metadata: Metadata.fromPrimitives(document.metadata),
       deleted: document.deleted,
-      ...(document.deletedAt && { deletedAt: new Date(document.deletedAt) })
+      ...(document.deletedAt && { deletedAt: new Date(document.deletedAt) }),
+      version: document.version
     });
   },
 
@@ -42,7 +43,8 @@ export const bedPersistenceMapper: BedPersistenceMapper = {
       plantInstances: bed.plantInstances.map((p) => p.toPrimitives()),
       metadata: bed.metadata.toPrimitives(),
       deleted: bed.isDeleted,
-      ...(bed.deletedAt && { deletedAt: bed.deletedAt.toISOString() })
+      ...(bed.deletedAt && { deletedAt: bed.deletedAt.toISOString() }),
+      version: bed.version
     };
   }
 };

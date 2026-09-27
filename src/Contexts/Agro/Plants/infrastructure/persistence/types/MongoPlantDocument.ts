@@ -39,4 +39,5 @@ export type MongoPlantDocument = {
   metadata: PlantPrimitives['metadata'];
   status: PlantPrimitives['status'];
   deletedAt?: string | null;
+  version: number;
 };

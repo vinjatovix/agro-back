@@ -1,7 +1,7 @@
 # MODULE: BED
 
-version: 1.3.0
-source-spec: v1.3.0
+version: 1.4.0
+source-spec: v1.4.0
 status: evolving
 
 ---
@@ -156,10 +156,20 @@ _Note: For the exact HTTP verbs, status codes, and routing parameters exposing t
 - Access control and status invariants (e.g., preventing operations on deleted beds) are enforced inside the domain.
 - _Migration Note: Currently, the codebase implements Bed soft deletion using a boolean flag `deleted: boolean` and timestamp `deletedAt`. Standardizing Bed to utilize `status: 'active' | 'removed'` is a target state slated to be refactored in [Iteration 22](../../roadmap.md#iteration-22-standardize-soft-deletion-on-bed-and-plantinstance)._
 
-### 7.2 Optimistic Concurrency Control (OCC) & Transactions `[TARGET STATE (Pending Iterations [23](../../roadmap.md#iteration-23-add-optimistic-concurrency-control-version-to-bed) & [24](../../roadmap.md#iteration-24-wrap-cross-aggregate-mutations-in-acid-transactions))]`
+### 7.2 Optimistic Concurrency Control (OCC) & Transactions
 
-- To prevent race conditions during concurrent plant placements, the `Bed` aggregate root MUST implement Optimistic Concurrency Control (OCC) using a `version` property.
-- Since `Beds` and `PlantInstances` reside in separate MongoDB collections, coordinate placements and Bed version increments MUST be executed atomically using **MongoDB ACID Multi-Document Transactions**.
+#### 7.2.1 Versioning (OCC) — Implemented ([Iteration 23](../../roadmap.md#iteration-23-add-optimistic-concurrency-control-version-to-bed))
+
+- To prevent race conditions during concurrent plant placements, the `Bed` aggregate root implements Optimistic Concurrency Control (OCC) using an integer `version` property (starts at `0`).
+- Every write through `updateWithDiff` only matches the document at the `version` it was read with, and atomically increments it (`$inc: { version: 1 }`). See **persistence.md Sec. 4.3**.
+- A write based on a stale read is rejected with `DomainConflictException` (HTTP `409`), forcing the caller to re-read and re-evaluate spatial collision rules. This covers, for example:
+  - two concurrent `addPlantToBed` calls validating spacing against the same old layout;
+  - `DeleteBed` soft-deleting a bed that received a plant after it was read.
+- While `plantInstances` remain embedded in the `beds` document, OCC alone makes each placement atomic; no transaction is required yet.
+
+#### 7.2.2 Cross-Collection Transactions `[TARGET STATE (Pending [Iteration 24](../../roadmap.md#iteration-24-wrap-cross-aggregate-mutations-in-acid-transactions))]`
+
+- Once `PlantInstances` reside in their own MongoDB collection ([Iteration 20](../../roadmap.md#iteration-20-extract-plantinstance-into-standalone-collection)), coordinate placements and Bed version increments MUST be executed atomically using **MongoDB ACID Multi-Document Transactions**.
 - These transactions are fully supported both in production (via MongoDB Atlas) and in development (via the single-node Replica Set configured in `docker-compose.yaml`).
 - Concurrent requests targeting the same `bedId` will be rejected if the Bed's version has changed under the hood during the transaction, forcing a re-evaluation of spatial collision rules.
 
@@ -199,6 +209,8 @@ _Note: For the exact HTTP verbs, status codes, and routing parameters exposing t
 - full REST lifecycle coverage (create, read, update, delete)
 - ownership enforcement in API layer
 - validation contract enforcement (OpenAPI-driven tests)
+- optimistic concurrency control via `version` (stale writes → `409`)
+- soft-deletion invariant: a bed with plants cannot be deleted (`409`); deleting an already deleted bed returns `404`
 
 ### Partial
 

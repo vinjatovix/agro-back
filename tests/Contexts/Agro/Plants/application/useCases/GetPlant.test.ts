@@ -8,25 +8,37 @@ import { PlantFactory } from '../../domain/mothers/PlantFactory.js';
 describe('GetPlant', () => {
   let repository: PlantRepositoryMock;
   let getPlant: GetPlant;
-  const USER = {
+  const USER: UserSessionInfo = {
+    username: 'user',
+    id: random.uuid(),
+    email: 'user@example.com',
     roles: ['user']
-  } as UserSessionInfo;
-  const ADMIN = {
+  };
+  const ADMIN: UserSessionInfo = {
+    username: 'admin',
+    id: random.uuid(),
+    email: 'admin@example.com',
     roles: ['admin']
-  } as UserSessionInfo;
+  };
+  const COLLABORATOR: UserSessionInfo = {
+    username: 'collaborator',
+    id: random.uuid(),
+    email: 'collaborator@example.com',
+    roles: ['collaborator']
+  };
 
   beforeEach(() => {
     repository = new PlantRepositoryMock();
     getPlant = new GetPlant(repository);
   });
 
-  it('should search plant in repository using the provided id', async () => {
+  it('should search only active plants for regular users', async () => {
     const plant = PlantFactory.tomato();
     repository.addToStorage(plant);
 
     await getPlant.execute(plant.id, USER);
 
-    repository.assertFindByIdHasBeenCalledWith(plant.id);
+    repository.assertFindActiveByIdHasBeenCalledWith(plant.id);
   });
 
   it('should throw error when plant does not exist', async () => {
@@ -35,7 +47,7 @@ describe('GetPlant', () => {
       DomainNotFoundException
     );
 
-    repository.assertFindByIdHasBeenCalledWith(id);
+    repository.assertFindActiveByIdHasBeenCalledWith(id);
   });
 
   it('should throw error if plant is deleted and user tries to access it', async () => {
@@ -47,7 +59,19 @@ describe('GetPlant', () => {
       DomainNotFoundException
     );
 
-    repository.assertFindByIdHasBeenCalledWith(plant.id);
+    repository.assertFindActiveByIdHasBeenCalledWith(plant.id);
+  });
+
+  it('should only look up active plants for anonymous requests', async () => {
+    const plant = PlantFactory.tomato();
+    plant.markAsDeleted();
+    repository.addToStorage(plant);
+
+    await expect(getPlant.execute(plant.id, undefined)).rejects.toBeInstanceOf(
+      DomainNotFoundException
+    );
+
+    repository.assertFindActiveByIdHasBeenCalledWith(plant.id);
   });
 
   it('should return plant if it is deleted but user has admin role', async () => {
@@ -56,6 +80,19 @@ describe('GetPlant', () => {
     repository.addToStorage(plant);
 
     await expect(getPlant.execute(plant.id, ADMIN)).resolves.toEqual(plant);
+
+    repository.assertFindByIdHasBeenCalledWith(plant.id);
+    repository.assertFindActiveByIdNotCalled();
+  });
+
+  it('should return plant if it is deleted but user has collaborator role', async () => {
+    const plant = PlantFactory.tomato();
+    plant.markAsDeleted();
+    repository.addToStorage(plant);
+
+    await expect(getPlant.execute(plant.id, COLLABORATOR)).resolves.toEqual(
+      plant
+    );
 
     repository.assertFindByIdHasBeenCalledWith(plant.id);
   });

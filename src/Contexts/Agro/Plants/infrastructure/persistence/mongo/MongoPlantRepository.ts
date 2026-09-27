@@ -1,5 +1,6 @@
 import type { CollationOptions, Db } from 'mongodb';
 import { Plant } from '../../../domain/entities/Plant.js';
+import { PlantStatus } from '../../../domain/entities/types/PlantStatus.js';
 import type { PlantRepository } from '../../../domain/repositories/interfaces/PlantRepository.js';
 import type { PlantPrimitives } from '../../../domain/entities/types/PlantPrimitives.js';
 import type { MongoPlantDocument } from '../types/MongoPlantDocument.js';
@@ -47,5 +48,9 @@ export class MongoPlantRepository
 
   protected toMongoFilter(filter: PlantFilter) {
     return this.plantQueryMapper.toMongo(filter);
+  }
+
+  protected activeFilter(): Record<string, unknown> {
+    return { status: { $ne: PlantStatus.DELETED } };
   }
 }

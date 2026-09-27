@@ -46,7 +46,13 @@ Feature: Update a bed
                 "name": "Updated Bed Name"
             }
             """
-        Then the response status code should be 403
+        Then the response status code should be 404
+        Then the response body should be
+            """
+            {
+                "message": "Bed not found: <bedId>"
+            }
+            """
         And response matches OpenAPI contract
 
     Scenario: Update a bed with invalid id
@@ -143,6 +149,24 @@ Feature: Update a bed
                 "message": "Validation error"
             }
             """
+        And response matches OpenAPI contract
+
+    Scenario: Cannot update a soft-deleted bed
+        Given a soft-deleted bed exists for the current user
+        When I send a PATCH user request to "/api/v1/beds/<bedId>" with body
+            """
+            {
+                "name": "Updated Bed Name"
+            }
+            """
+        Then the response status code should be 404
+        Then the response body should be
+            """
+            {
+                "message": "Bed not found: <bedId>"
+            }
+            """
+        And the bed should be unchanged
         And response matches OpenAPI contract
 
 

@@ -1,7 +1,7 @@
 # MODULE: FAMILY
 
-version: 1.3.0
-source-spec: v1.3.0
+version: 1.4.0
+source-spec: v1.4.0
 status: stable
 
 ---
@@ -90,6 +90,7 @@ _Note: For the exact HTTP verbs, status codes, and routing parameters exposing t
 
 - Core domain entity and Value Objects
 - Persistence mapping and MongoDB repository
+- Optimistic concurrency control on updates (`version`, stale writes → 409)
 - API endpoints (create, retrieve, list, update) `[TARGET STATE (Pending [Iteration 13](../../roadmap.md#iteration-13-migrate-families-endpoints-to-zod))]`
 - Dataset seeding strategy (JSON-based)
 - Validation rules for family references
