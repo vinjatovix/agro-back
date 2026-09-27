@@ -1,7 +1,5 @@
-import {
-  DomainNotFoundException,
-  DomainUnauthorizedException
-} from '../../../shared/domain/errors/index.js';
+import { DomainUnauthorizedException } from '../../../shared/domain/errors/index.js';
+import { ensureFound } from '../../../shared/application/utils/ensureFound.js';
 import {
   buildLogger,
   type EncrypterTool
@@ -64,11 +62,12 @@ export class UpdatePasswordLocal {
     request: UpdatePasswordRequest,
     user: UserSessionInfo
   ): Promise<User> {
-    const storedUser = await this.repository.search(user.email);
-
-    if (!storedUser) {
-      throw new DomainNotFoundException(`User <${user.id}>`);
-    }
+    const storedUser = ensureFound(
+      await this.repository.search(user.email),
+      'User',
+      user.email,
+      'email'
+    );
 
     if (!storedUser.password) {
       throw new DomainUnauthorizedException(INVALID_CREDENTIALS_MESSAGE);

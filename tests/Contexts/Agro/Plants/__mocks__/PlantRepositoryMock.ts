@@ -20,6 +20,10 @@ export class PlantRepositoryMock
     return 'Plant';
   }
 
+  protected isActive(plant: Plant): boolean {
+    return !plant.isDeleted();
+  }
+
   async findAll(
     options?: QueryOptions<PlantFilter>
   ): Promise<PaginatedResult<Plant>> {

@@ -7,6 +7,7 @@ import { randomFamilyId } from '../../../../../../../src/Contexts/Agro/Families/
 import type { FamilyRepository } from '../../../../../../../src/Contexts/Agro/Families/domain/repositories/interfaces/FamilyRepository.js';
 import type { FamilyPrimitives } from '../../../../../../../src/Contexts/Agro/Families/domain/types/FamilyPrimitives.js';
 import { familyDomainMapper } from '../../../../../../../src/Contexts/Agro/Families/mappers/familyDomainMapper.js';
+import { DomainConflictException } from '../../../../../../../src/Contexts/shared/domain/errors/index.js';
 import type { EnvironmentArranger } from '../../../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
 import {
   DBClientFactory,
@@ -161,6 +162,30 @@ describe('MongoFamilyRepository', () => {
       expect(updated?.aliases).toEqual(updateDto.aliases);
     });
 
+    it('should throw DomainConflictException when updating from a stale version', async () => {
+      const family = FamilyScenarios.domainRandom();
+      await repository.save(family);
+      const stale = familyDomainMapper.toPrimitives(family);
+
+      await repository.updateWithDiff(
+        stale,
+        { ...stale, name: 'First writer' },
+        'test-user'
+      );
+
+      await expect(
+        repository.updateWithDiff(
+          stale,
+          { ...stale, name: 'Second writer' },
+          'test-user'
+        )
+      ).rejects.toThrow(DomainConflictException);
+
+      const stored = await repository.findById(family.idValue);
+      expect(stored?.name).toBe('First writer');
+      expect(stored?.version).toBe(stale.version + 1);
+    });
+
     it('should update metadata on every update', async () => {
       const family = FamilyScenarios.domainRandom();
       await repository.save(family);
@@ -197,6 +222,21 @@ describe('MongoFamilyRepository', () => {
           'test-user'
         )
       ).rejects.toThrow(`Family not found: ${nonExistingFamily.idValue}`);
+    });
+
+    it('should update an existing family (regression: activeFilter default is empty)', async () => {
+      const family = FamilyScenarios.domainRandom();
+      await repository.save(family);
+
+      const newName = 'Regression Test Family';
+      await repository.updateWithDiff(
+        familyDomainMapper.toPrimitives(family),
+        { name: newName } as unknown as FamilyPrimitives,
+        'test-user'
+      );
+
+      const updated = await repository.findById(family.idValue);
+      expect(updated?.name).toBe(newName);
     });
   });
 

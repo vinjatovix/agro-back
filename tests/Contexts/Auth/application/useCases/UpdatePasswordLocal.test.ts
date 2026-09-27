@@ -48,6 +48,10 @@ describe('UpdatePasswordLocal', () => {
     await expect(updatePassword.run(PAYLOAD, CURRENT_USER)).rejects.toThrow(
       DomainNotFoundException
     );
+
+    await expect(updatePassword.run(PAYLOAD, CURRENT_USER)).rejects.toThrow(
+      `User not found with email: ${CURRENT_USER.email}`
+    );
   });
 
   it('should throw an error when the password is invalid', async () => {

@@ -19,7 +19,8 @@ export const familyPersistenceMapper: FamilyPersistenceMapper = {
       shortDescription: document.shortDescription,
       highlights: document.highlights,
       ...(document.extra ? { extra: document.extra } : {}),
-      metadata: Metadata.fromPrimitives(document.metadata)
+      metadata: Metadata.fromPrimitives(document.metadata),
+      version: document.version
     });
   },
   toMongoDocument: function (family: Family): MongoFamilyDocument {
@@ -32,7 +33,8 @@ export const familyPersistenceMapper: FamilyPersistenceMapper = {
       shortDescription: family.shortDescription,
       highlights: family.highlights,
       ...(family.extra ? { extra: family.extra } : {}),
-      metadata: family.metadata.toPrimitives()
+      metadata: family.metadata.toPrimitives(),
+      version: family.version
     };
   }
 };

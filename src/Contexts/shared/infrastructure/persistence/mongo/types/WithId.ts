@@ -3,4 +3,5 @@ import type { MetadataPrimitives } from '../../../../domain/MetadataPrimitives.j
 export type WithId = {
   id: string;
   metadata: MetadataPrimitives;
+  version: number;
 };

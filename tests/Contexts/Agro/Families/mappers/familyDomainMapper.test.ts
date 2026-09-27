@@ -63,7 +63,8 @@ describe('familyDomainMapper', () => {
         scientificName: family.scientificName,
         shortDescription: family.shortDescription,
         highlights: family.highlights,
-        metadata: family.metadata.toPrimitives()
+        metadata: family.metadata.toPrimitives(),
+        version: family.version
       });
     });
 
@@ -81,7 +82,8 @@ describe('familyDomainMapper', () => {
         shortDescription: family.shortDescription,
         highlights: family.highlights,
         extra: family.extra,
-        metadata: family.metadata.toPrimitives()
+        metadata: family.metadata.toPrimitives(),
+        version: family.version
       });
     });
   });

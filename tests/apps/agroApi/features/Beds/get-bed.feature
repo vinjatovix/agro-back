@@ -31,11 +31,23 @@ Feature: GetBed
     Scenario: Cannot get a non owned bed
         Given a bed exists for another user
         When I send a GET user request to "/api/v1/beds/<bedId>"
-        Then the response status code should be 403
+        Then the response status code should be 404
         Then the response body should be
             """
             {
-                "message": "You do not have access to this bed: <bedId>"
+                "message": "Bed not found: <bedId>"
+            }
+            """
+        And response matches OpenAPI contract
+
+    Scenario: Cannot get a soft-deleted bed
+        Given a soft-deleted bed exists for the current user
+        When I get the bed
+        Then the response status code should be 404
+        Then the response body should be
+            """
+            {
+                "message": "Bed not found: <bedId>"
             }
             """
         And response matches OpenAPI contract

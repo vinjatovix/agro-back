@@ -44,4 +44,5 @@ export type PlantProps = {
 
   status?: PlantStatus;
   deletedAt?: Date;
+  version?: number;
 };

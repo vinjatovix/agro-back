@@ -1,6 +1,7 @@
 import { UpdateBed } from '../../../../../../src/Contexts/Agro/Beds/application/useCases/UpdateBed.js';
 import { randomBedId } from '../../../../../../src/Contexts/Agro/Beds/domain/BedId.js';
 import type { BedPrimitives } from '../../../../../../src/Contexts/Agro/Beds/domain/entities/types/BedPrimitives.js';
+import { createUserId } from '../../../../../../src/Contexts/Auth/domain/UserId.js';
 import type { UserSessionInfo } from '../../../../../../src/Contexts/Auth/application/index.js';
 import { DomainNotFoundException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { random } from '../../../../shared/fixtures/random.js';
@@ -42,7 +43,7 @@ describe('UpdateBed', () => {
 
   it('should throw not found error if the bed disappears after the update', async () => {
     jest
-      .spyOn(repository, 'findById')
+      .spyOn(repository, 'findOwnedActiveById')
       .mockResolvedValueOnce(bed)
       .mockResolvedValueOnce(null);
 
@@ -58,7 +59,7 @@ describe('UpdateBed', () => {
     ).rejects.toBeInstanceOf(DomainNotFoundException);
   });
 
-  it('should throw error if user is not the creator of the bed', async () => {
+  it('should throw not found error if user is not the creator of the bed', async () => {
     const otherUser: UserSessionInfo = {
       username: 'other-user',
       id: random.uuid(),
@@ -75,7 +76,72 @@ describe('UpdateBed', () => {
         },
         otherUser
       )
-    ).rejects.toThrow(`User ${otherUser.id} is not allowed to update this bed`);
+    ).rejects.toBeInstanceOf(DomainNotFoundException);
+    repository.assertUpdateNotCalled();
+  });
+
+  it('should throw not found error if bed is soft-deleted', async () => {
+    const deletedBed = BedFactory.create({
+      userId: createUserId(USER.id),
+      deleted: true,
+      deletedAt: new Date()
+    });
+    repository.addToStorage(deletedBed);
+
+    await expect(
+      useCase.execute(
+        {
+          id: deletedBed.id,
+          width: 150,
+          height: 250
+        },
+        USER
+      )
+    ).rejects.toBeInstanceOf(DomainNotFoundException);
+    repository.assertUpdateNotCalled();
+  });
+
+  it('should throw not found error if updateWithDiff rejects with DomainNotFoundException (concurrent delete)', async () => {
+    jest
+      .spyOn(repository, 'updateWithDiff')
+      .mockRejectedValueOnce(
+        new DomainNotFoundException(`Bed not found: ${bed.id}`)
+      );
+
+    await expect(
+      useCase.execute(
+        {
+          id: bed.id,
+          width: bed.width.value + 50,
+          height: bed.height.value + 50
+        },
+        USER
+      )
+    ).rejects.toBeInstanceOf(DomainNotFoundException);
+  });
+
+  it('should throw not found error when re-read finds soft-deleted bed after update (FR-007a)', async () => {
+    const deletedBed = BedFactory.create({
+      id: bed.id,
+      userId: createUserId(USER.id),
+      deleted: true,
+      deletedAt: new Date()
+    });
+    jest.spyOn(repository, 'updateWithDiff').mockImplementationOnce(() => {
+      repository.addToStorage(deletedBed);
+      return Promise.resolve();
+    });
+
+    await expect(
+      useCase.execute(
+        {
+          id: bed.id,
+          width: bed.width.value + 50,
+          height: bed.height.value + 50
+        },
+        USER
+      )
+    ).rejects.toBeInstanceOf(DomainNotFoundException);
   });
 
   it('should update bed width and height', async () => {

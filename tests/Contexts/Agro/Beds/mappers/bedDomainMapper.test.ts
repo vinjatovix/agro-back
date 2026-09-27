@@ -79,6 +79,16 @@ describe('bedDomainMapper', () => {
       expect(bed.plantInstances).toHaveLength(primitives.plantInstances.length);
     });
 
+    it('should round-trip the version', () => {
+      const original = BedFactory.create({ version: 3 });
+
+      const bed = bedDomainMapper.fromPrimitives(
+        bedDomainMapper.toPrimitives(original)
+      );
+
+      expect(bed.version).toBe(3);
+    });
+
     it('should restore deletedAt correctly', () => {
       const original = BedFactory.randomDeleted();
 

@@ -17,11 +17,7 @@ export class UpdatePlant {
   ) {}
 
   async execute(input: UpdatePlantInput, user: string): Promise<Plant> {
-    const plant = ensureFound(
-      await this.plantRepository.findById(input.id),
-      'Plant',
-      input.id
-    );
+    const plant = await this.findActivePlant(input.id);
 
     if (input.identity?.family) {
       const familyExists = await this.familyRepository.exists(
@@ -42,10 +38,14 @@ export class UpdatePlant {
 
     await this.plantRepository.updateWithDiff(current, patched, user);
 
+    return this.findActivePlant(input.id);
+  }
+
+  private async findActivePlant(id: string): Promise<Plant> {
     return ensureFound(
-      await this.plantRepository.findById(input.id),
+      await this.plantRepository.findActiveById(id),
       'Plant',
-      input.id
+      id
     );
   }
 }

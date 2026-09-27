@@ -121,3 +121,29 @@ Feature: Update Password
       }
       """
     And response matches OpenAPI contract
+
+  Scenario: Session of a deleted user returns 404
+    Given an authentication with body
+      """
+      {
+        "email": "update@password.com",
+        "password": "#aD3fe2.0%"
+      }
+      """
+    And the logged-in user is removed from storage
+    And a POST user request to "/api/v1/auth/update" with body
+      """
+      {
+        "oldPassword": "#aD3fe2.0%",
+        "password": "Sup3rSecretPassword!",
+        "repeatPassword": "Sup3rSecretPassword!"
+      }
+      """
+    Then the response status code should be 404
+    And the response body should be
+      """
+      {
+        "message": "User not found with email: update@password.com"
+      }
+      """
+    And response matches OpenAPI contract

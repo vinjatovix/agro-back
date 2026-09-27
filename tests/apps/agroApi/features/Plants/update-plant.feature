@@ -102,6 +102,30 @@ Feature: Update a plant
     Then the response status code should be 404
     And response matches OpenAPI contract
 
+  Scenario: Fail to update a soft-deleted plant
+    Given a family exists
+    And a soft-deleted plant exists
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "id": "<plantId>",
+        "identity": {
+          "name": {
+            "primary": "Test"
+          }
+        }
+      }
+      """
+    Then the response status code should be 404
+    And the response body should contain
+      """
+      {
+        "message": "Plant not found: <plantId>"
+      }
+      """
+    And the plant should be unchanged
+    And response matches OpenAPI contract
+
   Scenario: Fail to update with invalid range values
     Given a family exists
     Given a plant exists

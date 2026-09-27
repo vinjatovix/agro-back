@@ -137,6 +137,7 @@ apps/agroApi/
 - Domain must not depend on infrastructure
 - Controllers must not contain business logic
 - Use cases must not depend on Express
+- Single-entity lookups in application code MUST go through `ensureFound()` (or an aggregate loader built on it); see ARCHITECTURE.md › Existence Invariants
 
 ---
 

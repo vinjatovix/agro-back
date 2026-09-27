@@ -1,7 +1,7 @@
 # MODULE: PERSISTENCE + PATCH SYSTEM CORE
 
-version: 1.3.0
-source-spec: v1.3.0
+version: 1.4.0
+source-spec: v1.4.0
 status: stable
 
 ---
@@ -103,6 +103,28 @@ Persistence MUST ONLY receive a **validated final state transition**.
 - Patch application is a **transformation step**, not a persistence action
 - Diff calculation is **internal to persistence layer**, not part of domain flow
 - The system MUST NOT persist unvalidated intermediate states
+- `Date` values are compared as scalars (by `getTime()`) and replaced as a whole; they are never walked as nested objects
+- Primitives SHOULD represent dates as ISO strings (e.g. `deletedAt`), matching the persisted document shape
+
+---
+
+### 4.3 Optimistic Concurrency Control (OCC)
+
+All aggregates persisted through `MongoCrudRepository` (Bed, Plant, Family) carry an integer `version` (starts at `0`) in their props, primitives and Mongo documents.
+
+`updateWithDiff(current, updated, username)`:
+
+1. Computes the diff; if there are no changes, it returns without writing (the version is not bumped).
+2. Updates with filter `{ _id, ...activeFilter(), version: current.version }` and `$inc: { version: 1 }`, alongside the diff's `$set` / `$unset`. When `current.version` is `0`, the filter also matches documents without a stored `version` field (mappers read a missing `version` as `0`), so legacy or imported documents are not permanently locked out.
+3. If no document matched:
+   - the aggregate still exists and is active → **`DomainConflictException`** (HTTP `409`): the caller read a stale version;
+   - otherwise → **`DomainNotFoundException`** (HTTP `404`).
+
+Rules:
+
+- `version` MUST NOT be set by patches or API input; it is exposed read-only in responses.
+- `save()` is reserved for creation (upsert of the initial document at `version: 0`). It MUST NOT be used to update existing aggregates, since it bypasses the version check.
+- Restoring a soft-deleted aggregate cannot use `updateWithDiff` (it only matches active documents) and requires a dedicated method.
 
 ---
 
@@ -116,6 +138,7 @@ Used by:
 
 - PlantRepository
 - BedRepository
+- FamilyRepository
 
 #### Responsibilities
 
@@ -123,6 +146,7 @@ Used by:
 - query normalization
 - common Mongo access patterns
 - eliminating duplicated repository logic between aggregates
+- optimistic concurrency control on updates (see Sec. 4.3)
 
 #### Rules
 
@@ -383,6 +407,7 @@ Migrations:
 - run at application startup OR deployment phase
 - are executed once per version
 - MUST be idempotent or tracked via changelog collection
+- a failed migration aborts startup (`migrations/index.ts` logs and rethrows; the process exits with code `1`), so the API never serves over a partially migrated schema
 
 ---
 
@@ -416,6 +441,16 @@ Migrations MUST NOT:
 - migrations are executed at bootstrap phase
 - persistence layer assumes schema is already up-to-date
 - repositories MUST NOT trigger migrations
+
+---
+
+#### 5.7.7 Current Migrations
+
+Migrations live in `migrations/<package version>/` as ESM modules exporting `up(db)` / `down(db)`, and are applied by `migrations/index.ts` at server start.
+
+| Version | File                                      | Purpose                                                                                                                                 |
+| ------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.0.0   | `20260927120000-add-aggregate-version.js` | Backfills `version: 0` on `beds`, `families` and `plants` documents that lack it (OCC, Sec. 4.3). Idempotent; `down` removes the field. |
 
 ---
 
@@ -455,13 +490,13 @@ This layer only TRANSLATES the Query DSL into database queries.
 
 All filter/sort/pagination semantics are defined in:
 
-> **Query DSL Contract v1.3.0**
+> **Query DSL Contract v1.4.0**
 
 Rules:
 
-- filter operators are defined in Query DSL Contract v1.3.0
-- sort semantics are defined in Query DSL Contract v1.3.0
-- pagination semantics are defined in Query DSL Contract v1.3.0
+- filter operators are defined in Query DSL Contract v1.4.0
+- sort semantics are defined in Query DSL Contract v1.4.0
+- pagination semantics are defined in Query DSL Contract v1.4.0
 - this module ONLY implements translation to MongoDB query operators
 
 Supported translation targets:
@@ -510,7 +545,7 @@ This ensures robustness against imperfect upstream input.
 
 | Concern           | Layer                       |
 | ----------------- | --------------------------- |
-| Query semantics   | Query DSL Contract v1.3.0   |
+| Query semantics   | Query DSL Contract v1.4.0   |
 | Query parsing     | API / Validation layer      |
 | Query translation | Persistence layer           |
 | Query execution   | Persistence layer (MongoDB) |
@@ -550,9 +585,9 @@ _(Note: For the architectural boundary enforcement rules governing this bypass, 
 
 ### 5.9 ACID TRANSACTIONS & CACHING INFRASTRUCTURE `[TARGET STATE (Pending Iterations [30](../../roadmap.md#iteration-30-build-redis-cache-repository-with-memory-fallback) & [24](../../roadmap.md#iteration-24-wrap-cross-aggregate-mutations-in-acid-transactions))]`
 
-#### 5.9.1 MongoDB ACID Multi-Document Transactions `[TARGET STATE (Pending Iterations [23](../../roadmap.md#iteration-23-add-optimistic-concurrency-control-version-to-bed) & [24](../../roadmap.md#iteration-24-wrap-cross-aggregate-mutations-in-acid-transactions))]`
+#### 5.9.1 MongoDB ACID Multi-Document Transactions `[TARGET STATE (Pending [Iteration 24](../../roadmap.md#iteration-24-wrap-cross-aggregate-mutations-in-acid-transactions))]`
 
-To maintain strict data integrity across detached collections (e.g. creating a standalone `PlantInstance` while simultaneously incrementing the `version` on its associated `Bed` for Optimistic Concurrency Control):
+To maintain strict data integrity across detached collections (e.g. creating a standalone `PlantInstance` while simultaneously incrementing the `version` on its associated `Bed` for Optimistic Concurrency Control, already implemented per Sec. 4.3):
 
 - Concrete usecases MUST coordinate writes using **MongoDB ACID Transactions (`ClientSession`)**.
 - The `MongoRepository` layer must support accepting and forwarding an optional `session` object to MongoDB driver write methods.
@@ -688,8 +723,10 @@ Persistence MUST:
 - MongoRepository abstraction
 - PlantRepository implementation
 - BedRepository implementation
-- diffObjects + applyPatch system
+- diffObjects + applyPatch system (Date-aware)
 - updateWithDiff pipeline
+- optimistic concurrency control (`version`) for Bed, Plant and Family
+- FamilyRepository implementation
 - PlantDtoMapper
 - Query DSL + parser support (GenericQueryParser, QueryParserUtils)
 

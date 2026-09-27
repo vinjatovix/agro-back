@@ -1,6 +1,6 @@
 # AgroApp - Ideas Backlog & Future Opportunities (v2.x)
 
-> **IMPORTANT STATUS NOTE (v1.3.0 Baseline)**
+> **IMPORTANT STATUS NOTE (v1.4.0 Baseline)**
 > All critical architectural risks and structural bottlenecks previously identified in this document have been successfully mitigated and formalized as strict rules within the core specifications (`docs/spec/**`).
 >
 > This document now serves purely as an **Ideas Backlog** for post-v1.0 development. The opportunities listed below are categorized as either **[OUT OF SCOPE for v1.x]** (architectural leaps reserved for v2.x when scale demands it) or **[PRODUCT FEATURE - Backlog]** (user-facing features that can be added incrementally without altering the core architecture).

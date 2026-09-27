@@ -167,7 +167,7 @@ describe('UpdatePlant use case', () => {
     const plant = PlantFactory.random();
     repository.addToStorage(plant);
     jest
-      .spyOn(repository, 'findById')
+      .spyOn(repository, 'findActiveById')
       .mockResolvedValueOnce(plant)
       .mockResolvedValueOnce(null);
 
@@ -258,5 +258,60 @@ describe('UpdatePlant use case', () => {
         'user-1'
       )
     ).rejects.toThrow(`Family with id ${family} does not exist`);
+  });
+
+  it('should throw not found error if plant is soft-deleted', async () => {
+    const plant = PlantFactory.random({ deletedAt: new Date() });
+    repository.addToStorage(plant);
+
+    await expect(
+      useCase.execute(
+        {
+          id: plant.id,
+          identity: { name: { primary: 'New name' } }
+        },
+        'user-1'
+      )
+    ).rejects.toBeInstanceOf(DomainNotFoundException);
+    repository.assertUpdateNotCalled();
+  });
+
+  it('should throw not found error if updateWithDiff rejects with DomainNotFoundException (concurrent delete)', async () => {
+    const plant = PlantFactory.random();
+    repository.addToStorage(plant);
+
+    jest
+      .spyOn(repository, 'updateWithDiff')
+      .mockRejectedValueOnce(
+        new DomainNotFoundException('Plant', plant.id.toString())
+      );
+
+    await expect(
+      useCase.execute(
+        { id: plant.id, identity: { name: { primary: 'New name' } } },
+        'user-1'
+      )
+    ).rejects.toBeInstanceOf(DomainNotFoundException);
+  });
+
+  it('should throw not found error when re-read finds soft-deleted plant after update (FR-007a)', async () => {
+    const plant = PlantFactory.random();
+    const deletedPlant = PlantFactory.random({
+      id: plant.id,
+      deletedAt: new Date()
+    });
+    repository.addToStorage(plant);
+
+    jest.spyOn(repository, 'updateWithDiff').mockImplementationOnce(() => {
+      repository.addToStorage(deletedPlant);
+      return Promise.resolve();
+    });
+
+    await expect(
+      useCase.execute(
+        { id: plant.id, identity: { name: { primary: 'New name' } } },
+        'user-1'
+      )
+    ).rejects.toBeInstanceOf(DomainNotFoundException);
   });
 });
