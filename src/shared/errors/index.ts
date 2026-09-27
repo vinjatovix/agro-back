@@ -63,12 +63,6 @@ export class ConflictError extends HttpError {
   }
 }
 
-export class PreconditionFailedError extends HttpError {
-  constructor(message = 'Precondition Failed') {
-    super(httpStatus.PRECONDITION_FAILED, message);
-  }
-}
-
 export class PreconditionRequiredError extends HttpError {
   constructor(message = 'Precondition Required') {
     super(httpStatus.PRECONDITION_REQUIRED, message);
@@ -91,7 +85,6 @@ interface CreateError {
     errors?: Record<string, string>
   ) => BadRequestError;
   internal: (message: string) => InternalServerError;
-  preconditionFailed: (message: string) => PreconditionFailedError;
   preconditionRequired: (message: string) => PreconditionRequiredError;
   test: (message: string) => TestError;
 }
@@ -104,7 +97,6 @@ export const createError: CreateError = {
   badRequest: (message: string, errors?: Record<string, string>) =>
     new BadRequestError(message, errors),
   internal: (message: string) => new InternalServerError(message),
-  preconditionFailed: (message: string) => new PreconditionFailedError(message),
   preconditionRequired: (message: string) =>
     new PreconditionRequiredError(message),
   test: (message: string) => new TestError(message)

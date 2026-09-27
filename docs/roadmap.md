@@ -387,6 +387,7 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 - **Definition of Done**: Standalone `PlantInstance` creations and associated `Bed` version increments execute atomically inside a MongoDB `ClientSession`.
 - **Dependencies**: Iteration 20, Iteration 23.
 - **Risks**: Transactions require MongoDB Replica Sets, which must be perfectly configured in development.
+- **Open question**: placing a crop bumps the `Bed` version through an internal conditional write (like `addPlantToBed` today), and a concurrent change raises `DomainStaleVersionException` (`412`). If the placement endpoint does not require `If-Match`, a `412` answers a precondition the client never sent (RFC 9110 §15.5.13). Decide when specifying this iteration: require `If-Match` with the bed version (like `PUT /beds/:id/layout`), or map internal stale writes to `409`. See persistence.md Sec. 4.3.
 - **Prompt for /speckit.specify**:
   ```text
   WRAP CROSS-AGGREGATE MUTATIONS IN ACID TRANSACTIONS

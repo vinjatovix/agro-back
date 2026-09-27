@@ -154,6 +154,7 @@ Rules:
 - `save()` is reserved for creation (upsert of the initial document at `version: 0`). It MUST NOT be used to update existing aggregates, since it bypasses the version check.
 - Restoring a soft-deleted aggregate cannot use `updateWithDiff` (it only matches active documents) and requires a dedicated method.
 - Internal writes without an HTTP precondition (e.g. `addPlantToBed`) keep the in-request check: they read, then write with the version they read, and a concurrent change surfaces as `DomainStaleVersionException`.
+  - **Open question (decide in [Iteration 24](../../roadmap.md#iteration-24-wrap-cross-aggregate-mutations-in-acid-transactions))**: once such a write is exposed over HTTP without `If-Match`, its `412` would answer a precondition the client never sent. Either the endpoint requires `If-Match`, or internal stale writes map to `409`.
 
 ---
 

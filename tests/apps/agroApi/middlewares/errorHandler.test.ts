@@ -12,7 +12,7 @@ import {
   DomainUnauthorizedException,
   InvalidArgumentException
 } from '../../../../src/Contexts/shared/domain/errors/index.js';
-import { HttpError } from '../../../../src/shared/errors/index.js';
+import { createError, HttpError } from '../../../../src/shared/errors/index.js';
 
 class MockAppLogger implements AppLogger {
   debug = jest.fn();
@@ -69,6 +69,31 @@ describe('errorHandler middleware', () => {
     expect(mockRes.json).toHaveBeenCalledWith({
       message: 'Unauthorized'
     });
+  });
+
+  it('should log a 5xx HttpError and hide its internal message', () => {
+    const error = createError.internal('internal wiring detail');
+
+    errorHandler({ logger: mockLogger })(error, req, res, next);
+
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      'Unexpected error at error handler',
+      error
+    );
+    expect(mockRes.status).toHaveBeenCalledWith(
+      httpStatus.INTERNAL_SERVER_ERROR
+    );
+    expect(mockRes.json).toHaveBeenCalledWith({
+      message: 'Internal server error'
+    });
+  });
+
+  it('should not log a 4xx HttpError', () => {
+    const error = createError.notFound('Resource not found');
+
+    errorHandler({ logger: mockLogger })(error, req, res, next);
+
+    expect(mockLogger.error).not.toHaveBeenCalled();
   });
 
   it('should map InvalidArgumentException to 400 Bad Request', () => {

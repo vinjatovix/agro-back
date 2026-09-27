@@ -1278,11 +1278,12 @@ Then(
       header.toLowerCase()
     ];
 
-    assert.isString(value, `Missing response header ${header}`);
+    assert.exists(value, `Missing response header ${header}`);
 
-    const items = String(value)
-      .split(',')
-      .map((item: string) => item.trim().toLowerCase());
+    const items = [value]
+      .flat()
+      .flatMap((entry) => entry.split(','))
+      .map((item) => item.trim().toLowerCase());
 
     assert.include(items, expected.toLowerCase());
   }
