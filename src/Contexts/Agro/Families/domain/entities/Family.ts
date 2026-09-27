@@ -6,12 +6,12 @@ import type { FamilyExtraPrimitives } from '../types/FamilyExtraPrimitives.js';
 import type { FamilyProps } from '../types/FamilyProps.js';
 
 export class Family extends AggregateRoot<FamilyId> {
-  private readonly props: FamilyProps;
+  private readonly props: FamilyProps & { version: number };
 
   private constructor(props: FamilyProps) {
     super(props.id);
     this.validate(props);
-    this.props = Object.freeze(props);
+    this.props = Object.freeze({ ...props, version: props.version ?? 0 });
   }
 
   get idValue(): string {
@@ -51,7 +51,7 @@ export class Family extends AggregateRoot<FamilyId> {
   }
 
   get version(): number {
-    return this.props.version ?? 0;
+    return this.props.version;
   }
 
   private validate(props: FamilyProps): void {

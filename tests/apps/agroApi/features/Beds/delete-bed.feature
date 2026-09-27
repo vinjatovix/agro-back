@@ -6,17 +6,20 @@ Feature: Delete a bed
 
     Scenario: Delete a bed successfully
         Given a bed exists
+        And I use If-Match '"0"'
         When I send a DELETE user request to "/api/v1/beds/<bedId>"
         Then the response status code should be 204
         And response matches OpenAPI contract
 
     Scenario: Delete a non existing bed
+        Given I use If-Match '"0"'
         When I send a DELETE user request to "/api/v1/beds/12384ea3-e55d-4f69-8b0c-b54cccb9f443"
         Then the response status code should be 404
         And response matches OpenAPI contract
 
     Scenario: Cannot delete a non owned bed
         Given a bed exists for another user
+        And I use If-Match '"0"'
         When I send a DELETE user request to "/api/v1/beds/<bedId>"
         Then the response status code should be 404
         Then the response body should be
@@ -29,11 +32,13 @@ Feature: Delete a bed
 
     Scenario: Unauthenticated user cannot delete a bed
         Given a bed exists
+        And I use If-Match '"0"'
         When I send a DELETE request to "/api/v1/beds/<bedId>"
         Then the response status code should be 401
         And response matches OpenAPI contract
 
     Scenario: Delete a bed with invalid id
+        Given I use If-Match '"0"'
         When I send a DELETE user request to "/api/v1/beds/invalid-uuid"
         Then the response status code should be 400
         Then the response body should be
@@ -49,6 +54,7 @@ Feature: Delete a bed
 
     Scenario: Deleting an already deleted bed returns 404
         Given a bed exists
+        And I use If-Match '"0"'
         When I send a DELETE user request to "/api/v1/beds/<bedId>"
         Then the response status code should be 204
         When I send a DELETE user request to "/api/v1/beds/<bedId>"
@@ -59,4 +65,97 @@ Feature: Delete a bed
                 "message": "Bed not found: <bedId>"
             }
             """
+        And response matches OpenAPI contract
+
+    Scenario: A successful delete returns no ETag
+        Given a bed exists
+        And I use If-Match '"0"'
+        When I send a DELETE user request to "/api/v1/beds/<bedId>"
+        Then the response status code should be 204
+        And the response should not have an ETag
+        And response matches OpenAPI contract
+
+    Scenario: Delete with an outdated version is rejected
+        Given a bed exists
+        And the bed is stored at version 1
+        And I use If-Match '"0"'
+        When I send a DELETE user request to "/api/v1/beds/<bedId>"
+        Then the response status code should be 412
+        And the bed should be unchanged
+        And a GET user request to "/api/v1/beds/<bedId>" should return status 200
+        And response matches OpenAPI contract
+
+    Scenario: Delete with the current version after updates succeeds
+        Given a bed exists
+        And the bed is stored at version 2
+        And I use If-Match '"2"'
+        When I send a DELETE user request to "/api/v1/beds/<bedId>"
+        Then the response status code should be 204
+        And response matches OpenAPI contract
+
+    Scenario: A non existing bed returns 404 whatever the version
+        Given I use If-Match '"999"'
+        When I send a DELETE user request to "/api/v1/beds/12384ea3-e55d-4f69-8b0c-b54cccb9f443"
+        Then the response status code should be 404
+        And response matches OpenAPI contract
+
+    Scenario: Concurrent deletes with the same version have a single winner
+        Given a bed exists
+        And I use If-Match '"0"'
+        When I send 5 concurrent DELETE user requests to "/api/v1/beds/<bedId>"
+        Then exactly 1 response should have status 204 and the rest 404
+        And response matches OpenAPI contract
+
+    Scenario: Delete without If-Match is rejected
+        Given a bed exists
+        And I record the current bed
+        When I send a DELETE user request to "/api/v1/beds/<bedId>"
+        Then the response status code should be 428
+        And the bed should be unchanged
+        And response matches OpenAPI contract
+
+    Scenario: Delete with a wildcard If-Match is rejected
+        Given a bed exists
+        And I use If-Match '*'
+        When I send a DELETE user request to "/api/v1/beds/<bedId>"
+        Then the response status code should be 428
+        And response matches OpenAPI contract
+
+    Scenario: Delete with a weak If-Match is rejected
+        Given a bed exists
+        And I use If-Match 'W/"0"'
+        When I send a DELETE user request to "/api/v1/beds/<bedId>"
+        Then the response status code should be 400
+        And the response errors should include "if-match"
+        And response matches OpenAPI contract
+
+    Scenario: Delete with a list of entity tags is rejected
+        Given a bed exists
+        And I use If-Match '"0", "1"'
+        When I send a DELETE user request to "/api/v1/beds/<bedId>"
+        Then the response status code should be 400
+        And the response errors should include "if-match"
+        And response matches OpenAPI contract
+
+    Scenario: A missing If-Match is reported before looking up the bed
+        When I send a DELETE user request to "/api/v1/beds/12384ea3-e55d-4f69-8b0c-b54cccb9f443"
+        Then the response status code should be 428
+        And response matches OpenAPI contract
+
+    Scenario: A stale version is reported before the bed-has-plants conflict
+        Given a bed exists
+        And the bed has a plant
+        And the bed is stored at version 1
+        And I use If-Match '"0"'
+        When I send a DELETE user request to "/api/v1/beds/<bedId>"
+        Then the response status code should be 412
+        And the bed should be unchanged
+        And response matches OpenAPI contract
+
+    Scenario: Deleting a bed with plants with the current version is a conflict
+        Given a bed exists
+        And the bed has a plant
+        And I use If-Match '"0"'
+        When I send a DELETE user request to "/api/v1/beds/<bedId>"
+        Then the response status code should be 409
         And response matches OpenAPI contract

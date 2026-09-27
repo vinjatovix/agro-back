@@ -6,6 +6,7 @@ Feature: Get All Families
     When I send a GET request to "/api/v1/families"
     Then the response status code should be 200
     And the response body should contain a paginated list
+    And the response should not have an ETag
     And response matches OpenAPI contract
 
 

@@ -6,6 +6,7 @@ import {
   InvalidArgumentException,
   DomainNotFoundException,
   DomainConflictException,
+  DomainStaleVersionException,
   DomainUnauthorizedException,
   DomainForbiddenException
 } from '../../../../Contexts/shared/domain/errors/index.js';
@@ -14,6 +15,7 @@ const DOMAIN_EXCEPTION_MAP = new Map<DomainExceptionConstructor, number>([
   [InvalidArgumentException, httpStatus.BAD_REQUEST],
   [DomainNotFoundException, httpStatus.NOT_FOUND],
   [DomainConflictException, httpStatus.CONFLICT],
+  [DomainStaleVersionException, httpStatus.PRECONDITION_FAILED],
   [DomainUnauthorizedException, httpStatus.UNAUTHORIZED],
   [DomainForbiddenException, httpStatus.FORBIDDEN]
 ]);

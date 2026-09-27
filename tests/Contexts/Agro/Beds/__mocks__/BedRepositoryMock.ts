@@ -18,6 +18,7 @@ export class BedRepositoryMock
     userId: string
   ): Promise<Nullable<Bed>> {
     this.findOwnedActiveByIdMock(id, userId);
+    this.readCalls.findOwnedActiveById += 1;
 
     const bed = this.storage.get(id);
 

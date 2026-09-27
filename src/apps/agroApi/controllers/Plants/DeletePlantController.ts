@@ -4,6 +4,7 @@ import type { DeletePlant } from '../../../../Contexts/Agro/Plants/application/u
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
 import { createError } from '../../../../shared/errors/index.js';
 import { HttpController } from '../../shared/HttpController.js';
+import { getExpectedVersion } from '../../middlewares/requireIfMatch.js';
 import httpStatus from 'http-status';
 
 export type DeletePlantControllerDependencies = {
@@ -26,7 +27,11 @@ export class DeletePlantController extends HttpController {
       }
 
       const user = res.locals.user as UserSessionInfo;
-      await this.deletePlant.execute(plantId, user.username);
+      await this.deletePlant.execute(
+        plantId,
+        user.username,
+        getExpectedVersion(res)
+      );
 
       res.status(httpStatus.NO_CONTENT).end();
     } catch (error) {

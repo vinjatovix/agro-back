@@ -7,7 +7,7 @@ import { randomFamilyId } from '../../../../../../../src/Contexts/Agro/Families/
 import type { FamilyRepository } from '../../../../../../../src/Contexts/Agro/Families/domain/repositories/interfaces/FamilyRepository.js';
 import type { FamilyPrimitives } from '../../../../../../../src/Contexts/Agro/Families/domain/types/FamilyPrimitives.js';
 import { familyDomainMapper } from '../../../../../../../src/Contexts/Agro/Families/mappers/familyDomainMapper.js';
-import { DomainConflictException } from '../../../../../../../src/Contexts/shared/domain/errors/index.js';
+import { DomainStaleVersionException } from '../../../../../../../src/Contexts/shared/domain/errors/index.js';
 import type { EnvironmentArranger } from '../../../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
 import {
   DBClientFactory,
@@ -162,7 +162,7 @@ describe('MongoFamilyRepository', () => {
       expect(updated?.aliases).toEqual(updateDto.aliases);
     });
 
-    it('should throw DomainConflictException when updating from a stale version', async () => {
+    it('should throw DomainStaleVersionException when updating from a stale version', async () => {
       const family = FamilyScenarios.domainRandom();
       await repository.save(family);
       const stale = familyDomainMapper.toPrimitives(family);
@@ -179,7 +179,7 @@ describe('MongoFamilyRepository', () => {
           { ...stale, name: 'Second writer' },
           'test-user'
         )
-      ).rejects.toThrow(DomainConflictException);
+      ).rejects.toThrow(DomainStaleVersionException);
 
       const stored = await repository.findById(family.idValue);
       expect(stored?.name).toBe('First writer');

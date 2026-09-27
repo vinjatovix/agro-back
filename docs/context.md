@@ -70,7 +70,7 @@ To drive the new system roadmap, this section contrasts the current state of eac
   - Holds static physical dimensions (`width`, `height`, `depth`).
   - **Logical Coupling:** Physically embeds the array of `plantInstances` within its aggregate root (`Bed.ts`) and stores them nested inside the `beds` collection in MongoDB.
   - Soft-deletion uses a boolean flag (`deleted: boolean`) and timestamp (`deletedAt`). A bed with plants cannot be deleted (`409`).
-  - **Optimistic Concurrency Control (OCC):** An integer `version` is checked and incremented on every update; stale writes are rejected with `409`. Since plant instances are still embedded, this alone makes placements atomic.
+  - **Optimistic Concurrency Control (OCC):** An integer `version` is checked and incremented on every update. Over HTTP the client sends it in `If-Match` (read from `ETag`); an outdated version is rejected with `412` and a missing header with `428`. Since plant instances are still embedded, this alone makes placements atomic.
 - **Target State (Spec v1.4.0):**
   - **Decoupled Instances:** Completely detached from individual plant aggregates. Plant instances are persisted in their own independent `plant_instances` collection.
   - **Soft Delete Standardization:** Standardized to lowercase `status: 'active' | 'removed'` with `deletedAt: ISODate | null`.
@@ -94,7 +94,7 @@ To drive the new system roadmap, this section contrasts the current state of eac
   - Catalog of biological species, fully implemented with rich value objects (calendars, sowing traits).
   - Validation: Sowing block (`phenology.sowing`) is strictly mandatory.
   - Knowledge block holds unstructured arrays of strings.
-  - Updates use optimistic concurrency control (`version`, stale writes → `409`).
+  - Updates use optimistic concurrency control (`version` via `If-Match`; stale version → `412`, missing `If-Match` → `428`).
 - **Target State (Spec v1.4.0):**
   - **Sowing Refinement:** Sowing block becomes **optional** to support sterile or vegetatively propagated crops (such as Russian Comfrey).
   - **Structured Propagation:** Propagation methods are defined as detailed sub-objects mapping requirements (best practices, optimal seasons, estimated time weeks) per technique (division, cutting, seed).
@@ -105,7 +105,7 @@ To drive the new system roadmap, this section contrasts the current state of eac
 - **Current State in Code:**
   - Taxonomical classification fully implemented with CRUD, including public listings and custom seeders.
   - Supports polymorphic read-only lookups (by UUID ID or alphanumeric string Slug) on GET routes.
-  - Updates use optimistic concurrency control (`version`, stale writes → `409`).
+  - Updates use optimistic concurrency control (`version` via `If-Match`; stale version → `412`, missing `If-Match` → `428`).
 - **Target State (Spec v1.4.0):**
   - **Polymorphic Mutation:** Extend polymorphic `idOrSlug` resolution to mutations (`PATCH`, `DELETE`).
   - **Collaborator Role:** Authorization for a `collaborator` role to manage catalog taxonomies, separate from system administrators.
@@ -245,6 +245,7 @@ Agro-Back implements an Express HTTP server starting at `src/index.ts`. All endp
   - `DomainForbiddenException` ──► **403 Forbidden**
   - `DomainNotFoundException` ──► **404 Not Found**
   - `DomainConflictException` ──► **409 Conflict**
+  - `DomainStaleVersionException` ──► **412 Precondition Failed**
 
 ### Detailed Active Routes
 

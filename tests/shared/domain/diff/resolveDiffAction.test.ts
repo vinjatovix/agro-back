@@ -5,6 +5,13 @@ describe('resolveDiffAction', () => {
     expect(resolveDiffAction(1, undefined)).toBe('noop');
   });
 
+  it.each([[null], [undefined]])(
+    'returns noop when updated is null and current is already %p',
+    (current) => {
+      expect(resolveDiffAction(current, null)).toBe('noop');
+    }
+  );
+
   it('returns unset when updated is null', () => {
     expect(resolveDiffAction(1, null)).toBe('unset');
   });

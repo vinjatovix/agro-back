@@ -112,6 +112,7 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 - **Value delivered**: Eliminates anemic domain models by enforcing mutations via explicit business methods.
 - **Definition of Done**: Generic `applyPatch` helpers are removed from use cases. Aggregates expose methods like `updateTraits()`.
+- **Pending here**: `UpdateBed`, `UpdatePlant` and `UpdateFamily` still use `applyPatch` (they were only touched to add the `ensureVersion` check for `If-Match`).
 - **Dependencies**: None.
 - **Risks**: Forgetting to map patch inputs to aggregate methods correctly.
 - **Prompt for /speckit.specify**:
@@ -123,10 +124,12 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 ## Iteration 8: Implement In-Memory Audit Metadata
 
-**Spec Module(s)**: [domain-core.md](spec/modules/domain-core.md)
+**Spec Module(s)**: [domain-core.md](spec/modules/domain-core.md), [persistence.md](spec/modules/persistence.md)
 
 - **Value delivered**: Bypasses costly read-after-write operations by keeping audit trails perfectly synced in memory.
-- **Definition of Done**: Aggregate mutation methods update `updatedAt` in memory. Usecases return the modified aggregate directly.
+- **Definition of Done**: Aggregate mutation methods update `updatedAt` in memory. Usecases return the modified aggregate directly. `MongoCrudRepository.updateWithDiff` stops injecting `updatedAt`/`updatedBy` (constitution §V: repositories must not inject metadata silently). `$inc: { version: 1 }` is proposed as an accepted exception (a concurrency mechanism, not audit metadata), to be confirmed in this iteration.
+- **Pending here**: `UpdateBed`, `UpdatePlant` and `UpdateFamily` still read the resource again after `updateWithDiff` (2 reads + 1 write). Removing that read-back also removes the read-back race documented in the If-Match feature spec (a concurrent delete between the write and the re-read yields `404` after a successful update).
+- **Pending here (no-op writes)**: `updateWithDiff` returns without touching the database on an empty diff, so a no-op based on a read that went stale after `ensureVersion` answers `200`. Since this iteration reworks what update use cases return, also make the empty-diff path read with the version filter and report `412`/`404` like a failed write. See persistence.md Sec. 4.3.
 - **Dependencies**: Iteration 7.
 - **Risks**: Database updates desyncing from in-memory objects if persistence patches are calculated incorrectly.
 - **Prompt for /speckit.specify**:
@@ -213,10 +216,14 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 ## Iteration 14: Migrate Beds and Query DSL to Zod
 
-**Spec Module(s)**: [bed.md](spec/modules/bed.md), [query-dsl-contract.md](spec/modules/query-dsl-contract.md), [validation.md](spec/modules/validation.md)
+**Spec Module(s)**: [bed.md](spec/modules/bed.md), [query-dsl-contract.md](spec/modules/query-dsl-contract.md), [validation.md](spec/modules/validation.md), [api-layer.md](spec/modules/api-layer.md), [persistence.md](spec/modules/persistence.md), [openapi.md](spec/modules/openapi.md)
 
 - **Value delivered**: Completes the Zod transition, fully retiring `express-validator` and securing dynamic query parameters.
 - **Definition of Done**: `express-validator` is removed from `package.json`. Beds and generic Query options (filters, pagination, sort) use Zod.
+- **Pending here**:
+  - the `requireIfMatch` middleware uses a hand-written pure parser (`parseIfMatch`); wrap it in a Zod schema, keeping the `428` (missing/`*`) vs `400` (malformed) split.
+  - **behavior change**: adopt the RFC 9110 `If-Match` grammar. Lists are accepted; weak tags and never-emitted tags yield `412` (after the existence check) instead of `400`; use cases take a list of acceptable versions. This reverses the "weak tag or list → `400`" rule decided in the If-Match feature spec. See validation.md §3.1.
+  - move `getExpectedVersion` out of the middleware module to `apps/agroApi/shared/`, next to its setter.
 - **Dependencies**: Iteration 12, Iteration 13.
 - **Risks**: Dynamic filter validation using Zod records can be tricky to type correctly.
 - **Prompt for /speckit.specify**:
@@ -357,7 +364,12 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 - **Status**: Completed
 - **Value delivered**: Prepares the Bed for transactional locking to prevent spatial race conditions.
 - **Definition of Done**: A `version` property is added to `Bed`. Write operations increment the version.
-- **Implementation notes**: Delivered with a wider scope than planned. OCC lives in `MongoCrudRepository.updateWithDiff`, so it applies to Bed, Plant and Family. Stale writes are rejected with `409` and the version is exposed read-only in API responses. Existing documents are backfilled by migration `1.0.0/20260927120000-add-aggregate-version.js`. See persistence.md Sec. 4.3.
+- **Implementation notes**: Delivered with a wider scope than planned. OCC lives in `MongoCrudRepository.updateWithDiff`, so it applies to Bed, Plant and Family. The client supplies the version it is modifying with `If-Match` (required on `PATCH` bed/plant/family and `DELETE` bed/plant; missing → `428`, malformed → `400`) and reads it from a strong `ETag` on single-resource responses. Use cases check it with `ensureVersion` after the existence check; an outdated version is rejected with `412` (`DomainStaleVersionException`), and `409` is kept for business rules. Existing documents are backfilled by migration `1.0.0/20260927120000-add-aggregate-version.js`. See persistence.md Sec. 4.3.
+- **Technical debt**:
+  - `migrations/index.ts` sets `migrationsDir` to `migrations/${package.json version}`, so a new database started on a later version would skip earlier migration folders. Fixing it is out of scope for this iteration.
+  - SC-005 (no extra DB round trip on the success path) is only verified structurally (call counts in unit tests); end-to-end latency is covered by the "Verify Latency Budgets" item below.
+  - The constitution still asks for Mongo Memory in unit tests and `feature/<issue-id>-…` branch names; current practice is in-memory fakes plus real-Mongo repository tests, and speckit `NNN-…` branches. The constitution should be amended to match.
+- **Follow-up — Verify Latency Budgets**: measure the constitution's 150 ms write / 100 ms read budgets end to end (e.g. autocannon or k6 against the Docker stack) and run the check in CI.
 - **Dependencies**: None.
 - **Risks**: None.
 - **Prompt for /speckit.specify**:
@@ -1057,14 +1069,15 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 **Spec Module(s)**: [openapi.md](spec/modules/openapi.md), [bed.md](spec/modules/bed.md), [seed-bank.md](spec/modules/seed-bank.md)
 
 - **Value delivered**: Consolidates grid modifications into safe, atomic operations and integrates optional SeedBank planning checks.
-- **Definition of Done**: `PUT /api/v1/beds/:id/layout` clears active instances and persists new coordinates in a single ClientSession transaction. It supports optional linking to the Seed Bank via a `linkToSeedBank` flag. If `true`, the usecase performs synchronous read-only availability checks against the `SeedBatch` repository. If stock is insufficient, it automatically toggles `linkToSeedBank` to `false` (converting to Planning Mode) for those placements, logs a warning, and returns a structured `warnings` array containing the affected placement IDs in the JSON response, without failing or rolling back the transaction.
+- **Definition of Done**: `PUT /api/v1/beds/:id/layout` clears active instances and persists new coordinates in a single ClientSession transaction. It supports optional linking to the Seed Bank via a `linkToSeedBank` flag. If `true`, the usecase performs synchronous read-only availability checks against the `SeedBatch` repository. If stock is insufficient, it automatically toggles `linkToSeedBank` to `false` (converting to Planning Mode) for those placements, logs a warning, and returns a structured `warnings` array containing the affected placement IDs in the JSON response, without failing or rolling back the transaction. It requires `If-Match: "<bed version>"` like the other bed writes (missing or `*` → `428`, malformed → `400`, outdated → `412`), bumps the bed `version` and returns the new `ETag`. The version check runs before any layout or stock validation, and the conditional write on the bed is part of the same transaction.
 - **Dependencies**: Iteration 24, Iteration 66, Iteration 52.
-- **Risks**: OCC lock contention under concurrent saves.
+- **Risks**: OCC lock contention under concurrent saves (a losing save gets `412` and must reload the layout).
+- **Open question**: should `412` carry the current version as `ETag`? It only helps if the editor wants to warn "someone saved in the meantime" before reloading; it never replaces the reload. Decide when specifying this iteration. See api-layer.md Sec. 5.3.2.
 - **Prompt for /speckit.specify**:
   ```text
   IMPLEMENT TRANSACTIONAL BATCH SAVE LAYOUT ENDPOINT
   WHY: Saving individual crop positions sequentially causes race conditions and broken states.
-  WHAT: Create a transactional batch save endpoint that clears previous layout instances and persists the new coordinates atomically. Support optional linkToSeedBank flag; if true, run read-only stock checks, auto-converting out-of-stock items to planning mode with returned warnings.
+  WHAT: Create a transactional batch save endpoint that clears previous layout instances and persists the new coordinates atomically. Support optional linkToSeedBank flag; if true, run read-only stock checks, auto-converting out-of-stock items to planning mode with returned warnings. Require If-Match with the bed version (428 missing, 400 malformed, 412 outdated) and return the new ETag.
   ```
 
 ## Iteration 68: Persist Pre-computed Ecological Reports on Bed

@@ -1,10 +1,14 @@
 import { DeletePlant } from '../../../../../../src/Contexts/Agro/Plants/application/useCases/DeletePlant.js';
-import { DomainNotFoundException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
+import {
+  DomainNotFoundException,
+  DomainStaleVersionException
+} from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { random } from '../../../../shared/fixtures/random.js';
 import { PlantRepositoryMock } from '../../__mocks__/PlantRepositoryMock.js';
 import { PlantFactory } from '../../domain/mothers/PlantFactory.js';
 
 describe('DeletePlant use case', () => {
+  const CURRENT_VERSION = 0;
   let repository: PlantRepositoryMock;
   let useCase: DeletePlant;
   const USERNAME = 'test-user';
@@ -19,9 +23,9 @@ describe('DeletePlant use case', () => {
 
     repository.addToStorage(plant);
 
-    await useCase.execute(plant.id, USERNAME);
+    await useCase.execute(plant.id, USERNAME, CURRENT_VERSION);
 
-    expect(plant.isDeleted()).toBe(true);
+    expect(repository.getStored(plant.id)?.isDeleted()).toBe(true);
     repository.assertUpdateCalled();
     repository.assertSaveNotCalled();
   });
@@ -32,20 +36,62 @@ describe('DeletePlant use case', () => {
 
     repository.addToStorage(plant);
 
-    await expect(useCase.execute(plant.id, USERNAME)).rejects.toBeInstanceOf(
-      DomainNotFoundException
-    );
+    await expect(
+      useCase.execute(plant.id, USERNAME, CURRENT_VERSION)
+    ).rejects.toBeInstanceOf(DomainNotFoundException);
     repository.assertUpdateNotCalled();
     repository.assertSaveNotCalled();
   });
 
   it('should throw not found and not write if plant does not exist', async () => {
     await expect(
-      useCase.execute(random.uuid(), USERNAME)
+      useCase.execute(random.uuid(), USERNAME, CURRENT_VERSION)
     ).rejects.toBeInstanceOf(DomainNotFoundException);
 
     repository.assertSaveNotCalled();
     repository.assertUpdateNotCalled();
+  });
+
+  it('should bump the stored version when soft-deleting with the current version', async () => {
+    const plant = PlantFactory.create();
+    repository.addToStorage(plant);
+
+    await useCase.execute(plant.id, USERNAME, plant.version);
+
+    expect(repository.getStored(plant.id)?.version).toBe(plant.version + 1);
+  });
+
+  it('should throw DomainStaleVersionException without writing when expectedVersion is outdated', async () => {
+    const plant = PlantFactory.create();
+    repository.addToStorage(plant);
+
+    await expect(
+      useCase.execute(plant.id, USERNAME, plant.version + 1)
+    ).rejects.toBeInstanceOf(DomainStaleVersionException);
+
+    repository.assertUpdateNotCalled();
+    expect(repository.getStored(plant.id)?.isDeleted()).toBe(false);
+  });
+
+  it('should throw DomainNotFoundException (not stale) for a soft-deleted plant with a wrong version', async () => {
+    const plant = PlantFactory.create();
+    plant.markAsDeleted();
+    repository.addToStorage(plant);
+
+    await expect(
+      useCase.execute(plant.id, USERNAME, 999)
+    ).rejects.toBeInstanceOf(DomainNotFoundException);
+  });
+
+  it('should read once, write once and never run the existence check on success', async () => {
+    const plant = PlantFactory.create();
+    repository.addToStorage(plant);
+
+    await useCase.execute(plant.id, USERNAME, plant.version);
+
+    repository.assertReadCalledTimes('findActiveById', 1);
+    repository.assertUpdateCalledTimes(1);
+    repository.assertExistenceCountCalledTimes(0);
   });
 
   it('should throw not found if updateWithDiff rejects with DomainNotFoundException (concurrent delete)', async () => {
@@ -58,8 +104,8 @@ describe('DeletePlant use case', () => {
         new DomainNotFoundException('Plant', plant.id.toString())
       );
 
-    await expect(useCase.execute(plant.id, USERNAME)).rejects.toBeInstanceOf(
-      DomainNotFoundException
-    );
+    await expect(
+      useCase.execute(plant.id, USERNAME, CURRENT_VERSION)
+    ).rejects.toBeInstanceOf(DomainNotFoundException);
   });
 });

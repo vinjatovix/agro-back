@@ -62,7 +62,7 @@ Bed is NOT:
 
 - Bed is scoped to a single User.
 - Access is enforced per user ownership.
-- Cross-user access is forbidden.
+- Cross-user access is forbidden. Another user's bed is reported as not found (`404`), not `403`, so bed ids cannot be probed; this also applies before any `If-Match` version check.
 - **`[TARGET STATE (Pending [Iteration 29](../../roadmap.md#iteration-29-add-geographic-fields-to-user-profile-and-bed-aggregate))]` Immutable Geographic Inheritance:** During creation (`POST`), Beds inherit their `hemisphere`, `timezone`, (and optionally `postalCode` / `country`) configuration directly from the owning User's profile. Crucially, these values are **copied and persisted as static, immutable properties** inside the `Bed` aggregate itself. This guarantees that if a user relocates to another country and updates their profile, the climatic and seasonal history (crop rotations, planting calendars, 6-month seasonal shifts, and local task schedules) of their older beds remains perfectly intact and historically accurate.
 
 ---
@@ -162,10 +162,12 @@ _Note: For the exact HTTP verbs, status codes, and routing parameters exposing t
 
 - To prevent race conditions during concurrent plant placements, the `Bed` aggregate root implements Optimistic Concurrency Control (OCC) using an integer `version` property (starts at `0`).
 - Every write through `updateWithDiff` only matches the document at the `version` it was read with, and atomically increments it (`$inc: { version: 1 }`). See **persistence.md Sec. 4.3**.
-- A write based on a stale read is rejected with `DomainConflictException` (HTTP `409`), forcing the caller to re-read and re-evaluate spatial collision rules. This covers, for example:
+- Over HTTP, `PATCH` and `DELETE` require `If-Match: "<version>"` (the value of the `ETag` returned by `GET`/`POST`/`PATCH`). The use case compares it with the stored version right after the existence check, before the "bed has plants" rule; an outdated version → `DomainStaleVersionException` (HTTP `412`), a missing header → `428`.
+- A write based on a stale read is rejected with `DomainStaleVersionException` (HTTP `412`), forcing the caller to re-read and re-evaluate spatial collision rules. This covers, for example:
   - two concurrent `addPlantToBed` calls validating spacing against the same old layout;
   - `DeleteBed` soft-deleting a bed that received a plant after it was read.
 - While `plantInstances` remain embedded in the `beds` document, OCC alone makes each placement atomic; no transaction is required yet.
+- **`[TARGET STATE (Pending [Iteration 67](../../roadmap.md#iteration-67-implement-transactional-batch-save-layout-endpoint))]`** `PUT /api/v1/beds/:id/layout` also requires `If-Match` with the bed version and bumps it on save.
 
 #### 7.2.2 Cross-Collection Transactions `[TARGET STATE (Pending [Iteration 24](../../roadmap.md#iteration-24-wrap-cross-aggregate-mutations-in-acid-transactions))]`
 
@@ -209,8 +211,8 @@ _Note: For the exact HTTP verbs, status codes, and routing parameters exposing t
 - full REST lifecycle coverage (create, read, update, delete)
 - ownership enforcement in API layer
 - validation contract enforcement (OpenAPI-driven tests)
-- optimistic concurrency control via `version` (stale writes → `409`)
-- soft-deletion invariant: a bed with plants cannot be deleted (`409`); deleting an already deleted bed returns `404`
+- optimistic concurrency control via `version` and `If-Match` (stale version → `412`, missing `If-Match` → `428`)
+- soft-deletion invariant: a bed with plants cannot be deleted (`409`, checked after the version: an outdated version returns `412` first); deleting an already deleted bed returns `404`
 
 ### Partial
 

@@ -12,8 +12,9 @@ import { Range } from '../../../../../../src/shared/domain/value-objects/Range.j
 
 const randomFamilyIdValue = randomFamilyId();
 
-const buildPlant = () => {
+const buildPlant = (version?: number) => {
   return new Plant({
+    ...(version !== undefined && { version }),
     id: randomPlantId(),
     identity: {
       name: { primary: 'Tomato' },
@@ -52,6 +53,18 @@ const buildPlant = () => {
 };
 
 describe('Plant (aggregate root)', () => {
+  it('should default the version to 0 when props have none', () => {
+    const plant = buildPlant();
+
+    expect(plant.version).toBe(0);
+  });
+
+  it('should keep the version given in props', () => {
+    const plant = buildPlant(5);
+
+    expect(plant.version).toBe(5);
+  });
+
   it('should expose identity correctly', () => {
     const plant = buildPlant();
 

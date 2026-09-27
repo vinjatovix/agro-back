@@ -29,6 +29,19 @@ Validation is a **schema enforcement layer**, not a business logic layer.
 
 ---
 
+### 3.1 Header preconditions (`If-Match`)
+
+- `If-Match` on version-protected writes is validated by the dedicated `requireIfMatch` middleware (see api-layer.md §7.1), not by the body/params schemas: it must tell a missing header (`428`) from a malformed one (`400`), which a single validation chain cannot express.
+- The parsing rule lives in a pure function (`parseIfMatch`): exactly one strong tag holding a non-negative safe integer, e.g. `"3"`. Malformed values produce the standard validation error with the key `if-match`.
+- It runs before body/params validation, so a request with both a bad header and a bad body reports the header.
+- It performs no DB access and no business check; comparing the version with the stored one is done by the use case.
+- **`[TARGET STATE (Pending [Iteration 14](../../roadmap.md#iteration-14-migrate-beds-and-query-dsl-to-zod))]`** wrap `parseIfMatch` in a Zod schema and adopt the RFC 9110 §13.1.1 grammar. **This reverses the current rule** that weak tags and lists are `400`:
+  - a comma-separated list of entity tags is accepted; the write proceeds if any tag equals the current version (strong comparison);
+  - weak tags (`W/"3"`) and tags the API never emits (`"-1"`, `"abc"`) are well formed but cannot match: they yield no candidate version and the use case answers `412` after the existence check, so `404` still wins over `412`;
+  - only a value that is not an entity-tag list (`3`, `"3`, `"3" "4"`) is `400`; missing, empty or `*` stay `428`.
+
+---
+
 ## 4. ERROR CONTRACT (CRITICAL)
 
 ```ts

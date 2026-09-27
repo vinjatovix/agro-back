@@ -1,6 +1,8 @@
 import { type NextFunction, type Request, type Response } from 'express';
 
 import { HttpController } from '../../shared/HttpController.js';
+import { getExpectedVersion } from '../../middlewares/requireIfMatch.js';
+import { setVersionETag } from '../../shared/setVersionETag.js';
 import type { UpdateBed } from '../../../../Contexts/Agro/Beds/application/useCases/UpdateBed.js';
 import type { UpdateBedDto } from '../../../../Contexts/Agro/Beds/application/useCases/interfaces/UpdateBedDto.js';
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
@@ -31,10 +33,15 @@ export class UpdateBedController extends HttpController {
       const input: UpdateBedInput = { ...dto, id };
       const patch = bedApiMapper.fromUpdateInputToPrimitivesPatch(input);
 
-      const result = await this.updateBed.execute(patch, user);
+      const result = await this.updateBed.execute(
+        patch,
+        user,
+        getExpectedVersion(res)
+      );
 
       const response = bedDomainMapper.toPrimitives(result);
 
+      setVersionETag(res, response.version);
       res.status(this.status()).json(response);
     } catch (error) {
       next(error);

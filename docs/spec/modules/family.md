@@ -90,7 +90,7 @@ _Note: For the exact HTTP verbs, status codes, and routing parameters exposing t
 
 - Core domain entity and Value Objects
 - Persistence mapping and MongoDB repository
-- Optimistic concurrency control on updates (`version`, stale writes → 409)
+- Optimistic concurrency control on updates: `PATCH` requires `If-Match: "<version>"`; an outdated version → `412` (missing header → `428`). Single-family responses carry `ETag: "<version>"`
 - API endpoints (create, retrieve, list, update) `[TARGET STATE (Pending [Iteration 13](../../roadmap.md#iteration-13-migrate-families-endpoints-to-zod))]`
 - Dataset seeding strategy (JSON-based)
 - Validation rules for family references

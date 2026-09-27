@@ -3,8 +3,8 @@ import { diffObjects } from '../../../../../shared/domain/diff/diffObjects.js';
 import type { Nullable } from '../../../../../shared/domain/types/Nullable.js';
 import type { UnknownRecord } from '../../../../../shared/domain/types/UnknownRecord.js';
 import {
-  DomainConflictException,
-  DomainNotFoundException
+  DomainNotFoundException,
+  DomainStaleVersionException
 } from '../../../../shared/domain/errors/index.js';
 import { Username } from '../../../../Auth/domain/value-objects/Username.js';
 import { updateMetadata } from '../../../application/utils/updateMetadata.js';
@@ -27,7 +27,7 @@ export abstract class MongoCrudRepository<
   protected abstract toMongoDocument(entity: TDomain): TDocument;
   protected abstract entityName(): string;
 
-  protected activeFilter(): Record<string, unknown> {
+  protected activeFilter(): UnknownRecord {
     return {};
   }
 
@@ -169,26 +169,33 @@ export abstract class MongoCrudRepository<
       updateQuery.$unset = patch.unset;
     }
 
-    const activeDocumentFilter = { _id: mongoId, ...this.activeFilter() };
+    const activeFilter = this.activeFilter();
 
     // Optimistic concurrency: only write over the version that was read.
     // Documents without a stored version are read as version 0.
-    const versionFilter =
+    const versionFilter: UnknownRecord =
       current.version === 0
         ? { $or: [{ version: 0 }, { version: { $exists: false } }] }
         : { version: current.version };
 
+    // `$and` keeps both conditions even if activeFilter() and versionFilter
+    // ever use the same top-level operator (e.g. both `$or`).
     const result = await collection.updateOne(
-      { ...activeDocumentFilter, ...versionFilter },
+      { _id: mongoId, $and: [activeFilter, versionFilter] },
       updateQuery
     );
 
     if (result.matchedCount > 0) return;
 
-    const isStale = (await collection.countDocuments(activeDocumentFilter)) > 0;
+    // Only runs after a failed conditional write, to tell a stale version
+    // (412) from a missing or inactive document (404). A concurrent delete
+    // landing between the failed update and this count yields 404 instead of
+    // 412; that is accepted because the resource is indeed gone.
+    const isStale =
+      (await collection.countDocuments({ _id: mongoId, ...activeFilter })) > 0;
 
     if (isStale) {
-      throw new DomainConflictException(
+      throw new DomainStaleVersionException(
         `${this.entityName()} was modified concurrently: ${current.id}`
       );
     }

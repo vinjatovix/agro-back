@@ -12,6 +12,8 @@ import { familyDomainMapper } from '../../../../Contexts/Agro/Families/mappers/f
 import { UuidValidator } from '../../../../Contexts/shared/domain/valueObject/index.js';
 import { createError } from '../../../../shared/errors/index.js';
 import { HttpController } from '../../shared/HttpController.js';
+import { getExpectedVersion } from '../../middlewares/requireIfMatch.js';
+import { setVersionETag } from '../../shared/setVersionETag.js';
 
 export type UpdateFamilyControllerDependencies = {
   updateFamily: UpdateFamily;
@@ -54,10 +56,12 @@ export class UpdateFamilyController extends HttpController {
       const patch = familyApiMapper.fromUpdateInputToPrimitivesPatch(input);
       const updatedFamily = await this.updateFamily.execute(
         patch,
-        user.username
+        user.username,
+        getExpectedVersion(res)
       );
       const result = familyDomainMapper.toPrimitives(updatedFamily);
 
+      setVersionETag(res, result.version);
       res.json(result);
     } catch (error) {
       next(error);

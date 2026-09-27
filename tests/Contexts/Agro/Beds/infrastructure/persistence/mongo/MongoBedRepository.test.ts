@@ -9,7 +9,8 @@ import type { BedPrimitives } from '../../../../../../../src/Contexts/Agro/Beds/
 import type { BedRepository } from '../../../../../../../src/Contexts/Agro/Beds/domain/repositories/interfaces/BedRepository.js';
 import {
   DomainConflictException,
-  DomainNotFoundException
+  DomainNotFoundException,
+  DomainStaleVersionException
 } from '../../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { bedDomainMapper } from '../../../../../../../src/Contexts/Agro/Beds/mappers/bedDomainMapper.js';
 import type { EnvironmentArranger } from '../../../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
@@ -329,7 +330,7 @@ describe('MongoBedRepository', () => {
       expect(storedBed.version).toBe(1);
     });
 
-    it('should throw DomainConflictException when updating from a stale version', async () => {
+    it('should throw DomainStaleVersionException when updating from a stale version', async () => {
       const bed = BedFactory.create();
       await repository.save(bed);
 
@@ -346,7 +347,7 @@ describe('MongoBedRepository', () => {
           { ...stale, name: 'Second writer' },
           'test-user'
         )
-      ).rejects.toThrow(DomainConflictException);
+      ).rejects.toThrow(DomainStaleVersionException);
 
       const storedBed = await repository.findById(bed.id);
       expect(storedBed?.name.value).toBe('First writer');
@@ -371,11 +372,104 @@ describe('MongoBedRepository', () => {
 
       await expect(
         repository.updateWithDiff(readByDelete, deleted, 'test-user')
-      ).rejects.toThrow(DomainConflictException);
+      ).rejects.toThrow(DomainStaleVersionException);
 
       const storedBed = await repository.findById(bed.id);
       expect(storedBed?.isDeleted).toBe(false);
       expect(storedBed?.plantInstances).toHaveLength(1);
+    });
+
+    it('should not report a stale version as a business conflict', async () => {
+      const bed = BedFactory.create();
+      await repository.save(bed);
+
+      const stale = bedDomainMapper.toPrimitives(bed);
+      await repository.updateWithDiff(
+        stale,
+        { ...stale, name: 'First writer' },
+        'test-user'
+      );
+
+      await expect(
+        repository.updateWithDiff(
+          stale,
+          { ...stale, name: 'Second writer' },
+          'test-user'
+        )
+      ).rejects.not.toBeInstanceOf(DomainConflictException);
+    });
+
+    it('should throw DomainNotFoundException instead of a stale version for a soft-deleted bed', async () => {
+      const bed = BedFactory.create();
+      bed.markAsDeleted();
+      await repository.save(bed);
+
+      const current = bedDomainMapper.toPrimitives(bed);
+
+      await expect(
+        repository.updateWithDiff(
+          { ...current, version: current.version + 5 },
+          { ...current, version: current.version + 5, name: 'Other name' },
+          'test-user'
+        )
+      ).rejects.toThrow(DomainNotFoundException);
+    });
+
+    it('should not bump the version when the diff is empty', async () => {
+      const bed = BedFactory.create();
+      await repository.save(bed);
+
+      const current = bedDomainMapper.toPrimitives(bed);
+      await repository.updateWithDiff(current, { ...current }, 'test-user');
+
+      const storedBed = await findExisting(bed.id);
+      expect(storedBed.version).toBe(current.version);
+    });
+
+    it('should not count documents after a successful conditional write', async () => {
+      const bed = BedFactory.create();
+      await repository.save(bed);
+      const countSpy = jest.spyOn(Collection.prototype, 'countDocuments');
+
+      try {
+        const current = bedDomainMapper.toPrimitives(bed);
+        await repository.updateWithDiff(
+          current,
+          { ...current, name: 'Updated Name' },
+          'test-user'
+        );
+
+        expect(countSpy).not.toHaveBeenCalled();
+      } finally {
+        countSpy.mockRestore();
+      }
+    });
+
+    it('should count documents exactly once after a failed conditional write', async () => {
+      const bed = BedFactory.create();
+      await repository.save(bed);
+
+      const stale = bedDomainMapper.toPrimitives(bed);
+      await repository.updateWithDiff(
+        stale,
+        { ...stale, name: 'First writer' },
+        'test-user'
+      );
+      const countSpy = jest.spyOn(Collection.prototype, 'countDocuments');
+
+      try {
+        await expect(
+          repository.updateWithDiff(
+            stale,
+            { ...stale, name: 'Second writer' },
+            'test-user'
+          )
+        ).rejects.toThrow(DomainStaleVersionException);
+
+        expect(countSpy).toHaveBeenCalledTimes(1);
+      } finally {
+        countSpy.mockRestore();
+      }
     });
   });
 

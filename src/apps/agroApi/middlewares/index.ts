@@ -6,3 +6,4 @@ export * from './validateBody.js';
 export * from './EnsureAuthentication.js';
 export * from './validateReqSchema.js';
 export * from './optionalAuth.js';
+export * from './requireIfMatch.js';

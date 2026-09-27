@@ -7,14 +7,14 @@ import { PlantKnowledge } from '../value-objects/index.js';
 import { type PlantProps, PlantStatus } from './types/index.js';
 
 export class Plant extends AggregateRoot<PlantId> {
-  private readonly props: PlantProps;
+  private readonly props: PlantProps & { version: number };
   status: PlantStatus;
   deletedAt?: Date | undefined;
 
   constructor(props: PlantProps) {
     super(props.id);
     this.validateProps(props);
-    this.props = deepFreeze(props);
+    this.props = deepFreeze({ ...props, version: props.version ?? 0 });
     this.status = props.status ?? PlantStatus.ACTIVE;
     this.deletedAt = props.deletedAt;
   }
@@ -49,7 +49,7 @@ export class Plant extends AggregateRoot<PlantId> {
   }
 
   get version(): number {
-    return this.props.version ?? 0;
+    return this.props.version;
   }
 
   isDeleted(): boolean {

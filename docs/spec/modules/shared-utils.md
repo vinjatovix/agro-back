@@ -103,7 +103,7 @@ Rules:
 
 ## 3.3 Request Utilities
 
-### buildRequest({ method, route, token, body })
+### buildRequest({ method, route, token, body, ifMatch, ifNoneMatch })
 
 Standardized HTTP request builder.
 
@@ -116,6 +116,7 @@ Rules:
   - DELETE
 
 - attaches Authorization header if token exists
+- attaches `If-Match` / `If-None-Match` when given (PATCH/DELETE steps pass the scenario's `ifMatch`)
 - serializes body if present
 
 ---

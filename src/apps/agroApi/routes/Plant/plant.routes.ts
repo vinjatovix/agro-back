@@ -3,6 +3,7 @@ import {
   auth,
   isAdmin,
   optionalAuth,
+  requireIfMatch,
   validateBody,
   validateReqSchema
 } from '../../middlewares/index.js';
@@ -41,6 +42,7 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
     `${prefix}/:id`,
     auth,
     isAdmin,
+    requireIfMatch,
     validateBody,
     updatePlantReqSchema,
     validateReqSchema,
@@ -50,6 +52,7 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
     `${prefix}/:id`,
     auth,
     isAdmin,
+    requireIfMatch,
     getPlantByIdReqSchema,
     validateReqSchema,
     plantApiInvoker('deletePlant')

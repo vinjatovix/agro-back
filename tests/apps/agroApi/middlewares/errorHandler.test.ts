@@ -8,6 +8,7 @@ import {
   DomainConflictException,
   DomainForbiddenException,
   DomainNotFoundException,
+  DomainStaleVersionException,
   DomainUnauthorizedException,
   InvalidArgumentException
 } from '../../../../src/Contexts/shared/domain/errors/index.js';
@@ -26,7 +27,7 @@ interface RequestBodyError extends SyntaxError {
 
 describe('errorHandler middleware', () => {
   let mockLogger: MockAppLogger;
-  let mockRes: { status: jest.Mock; json: jest.Mock };
+  let mockRes: { status: jest.Mock; json: jest.Mock; set: jest.Mock };
   let req: Request;
   let next: NextFunction;
   let res: Response;
@@ -35,7 +36,8 @@ describe('errorHandler middleware', () => {
     mockLogger = new MockAppLogger();
     mockRes = {
       status: jest.fn().mockReturnThis(),
-      json: jest.fn().mockReturnThis()
+      json: jest.fn().mockReturnThis(),
+      set: jest.fn().mockReturnThis()
     };
     req = {} as Request;
     next = jest.fn() as NextFunction;
@@ -100,6 +102,26 @@ describe('errorHandler middleware', () => {
     expect(mockRes.json).toHaveBeenCalledWith({
       message: 'Conflict occurred'
     });
+  });
+
+  it('should map DomainStaleVersionException to 412 Precondition Failed without ETag', () => {
+    const error = new DomainStaleVersionException('Bed version mismatch: 1');
+
+    errorHandler({ logger: mockLogger })(error, req, res, next);
+
+    expect(mockRes.status).toHaveBeenCalledWith(httpStatus.PRECONDITION_FAILED);
+    expect(mockRes.json).toHaveBeenCalledWith({
+      message: error.message
+    });
+    expect(mockRes.set).not.toHaveBeenCalled();
+  });
+
+  it('should keep mapping DomainConflictException to 409 after adding stale version mapping', () => {
+    const error = new DomainConflictException('Bed has plants');
+
+    errorHandler({ logger: mockLogger })(error, req, res, next);
+
+    expect(mockRes.status).toHaveBeenCalledWith(httpStatus.CONFLICT);
   });
 
   it('should map DomainUnauthorizedException to 401 Unauthorized', () => {

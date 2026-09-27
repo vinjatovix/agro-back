@@ -4,6 +4,7 @@ import type { GetFamilyBySlug } from '../../../../Contexts/Agro/Families/applica
 import { familyDomainMapper } from '../../../../Contexts/Agro/Families/mappers/familyDomainMapper.js';
 import { UuidValidator } from '../../../../Contexts/shared/domain/valueObject/index.js';
 import { HttpController } from '../../shared/HttpController.js';
+import { setVersionETag } from '../../shared/setVersionETag.js';
 
 type GetFamilyBySlugParams = {
   idOrSlug: string;
@@ -40,6 +41,7 @@ export class GetFamilyBySlugController extends HttpController {
 
       const response = familyDomainMapper.toPrimitives(family);
 
+      setVersionETag(res, response.version);
       res.status(this.status()).json(response);
     } catch (error) {
       next(error);

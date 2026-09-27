@@ -2,16 +2,23 @@
 
 import {
   DomainConflictException,
-  DomainNotFoundException
+  DomainNotFoundException,
+  DomainStaleVersionException
 } from '../../../../src/Contexts/shared/domain/errors/index.js';
+import { diffObjects } from '../../../../src/shared/domain/diff/diffObjects.js';
 import { applyPatch } from '../../../../src/shared/domain/patch/applyPatch.js';
 import type { PaginatedResult } from '../../../../src/shared/domain/query/interfaces/PaginatedResult.js';
 import type { QueryOptions } from '../../../../src/shared/domain/query/interfaces/QueryOptions.js';
 import type { Nullable } from '../../../../src/shared/domain/types/Nullable.js';
 
+export type RepositoryReadMethod =
+  | 'findById'
+  | 'findActiveById'
+  | 'findOwnedActiveById';
+
 export abstract class BaseMongoCrudRepositoryMock<
-  TEntity extends { id: string },
-  TPrimitives extends { id: string }
+  TEntity extends { id: string; version: number },
+  TPrimitives extends { id: string; version: number }
 > {
   protected readonly saveMock = jest.fn();
   protected readonly findByIdMock = jest.fn();
@@ -19,8 +26,18 @@ export abstract class BaseMongoCrudRepositoryMock<
   protected readonly findAllMock = jest.fn();
   protected readonly existsMock = jest.fn();
   protected readonly updateMock = jest.fn();
+  protected readonly existenceCountMock = jest.fn();
+  protected readonly readCalls: Record<RepositoryReadMethod, number> = {
+    findById: 0,
+    findActiveById: 0,
+    findOwnedActiveById: 0
+  };
 
   protected readonly storage: Map<string, TEntity> = new Map();
+  private readonly persisted = new Map<
+    string,
+    { version: number; active: boolean }
+  >();
   private failOnSave = false;
 
   protected abstract toDomain(primitives: TPrimitives): TEntity;
@@ -37,17 +54,19 @@ export abstract class BaseMongoCrudRepositoryMock<
       throw new DomainConflictException('Save failed');
     }
 
-    this.storage.set(entity.id, entity);
+    this.store(entity);
   }
 
   async findById(id: string): Promise<Nullable<TEntity>> {
     this.findByIdMock(id);
+    this.readCalls.findById += 1;
 
     return this.storage.get(id) ?? null;
   }
 
   async findActiveById(id: string): Promise<Nullable<TEntity>> {
     this.findActiveByIdMock(id);
+    this.readCalls.findActiveById += 1;
 
     const entity = this.storage.get(id);
 
@@ -83,6 +102,16 @@ export abstract class BaseMongoCrudRepositoryMock<
     return this.storage.has(id);
   }
 
+  /**
+   * Mirrors MongoCrudRepository.updateWithDiff: an empty diff is a no-op,
+   * otherwise the write only lands on an active entity persisted with
+   * `current.version`, and bumps it by one. A failed conditional write runs
+   * one existence check to tell a stale version from a missing entity.
+   *
+   * The check uses the persisted snapshot, not the stored instance, because
+   * use cases may mutate the instance they read (e.g. `markAsDeleted()`)
+   * before writing it, which a database copy would not see.
+   */
   async updateWithDiff(
     current: TPrimitives,
     updated: unknown,
@@ -91,30 +120,72 @@ export abstract class BaseMongoCrudRepositoryMock<
     this.updateMock(current, updated, username);
 
     const id = current.id;
+    const patched = applyPatch(current, updated as TPrimitives);
 
-    if (!this.storage.has(id)) {
-      throw new DomainNotFoundException(
-        `${this.entityName()} not found: ${id}`
+    if (!this.hasChanges(current, patched)) return;
+
+    const persisted = this.persisted.get(id);
+
+    if (persisted?.active && persisted.version === current.version) {
+      this.store(this.toDomain({ ...patched, version: current.version + 1 }));
+      return;
+    }
+
+    this.existenceCountMock(id);
+
+    if (persisted?.active) {
+      throw new DomainStaleVersionException(
+        `${this.entityName()} was modified concurrently: ${id}`
       );
     }
 
-    const patched = applyPatch(current, updated as TPrimitives);
+    throw new DomainNotFoundException(`${this.entityName()} not found: ${id}`);
+  }
 
-    const updatedEntity = this.toDomain(patched);
+  /** Same rule as MongoRepository.normalizePatch: `undefined` is ignored. */
+  private hasChanges(current: TPrimitives, patched: TPrimitives): boolean {
+    const diff = diffObjects(current, patched);
 
-    this.storage.set(id, updatedEntity);
+    return (
+      Object.values(diff.set).some((value) => value !== undefined) ||
+      Object.keys(diff.unset).length > 0
+    );
+  }
+
+  private store(entity: TEntity): void {
+    this.storage.set(entity.id, entity);
+    this.persisted.set(entity.id, {
+      version: entity.version,
+      active: this.isActive(entity)
+    });
   }
 
   /* ---------- helpers ---------- */
 
   addToStorage(entity: TEntity): void {
-    this.storage.set(entity.id, entity);
+    this.store(entity);
+  }
+
+  getStored(id: string): TEntity | undefined {
+    return this.storage.get(id);
   }
 
   clear(): void {
     this.storage.clear();
+    this.persisted.clear();
     jest.clearAllMocks();
     this.failOnSave = false;
+    this.resetCallCounters();
+  }
+
+  resetCallCounters(): void {
+    for (const method of Object.keys(
+      this.readCalls
+    ) as RepositoryReadMethod[]) {
+      this.readCalls[method] = 0;
+    }
+    this.updateMock.mockClear();
+    this.existenceCountMock.mockClear();
   }
 
   simulateSaveFailure(): void {
@@ -177,5 +248,17 @@ export abstract class BaseMongoCrudRepositoryMock<
 
   assertFindActiveByIdNotCalled(): void {
     expect(this.findActiveByIdMock).not.toHaveBeenCalled();
+  }
+
+  assertReadCalledTimes(method: RepositoryReadMethod, times: number): void {
+    expect(this.readCalls[method]).toBe(times);
+  }
+
+  assertUpdateCalledTimes(times: number): void {
+    expect(this.updateMock).toHaveBeenCalledTimes(times);
+  }
+
+  assertExistenceCountCalledTimes(times: number): void {
+    expect(this.existenceCountMock).toHaveBeenCalledTimes(times);
   }
 }

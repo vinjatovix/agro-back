@@ -11,6 +11,7 @@ import {
   updateFamilyReqSchema
 } from './reqSchemas.js';
 import { isAdmin } from '../../middlewares/isAdmin.js';
+import { requireIfMatch } from '../../middlewares/requireIfMatch.js';
 
 const prefix = API_PREFIXES.families;
 
@@ -38,6 +39,7 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
     `${prefix}/:idOrSlug`,
     auth,
     isAdmin,
+    requireIfMatch,
     validateBody,
     updateFamilyReqSchema,
     validateReqSchema,

@@ -228,7 +228,7 @@ Rules:
 - idempotent at domain level
 - sets status = DELETED
 - sets deletedAt timestamp
-- at HTTP level `DELETE /plants/:id` is not repeatable: the use case only loads active plants, so deleting an already deleted plant returns 404
+- at HTTP level `DELETE /plants/:id` requires `If-Match: "<version>"` (outdated → `412`, missing → `428`). A repeated `DELETE` returns `404` instead of `204` because the use case only loads active plants; it remains idempotent per RFC 9110 §9.2.2 because server state is identical
 
 ---
 

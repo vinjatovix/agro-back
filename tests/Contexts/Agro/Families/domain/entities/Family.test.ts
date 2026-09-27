@@ -16,6 +16,12 @@ describe('Family Aggregate', () => {
     expect(family.metadata).toBeDefined();
   });
 
+  it('should default the version to 0 when props have none', () => {
+    const family = FamilyScenarios.domainBase();
+
+    expect(family.version).toBe(0);
+  });
+
   it('should successfully create a Family with extra classification data', () => {
     const family = FamilyScenarios.domainBaseWithExtra();
     expect(family.extra).toBeDefined();

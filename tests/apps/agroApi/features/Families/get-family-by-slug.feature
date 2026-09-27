@@ -5,6 +5,7 @@ Feature: Get Family By Slug
     Given a family exists
     When I send a GET request to "/api/v1/families/<familySlug>"
     Then the response status code should be 200
+    And the response ETag should match the body version
     And the response body should contain
       """
       {
@@ -18,6 +19,7 @@ Feature: Get Family By Slug
     Given a family exists
     When I send a GET request to "/api/v1/families/<familyId>"
     Then the response status code should be 200
+    And the response ETag should match the body version
     And the response body should contain
       """
       {

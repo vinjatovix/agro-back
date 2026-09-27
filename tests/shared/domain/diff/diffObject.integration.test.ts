@@ -10,6 +10,13 @@ describe('diffObjects', () => {
     expect(result.set.name).toBe('b');
   });
 
+  it('does not unset a field that is already null', () => {
+    const current = { name: 'x', deletedAt: null };
+    const updated = { name: 'x', deletedAt: null };
+
+    expect(diffObjects(current, updated)).toEqual({ set: {}, unset: {} });
+  });
+
   it('unsets null values', () => {
     const current = { name: 'a' };
     const updated = { name: null };
