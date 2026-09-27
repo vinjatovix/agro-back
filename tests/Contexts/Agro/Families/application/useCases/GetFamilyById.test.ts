@@ -1,4 +1,5 @@
 import { GetFamilyById } from '../../../../../../src/Contexts/Agro/Families/application/useCases/GetFamilyById.js';
+import { DomainNotFoundException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { random } from '../../../../shared/fixtures/random.js';
 import { FamilyRepositoryMock } from '../../__mocks__/FamilyRepositoryMock.js';
 import { FamilyScenarios } from '../../domain/mothers/FamilyScenarios.js';
@@ -30,8 +31,8 @@ describe('GetFamilyById', () => {
   it('should throw not found error when family does not exist', async () => {
     const id = random.uuid();
 
-    await expect(useCase.execute(id)).rejects.toThrow(
-      `Family not found: ${id}`
+    await expect(useCase.execute(id)).rejects.toBeInstanceOf(
+      DomainNotFoundException
     );
 
     repository.assertFindByIdHasBeenCalledWith(id);

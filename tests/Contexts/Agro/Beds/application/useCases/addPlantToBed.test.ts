@@ -1,6 +1,7 @@
 import { addPlantToBed } from '../../../../../../src/Contexts/Agro/Beds/application/useCases/addPlantToBed.js';
 import type { PlantInstance } from '../../../../../../src/Contexts/Agro/PlantInstances/domain/entities/PlantInstance.js';
 import type { Plant } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/Plant.js';
+import { DomainNotFoundException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { PlantInstanceMother } from '../../../PlantInstances/domain/mothers/PlantInstanceMother.js';
 import { PlantRepositoryMock } from '../../../Plants/__mocks__/PlantRepositoryMock.js';
 import { PlantFactory } from '../../../Plants/domain/mothers/PlantFactory.js';
@@ -98,6 +99,60 @@ describe('addPlantToBed', () => {
 
     const newSpatial = bedMock.getLastNewSpatialPlant();
     expect(newSpatial.spacingCm).toBe(DEFAULT_PLANT_SPACING);
+  });
+
+  it('throws not found and does not persist when the plant being added does not exist', async () => {
+    const bed = bedMock.toBed();
+    bedRepository.addToStorage(bed);
+    const missingPlant = PlantFactory.lettuce();
+    const plantInstance = PlantInstanceMother.fromPlantAtPosition(
+      missingPlant,
+      10,
+      20
+    );
+
+    await expect(
+      addPlantToBed({
+        bed,
+        plantInstance,
+        plantRepository,
+        bedRepository,
+        user: 'test-user'
+      })
+    ).rejects.toBeInstanceOf(DomainNotFoundException);
+
+    bedMock.assertAddPlantCalledTimes(0);
+    bedRepository.assertUpdateNotCalled();
+  });
+
+  it('throws not found and does not persist when a plant already placed in the bed does not exist', async () => {
+    const bed = bedMock.toBed();
+    const missingPlant = PlantFactory.lettuce();
+    const placed = PlantInstanceMother.fromPlantAtPosition(
+      missingPlant,
+      30,
+      40
+    );
+    (bed.plantInstances as PlantInstance[]) = [placed];
+    bedRepository.addToStorage(bed);
+    const plantInstance = PlantInstanceMother.fromPlantAtPosition(
+      plant,
+      10,
+      20
+    );
+
+    await expect(
+      addPlantToBed({
+        bed,
+        plantInstance,
+        plantRepository,
+        bedRepository,
+        user: 'test-user'
+      })
+    ).rejects.toBeInstanceOf(DomainNotFoundException);
+
+    bedMock.assertAddPlantCalledTimes(0);
+    bedRepository.assertUpdateNotCalled();
   });
 
   it('passes full spatial context including all existing plants', async () => {

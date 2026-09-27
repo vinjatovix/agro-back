@@ -1,3 +1,4 @@
+import { ensureFound } from '../../../../shared/application/utils/ensureFound.js';
 import type { PlantInstance } from '../../../PlantInstances/domain/entities/PlantInstance.js';
 import type { PlantRepository } from '../../../Plants/domain/repositories/interfaces/PlantRepository.js';
 import type { Bed } from '../../domain/entities/Bed.js';
@@ -20,7 +21,11 @@ export async function addPlantToBed({
   bedRepository,
   user
 }: AddPlantToBedParams): Promise<void> {
-  const plantData = await plantRepository.findById(plantInstance.plantId);
+  const plantData = ensureFound(
+    await plantRepository.findById(plantInstance.plantId),
+    'Plant',
+    plantInstance.plantId
+  );
 
   const spacingCm = plantData.traits.spacingCm.max;
 
@@ -36,7 +41,11 @@ export async function addPlantToBed({
 
   const existingSpatialPlants: SpatialPlantModel[] = await Promise.all(
     bed.plantInstances.map(async (p) => {
-      const data = await plantRepository.findById(p.plantId);
+      const data = ensureFound(
+        await plantRepository.findById(p.plantId),
+        'Plant',
+        p.plantId
+      );
 
       return {
         id: p.id,

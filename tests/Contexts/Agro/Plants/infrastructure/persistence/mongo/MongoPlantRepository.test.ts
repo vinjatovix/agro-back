@@ -3,9 +3,11 @@ import {
   type AppContainer,
   createAppContainer
 } from '../../../../../../../src/apps/agroApi/container.js';
+import type { Plant } from '../../../../../../../src/Contexts/Agro/Plants/domain/entities/Plant.js';
 import type { PlantPrimitives } from '../../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantPrimitives.js';
 import type { PlantRepository } from '../../../../../../../src/Contexts/Agro/Plants/domain/repositories/interfaces/PlantRepository.js';
 import { plantDomainMapper } from '../../../../../../../src/Contexts/Agro/Plants/mappers/plantDomainMapper.js';
+import { ensureFound } from '../../../../../../../src/Contexts/shared/application/utils/ensureFound.js';
 import type { EnvironmentArranger } from '../../../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
 import {
   DBClientFactory,
@@ -18,6 +20,9 @@ let container: AppContainer;
 let repository: PlantRepository;
 let environmentArranger: Promise<EnvironmentArranger>;
 let client: MongoClient;
+
+const findExisting = async (id: string): Promise<Plant> =>
+  ensureFound(await repository.findById(id), 'Plant', id);
 
 describe('MongoPlantRepository', () => {
   beforeAll(async () => {
@@ -50,7 +55,7 @@ describe('MongoPlantRepository', () => {
 
       await repository.save(plant);
 
-      const found = await repository.findById(plant.id);
+      const found = await findExisting(plant.id);
 
       expect(found.id).toBe(plant.id);
       expect(found.identity).toEqual(plant.identity);
@@ -60,10 +65,19 @@ describe('MongoPlantRepository', () => {
       expect(found.status).toBe('ACTIVE');
     });
 
-    it('should throw not found error if plant does not exist', async () => {
-      await expect(repository.findById('non-existing-id')).rejects.toThrow(
-        'Plant not found: non-existing-id'
-      );
+    it('should return null if plant does not exist', async () => {
+      await expect(repository.findById(random.uuid())).resolves.toBeNull();
+    });
+
+    it('should return a soft-deleted plant instead of null', async () => {
+      const plant = PlantFactory.random();
+      plant.markAsDeleted();
+
+      await repository.save(plant);
+
+      const found = await findExisting(plant.id);
+
+      expect(found.isDeleted()).toBe(true);
     });
 
     it('should return the correct plant among multiple entries', async () => {
@@ -74,8 +88,8 @@ describe('MongoPlantRepository', () => {
       await repository.save(plant1);
       await repository.save(plant2);
 
-      const found1 = await repository.findById(plant1.id);
-      const found2 = await repository.findById(plant2.id);
+      const found1 = await findExisting(plant1.id);
+      const found2 = await findExisting(plant2.id);
 
       expect(found1.id).toBe(plant1.id);
       expect(found2.id).toBe(plant2.id);
@@ -103,7 +117,7 @@ describe('MongoPlantRepository', () => {
         'user-1'
       );
 
-      const result = await repository.findById(plant.id);
+      const result = await findExisting(plant.id);
 
       expect(result.identity.name.primary).toBe('New name');
     });
@@ -125,7 +139,7 @@ describe('MongoPlantRepository', () => {
         'user-1'
       );
 
-      const result = await repository.findById(plant.id);
+      const result = await findExisting(plant.id);
 
       expect(plant.identity.scientificName).toBeDefined();
       expect(result.identity.scientificName).toBeUndefined();
@@ -153,7 +167,7 @@ describe('MongoPlantRepository', () => {
         'user-1'
       );
 
-      const result = await repository.findById(plant.id);
+      const result = await findExisting(plant.id);
 
       expect(result.traits.size.height).toEqual(originalHeight);
       expect(result.traits.size.spread).toEqual(originalSpread);
@@ -181,7 +195,7 @@ describe('MongoPlantRepository', () => {
         'user-1'
       );
 
-      const result = await repository.findById(plant.id);
+      const result = await findExisting(plant.id);
 
       expect(result.traits.size.height.min).toBe(plant.traits.size.height.min);
       expect(result.traits.size.height.max).toBe(999);
@@ -204,7 +218,7 @@ describe('MongoPlantRepository', () => {
 
       await repository.updateWithDiff(current, updated, 'user-1');
 
-      const result = await repository.findById(plant.id);
+      const result = await findExisting(plant.id);
 
       expect(result.metadata.updatedBy).toBe('user-1');
     });
@@ -226,7 +240,7 @@ describe('MongoPlantRepository', () => {
 
       await repository.updateWithDiff(current, updated, 'user-1');
 
-      const result = await repository.findById(plant.id);
+      const result = await findExisting(plant.id);
 
       expect(result.metadata.createdBy).toBe(originalCreatedBy);
     });
@@ -248,7 +262,7 @@ describe('MongoPlantRepository', () => {
 
       await repository.updateWithDiff(current, updated, 'user-1');
 
-      const result = await repository.findById(plant.id);
+      const result = await findExisting(plant.id);
 
       expect(result.metadata).toEqual(originalMetadata);
     });

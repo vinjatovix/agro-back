@@ -1,5 +1,6 @@
 import type { CollationOptions, FindCursor } from 'mongodb';
 import { diffObjects } from '../../../../../shared/domain/diff/diffObjects.js';
+import type { Nullable } from '../../../../../shared/domain/types/Nullable.js';
 import type { UnknownRecord } from '../../../../../shared/domain/types/UnknownRecord.js';
 import { DomainNotFoundException } from '../../../../shared/domain/errors/index.js';
 import { Username } from '../../../../Auth/domain/value-objects/Username.js';
@@ -52,17 +53,15 @@ export abstract class MongoCrudRepository<
     cursor.skip(skip).limit(limit);
   }
 
-  async findById(id: string): Promise<TDomain> {
+  async findById(id: string): Promise<Nullable<TDomain>> {
     const collection = this.collection();
 
     const document = await collection.findOne<TDocument>({
       _id: toMongoId(id)
     });
 
-    if (!document) {
-      throw new DomainNotFoundException(
-        `${this.entityName()} not found: ${id}`
-      );
+    if (document === null) {
+      return null;
     }
 
     return this.toDomain(document);

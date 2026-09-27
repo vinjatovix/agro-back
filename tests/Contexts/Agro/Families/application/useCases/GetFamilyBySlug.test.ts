@@ -1,4 +1,5 @@
 import { GetFamilyBySlug } from '../../../../../../src/Contexts/Agro/Families/application/useCases/GetFamilyBySlug.js';
+import { DomainNotFoundException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { random } from '../../../../shared/fixtures/random.js';
 import { FamilyRepositoryMock } from '../../__mocks__/FamilyRepositoryMock.js';
 import { FamilyScenarios } from '../../domain/mothers/FamilyScenarios.js';
@@ -30,8 +31,8 @@ describe('GetFamilyBySlug', () => {
   it('should throw not found error when family does not exist', async () => {
     const slug = random.word();
 
-    await expect(useCase.execute(slug)).rejects.toThrow(
-      `Family not found: ${slug}`
+    await expect(useCase.execute(slug)).rejects.toBeInstanceOf(
+      DomainNotFoundException
     );
 
     repository.assertFindBySlugHasBeenCalledWith(slug);

@@ -1,4 +1,5 @@
 import { GetBedById } from '../../../../../../src/Contexts/Agro/Beds/application/useCases/GetBedById.js';
+import { DomainNotFoundException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { random } from '../../../../shared/fixtures/random.js';
 import { BedRepositoryMock } from '../../__mocks__/BedRepositoryMock.js';
 import { BedFactory } from '../../domain/mothers/BedFactory.js';
@@ -36,8 +37,8 @@ describe('GetBedById', () => {
       roles: ['user']
     };
 
-    await expect(useCase.execute(id, user)).rejects.toThrow(
-      `Bed not found: ${id}`
+    await expect(useCase.execute(id, user)).rejects.toBeInstanceOf(
+      DomainNotFoundException
     );
   });
 

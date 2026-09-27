@@ -1,5 +1,6 @@
 import { GetPlant } from '../../../../../../src/Contexts/Agro/Plants/application/useCases/GetPlant.js';
 import type { UserSessionInfo } from '../../../../../../src/Contexts/Auth/application/index.js';
+import { DomainNotFoundException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { random } from '../../../../shared/fixtures/random.js';
 import { PlantRepositoryMock } from '../../__mocks__/PlantRepositoryMock.js';
 import { PlantFactory } from '../../domain/mothers/PlantFactory.js';
@@ -30,8 +31,8 @@ describe('GetPlant', () => {
 
   it('should throw error when plant does not exist', async () => {
     const id = random.uuid();
-    await expect(getPlant.execute(id, USER)).rejects.toThrow(
-      `Plant not found: ${id}`
+    await expect(getPlant.execute(id, USER)).rejects.toBeInstanceOf(
+      DomainNotFoundException
     );
 
     repository.assertFindByIdHasBeenCalledWith(id);
@@ -42,8 +43,8 @@ describe('GetPlant', () => {
     plant.markAsDeleted();
     repository.addToStorage(plant);
 
-    await expect(getPlant.execute(plant.id, USER)).rejects.toThrow(
-      `Plant not found: ${plant.id}`
+    await expect(getPlant.execute(plant.id, USER)).rejects.toBeInstanceOf(
+      DomainNotFoundException
     );
 
     repository.assertFindByIdHasBeenCalledWith(plant.id);

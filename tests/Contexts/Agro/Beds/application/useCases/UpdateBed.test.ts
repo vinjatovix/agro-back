@@ -1,6 +1,8 @@
 import { UpdateBed } from '../../../../../../src/Contexts/Agro/Beds/application/useCases/UpdateBed.js';
+import { randomBedId } from '../../../../../../src/Contexts/Agro/Beds/domain/BedId.js';
 import type { BedPrimitives } from '../../../../../../src/Contexts/Agro/Beds/domain/entities/types/BedPrimitives.js';
 import type { UserSessionInfo } from '../../../../../../src/Contexts/Auth/application/index.js';
+import { DomainNotFoundException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { random } from '../../../../shared/fixtures/random.js';
 import { BedRepositoryMock } from '../../__mocks__/BedRepositoryMock.js';
 import { BedFactory } from '../../domain/mothers/BedFactory.js';
@@ -23,7 +25,7 @@ describe('UpdateBed', () => {
   });
 
   it('should throw not found error if bed does not exist', async () => {
-    const id = 'non-existing-id';
+    const id = randomBedId();
 
     await expect(
       useCase.execute(
@@ -34,7 +36,26 @@ describe('UpdateBed', () => {
         },
         USER
       )
-    ).rejects.toThrow(`Bed not found: ${id}`);
+    ).rejects.toBeInstanceOf(DomainNotFoundException);
+    repository.assertUpdateNotCalled();
+  });
+
+  it('should throw not found error if the bed disappears after the update', async () => {
+    jest
+      .spyOn(repository, 'findById')
+      .mockResolvedValueOnce(bed)
+      .mockResolvedValueOnce(null);
+
+    await expect(
+      useCase.execute(
+        {
+          id: bed.id,
+          width: bed.width.value + 50,
+          height: bed.height.value + 50
+        },
+        USER
+      )
+    ).rejects.toBeInstanceOf(DomainNotFoundException);
   });
 
   it('should throw error if user is not the creator of the bed', async () => {

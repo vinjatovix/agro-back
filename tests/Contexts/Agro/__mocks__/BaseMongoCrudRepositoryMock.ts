@@ -7,6 +7,7 @@ import {
 import { applyPatch } from '../../../../src/shared/domain/patch/applyPatch.js';
 import type { PaginatedResult } from '../../../../src/shared/domain/query/interfaces/PaginatedResult.js';
 import type { QueryOptions } from '../../../../src/shared/domain/query/interfaces/QueryOptions.js';
+import type { Nullable } from '../../../../src/shared/domain/types/Nullable.js';
 
 export abstract class BaseMongoCrudRepositoryMock<
   TEntity extends { id: string },
@@ -34,18 +35,10 @@ export abstract class BaseMongoCrudRepositoryMock<
     this.storage.set(entity.id, entity);
   }
 
-  async findById(id: string): Promise<TEntity> {
+  async findById(id: string): Promise<Nullable<TEntity>> {
     this.findByIdMock(id);
 
-    const entity = this.storage.get(id);
-
-    if (!entity) {
-      throw new DomainNotFoundException(
-        `${this.entityName()} not found: ${id}`
-      );
-    }
-
-    return entity;
+    return this.storage.get(id) ?? null;
   }
 
   async findAll(

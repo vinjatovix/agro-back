@@ -1,4 +1,5 @@
 import { applyPatch } from '../../../../../shared/domain/patch/applyPatch.js';
+import { ensureFound } from '../../../../shared/application/utils/ensureFound.js';
 import { InvalidArgumentException } from '../../../../shared/domain/errors/index.js';
 import type { FamilyRepository } from '../../../Families/domain/repositories/interfaces/FamilyRepository.js';
 import type { Plant } from '../../domain/entities/Plant.js';
@@ -16,7 +17,11 @@ export class UpdatePlant {
   ) {}
 
   async execute(input: UpdatePlantInput, user: string): Promise<Plant> {
-    const plant = await this.plantRepository.findById(input.id);
+    const plant = ensureFound(
+      await this.plantRepository.findById(input.id),
+      'Plant',
+      input.id
+    );
 
     if (input.identity?.family) {
       const familyExists = await this.familyRepository.exists(
@@ -37,8 +42,10 @@ export class UpdatePlant {
 
     await this.plantRepository.updateWithDiff(current, patched, user);
 
-    const updatedPlant = await this.plantRepository.findById(input.id);
-
-    return updatedPlant;
+    return ensureFound(
+      await this.plantRepository.findById(input.id),
+      'Plant',
+      input.id
+    );
   }
 }

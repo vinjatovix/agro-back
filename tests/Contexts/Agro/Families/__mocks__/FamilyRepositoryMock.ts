@@ -3,7 +3,7 @@ import type { Family } from '../../../../../src/Contexts/Agro/Families/domain/en
 import type { FamilyRepository } from '../../../../../src/Contexts/Agro/Families/domain/repositories/interfaces/FamilyRepository.js';
 import type { FamilyPrimitives } from '../../../../../src/Contexts/Agro/Families/domain/types/FamilyPrimitives.js';
 import { familyDomainMapper } from '../../../../../src/Contexts/Agro/Families/mappers/familyDomainMapper.js';
-import { DomainNotFoundException } from '../../../../../src/Contexts/shared/domain/errors/index.js';
+import type { Nullable } from '../../../../../src/shared/domain/types/Nullable.js';
 import { BaseMongoCrudRepositoryMock } from '../../__mocks__/BaseMongoCrudRepositoryMock.js';
 
 export class FamilyRepositoryMock
@@ -11,18 +11,12 @@ export class FamilyRepositoryMock
   implements FamilyRepository
 {
   protected readonly findBySlugMock = jest.fn();
-  async findBySlug(slug: string): Promise<Family> {
+  async findBySlug(slug: string): Promise<Nullable<Family>> {
     this.findBySlugMock(slug);
 
-    const family = Array.from(this.storage.values()).find(
-      (f) => f.slug === slug
+    return (
+      Array.from(this.storage.values()).find((f) => f.slug === slug) ?? null
     );
-
-    if (!family) {
-      throw new DomainNotFoundException(`Family not found: ${slug}`);
-    }
-
-    return family;
   }
 
   protected toDomain(primitives: FamilyPrimitives): Family {
