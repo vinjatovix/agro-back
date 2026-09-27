@@ -50,6 +50,10 @@ export class Family extends AggregateRoot<FamilyId> {
     return this.props.metadata;
   }
 
+  get version(): number {
+    return this.props.version ?? 0;
+  }
+
   private validate(props: FamilyProps): void {
     const requiredKeys: Array<keyof FamilyProps> = [
       'slug',

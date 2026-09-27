@@ -15,6 +15,7 @@ export abstract class BaseMongoCrudRepositoryMock<
 > {
   protected readonly saveMock = jest.fn();
   protected readonly findByIdMock = jest.fn();
+  protected readonly findActiveByIdMock = jest.fn();
   protected readonly findAllMock = jest.fn();
   protected readonly existsMock = jest.fn();
   protected readonly updateMock = jest.fn();
@@ -24,6 +25,10 @@ export abstract class BaseMongoCrudRepositoryMock<
 
   protected abstract toDomain(primitives: TPrimitives): TEntity;
   protected abstract entityName(): string;
+
+  protected isActive(_entity: TEntity): boolean {
+    return true;
+  }
 
   async save(entity: TEntity): Promise<void> {
     this.saveMock(entity);
@@ -39,6 +44,14 @@ export abstract class BaseMongoCrudRepositoryMock<
     this.findByIdMock(id);
 
     return this.storage.get(id) ?? null;
+  }
+
+  async findActiveById(id: string): Promise<Nullable<TEntity>> {
+    this.findActiveByIdMock(id);
+
+    const entity = this.storage.get(id);
+
+    return entity && this.isActive(entity) ? entity : null;
   }
 
   async findAll(
@@ -152,5 +165,17 @@ export abstract class BaseMongoCrudRepositoryMock<
 
   assertFindByIdHasBeenCalledWith(id: string): void {
     expect(this.findByIdMock).toHaveBeenCalledWith(id);
+  }
+
+  assertFindByIdNotCalled(): void {
+    expect(this.findByIdMock).not.toHaveBeenCalled();
+  }
+
+  assertFindActiveByIdHasBeenCalledWith(id: string): void {
+    expect(this.findActiveByIdMock).toHaveBeenCalledWith(id);
+  }
+
+  assertFindActiveByIdNotCalled(): void {
+    expect(this.findActiveByIdMock).not.toHaveBeenCalled();
   }
 }

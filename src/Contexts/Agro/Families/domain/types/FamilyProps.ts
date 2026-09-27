@@ -12,4 +12,5 @@ export type FamilyProps = {
   highlights: string[];
   extra?: FamilyExtraPrimitives;
   metadata: Metadata;
+  version?: number;
 };

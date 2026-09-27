@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/require-await */
 
+import type { Nullable } from '../../../../../src/shared/domain/types/Nullable.js';
 import type { Bed } from '../../../../../src/Contexts/Agro/Beds/domain/entities/Bed.js';
 import type { BedPrimitives } from '../../../../../src/Contexts/Agro/Beds/domain/entities/types/BedPrimitives.js';
 import type { BedRepository } from '../../../../../src/Contexts/Agro/Beds/domain/repositories/interfaces/BedRepository.js';
@@ -10,6 +11,19 @@ export class BedRepositoryMock
   extends BaseMongoCrudRepositoryMock<Bed, BedPrimitives>
   implements BedRepository
 {
+  private readonly findOwnedActiveByIdMock = jest.fn();
+
+  async findOwnedActiveById(
+    id: string,
+    userId: string
+  ): Promise<Nullable<Bed>> {
+    this.findOwnedActiveByIdMock(id, userId);
+
+    const bed = this.storage.get(id);
+
+    return bed && this.isActive(bed) && bed.userId === userId ? bed : null;
+  }
+
   findByUserId(userId: string): Promise<Bed[]> {
     const beds = Array.from(this.storage.values()).filter((bed) => {
       return bed.userId === userId;
@@ -22,5 +36,13 @@ export class BedRepositoryMock
 
   protected entityName(): string {
     return 'Bed';
+  }
+
+  protected isActive(bed: Bed): boolean {
+    return !bed.isDeleted;
+  }
+
+  assertFindOwnedActiveByIdHasBeenCalledWith(id: string, userId: string): void {
+    expect(this.findOwnedActiveByIdMock).toHaveBeenCalledWith(id, userId);
   }
 }

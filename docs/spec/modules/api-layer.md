@@ -1,7 +1,7 @@
 # APPLICATION CONTRACT (API SURFACE)
 
-version: 1.3.0
-source-spec: v1.3.0
+version: 1.4.0
+source-spec: v1.4.0
 status: evolving
 
 ---
@@ -60,7 +60,7 @@ This module defines **HTTP transport query representation only** (e.g., deepObje
 
 All semantic rules, CSV parsing rules, operator mapping (`eq`, `contains`, `has`, `hasAny`, etc.), pagination coercion, and sorting mechanics are defined exclusively in:
 
-> **Query DSL Contract v1.3.0 (query-dsl-contract.md)**
+> **Query DSL Contract v1.4.0 (query-dsl-contract.md)**
 > **Module: Query (query.md)**
 
 ### 4.2 DeepObject Transport Representation
@@ -93,7 +93,7 @@ The Query Parser extracts JSON:API options to dynamically limit fields and prelo
 
 #### Query support
 
-List endpoints support filtering, sorting, and pagination (as defined in Query DSL Contract v1.3.0).
+List endpoints support filtering, sorting, and pagination (as defined in Query DSL Contract v1.4.0).
 
 ---
 
@@ -102,6 +102,8 @@ List endpoints support filtering, sorting, and pagination (as defined in Query D
 Behavior:
 
 - returns a Plant aggregate by UUID
+- public route: the requester may be anonymous
+- soft-deleted plants are only visible to `admin` and `collaborator` roles; anonymous and other users get 404
 - returns 404 if not found
 - returns 400 if invalid UUID
 
@@ -212,7 +214,7 @@ _Note on Germination tests:_ Logging a germination test triggers dynamic `germin
 
 _Note on Lookups:_ Read endpoints support polymorphic lookups by ID or Slug. Polymorphic lookups for mutations are pending [Iteration 32](../../roadmap.md#iteration-32-implement-deletefamily-and-enable-polymorphic-lookups-for-family-mutations).
 
-Families list endpoints supports Query DSL filtering, sorting, and pagination as defined in Query DSL Contract v1.3.0.
+Families list endpoints supports Query DSL filtering, sorting, and pagination as defined in Query DSL Contract v1.4.0.
 
 ---
 
@@ -238,7 +240,7 @@ Refer strictly to **Module: Validation (validation.md) Section 4 and 5** for the
 - 401 → unauthenticated
 - 403 → forbidden (role mismatch)
 - 404 → resource not found
-- 409 → conflict (duplicate resource)
+- 409 → conflict: duplicate resource, domain invariant violation (e.g. deleting a bed that still has plants), or stale write (the aggregate `version` changed since it was read; see persistence.md Sec. 4.3)
 
 ---
 

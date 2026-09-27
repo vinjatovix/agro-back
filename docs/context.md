@@ -69,19 +69,20 @@ To drive the new system roadmap, this section contrasts the current state of eac
   - Logical container representing physical growing boundaries.
   - Holds static physical dimensions (`width`, `height`, `depth`).
   - **Logical Coupling:** Physically embeds the array of `plantInstances` within its aggregate root (`Bed.ts`) and stores them nested inside the `beds` collection in MongoDB.
-  - Soft-deletion uses a boolean flag (`deleted: boolean`) and timestamp (`deletedAt`).
-- **Target State (Spec v1.3.0):**
+  - Soft-deletion uses a boolean flag (`deleted: boolean`) and timestamp (`deletedAt`). A bed with plants cannot be deleted (`409`).
+  - **Optimistic Concurrency Control (OCC):** An integer `version` is checked and incremented on every update; stale writes are rejected with `409`. Since plant instances are still embedded, this alone makes placements atomic.
+- **Target State (Spec v1.4.0):**
   - **Decoupled Instances:** Completely detached from individual plant aggregates. Plant instances are persisted in their own independent `plant_instances` collection.
   - **Soft Delete Standardization:** Standardized to lowercase `status: 'active' | 'removed'` with `deletedAt: ISODate | null`.
   - **Resizing Validation Limits:** Modifying physical bed dimensions is validated against active plant instances. Resizing is strictly blocked (throwing a `DomainConflictException`) if any living crop center coordinate falls outside the proposed boundaries.
-  - **Optimistic Concurrency Control (OCC):** Bed versioning tracks placements atomically using MongoDB ACID Multi-Document Transactions.
+  - **Cross-Collection Transactions:** Once plant instances are detached, placements and Bed version increments execute atomically using MongoDB ACID Multi-Document Transactions.
 
 ### B. PlantInstances Module
 
 - **Current State in Code:**
   - Represented as a domain entity inside the Beds context directory structure (`src/Contexts/Agro/PlantInstances`), but has no application use cases, controllers, database collections, or repository interfaces of its own.
   - Managed strictly as an embedded array element within the `beds` database collection.
-- **Target State (Spec v1.3.0):**
+- **Target State (Spec v1.4.0):**
   - **Standalone Bounded Context:** Re-architected as a standalone aggregate root (`PlantInstance`) with its own dedicated MongoDB collection (`plant_instances`) and `PlantInstanceRepository`.
   - **Soft Delete & Space Liberation:** Standardized to `status: 'active' | 'removed'` with `deletedAt`. Soft-deleted instances are excluded from spatial checks, immediately liberating physical coordinates for subsequent plantings.
   - **Nursery Sowing & Seedbed Lifecycle:** Supports direct sowing vs. nursery trays (`establishment: 'direct' | 'nursery'`). Starter tray instances have null coordinates. Sprouting events update the linked `SeedBatch` germination success logs on-the-fly.
@@ -93,7 +94,8 @@ To drive the new system roadmap, this section contrasts the current state of eac
   - Catalog of biological species, fully implemented with rich value objects (calendars, sowing traits).
   - Validation: Sowing block (`phenology.sowing`) is strictly mandatory.
   - Knowledge block holds unstructured arrays of strings.
-- **Target State (Spec v1.3.0):**
+  - Updates use optimistic concurrency control (`version`, stale writes → `409`).
+- **Target State (Spec v1.4.0):**
   - **Sowing Refinement:** Sowing block becomes **optional** to support sterile or vegetatively propagated crops (such as Russian Comfrey).
   - **Structured Propagation:** Propagation methods are defined as detailed sub-objects mapping requirements (best practices, optimal seasons, estimated time weeks) per technique (division, cutting, seed).
   - **Favorites & Social Interactions:** Integrated with a private `user_bookmarks` collection. Community popular indicators (likes/dislikes) are desensitized and projected as numeric counters on the `Plant` aggregate root, avoiding write contention and document size bloat.
@@ -103,7 +105,8 @@ To drive the new system roadmap, this section contrasts the current state of eac
 - **Current State in Code:**
   - Taxonomical classification fully implemented with CRUD, including public listings and custom seeders.
   - Supports polymorphic read-only lookups (by UUID ID or alphanumeric string Slug) on GET routes.
-- **Target State (Spec v1.3.0):**
+  - Updates use optimistic concurrency control (`version`, stale writes → `409`).
+- **Target State (Spec v1.4.0):**
   - **Polymorphic Mutation:** Extend polymorphic `idOrSlug` resolution to mutations (`PATCH`, `DELETE`).
   - **Collaborator Role:** Authorization for a `collaborator` role to manage catalog taxonomies, separate from system administrators.
 
@@ -111,7 +114,7 @@ To drive the new system roadmap, this section contrasts the current state of eac
 
 - **Current State in Code:**
   - Mock JSON data only (`mock_data/plantRelations.json`). No domain classes, schemas, or APIs exist.
-- **Target State (Spec v1.3.0):**
+- **Target State (Spec v1.4.0):**
   - **Directed Biological Graph:** Represented by `PlantRelation` aggregate root and collection, describing directional synergies (`beneficial`, `harmful`, `neutral`) with explicit ecological reasons (e.g., Tomato-Basil companionship).
   - **Proximity Calculations:** Feeds directly into the Spatial System, allowing companion distance evaluations inside the Bed designer.
 
@@ -120,7 +123,7 @@ To drive the new system roadmap, this section contrasts the current state of eac
 - **Current State in Code:**
   - Domain entities, value objects, and mapping mappers (`EventMapper`, `EventDocument`) are fully implemented and unit-tested for core operations (watering, pruning, harvests).
   - **Temporarily Inactive:** Lacks application use cases, repositories, or HTTP controllers. No routes are wired.
-- **Target State (Spec v1.3.0):**
+- **Target State (Spec v1.4.0):**
   - **Scope-Based Journal:** Integrates an explicit `scope: 'bed' | 'instance'` field to track agricultural logs cleanly, preventing "magic nulls".
   - **Dual-Scope Harvesting:** Harvesting is logged per-instance (tracking exact coordinates) or per-bed (requiring an explicit `plantId` in the payload) for aggregated logging.
   - **Crop Rotation Heuristics:** Historical events over the past 36 months are analyzed to identify family repetitions (e.g., sequential Solanaceae plantings), generating soil-restoring suggestions.
@@ -129,7 +132,7 @@ To drive the new system roadmap, this section contrasts the current state of eac
 
 - **Current State in Code:**
   - Non-existent.
-- **Target State (Spec v1.3.0):**
+- **Target State (Spec v1.4.0):**
   - **State-Based Care Agenda:** Stateful, persisted `Reminder` records (`pending`, `completed`, `dismissed`) to avoid real-time calculation overhead, ensuring $O(1)$ read performance.
   - **Passive Event-Driven Triggers:** Logged cultivation events passively mark reminders as completed and schedule subsequent tasks.
   - **Cascading Invalidations:** Soft-deleting plant instances or removing beds triggers immediate, automatic cancellation/dismissal of future reminders.
@@ -140,7 +143,7 @@ To drive the new system roadmap, this section contrasts the current state of eac
 - **Current State in Code:**
   - Local and Google Sign-In verification, JWT token generation, and secure routes.
   - JWT payload carries minimum identifiers (`id`, `email`, `username`, `roles`).
-- **Target State (Spec v1.3.0):**
+- **Target State (Spec v1.4.0):**
   - **Location & Hemisphere Configuration:** User profiles store `postalCode`, `country`, and calculated `hemisphere` (north | south), cached in Redis. Checked dynamically during seasonality validations to prevent JWT payload bloat.
   - **Verification Mailer:** Proper transactional mailer infrastructure to support account validation.
 

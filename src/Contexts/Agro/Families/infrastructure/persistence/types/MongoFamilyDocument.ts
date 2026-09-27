@@ -12,4 +12,5 @@ export type MongoFamilyDocument = {
   highlights: string[];
   extra?: FamilyExtraPrimitives;
   metadata: MetadataPrimitives;
+  version: number;
 };

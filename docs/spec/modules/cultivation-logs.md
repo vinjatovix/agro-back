@@ -1,7 +1,7 @@
 # MODULE: CULTIVATION LOGS (EVENTS SYSTEM)
 
-version: 1.3.0
-source-spec: v1.3.0
+version: 1.4.0
+source-spec: v1.4.0
 status: evolving
 
 ---

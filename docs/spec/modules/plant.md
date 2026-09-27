@@ -1,7 +1,7 @@
 # MODULE: PLANT
 
-version: 1.3.0
-source-spec: v1.3.0
+version: 1.4.0
+source-spec: v1.4.0
 status: formalized (derived from codebase snapshot)
 
 ---
@@ -225,9 +225,10 @@ markAsDeleted();
 
 Rules:
 
-- idempotent
+- idempotent at domain level
 - sets status = DELETED
 - sets deletedAt timestamp
+- at HTTP level `DELETE /plants/:id` is not repeatable: the use case only loads active plants, so deleting an already deleted plant returns 404
 
 ---
 

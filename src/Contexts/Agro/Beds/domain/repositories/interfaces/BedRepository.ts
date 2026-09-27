@@ -7,6 +7,7 @@ import type { BedPrimitives } from '../../entities/types/BedPrimitives.js';
 
 export interface BedRepository {
   findById(id: string): Promise<Nullable<Bed>>;
+  findOwnedActiveById(id: string, userId: string): Promise<Nullable<Bed>>;
   save(bed: Bed): Promise<void>;
   updateWithDiff(
     current: BedPrimitives,

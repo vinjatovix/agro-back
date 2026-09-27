@@ -1,6 +1,5 @@
 import type { UserSessionInfo } from '../../../../Auth/application/index.js';
 import { ensureFound } from '../../../../shared/application/utils/ensureFound.js';
-import { DomainForbiddenException } from '../../../../shared/domain/errors/index.js';
 import type { Bed } from '../../domain/entities/Bed.js';
 import type { BedRepository } from '../../domain/repositories/interfaces/BedRepository.js';
 
@@ -8,14 +7,10 @@ export class GetBedById {
   constructor(private readonly bedRepository: BedRepository) {}
 
   async execute(id: string, user: UserSessionInfo): Promise<Bed> {
-    const bed = ensureFound(await this.bedRepository.findById(id), 'Bed', id);
-
-    if (bed.userId !== user.id) {
-      throw new DomainForbiddenException(
-        `You do not have access to this bed: ${id}`
-      );
-    }
-
-    return bed;
+    return ensureFound(
+      await this.bedRepository.findOwnedActiveById(id, user.id),
+      'Bed',
+      id
+    );
   }
 }

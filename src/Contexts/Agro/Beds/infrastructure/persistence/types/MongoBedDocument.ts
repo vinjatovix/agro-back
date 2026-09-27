@@ -13,4 +13,5 @@ export type MongoBedDocument = {
   metadata: BedPrimitives['metadata'];
   deleted: boolean;
   deletedAt?: string;
+  version: number;
 };

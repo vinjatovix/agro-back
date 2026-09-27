@@ -41,4 +41,5 @@ export type PlantPrimitives = {
   metadata: MetadataPrimitives;
   status: PlantStatus;
   deletedAt?: string | null;
+  version: number;
 };

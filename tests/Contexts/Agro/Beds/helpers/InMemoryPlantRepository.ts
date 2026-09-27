@@ -19,6 +19,13 @@ export class InMemoryPlantRepository implements PlantRepository {
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
+  async findActiveById(id: string): Promise<Nullable<Plant>> {
+    const plant = this.plants.get(id);
+
+    return plant && !plant.isDeleted() ? plant : null;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/require-await
   async findAll(): Promise<{ data: Plant[]; total: number }> {
     const plantsArray = Array.from(this.plants.values());
     return {

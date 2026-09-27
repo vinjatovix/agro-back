@@ -16,4 +16,5 @@ export type BedProps = {
   metadata: Metadata;
   deleted: boolean;
   deletedAt?: Date;
+  version?: number;
 };

@@ -1,7 +1,7 @@
 # MODULE: SEED BANK `[TARGET STATE (Pending Iterations [52](../../roadmap.md#iteration-52-implement-seedbatch-aggregate-and-repository) & [55](../../roadmap.md#iteration-55-expose-seedbatch-crud-endpoints))]`
 
-version: 1.3.0
-source-spec: v1.3.0
+version: 1.4.0
+source-spec: v1.4.0
 status: evolving
 
 ---

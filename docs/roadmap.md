@@ -93,7 +93,8 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [domain-core.md](spec/modules/domain-core.md)
 
-- **Status**: In Progress (Beds, Families, Plants contexts completed; other contexts pending)
+- **Status**: Completed
+- **Implementation notes**: Beds, Families and Plants use cases resolve single-aggregate lookups through `ensureFound` (`DomainNotFoundException` → 404). Auth use cases handle `null` explicitly: `UpdatePasswordLocal` uses `ensureFound`, while `LoginUserLocal` and `ValidateMail` intentionally map absence to `DomainUnauthorizedException` (401) to avoid account enumeration, and `RegisterUserLocal` / `AuthenticateWithGoogle` treat absence as a valid branch. PlantInstances and Events have no use cases yet.
 - **Value delivered**: Centralizes business rules in the application layer.
 - **Definition of Done**: All use cases check repository outputs and explicitly throw `DomainNotFoundException` if null.
 - **Dependencies**: Iteration 5.
@@ -351,10 +352,12 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 ## Iteration 23: Add Optimistic Concurrency Control (Version) to Bed
 
-**Spec Module(s)**: [bed.md](spec/modules/bed.md)
+**Spec Module(s)**: [bed.md](spec/modules/bed.md), [persistence.md](spec/modules/persistence.md)
 
+- **Status**: Completed
 - **Value delivered**: Prepares the Bed for transactional locking to prevent spatial race conditions.
 - **Definition of Done**: A `version` property is added to `Bed`. Write operations increment the version.
+- **Implementation notes**: Delivered with a wider scope than planned. OCC lives in `MongoCrudRepository.updateWithDiff`, so it applies to Bed, Plant and Family. Stale writes are rejected with `409` and the version is exposed read-only in API responses. Existing documents are backfilled by migration `1.0.0/20260927120000-add-aggregate-version.js`. See persistence.md Sec. 4.3.
 - **Dependencies**: None.
 - **Risks**: None.
 - **Prompt for /speckit.specify**:

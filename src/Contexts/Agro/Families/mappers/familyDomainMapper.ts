@@ -14,7 +14,8 @@ export const familyDomainMapper: FamilyDomainMapper = {
       shortDescription: family.shortDescription,
       highlights: family.highlights,
       ...(family.extra ? { extra: family.extra } : {}),
-      metadata: family.metadata.toPrimitives()
+      metadata: family.metadata.toPrimitives(),
+      version: family.version
     };
   },
 
@@ -28,7 +29,8 @@ export const familyDomainMapper: FamilyDomainMapper = {
       shortDescription: primitives.shortDescription,
       highlights: primitives.highlights,
       ...(primitives.extra ? { extra: primitives.extra } : {}),
-      metadata: Metadata.fromPrimitives(primitives.metadata)
+      metadata: Metadata.fromPrimitives(primitives.metadata),
+      version: primitives.version
     });
   }
 };

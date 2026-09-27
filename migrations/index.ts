@@ -43,6 +43,8 @@ const up = async (): Promise<void> => {
     );
   } catch (error) {
     logger.error((error as Error).message);
+    // A failed migration leaves the schema inconsistent: abort startup.
+    throw error;
   } finally {
     await client.close();
   }

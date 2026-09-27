@@ -11,7 +11,7 @@ import {
   World
 } from '@cucumber/cucumber';
 import { assert } from 'chai';
-import type { MongoClient } from 'mongodb';
+import type { Binary, Collection, MongoClient } from 'mongodb';
 import type { Server } from 'node:http';
 import path from 'node:path';
 import { assertResponseMatchesOpenApi } from 'pure-openapi-assert';
@@ -23,6 +23,8 @@ import {
   type AppContainer
 } from '../../../../../src/apps/agroApi/container.js';
 import { API_PREFIXES } from '../../../../../src/apps/agroApi/routes/shared/apiPrefixes.js';
+import { PlantStatus } from '../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantStatus.js';
+import { toMongoId } from '../../../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoId.js';
 import type { EncrypterTool } from '../../../../../src/Contexts/shared/plugins/index.js';
 import type { Nullable } from '../../../../../src/shared/domain/types/Nullable.js';
 import { EnvironmentArranger } from '../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
@@ -109,7 +111,9 @@ class TestWorldImpl extends World {
   familySlug?: string;
   plantId?: string;
   bedId?: string;
-  token?: string;
+  token?: string | undefined;
+  loggedInEmail?: string;
+  storedDocument?: Nullable<Record<string, unknown>>;
 
   route?: string;
   method?: string;
@@ -130,6 +134,7 @@ type CucumberWorld = TestWorldImpl;
 const USER_ID = random.uuid();
 const ANOTHER_USER_ID = random.uuid();
 const ADMIN_ID = random.uuid();
+const COLLABORATOR_ID = random.uuid();
 
 /* ---------------- GLOBAL STATE ---------------- */
 
@@ -139,6 +144,7 @@ let httpServer: Server;
 let validAdminBearerToken: Nullable<string>;
 let validUserBearerToken: Nullable<string>;
 let anotherUserBearerToken: Nullable<string>;
+let validCollaboratorBearerToken: Nullable<string>;
 
 let plantSeeder: ReturnType<typeof PlantSeeder>;
 let familySeeder: ReturnType<typeof FamilySeeder>;
@@ -216,6 +222,45 @@ function buildGetRequestWithQuery(
   });
 }
 
+type RawDocument = { _id: Binary | string } & Record<string, unknown>;
+
+const rawCollection = (name: string): Collection<RawDocument> =>
+  client.db().collection<RawDocument>(name);
+
+const softDeleteDocument = async (
+  collectionName: string,
+  id: string,
+  fields: Record<string, unknown>
+): Promise<Nullable<Record<string, unknown>>> => {
+  const collection = rawCollection(collectionName);
+  const filter = { _id: toMongoId(id) };
+
+  const result = await collection.updateOne(filter, { $set: fields });
+
+  assert.strictEqual(
+    result.matchedCount,
+    1,
+    `Expected to soft-delete ${collectionName} document ${id}`
+  );
+
+  return collection.findOne(filter);
+};
+
+const assertDocumentUnchanged = async (
+  world: CucumberWorld,
+  collectionName: string,
+  id: string | undefined
+): Promise<void> => {
+  assert.exists(id, `${collectionName} id not set`);
+  assert.exists(world.storedDocument, 'No stored document to compare with');
+
+  const current = await rawCollection(collectionName).findOne({
+    _id: toMongoId(id)
+  });
+
+  assert.deepEqual(current, world.storedDocument);
+};
+
 const parseBody = (
   body: string,
   world: CucumberWorld
@@ -280,6 +325,13 @@ BeforeAll(async () => {
     email: 'anotheruser@tsapi.com',
     username: UserMother.random().username.value,
     roles: ['user']
+  });
+
+  validCollaboratorBearerToken = await ENCRYPTER.generateToken({
+    id: COLLABORATOR_ID,
+    email: 'collaborator@tsapi.com',
+    username: UserMother.random().username.value,
+    roles: ['collaborator']
   });
 
   familySeeder = FamilySeeder(httpServer, validAdminBearerToken!);
@@ -379,25 +431,33 @@ Given(
   }
 );
 
-Given('an authentication with body', async function (docString: string) {
-  const payload = parseJsonObject(docString);
+Given(
+  'an authentication with body',
+  async function (this: CucumberWorld, docString: string) {
+    const payload = parseJsonObject(docString);
 
-  this.request = buildRequest({
-    method: 'post',
-    route: API_PREFIXES.auth + '/login',
-    body: payload
-  });
+    if (Array.isArray(payload) || typeof payload.email !== 'string') {
+      throw new Error('Authentication body must include an email');
+    }
 
-  const response = (await this.request) as {
-    body: {
-      token?: string;
+    this.request = buildRequest({
+      method: 'post',
+      route: API_PREFIXES.auth + '/login',
+      body: payload
+    });
+
+    const response = (await this.request) as {
+      body: {
+        token?: string;
+      };
     };
-  };
 
-  validUserBearerToken = response.body.token ?? validUserBearerToken;
+    validUserBearerToken = response.body.token ?? validUserBearerToken;
 
-  this.token = validUserBearerToken ?? undefined;
-});
+    this.token = validUserBearerToken ?? undefined;
+    this.loggedInEmail = payload.email;
+  }
+);
 
 Given('a family exists', async function () {
   const family = await familySeeder.create();
@@ -453,6 +513,56 @@ Given('a bed exists for another user', async function () {
   this.bedId = bed.id;
 });
 
+Given(
+  'a soft-deleted bed exists for the current user',
+  async function (this: CucumberWorld) {
+    const token = getAuthToken(this, validUserBearerToken!);
+    const localBedSeeder = BedSeeder(httpServer, token!);
+    const bed = await localBedSeeder.createOne({});
+    const bedIdStr = bed.id.toString();
+
+    this.storedDocument = await softDeleteDocument('beds', bedIdStr, {
+      deleted: true,
+      deletedAt: new Date().toISOString()
+    });
+    this.bedId = bedIdStr;
+  }
+);
+
+Given('a soft-deleted plant exists', async function (this: CucumberWorld) {
+  const plants = await plantSeeder.createMany(1, {
+    'identity.family': this.familyId
+  });
+
+  const plantIdStr = plants[0]!.id.toString();
+
+  this.storedDocument = await softDeleteDocument('plants', plantIdStr, {
+    status: PlantStatus.DELETED,
+    deletedAt: new Date().toISOString()
+  });
+  this.plantId = plantIdStr;
+});
+
+Given(
+  'the logged-in user is removed from storage',
+  async function (this: CucumberWorld) {
+    const db = client.db();
+    const usersCollection = db.collection('users');
+
+    if (!this.token || !this.loggedInEmail) {
+      throw new Error('No logged-in user in the current scenario');
+    }
+
+    const usersResult = await usersCollection.deleteOne({
+      email: this.loggedInEmail
+    });
+
+    if (usersResult.deletedCount === 0) {
+      throw new Error(`Logged-in user not found: ${this.loggedInEmail}`);
+    }
+  }
+);
+
 /* ---------------- WHEN ---------------- */
 
 When(
@@ -480,6 +590,23 @@ When(
     setRequestContext(this, 'GET', normalizedRoute);
 
     const token = getAuthToken(this, validUserBearerToken!);
+
+    this.request = buildRequest({
+      method: 'get',
+      route: normalizedRoute,
+      ...withToken(token)
+    });
+  }
+);
+
+When(
+  'I send a GET collaborator request to {string}',
+  async function (this: CucumberWorld, route: string) {
+    const normalizedRoute = interpolateRoute(route, this);
+
+    setRequestContext(this, 'GET', normalizedRoute);
+
+    const token = getAuthToken(this, validCollaboratorBearerToken!);
 
     this.request = buildRequest({
       method: 'get',
@@ -837,6 +964,14 @@ Then(
     await request(httpServer).get(normalizedRoute).expect(404);
   }
 );
+
+Then('the bed should be unchanged', async function (this: CucumberWorld) {
+  await assertDocumentUnchanged(this, 'beds', this.bedId);
+});
+
+Then('the plant should be unchanged', async function (this: CucumberWorld) {
+  await assertDocumentUnchanged(this, 'plants', this.plantId);
+});
 
 Then('response matches OpenAPI contract', async function (this: CucumberWorld) {
   await assertResponseMatchesOpenApi({

@@ -18,7 +18,13 @@ Feature: Delete a bed
     Scenario: Cannot delete a non owned bed
         Given a bed exists for another user
         When I send a DELETE user request to "/api/v1/beds/<bedId>"
-        Then the response status code should be 403
+        Then the response status code should be 404
+        Then the response body should be
+            """
+            {
+                "message": "Bed not found: <bedId>"
+            }
+            """
         And response matches OpenAPI contract
 
     Scenario: Unauthenticated user cannot delete a bed
@@ -41,10 +47,16 @@ Feature: Delete a bed
             """
         And response matches OpenAPI contract
 
-    Scenario: Deleting an already deleted bed returns 204
+    Scenario: Deleting an already deleted bed returns 404
         Given a bed exists
         When I send a DELETE user request to "/api/v1/beds/<bedId>"
         Then the response status code should be 204
         When I send a DELETE user request to "/api/v1/beds/<bedId>"
-        Then the response status code should be 204
+        Then the response status code should be 404
+        Then the response body should be
+            """
+            {
+                "message": "Bed not found: <bedId>"
+            }
+            """
         And response matches OpenAPI contract

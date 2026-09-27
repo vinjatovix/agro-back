@@ -22,7 +22,8 @@ export const bedDomainMapper: BedDomainMapper = {
       plantInstances: bed.plantInstances.map((p) => p.toPrimitives()),
       metadata: bed.metadata.toPrimitives(),
       deleted: bed.isDeleted,
-      ...(bed.deletedAt && { deletedAt: bed.deletedAt })
+      ...(bed.deletedAt && { deletedAt: bed.deletedAt.toISOString() }),
+      version: bed.version
     };
   },
 
@@ -38,8 +39,11 @@ export const bedDomainMapper: BedDomainMapper = {
         PlantInstance.fromPrimitives(p)
       ),
       deleted: primitives.deleted,
-      ...(primitives.deletedAt && { deletedAt: primitives.deletedAt }),
-      metadata: Metadata.fromPrimitives(primitives.metadata)
+      ...(primitives.deletedAt && {
+        deletedAt: new Date(primitives.deletedAt)
+      }),
+      metadata: Metadata.fromPrimitives(primitives.metadata),
+      version: primitives.version
     });
   }
 };

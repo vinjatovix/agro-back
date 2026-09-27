@@ -181,6 +181,8 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
 
   /api/v1/families:
     get:
@@ -314,6 +316,8 @@ paths:
           $ref: '#/components/responses/ForbiddenError'
         '404':
           $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
 
   /api/v1/plants:
     get:
@@ -444,6 +448,8 @@ paths:
           $ref: '#/components/responses/ForbiddenError'
         '404':
           $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
 
     delete:
       tags: [Plants]
@@ -467,6 +473,8 @@ paths:
           $ref: '#/components/responses/NotFoundError'
         '400':
           $ref: '#/components/responses/ValidationError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
 
   /api/v1/beds:
     get:
@@ -532,8 +540,6 @@ paths:
                 $ref: '#/components/schemas/Bed'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
-        '403':
-          $ref: '#/components/responses/ForbiddenError'
         '404':
           $ref: '#/components/responses/NotFoundError'
 
@@ -565,10 +571,10 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
-        '403':
-          $ref: '#/components/responses/ForbiddenError'
         '404':
           $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
 
     delete:
       tags: [Beds]
@@ -588,10 +594,10 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
-        '403':
-          $ref: '#/components/responses/ForbiddenError'
         '404':
           $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
 
 components:
   securitySchemes:
@@ -755,6 +761,11 @@ components:
           type: string
           format: uuid
 
+        version:
+          type: integer
+          minimum: 0
+          readOnly: true
+
         slug:
           type: string
 
@@ -901,6 +912,11 @@ components:
       properties:
         id:
           type: string
+
+        version:
+          type: integer
+          minimum: 0
+          readOnly: true
 
         identity:
           type: object
@@ -1203,7 +1219,8 @@ components:
 
     Bed:
       type: object
-      required: [id, userId, width, height, plantInstances, metadata, deleted]
+      required:
+        [id, userId, width, height, plantInstances, metadata, deleted, version]
       properties:
         id:
           type: string
@@ -1229,6 +1246,10 @@ components:
           type: string
           format: date-time
           nullable: true
+        version:
+          type: integer
+          minimum: 0
+          readOnly: true
 
     CreateBed:
       type: object

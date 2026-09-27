@@ -64,7 +64,8 @@ export const plantPersistenceMapper: PlantPersistenceMapper = {
       phenology,
       knowledge: this.mapKnowledge(document.knowledge),
       metadata: Metadata.fromPrimitives(document.metadata),
-      status: document.status
+      status: document.status,
+      version: document.version
     };
 
     if (document.deletedAt) {
@@ -120,7 +121,8 @@ export const plantPersistenceMapper: PlantPersistenceMapper = {
       ...(knowledge && { knowledge }),
       metadata: plant.metadata.toPrimitives(),
       status: plant.status,
-      deletedAt: plant.deletedAt ? plant.deletedAt.toISOString() : null
+      deletedAt: plant.deletedAt ? plant.deletedAt.toISOString() : null,
+      version: plant.version
     };
   }
 };

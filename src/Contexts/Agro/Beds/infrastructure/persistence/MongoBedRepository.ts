@@ -7,6 +7,8 @@ import type { BedRepository } from '../../domain/repositories/interfaces/BedRepo
 import type { MongoBedDocument } from './types/MongoBedDocument.js';
 import type { BedPersistenceMapper } from '../../mappers/interfaces/BedPersistenceMapper.js';
 import { toMongoId } from '../../../../shared/infrastructure/persistence/mongo/MongoId.js';
+import type { Nullable } from '../../../../../shared/domain/types/Nullable.js';
+import type { UnknownRecord } from '../../../../../shared/domain/types/UnknownRecord.js';
 
 export class MongoBedRepository
   extends MongoCrudRepository<Bed, BedPrimitives, MongoBedDocument, BedFilter>
@@ -41,5 +43,20 @@ export class MongoBedRepository
       .toArray();
 
     return documents.map((doc) => this.toDomain(doc as MongoBedDocument));
+  }
+
+  async findOwnedActiveById(
+    id: string,
+    userId: string
+  ): Promise<Nullable<Bed>> {
+    return this.findOneDomain({
+      _id: toMongoId(id),
+      userId: toMongoId(userId),
+      ...this.activeFilter()
+    });
+  }
+
+  protected activeFilter(): UnknownRecord {
+    return { deleted: { $ne: true } };
   }
 }

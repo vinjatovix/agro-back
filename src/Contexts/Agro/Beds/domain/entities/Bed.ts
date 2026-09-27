@@ -15,7 +15,10 @@ import type {
 import type { BedProps } from './types/BedProps.js';
 
 export class Bed extends AggregateRoot<BedId> {
-  private readonly props: BedProps & { plantInstances: PlantInstance[] };
+  private readonly props: BedProps & {
+    plantInstances: PlantInstance[];
+    version: number;
+  };
 
   constructor(
     props: BedProps,
@@ -25,7 +28,8 @@ export class Bed extends AggregateRoot<BedId> {
 
     this.props = {
       ...props,
-      plantInstances: props.plantInstances ?? []
+      plantInstances: props.plantInstances ?? [],
+      version: props.version ?? 0
     };
   }
 
@@ -65,6 +69,10 @@ export class Bed extends AggregateRoot<BedId> {
     return this.props.userId;
   }
 
+  get version(): number {
+    return this.props.version;
+  }
+
   addPlant(
     plant: PlantInstance,
     newPlantSpatial: SpatialPlantModel,
@@ -102,7 +110,9 @@ export class Bed extends AggregateRoot<BedId> {
 
   markAsDeleted(): void {
     if (this.plantInstances.length > 0) {
-      throw new DomainConflictException('Cannot delete a bed that has plants');
+      throw new DomainConflictException(
+        'Cannot delete bed with plants. Remove plants or transplant them first.'
+      );
     }
     if (this.isDeleted) {
       throw new DomainConflictException('Bed is already deleted');

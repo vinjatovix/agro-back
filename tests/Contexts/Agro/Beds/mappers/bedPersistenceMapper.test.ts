@@ -88,6 +88,16 @@ describe('bedPersistenceMapper', () => {
       expect(bed.plantInstances).toHaveLength(original.plantInstances.length);
     });
 
+    it('should round-trip the version', () => {
+      const original = BedFactory.create({ version: 3 });
+
+      const document = bedPersistenceMapper.toMongoDocument(original);
+      const bed = bedPersistenceMapper.fromMongoDocument(document);
+
+      expect(document.version).toBe(3);
+      expect(bed.version).toBe(3);
+    });
+
     it('should restore deletedAt correctly', () => {
       const original = BedFactory.randomDeleted();
 

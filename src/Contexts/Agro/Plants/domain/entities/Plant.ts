@@ -48,6 +48,10 @@ export class Plant extends AggregateRoot<PlantId> {
     return this.props.metadata;
   }
 
+  get version(): number {
+    return this.props.version ?? 0;
+  }
+
   isDeleted(): boolean {
     return this.status === PlantStatus.DELETED;
   }

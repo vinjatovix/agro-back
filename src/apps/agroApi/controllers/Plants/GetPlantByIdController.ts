@@ -20,7 +20,7 @@ export class GetPlantByIdController extends HttpController {
   run = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const plantId = req.params.id;
-      const user = res.locals.user as UserSessionInfo;
+      const user = res.locals.user as UserSessionInfo | undefined;
 
       if (!plantId) {
         throw createError.badRequest('Plant ID is required');

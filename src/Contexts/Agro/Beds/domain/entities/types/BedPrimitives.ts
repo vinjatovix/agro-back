@@ -11,5 +11,6 @@ export type BedPrimitives = {
   plantInstances: PlantInstancePrimitives[];
   metadata: MetadataPrimitives;
   deleted: boolean;
-  deletedAt?: Date;
+  deletedAt?: string;
+  version: number;
 };

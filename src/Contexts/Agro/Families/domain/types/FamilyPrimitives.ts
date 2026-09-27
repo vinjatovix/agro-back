@@ -11,4 +11,5 @@ export type FamilyPrimitives = {
   highlights: string[];
   extra?: FamilyExtraPrimitives;
   metadata: MetadataPrimitives;
+  version: number;
 };

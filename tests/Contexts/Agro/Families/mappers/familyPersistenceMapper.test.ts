@@ -64,7 +64,8 @@ describe('familyPersistenceMapper', () => {
         shortDescription: familyWithExtra.shortDescription,
         highlights: familyWithExtra.highlights,
         extra: familyWithExtra.extra,
-        metadata: familyWithExtra.metadata.toPrimitives()
+        metadata: familyWithExtra.metadata.toPrimitives(),
+        version: familyWithExtra.version
       });
     });
 
@@ -80,7 +81,8 @@ describe('familyPersistenceMapper', () => {
         scientificName: familyWithoutExtra.scientificName,
         shortDescription: familyWithoutExtra.shortDescription,
         highlights: familyWithoutExtra.highlights,
-        metadata: familyWithoutExtra.metadata.toPrimitives()
+        metadata: familyWithoutExtra.metadata.toPrimitives(),
+        version: familyWithoutExtra.version
       });
     });
   });

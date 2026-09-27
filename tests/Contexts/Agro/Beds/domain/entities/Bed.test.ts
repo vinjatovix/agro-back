@@ -216,6 +216,10 @@ describe('Bed (unit)', () => {
     expect(capturedPlants).toHaveLength(0);
   });
 
+  it('should start at version 0 when no version is provided', () => {
+    expect(bed.version).toBe(0);
+  });
+
   it('should mark bed as deleted', () => {
     expect(bed.isDeleted).toBe(false);
     expect(bed.deletedAt).toBeUndefined();

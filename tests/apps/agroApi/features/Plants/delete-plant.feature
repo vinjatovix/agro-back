@@ -62,13 +62,19 @@ Feature: Delete a plant
       """
     And response matches OpenAPI contract
 
-  Scenario: Deleting an already deleted plant returns 204
+  Scenario: Deleting an already deleted plant returns 404
     Given a family exists
     And a plant exists
     When I send a DELETE admin request to "/api/v1/plants/<plantId>"
     Then the response status code should be 204
     When I send a DELETE admin request to "/api/v1/plants/<plantId>"
-    Then the response status code should be 204
+    Then the response status code should be 404
+    And the response body should contain
+      """
+      {
+        "message": "Plant not found: <plantId>"
+      }
+      """
     And response matches OpenAPI contract
 
   Scenario: Delete plant with trailing slash

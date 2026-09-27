@@ -1,26 +1,19 @@
 import type { UserSessionInfo } from '../../../../Auth/application/index.js';
 import { ensureFound } from '../../../../shared/application/utils/ensureFound.js';
-import { DomainNotFoundException } from '../../../../shared/domain/errors/index.js';
 import type { Plant } from '../../domain/entities/Plant.js';
 import type { PlantRepository } from '../../domain/repositories/interfaces/PlantRepository.js';
 
 export class GetPlant {
   constructor(private readonly plantRepository: PlantRepository) {}
 
-  async execute(id: string, user: UserSessionInfo): Promise<Plant> {
-    const plant = ensureFound(
-      await this.plantRepository.findById(id),
-      'Plant',
-      id
-    );
+  async execute(id: string, user: UserSessionInfo | undefined): Promise<Plant> {
+    const plant = canSeeDeleted(user)
+      ? await this.plantRepository.findById(id)
+      : await this.plantRepository.findActiveById(id);
 
-    if (plant.isDeleted() && !canSeeDeleted(user?.roles)) {
-      throw new DomainNotFoundException(`Plant not found: ${id}`);
-    }
-
-    return plant;
+    return ensureFound(plant, 'Plant', id);
   }
 }
 
-const canSeeDeleted = (roles?: string[]) =>
-  roles?.some((r) => r === 'admin' || r === 'collaborator') ?? false;
+const canSeeDeleted = (user: UserSessionInfo | undefined): boolean =>
+  user?.roles.some((r) => r === 'admin' || r === 'collaborator') ?? false;

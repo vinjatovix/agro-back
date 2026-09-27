@@ -1,7 +1,7 @@
 # MODULE: OPENAPI CONTRACT
 
-version: 1.3.0
-source-spec: v1.3.0
+version: 1.4.0
+source-spec: v1.4.0
 status: active
 
 ---
@@ -45,13 +45,13 @@ OpenAPI **does NOT define query semantics**.
 
 The filtering, sorting, and pagination system is defined in:
 
-> **Query DSL Contract v1.3.0**
+> **Query DSL Contract v1.4.0**
 
 Rules:
 
-- filter operators (eq, contains, has, hasAny, etc.) are defined in Query DSL Contract v1.3.0
-- sort semantics are defined in Query DSL Contract v1.3.0
-- pagination semantics are defined in Query DSL Contract v1.3.0
+- filter operators (eq, contains, has, hasAny, etc.) are defined in Query DSL Contract v1.4.0
+- sort semantics are defined in Query DSL Contract v1.4.0
+- pagination semantics are defined in Query DSL Contract v1.4.0
 - OpenAPI ONLY describes the transport shape (how queries are passed via HTTP)
 
 OpenAPI is an **external mapping of the Query DSL**, not its definition.
@@ -141,7 +141,7 @@ parameters:
       additionalProperties: true
     description: |
       Transport representation of Query DSL filter object.
-      Semantic rules are defined in Query DSL Contract v1.3.0
+      Semantic rules are defined in Query DSL Contract v1.4.0
 
   - name: sort
     in: query
@@ -151,7 +151,7 @@ parameters:
       additionalProperties: true
     description: |
       Transport representation of Query DSL sort object.
-      Semantic rules are defined in Query DSL Contract v1.3.0
+      Semantic rules are defined in Query DSL Contract v1.4.0
 
   - name: pagination
     in: query
@@ -161,7 +161,7 @@ parameters:
       additionalProperties: true
     description: |
       Transport representation of Query DSL pagination object (Supports Offset `page`/`limit` or Keyset Cursor `cursor`/`limit` `[TARGET STATE]`).
-      Semantic rules are defined in Query DSL Contract v1.3.0
+      Semantic rules are defined in Query DSL Contract v1.4.0
 
   - name: include
     in: query
@@ -172,7 +172,7 @@ parameters:
         type: string
     description: |
       `[TARGET STATE (Pending [Iteration 19](../../roadmap.md#iteration-19-support-jsonapi-sparse-fields-in-query-parser))]` Transport representation of JSON:API include parameter.
-      Semantic rules are defined in Query DSL Contract v1.3.0.
+      Semantic rules are defined in Query DSL Contract v1.4.0.
 
   - name: fields
     in: query
@@ -182,7 +182,7 @@ parameters:
       additionalProperties: true
     description: |
       `[TARGET STATE (Pending [Iteration 19](../../roadmap.md#iteration-19-support-jsonapi-sparse-fields-in-query-parser))]` Transport representation of JSON:API sparse fields parameter.
-      Semantic rules are defined in Query DSL Contract v1.3.0.
+      Semantic rules are defined in Query DSL Contract v1.4.0.
 
   - name: Idempotency-Key
     in: header
@@ -225,7 +225,7 @@ parameters:
     schema:
       type: object
       additionalProperties: true
-    description: Query DSL filter (see Query DSL Contract v1.3.0)
+    description: Query DSL filter (see Query DSL Contract v1.4.0)
 
   - name: sort
     in: query
@@ -233,7 +233,7 @@ parameters:
     schema:
       type: object
       additionalProperties: true
-    description: Query DSL sort (see Query DSL Contract v1.3.0)
+    description: Query DSL sort (see Query DSL Contract v1.4.0)
 
   - name: pagination
     in: query
@@ -241,7 +241,7 @@ parameters:
     schema:
       type: object
       additionalProperties: true
-    description: Query DSL pagination (see Query DSL Contract v1.3.0)
+    description: Query DSL pagination (see Query DSL Contract v1.4.0)
 ```
 
 ---
@@ -436,4 +436,4 @@ For endpoints returning **204 No Content**:
 
 ## 10. FINAL NOTE
 
-OpenAPI becomes the **external transport contract layer of AgroApp**, while Query DSL Contract v1.3.0 defines the actual semantics of querying.
+OpenAPI becomes the **external transport contract layer of AgroApp**, while Query DSL Contract v1.4.0 defines the actual semantics of querying.

@@ -7,6 +7,10 @@ import { randomBedId } from '../../../../../../../src/Contexts/Agro/Beds/domain/
 import type { Bed } from '../../../../../../../src/Contexts/Agro/Beds/domain/entities/Bed.js';
 import type { BedPrimitives } from '../../../../../../../src/Contexts/Agro/Beds/domain/entities/types/BedPrimitives.js';
 import type { BedRepository } from '../../../../../../../src/Contexts/Agro/Beds/domain/repositories/interfaces/BedRepository.js';
+import {
+  DomainConflictException,
+  DomainNotFoundException
+} from '../../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { bedDomainMapper } from '../../../../../../../src/Contexts/Agro/Beds/mappers/bedDomainMapper.js';
 import type { EnvironmentArranger } from '../../../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
 import {
@@ -117,6 +121,44 @@ describe('MongoBedRepository', () => {
     });
   });
 
+  describe('findOwnedActiveById', () => {
+    it('should return the bed when it is active and owned by the user', async () => {
+      const bed = BedFactory.create();
+
+      await repository.save(bed);
+
+      const found = await repository.findOwnedActiveById(bed.id, bed.userId);
+
+      expect(found?.id).toBe(bed.id);
+    });
+
+    it('should return null when the bed belongs to another user', async () => {
+      const bed = BedFactory.create();
+
+      await repository.save(bed);
+
+      await expect(
+        repository.findOwnedActiveById(bed.id, random.uuid())
+      ).resolves.toBeNull();
+    });
+
+    it('should return null when the bed is soft-deleted', async () => {
+      const bed = BedFactory.create({ deleted: true, deletedAt: new Date() });
+
+      await repository.save(bed);
+
+      await expect(
+        repository.findOwnedActiveById(bed.id, bed.userId)
+      ).resolves.toBeNull();
+    });
+
+    it('should return null when the bed does not exist', async () => {
+      await expect(
+        repository.findOwnedActiveById(randomBedId(), random.uuid())
+      ).resolves.toBeNull();
+    });
+  });
+
   describe('exists', () => {
     it('should return true if bed exists', async () => {
       const bed = BedFactory.create();
@@ -174,7 +216,8 @@ describe('MongoBedRepository', () => {
         plantInstances: [...current.plantInstances, newPlant.toPrimitives()],
         metadata: current.metadata,
         deleted: current.deleted,
-        ...(current.deletedAt && { deletedAt: current.deletedAt })
+        ...(current.deletedAt && { deletedAt: current.deletedAt }),
+        version: current.version
       } satisfies BedPrimitives;
 
       await repository.updateWithDiff(current, updated, 'test-user');
@@ -185,6 +228,154 @@ describe('MongoBedRepository', () => {
         current.plantInstances.length + 1
       );
       expect(found.plantInstances).toContainEqual(newPlant);
+    });
+
+    it('should persist deletedAt as an ISO string when soft-deleting', async () => {
+      const bed = BedFactory.create();
+      const current = bedDomainMapper.toPrimitives(bed);
+
+      await repository.save(bed);
+
+      bed.markAsDeleted();
+      const deleted = bedDomainMapper.toPrimitives(bed);
+
+      await repository.updateWithDiff(current, deleted, 'test-user');
+
+      const document = await client
+        .db()
+        .collection('beds')
+        .findOne({ deleted: true });
+
+      expect(typeof document?.deletedAt).toBe('string');
+      expect(document?.deletedAt).toBe(bed.deletedAt?.toISOString());
+    });
+
+    it('should throw DomainNotFoundException when updating a soft-deleted bed', async () => {
+      const bed = BedFactory.create({ deleted: true });
+      const current = bedDomainMapper.toPrimitives(bed);
+
+      await repository.save(bed);
+
+      const updated = {
+        ...current,
+        name: 'Updated Name'
+      } satisfies BedPrimitives;
+
+      await expect(
+        repository.updateWithDiff(current, updated, 'test-user')
+      ).rejects.toThrow(DomainNotFoundException);
+
+      await expect(
+        repository.updateWithDiff(current, updated, 'test-user')
+      ).rejects.toThrow(`Bed not found: ${bed.id}`);
+
+      const storedBed = await repository.findById(bed.id);
+      expect(storedBed?.name.value).toBe(bed.name.value);
+    });
+
+    it('should throw DomainNotFoundException when updating a non-existent bed', async () => {
+      const bed = BedFactory.create();
+      const current = bedDomainMapper.toPrimitives(bed);
+      const updated = { ...current, name: 'Updated Name' };
+
+      let thrownError: Error | undefined;
+      try {
+        await repository.updateWithDiff(current, updated, 'test-user');
+      } catch (e) {
+        thrownError = e as Error;
+      }
+
+      expect(thrownError).toBeInstanceOf(DomainNotFoundException);
+      expect(thrownError?.message).toMatch(/Bed not found/);
+      expect(thrownError?.message).toContain(current.id);
+
+      const exists = await repository.exists(current.id);
+      expect(exists).toBe(false);
+    });
+
+    it('should increment the version on every successful update', async () => {
+      const bed = BedFactory.create();
+      await repository.save(bed);
+
+      const current = bedDomainMapper.toPrimitives(bed);
+      await repository.updateWithDiff(
+        current,
+        { ...current, name: 'Updated Name' },
+        'test-user'
+      );
+
+      const storedBed = await repository.findById(bed.id);
+      expect(storedBed?.version).toBe(current.version + 1);
+    });
+
+    it('should update a bed stored without a version field', async () => {
+      const bed = BedFactory.create();
+      await repository.save(bed);
+      await client
+        .db()
+        .collection('beds')
+        .updateMany({}, { $unset: { version: '' } });
+
+      const current = bedDomainMapper.toPrimitives(await findExisting(bed.id));
+      await repository.updateWithDiff(
+        current,
+        { ...current, name: 'Updated Name' },
+        'test-user'
+      );
+
+      const storedBed = await findExisting(bed.id);
+      expect(current.version).toBe(0);
+      expect(storedBed.name.value).toBe('Updated Name');
+      expect(storedBed.version).toBe(1);
+    });
+
+    it('should throw DomainConflictException when updating from a stale version', async () => {
+      const bed = BedFactory.create();
+      await repository.save(bed);
+
+      const stale = bedDomainMapper.toPrimitives(bed);
+      await repository.updateWithDiff(
+        stale,
+        { ...stale, name: 'First writer' },
+        'test-user'
+      );
+
+      await expect(
+        repository.updateWithDiff(
+          stale,
+          { ...stale, name: 'Second writer' },
+          'test-user'
+        )
+      ).rejects.toThrow(DomainConflictException);
+
+      const storedBed = await repository.findById(bed.id);
+      expect(storedBed?.name.value).toBe('First writer');
+    });
+
+    it('should not soft-delete a bed that received plants after it was read', async () => {
+      const bed = BedFactory.create();
+      await repository.save(bed);
+
+      const readByDelete = bedDomainMapper.toPrimitives(bed);
+      await repository.updateWithDiff(
+        readByDelete,
+        {
+          ...readByDelete,
+          plantInstances: [PlantInstanceMother.create().toPrimitives()]
+        },
+        'test-user'
+      );
+
+      bed.markAsDeleted();
+      const deleted = bedDomainMapper.toPrimitives(bed);
+
+      await expect(
+        repository.updateWithDiff(readByDelete, deleted, 'test-user')
+      ).rejects.toThrow(DomainConflictException);
+
+      const storedBed = await repository.findById(bed.id);
+      expect(storedBed?.isDeleted).toBe(false);
+      expect(storedBed?.plantInstances).toHaveLength(1);
     });
   });
 

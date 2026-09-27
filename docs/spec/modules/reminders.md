@@ -1,7 +1,7 @@
 # MODULE: REMINDERS SYSTEM `[TARGET STATE (Pending [Iteration 79](../../roadmap.md#iteration-79-implement-stateful-reminder-aggregate-and-crud))]`
 
-version: 1.3.0
-source-spec: v1.3.0
+version: 1.4.0
+source-spec: v1.4.0
 status: evolving
 
 ---
