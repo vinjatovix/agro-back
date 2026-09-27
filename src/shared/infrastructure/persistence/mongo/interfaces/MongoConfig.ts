@@ -5,5 +5,6 @@ export interface MongoConfig {
   username: string;
   password: string;
   appName: string;
+  replicaSet: string;
   connectionString: string;
 }

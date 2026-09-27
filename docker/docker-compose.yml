@@ -12,7 +12,7 @@ services:
       - ./mongo/mongo-init.js:/docker-entrypoint-initdb.d/init.js:ro
       - agro_api_mongo_data:/data/db:delegated
     environment:
-      MONGO_INITDB_DATABASE: agro-api
+      MONGO_INITDB_DATABASE: agro
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: rootPassword
       MONGO_USERNAME: localUser
