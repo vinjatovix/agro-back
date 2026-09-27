@@ -1,5 +1,5 @@
 import type { Db } from 'mongodb';
-import { DomainNotFoundException } from '../../../../shared/domain/errors/index.js';
+import type { Nullable } from '../../../../../shared/domain/types/Nullable.js';
 import { MongoCrudRepository } from '../../../../shared/infrastructure/persistence/mongo/MongoCrudRepository.js';
 import type { Family } from '../../domain/entities/Family.js';
 import type { FamilyRepository } from '../../domain/repositories/interfaces/FamilyRepository.js';
@@ -38,12 +38,12 @@ export class MongoFamilyRepository
     return this.familyPersistenceMapper.toMongoDocument(family);
   }
 
-  async findBySlug(slug: string): Promise<Family> {
+  async findBySlug(slug: string): Promise<Nullable<Family>> {
     const collection = this.collection();
     const document = await collection.findOne<MongoFamilyDocument>({ slug });
 
-    if (!document) {
-      throw new DomainNotFoundException(`Family not found with slug: ${slug}`);
+    if (document === null) {
+      return null;
     }
 
     return this.toDomain(document);

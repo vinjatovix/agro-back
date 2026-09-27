@@ -76,6 +76,7 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [persistence.md](spec/modules/persistence.md), [domain-core.md](spec/modules/domain-core.md)
 
+- **Status**: Completed
 - **Value delivered**: Purifies repositories into pure data-access mechanisms devoid of domain logic.
 - **Definition of Done**: `findById` methods return `null` instead of throwing `DomainNotFoundException`.
 - **Dependencies**: None.
@@ -92,6 +93,7 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [domain-core.md](spec/modules/domain-core.md)
 
+- **Status**: In Progress (Beds, Families, Plants contexts completed; other contexts pending)
 - **Value delivered**: Centralizes business rules in the application layer.
 - **Definition of Done**: All use cases check repository outputs and explicitly throw `DomainNotFoundException` if null.
 - **Dependencies**: Iteration 5.

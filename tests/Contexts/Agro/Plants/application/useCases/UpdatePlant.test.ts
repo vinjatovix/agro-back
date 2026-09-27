@@ -1,6 +1,9 @@
 import { UpdatePlant } from '../../../../../../src/Contexts/Agro/Plants/application/useCases/index.js';
+import type { Plant } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/Plant.js';
 import type { PlantPrimitives } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantPrimitives.js';
 import { plantDomainMapper } from '../../../../../../src/Contexts/Agro/Plants/mappers/plantDomainMapper.js';
+import { ensureFound } from '../../../../../../src/Contexts/shared/application/utils/ensureFound.js';
+import { DomainNotFoundException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { random } from '../../../../shared/fixtures/index.js';
 import { FamilyRepositoryMock } from '../../../Families/__mocks__/FamilyRepositoryMock.js';
 import { FamilyScenarios } from '../../../Families/domain/mothers/FamilyScenarios.js';
@@ -11,6 +14,9 @@ describe('UpdatePlant use case', () => {
   let repository: PlantRepositoryMock;
   let familyRepository: FamilyRepositoryMock;
   let useCase: UpdatePlant;
+
+  const findExisting = async (id: string): Promise<Plant> =>
+    ensureFound(await repository.findById(id), 'Plant', id);
 
   beforeEach(() => {
     repository = new PlantRepositoryMock();
@@ -35,7 +41,7 @@ describe('UpdatePlant use case', () => {
       'user-1'
     );
 
-    const updated = await repository.findById(plant.id);
+    const updated = await findExisting(plant.id);
 
     expect(updated.identity.name.primary).toBe('New name');
   });
@@ -58,7 +64,7 @@ describe('UpdatePlant use case', () => {
       'user-1'
     );
 
-    const updated = await repository.findById(plant.id);
+    const updated = await findExisting(plant.id);
 
     expect(updated.traits.lifecycle.getValue()).toBe('perennial');
     expect(updated.traits.size.height.min).toBe(20);
@@ -82,7 +88,7 @@ describe('UpdatePlant use case', () => {
       'user-1'
     );
 
-    const updated = await repository.findById(plant.id);
+    const updated = await findExisting(plant.id);
 
     expect(updated.traits.size.height.min).toBe(plant.traits.size.height.min);
   });
@@ -102,7 +108,7 @@ describe('UpdatePlant use case', () => {
       'user-1'
     );
 
-    const updated = await repository.findById(plant.id);
+    const updated = await findExisting(plant.id);
 
     expect(updated.identity.scientificName).toBe('New scientific name');
   });
@@ -133,17 +139,44 @@ describe('UpdatePlant use case', () => {
     );
   });
 
-  it('should throw if plant does not exist', async () => {
-    const id = random.uuid();
+  it('should throw not found without updating nor checking family if plant does not exist', async () => {
+    const input = { id: random.uuid(), identity: { family: random.uuid() } };
+    const existsSpy = jest.spyOn(familyRepository, 'exists');
+
+    await expect(useCase.execute(input, 'user-1')).rejects.toBeInstanceOf(
+      DomainNotFoundException
+    );
+
+    repository.assertUpdateNotCalled();
+    expect(existsSpy).not.toHaveBeenCalled();
+  });
+
+  it('should report the plant id in the not found message', async () => {
+    const input = { id: random.uuid() };
+    const expectedMessage = `Plant not found: ${input.id}`;
+
+    const error = await useCase
+      .execute(input, 'user-1')
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(DomainNotFoundException);
+    expect((error as DomainNotFoundException).message).toBe(expectedMessage);
+  });
+
+  it('should throw not found if the plant disappears after the update', async () => {
+    const plant = PlantFactory.random();
+    repository.addToStorage(plant);
+    jest
+      .spyOn(repository, 'findById')
+      .mockResolvedValueOnce(plant)
+      .mockResolvedValueOnce(null);
 
     await expect(
       useCase.execute(
-        {
-          id
-        },
+        { id: plant.id, identity: { name: { primary: 'New name' } } },
         'user-1'
       )
-    ).rejects.toThrow(`Plant not found: ${id}`);
+    ).rejects.toBeInstanceOf(DomainNotFoundException);
   });
 
   it('should call repository.updateWithDiff with correct payload', async () => {

@@ -1,11 +1,12 @@
 import type { PaginatedResult } from '../../../../../../shared/domain/query/interfaces/PaginatedResult.js';
 import type { QueryOptions } from '../../../../../../shared/domain/query/interfaces/QueryOptions.js';
+import type { Nullable } from '../../../../../../shared/domain/types/Nullable.js';
 import type { Bed } from '../../entities/Bed.js';
 import type { BedFilter } from '../../entities/types/BedFilter.js';
 import type { BedPrimitives } from '../../entities/types/BedPrimitives.js';
 
 export interface BedRepository {
-  findById(id: string): Promise<Bed>;
+  findById(id: string): Promise<Nullable<Bed>>;
   save(bed: Bed): Promise<void>;
   updateWithDiff(
     current: BedPrimitives,

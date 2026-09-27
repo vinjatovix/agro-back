@@ -1,5 +1,7 @@
 import { UpdateFamily } from '../../../../../../src/Contexts/Agro/Families/application/useCases/UpdateFamily.js';
 import { familyDomainMapper } from '../../../../../../src/Contexts/Agro/Families/mappers/familyDomainMapper.js';
+import { DomainNotFoundException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
+import { random } from '../../../../shared/fixtures/random.js';
 import { FamilyRepositoryMock } from '../../__mocks__/FamilyRepositoryMock.js';
 import { FamilyScenarios } from '../../domain/mothers/FamilyScenarios.js';
 
@@ -67,29 +69,43 @@ describe('UpdateFamily', () => {
   });
 
   it('should throw not found error when family does not exist', async () => {
-    await expect(
-      useCase.execute(
-        {
-          id: 'non-existing-id',
-          name: 'whatever'
-        },
-        'test-user'
-      )
-    ).rejects.toThrow('Family not found: non-existing-id');
+    const patch = { id: random.uuid(), name: 'whatever' };
+
+    await expect(useCase.execute(patch, 'test-user')).rejects.toBeInstanceOf(
+      DomainNotFoundException
+    );
+  });
+
+  it('should report the missing family id in the not found message', async () => {
+    const patch = { id: random.uuid(), name: 'whatever' };
+    const expectedMessage = `Family not found: ${patch.id}`;
+
+    await expect(useCase.execute(patch, 'test-user')).rejects.toMatchObject({
+      message: expectedMessage
+    });
   });
 
   it('should not call updateWithDiff when family does not exist', async () => {
-    await expect(
-      useCase.execute(
-        {
-          id: 'non-existing-id',
-          name: 'whatever'
-        },
-        'test-user'
-      )
-    ).rejects.toThrow();
+    const patch = { id: random.uuid(), name: 'whatever' };
+
+    await expect(useCase.execute(patch, 'test-user')).rejects.toBeInstanceOf(
+      DomainNotFoundException
+    );
 
     repository.assertUpdateNotCalled();
+  });
+
+  it('should throw not found error when the post-write re-read returns null', async () => {
+    const family = FamilyScenarios.domainRandom();
+    repository.addToStorage(family);
+    jest
+      .spyOn(repository, 'findById')
+      .mockResolvedValueOnce(family)
+      .mockResolvedValueOnce(null);
+
+    await expect(
+      useCase.execute({ id: family.idValue, name: 'Updated name' }, 'test-user')
+    ).rejects.toBeInstanceOf(DomainNotFoundException);
   });
 
   it('should return updated family', async () => {

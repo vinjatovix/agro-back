@@ -1,8 +1,10 @@
-import type { MongoClient } from 'mongodb';
+import { Collection, type MongoClient } from 'mongodb';
 import {
   type AppContainer,
   createAppContainer
 } from '../../../../../../../src/apps/agroApi/container.js';
+import { randomBedId } from '../../../../../../../src/Contexts/Agro/Beds/domain/BedId.js';
+import type { Bed } from '../../../../../../../src/Contexts/Agro/Beds/domain/entities/Bed.js';
 import type { BedPrimitives } from '../../../../../../../src/Contexts/Agro/Beds/domain/entities/types/BedPrimitives.js';
 import type { BedRepository } from '../../../../../../../src/Contexts/Agro/Beds/domain/repositories/interfaces/BedRepository.js';
 import { bedDomainMapper } from '../../../../../../../src/Contexts/Agro/Beds/mappers/bedDomainMapper.js';
@@ -19,6 +21,16 @@ let container: AppContainer;
 let repository: BedRepository;
 let environmentArranger: Promise<EnvironmentArranger>;
 let client: MongoClient;
+
+async function findExisting(id: string): Promise<Bed> {
+  const found = await repository.findById(id);
+
+  if (found === null) {
+    throw new Error('Expected the bed to exist');
+  }
+
+  return found;
+}
 
 describe('MongoBedRepository', () => {
   beforeAll(async () => {
@@ -51,7 +63,7 @@ describe('MongoBedRepository', () => {
 
       await repository.save(bed);
 
-      const found = await repository.findById(bed.id);
+      const found = await findExisting(bed.id);
 
       expect(found.id).toBe(bed.id);
       expect(found.width.value).toBe(bed.width.value);
@@ -60,10 +72,33 @@ describe('MongoBedRepository', () => {
       expect(found.plantInstances).toEqual(bed.plantInstances);
     });
 
-    it('should throw not found error if bed does not exist', async () => {
-      await expect(repository.findById('non-existing-id')).rejects.toThrow(
-        'Bed not found: non-existing-id'
+    it('should return the bed reconstructed as the saved one', async () => {
+      const bed = BedFactory.random();
+
+      await repository.save(bed);
+
+      const found = await findExisting(bed.id);
+
+      expect(bedDomainMapper.toPrimitives(found)).toMatchObject(
+        bedDomainMapper.toPrimitives(bed)
       );
+    });
+
+    it('should return null if bed does not exist', async () => {
+      await expect(repository.findById(randomBedId())).resolves.toBeNull();
+    });
+
+    it('should propagate infrastructure failures instead of returning null', async () => {
+      const error = new Error('connection lost');
+      const findOne = jest
+        .spyOn(Collection.prototype, 'findOne')
+        .mockRejectedValueOnce(error);
+
+      try {
+        await expect(repository.findById(randomBedId())).rejects.toBe(error);
+      } finally {
+        findOne.mockRestore();
+      }
     });
 
     it('should return the correct bed among multiple entries', async () => {
@@ -74,8 +109,8 @@ describe('MongoBedRepository', () => {
       await repository.save(bed1);
       await repository.save(bed2);
 
-      const found1 = await repository.findById(bed1.id);
-      const found2 = await repository.findById(bed2.id);
+      const found1 = await findExisting(bed1.id);
+      const found2 = await findExisting(bed2.id);
 
       expect(found1.id).toBe(bed1.id);
       expect(found2.id).toBe(bed2.id);
@@ -115,7 +150,7 @@ describe('MongoBedRepository', () => {
 
       await repository.updateWithDiff(current, updated, 'test-user');
 
-      const found = await repository.findById(bed.id);
+      const found = await findExisting(bed.id);
 
       expect(found.width.value).toBe(updated.width);
       expect(found.height.value).toBe(updated.height);
@@ -144,7 +179,7 @@ describe('MongoBedRepository', () => {
 
       await repository.updateWithDiff(current, updated, 'test-user');
 
-      const found = await repository.findById(updated.id);
+      const found = await findExisting(updated.id);
 
       expect(found.plantInstances).toHaveLength(
         current.plantInstances.length + 1
