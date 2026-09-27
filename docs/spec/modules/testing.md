@@ -35,6 +35,11 @@ Unit tests now explicitly include:
 - DTO helpers:
   - buildPatch (path-based patch construction)
   - deepMerge (immutable merge utility)
+- `requireIfMatch` / `parseIfMatch` (every accepted and rejected `If-Match` shape) and `getExpectedVersion`
+- `ensureVersion`
+- use-case version checks (precedence `404 → 412 → 409`, no-op patches, call counts on the success path)
+
+Use-case tests use the in-memory fake `BaseMongoCrudRepositoryMock`, which mirrors `updateWithDiff`: empty diff → no write; write only over an active entity at the expected version, bumping it; stale → `DomainStaleVersionException`, missing/inactive → `DomainNotFoundException`. It checks a persisted snapshot of version/active state, so mutating a read instance (e.g. `markAsDeleted()`) does not change what is "stored" until it is written.
 
 Rules:
 
@@ -92,7 +97,7 @@ Scope:
 
 Rules:
 
-- response MUST match OpenAPI schema
+- response MUST match OpenAPI schema, including declared response headers (e.g. the required `ETag`) and `Content-Type`
 - no drift between implementation and spec
 - failures block deployment
 - includes Beds endpoints validation
@@ -114,8 +119,13 @@ Features:
 - stateful execution via World
 - reusable fixtures (seeders)
 
+Rules:
+
+- Call the API only in the `When` step under test. Build prior state (created, updated to a given version, soft-deleted, bed with plants…) in `Given` steps with seeders or DB helpers (e.g. `the bed is stored at version 1`, `a soft-deleted plant exists`), never with setup `PATCH`/`DELETE` requests.
+
 Added coverage:
 
+- version preconditions on every protected write: `428` / `400` / `412` / `404` precedence, `ETag` on single-resource responses, CORS exposure, and concurrent writers with the same version (exactly one winner)
 - Beds feature scenarios (CRUD flows)
 - cross-entity ownership rules (user/bed isolation)
 - query-driven filtering scenarios (list endpoints with filters, sorting, pagination)
@@ -186,8 +196,11 @@ class TestWorldImpl extends World {
   token?: string;
   route?: string;
   method?: string;
+  ifMatch?: string; // sent by PATCH/DELETE steps
+  ifNoneMatch?: string; // sent by GET steps
   request?: request.Test;
   responseRaw?: request.Response;
+  responses?: request.Response[]; // concurrent-request steps
 }
 ```
 

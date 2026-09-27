@@ -1,4 +1,5 @@
 import type { CollationOptions, Db } from 'mongodb';
+import type { UnknownRecord } from '../../../../../../shared/domain/types/UnknownRecord.js';
 import { Plant } from '../../../domain/entities/Plant.js';
 import { PlantStatus } from '../../../domain/entities/types/PlantStatus.js';
 import type { PlantRepository } from '../../../domain/repositories/interfaces/PlantRepository.js';
@@ -50,7 +51,7 @@ export class MongoPlantRepository
     return this.plantQueryMapper.toMongo(filter);
   }
 
-  protected activeFilter(): Record<string, unknown> {
+  protected activeFilter(): UnknownRecord {
     return { status: { $ne: PlantStatus.DELETED } };
   }
 }

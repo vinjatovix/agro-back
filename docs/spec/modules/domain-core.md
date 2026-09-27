@@ -154,7 +154,8 @@ Hierarchy:
 - `DomainException` (abstract base, supports field-specific error dictionaries)
   - `InvalidArgumentException` (validation / format violations)
   - `DomainNotFoundException` (query / entity absence)
-  - `DomainConflictException` (state mutation / concurrency / invariant violations)
+  - `DomainConflictException` (state mutation / business invariant violations, e.g. deleting a bed that has plants)
+  - `DomainStaleVersionException` (optimistic concurrency: the aggregate `version` differs from the one the caller read; mapped to HTTP `412`). It does not extend `DomainConflictException`, so stale versions and business conflicts never share a status code
   - `DomainUnauthorizedException` (access control rules / authentication failure)
   - `DomainForbiddenException` (authorization / ownership restriction rules)
 

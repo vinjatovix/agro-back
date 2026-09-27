@@ -4,6 +4,7 @@ import {
   Before,
   BeforeAll,
   DataTable,
+  defineParameterType,
   Given,
   setWorldConstructor,
   Then,
@@ -33,6 +34,7 @@ import {
   DBConfigFactory
 } from '../../../../../src/shared/infrastructure/persistence/index.js';
 
+import { PlantInstanceMother } from '../../../../Contexts/Agro/PlantInstances/domain/mothers/PlantInstanceMother.js';
 import { UserMother } from '../../../../Contexts/Auth/domain/mothers/UserMother.js';
 import { random } from '../../../../Contexts/shared/fixtures/random.js';
 
@@ -109,6 +111,7 @@ function assertField(
 class TestWorldImpl extends World {
   familyId?: string;
   familySlug?: string;
+  familyName?: string;
   plantId?: string;
   bedId?: string;
   token?: string | undefined;
@@ -119,8 +122,12 @@ class TestWorldImpl extends World {
   method?: string;
   status?: number;
 
+  ifMatch?: string;
+  ifNoneMatch?: string;
+
   request?: request.Test;
   responseRaw?: request.Response;
+  responses?: request.Response[];
 
   [key: string]: unknown;
 }
@@ -162,6 +169,8 @@ interface RequestOptions {
   route: string;
   token?: string;
   body?: unknown;
+  ifMatch?: string | undefined;
+  ifNoneMatch?: string | undefined;
 }
 
 /* ---------------- HELPERS ---------------- */
@@ -190,12 +199,22 @@ const buildRequest = ({
   method,
   route,
   token,
-  body
+  body,
+  ifMatch,
+  ifNoneMatch
 }: RequestOptions): request.Test => {
   let req = request(httpServer)[method](route);
 
   if (token) {
     req = req.set('Authorization', `Bearer ${token}`);
+  }
+
+  if (ifMatch !== undefined) {
+    req = req.set('If-Match', ifMatch);
+  }
+
+  if (ifNoneMatch !== undefined) {
+    req = req.set('If-None-Match', ifNoneMatch);
   }
 
   if (body !== undefined && body !== null) {
@@ -272,6 +291,80 @@ const parseBody = (
   }
 
   return parsed;
+};
+
+const recordDocument = async (
+  world: CucumberWorld,
+  collectionName: string,
+  id: string | undefined
+): Promise<void> => {
+  assert.exists(id, `${collectionName} id not set`);
+
+  world.storedDocument = await rawCollection(collectionName).findOne({
+    _id: toMongoId(id)
+  });
+
+  assert.exists(world.storedDocument, `${collectionName} ${id} not found`);
+};
+
+type Resource = 'bed' | 'plant' | 'family';
+
+const RESOURCES: Record<
+  Resource,
+  { collection: string; idKey: 'bedId' | 'plantId' | 'familyId' }
+> = {
+  bed: { collection: 'beds', idKey: 'bedId' },
+  plant: { collection: 'plants', idKey: 'plantId' },
+  family: { collection: 'families', idKey: 'familyId' }
+};
+
+defineParameterType({
+  name: 'role',
+  regexp: /user|admin/,
+  transformer: (value: string): 'user' | 'admin' =>
+    value === 'admin' ? 'admin' : 'user'
+});
+
+defineParameterType({
+  name: 'resource',
+  regexp: /bed|plant|family/,
+  transformer: (value: string): Resource => {
+    if (value === 'plant' || value === 'family') return value;
+    return 'bed';
+  }
+});
+
+const tokenFor = (role: 'user' | 'admin'): string | undefined =>
+  (role === 'admin' ? validAdminBearerToken : validUserBearerToken) ??
+  undefined;
+
+const sendConcurrently = async (
+  world: CucumberWorld,
+  count: number,
+  build: () => request.Test
+): Promise<void> => {
+  world.responses = await Promise.all(
+    Array.from({ length: count }, async () => build())
+  );
+};
+
+const openApiSpecPath = (): string =>
+  path.resolve(process.cwd(), 'src/apps/agroApi/openapi/openapi.yaml');
+
+const toHeaderRecord = (
+  headers: Record<string, unknown>
+): Record<string, string | string[]> => {
+  const result: Record<string, string | string[]> = {};
+
+  for (const [key, value] of Object.entries(headers)) {
+    if (typeof value === 'string') {
+      result[key] = value;
+    } else if (Array.isArray(value)) {
+      result[key] = value.map(String);
+    }
+  }
+
+  return result;
 };
 
 /* ---------------- LIFECYCLE ---------------- */
@@ -464,6 +557,7 @@ Given('a family exists', async function () {
 
   this.familyId = family.id;
   this.familySlug = family.slug;
+  this.familyName = family.name;
 });
 
 Given('multiple families exist', async function () {
@@ -501,6 +595,32 @@ Given('a bed exists', async function () {
   const bed = await localBedSeeder.createOne({});
 
   this.bedId = bed.id;
+});
+
+Given('the bed has a plant', async function (this: CucumberWorld) {
+  const bedId = this.bedId;
+  if (bedId === undefined) {
+    assert.fail('bedId not set');
+  }
+
+  const filter = { _id: toMongoId(bedId) };
+  const bed = await rawCollection('beds').findOne(filter);
+  if (bed === null) {
+    assert.fail(`Bed ${bedId} not found`);
+  }
+
+  const plantInstances: unknown[] = Array.isArray(bed.plantInstances)
+    ? (bed.plantInstances as unknown[])
+    : [];
+
+  await rawCollection('beds').updateOne(filter, {
+    $set: {
+      plantInstances: [
+        ...plantInstances,
+        PlantInstanceMother.create().toPrimitives()
+      ]
+    }
+  });
 });
 
 Given('a bed exists for another user', async function () {
@@ -563,6 +683,45 @@ Given(
   }
 );
 
+Given('I use If-Match {string}', function (this: CucumberWorld, value: string) {
+  this.ifMatch = interpolateRoute(value, this);
+});
+
+Given(
+  'I use If-None-Match {string}',
+  function (this: CucumberWorld, value: string) {
+    this.ifNoneMatch = interpolateRoute(value, this);
+  }
+);
+
+Given(
+  'I record the current {resource}',
+  async function (this: CucumberWorld, resource: Resource) {
+    const { collection, idKey } = RESOURCES[resource];
+
+    await recordDocument(this, collection, this[idKey]);
+  }
+);
+
+Given(
+  'the {resource} is stored at version {int}',
+  async function (this: CucumberWorld, resource: Resource, version: number) {
+    const { collection, idKey } = RESOURCES[resource];
+    const id = this[idKey];
+    if (typeof id !== 'string') {
+      assert.fail(`${resource} id not set`);
+    }
+
+    const result = await rawCollection(collection).updateOne(
+      { _id: toMongoId(id) },
+      { $set: { version } }
+    );
+    assert.strictEqual(result.matchedCount, 1, `${resource} ${id} not found`);
+
+    await recordDocument(this, collection, id);
+  }
+);
+
 /* ---------------- WHEN ---------------- */
 
 When(
@@ -577,6 +736,7 @@ When(
     this.request = buildRequest({
       method: 'get',
       route: normalizedRoute,
+      ifNoneMatch: this.ifNoneMatch,
       ...withToken(token)
     });
   }
@@ -594,6 +754,7 @@ When(
     this.request = buildRequest({
       method: 'get',
       route: normalizedRoute,
+      ifNoneMatch: this.ifNoneMatch,
       ...withToken(token)
     });
   }
@@ -611,6 +772,7 @@ When(
     this.request = buildRequest({
       method: 'get',
       route: normalizedRoute,
+      ifNoneMatch: this.ifNoneMatch,
       ...withToken(token)
     });
   }
@@ -688,6 +850,7 @@ When(
     this.request = buildRequest({
       method: 'patch',
       route: normalizedRoute,
+      ifMatch: this.ifMatch,
       ...withToken(token),
       body: parseBody(body, this)
     });
@@ -706,6 +869,7 @@ When(
     this.request = buildRequest({
       method: 'patch',
       route: normalizedRoute,
+      ifMatch: this.ifMatch,
       ...withToken(token),
       body: parseBody(body, this)
     });
@@ -722,6 +886,7 @@ When(
     this.request = buildRequest({
       method: 'patch',
       route: normalizedRoute,
+      ifMatch: this.ifMatch,
       body: parseBody(body, this)
     });
   }
@@ -739,6 +904,7 @@ When(
     this.request = buildRequest({
       method: 'delete',
       route: normalizedRoute,
+      ifMatch: this.ifMatch,
       ...withToken(token)
     });
   }
@@ -756,6 +922,7 @@ When(
     this.request = buildRequest({
       method: 'delete',
       route: normalizedRoute,
+      ifMatch: this.ifMatch,
       ...withToken(token)
     });
   }
@@ -770,7 +937,8 @@ When(
 
     this.request = buildRequest({
       method: 'delete',
-      route: normalizedRoute
+      route: normalizedRoute,
+      ifMatch: this.ifMatch
     });
   }
 );
@@ -792,6 +960,86 @@ When('I get the bed', async function (this: CucumberWorld) {
     ...withToken(token)
   });
 });
+
+for (const role of ['user', 'admin'] as const) {
+  When(
+    `I send {int} concurrent PATCH ${role} requests to {string} with body`,
+    async function (
+      this: CucumberWorld,
+      count: number,
+      route: string,
+      body: string
+    ) {
+      const normalizedRoute = interpolateRoute(route, this);
+      const payload = parseBody(body, this);
+
+      setRequestContext(this, 'PATCH', normalizedRoute);
+
+      await sendConcurrently(this, count, () =>
+        buildRequest({
+          method: 'patch',
+          route: normalizedRoute,
+          ifMatch: this.ifMatch,
+          ...withToken(getAuthToken(this, tokenFor(role))),
+          body: payload
+        })
+      );
+    }
+  );
+
+  When(
+    `I send {int} concurrent DELETE ${role} requests to {string}`,
+    async function (this: CucumberWorld, count: number, route: string) {
+      const normalizedRoute = interpolateRoute(route, this);
+
+      setRequestContext(this, 'DELETE', normalizedRoute);
+
+      await sendConcurrently(this, count, () =>
+        buildRequest({
+          method: 'delete',
+          route: normalizedRoute,
+          ifMatch: this.ifMatch,
+          ...withToken(getAuthToken(this, tokenFor(role)))
+        })
+      );
+    }
+  );
+}
+
+When(
+  'I send a GET request to {string} from origin {string}',
+  async function (this: CucumberWorld, route: string, origin: string) {
+    const normalizedRoute = interpolateRoute(route, this);
+
+    setRequestContext(this, 'GET', normalizedRoute);
+
+    this.request = buildRequest({ method: 'get', route: normalizedRoute }).set(
+      'Origin',
+      origin
+    );
+  }
+);
+
+When(
+  'I send a CORS preflight for {word} {string} from origin {string} requesting headers {string}',
+  async function (
+    this: CucumberWorld,
+    method: string,
+    route: string,
+    origin: string,
+    headers: string
+  ) {
+    const normalizedRoute = interpolateRoute(route, this);
+
+    setRequestContext(this, 'OPTIONS', normalizedRoute);
+
+    this.request = request(httpServer)
+      .options(normalizedRoute)
+      .set('Origin', origin)
+      .set('Access-Control-Request-Method', method)
+      .set('Access-Control-Request-Headers', headers);
+  }
+);
 
 /* ---------------- THEN ---------------- */
 
@@ -973,15 +1221,138 @@ Then('the plant should be unchanged', async function (this: CucumberWorld) {
   await assertDocumentUnchanged(this, 'plants', this.plantId);
 });
 
+Then(
+  'exactly {int} response(s) should have status {int} and the rest {int}',
+  function (
+    this: CucumberWorld,
+    winners: number,
+    winnerStatus: number,
+    loserStatus: number
+  ) {
+    assert.exists(this.responses, 'No concurrent responses recorded');
+
+    const statuses = this.responses.map((response) => response.status);
+    const winnerCount = statuses.filter((s) => s === winnerStatus).length;
+    const loserCount = statuses.filter((s) => s === loserStatus).length;
+
+    assert.strictEqual(
+      winnerCount,
+      winners,
+      `Expected ${winners} × ${winnerStatus}, got statuses ${JSON.stringify(statuses)}`
+    );
+    assert.strictEqual(
+      loserCount,
+      statuses.length - winners,
+      `Expected the rest to be ${loserStatus}, got statuses ${JSON.stringify(statuses)}`
+    );
+  }
+);
+
+Then(
+  'the response should have ETag {string}',
+  function (this: CucumberWorld, expected: string) {
+    assert.strictEqual(
+      this.responseRaw!.headers.etag,
+      interpolateRoute(expected, this)
+    );
+  }
+);
+
+Then(
+  'the response ETag should match the body version',
+  function (this: CucumberWorld) {
+    const { version } = this.responseRaw!.body as { version?: unknown };
+
+    if (typeof version !== 'number') {
+      assert.fail('Response body has no numeric version');
+    }
+
+    assert.strictEqual(this.responseRaw!.headers.etag, `"${version}"`);
+  }
+);
+
+Then(
+  'the response header {string} should include {string}',
+  function (this: CucumberWorld, header: string, expected: string) {
+    const value = toHeaderRecord(this.responseRaw!.headers)[
+      header.toLowerCase()
+    ];
+
+    assert.isString(value, `Missing response header ${header}`);
+
+    const items = String(value)
+      .split(',')
+      .map((item: string) => item.trim().toLowerCase());
+
+    assert.include(items, expected.toLowerCase());
+  }
+);
+
+Then('the response should not have an ETag', function (this: CucumberWorld) {
+  assert.notProperty(this.responseRaw!.headers, 'etag');
+});
+
+Then(
+  'a GET user request to {string} should return a body containing',
+  async function (this: CucumberWorld, route: string, docString: string) {
+    const response = await buildRequest({
+      method: 'get',
+      route: interpolateRoute(route, this),
+      ...withToken(getAuthToken(this, validUserBearerToken!))
+    }).expect(200);
+
+    const expected = parseJsonObject(
+      interpolateJson(docString, this)
+    ) as Record<string, unknown>;
+
+    assert.isTrue(
+      compareResponseObject(response.body, expected),
+      `Expected ${JSON.stringify(response.body)} to contain ${JSON.stringify(expected)}`
+    );
+  }
+);
+
+Then('the family should be unchanged', async function (this: CucumberWorld) {
+  await assertDocumentUnchanged(this, 'families', this.familyId);
+});
+
+Then(
+  'the response errors should include {string}',
+  function (this: CucumberWorld, key: string) {
+    const body = this.responseRaw!.body as { errors?: unknown };
+
+    assert.isObject(body.errors, 'Response body has no errors object');
+    assert.property(body.errors, key);
+  }
+);
+
+Then(
+  'a GET {role} request to {string} should return status {int}',
+  async function (
+    this: CucumberWorld,
+    role: 'user' | 'admin',
+    route: string,
+    status: number
+  ) {
+    await buildRequest({
+      method: 'get',
+      route: interpolateRoute(route, this),
+      ...withToken(tokenFor(role))
+    }).expect(status);
+  }
+);
+
 Then('response matches OpenAPI contract', async function (this: CucumberWorld) {
-  await assertResponseMatchesOpenApi({
-    specPath: path.resolve(
-      process.cwd(),
-      'src/apps/agroApi/openapi/openapi.yaml'
-    ),
-    path: this.route!,
-    method: this.method!,
-    status: this.status!,
-    body: this.responseRaw!.body
-  });
+  const responses = this.responses ?? [this.responseRaw!];
+
+  for (const response of responses) {
+    await assertResponseMatchesOpenApi({
+      specPath: openApiSpecPath(),
+      path: this.route!,
+      method: this.method!,
+      status: this.responses ? response.status : this.status!,
+      body: response.body,
+      headers: toHeaderRecord(response.headers)
+    });
+  }
 });

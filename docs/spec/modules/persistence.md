@@ -61,6 +61,7 @@ Used for partial updates.
 
 - `undefined` → no operation (field unchanged)
 - `null` → explicit deletion (field removed)
+- `null` on a field that is already `null` or absent → no operation. `diffObjects` emits no `$unset` for it, so a patch with no effective change does not write or bump the aggregate `version` (e.g. an active plant's `deletedAt: null`)
 
 #### Constraints
 
@@ -110,21 +111,49 @@ Persistence MUST ONLY receive a **validated final state transition**.
 
 ### 4.3 Optimistic Concurrency Control (OCC)
 
-All aggregates persisted through `MongoCrudRepository` (Bed, Plant, Family) carry an integer `version` (starts at `0`) in their props, primitives and Mongo documents.
+All aggregates persisted through `MongoCrudRepository` (Bed, Plant, Family) carry an integer `version` (starts at `0`) in their props, primitives and Mongo documents. Entities apply the `0` default at construction, so the getter never has to.
 
-`updateWithDiff(current, updated, username)`:
+#### Client-supplied version
+
+The client states the version it is modifying; the server never assumes it.
+
+1. Every single-resource response (`GET`, `POST`, `PATCH` of one bed, plant or family) carries a strong `ETag: "<version>"`, always equal to the body's `version`. Lists, `204` and error responses carry no `ETag` (Express's automatic `ETag` is disabled). CORS exposes `ETag` to allowed origins.
+2. `PATCH /beds/{id}`, `PATCH /plants/{id}`, `PATCH /families/{idOrSlug}`, `DELETE /beds/{id}` and `DELETE /plants/{id}` require `If-Match: "<version>"`. The `requireIfMatch` middleware runs after `auth`/`isAdmin` and before any body or params validation:
+   - missing, empty or `*` → `428 Precondition Required`;
+   - anything other than exactly one strong tag with a non-negative integer (`W/"3"`, `"3", "4"`, `3`, `"-1"`, `"03"`, `"abc"`) → `400` with an `if-match` error key;
+   - otherwise the parsed value is stored for the controller, which passes it to the use case as `expectedVersion`.
+   - **`[TARGET STATE (Pending [Iteration 14](../../roadmap.md#iteration-14-migrate-beds-and-query-dsl-to-zod))]`** RFC 9110 list grammar (validation.md §3.1): the controller passes a possibly empty list `expectedVersions` and `ensureVersion` checks that the stored version is among them.
+3. The use case loads the aggregate, then calls `ensureVersion(entity.version, expectedVersion, …)` right after the existence check and **before** any business rule. A mismatch throws `DomainStaleVersionException` (HTTP `412`), even when the patch would change nothing.
+
+#### Conditional write
+
+`updateWithDiff(current, updated, username)` keeps the check atomic:
 
 1. Computes the diff; if there are no changes, it returns without writing (the version is not bumped).
-2. Updates with filter `{ _id, ...activeFilter(), version: current.version }` and `$inc: { version: 1 }`, alongside the diff's `$set` / `$unset`. When `current.version` is `0`, the filter also matches documents without a stored `version` field (mappers read a missing `version` as `0`), so legacy or imported documents are not permanently locked out.
-3. If no document matched:
-   - the aggregate still exists and is active → **`DomainConflictException`** (HTTP `409`): the caller read a stale version;
+   - **`[TARGET STATE (Pending [Iteration 8](../../roadmap.md#iteration-8-implement-in-memory-audit-metadata))]`** an empty diff still runs a read with the same `{ _id, $and: [activeFilter(), versionFilter] }` filter and reports stale (`412`) or missing (`404`) exactly like a failed write. This closes the window where another writer lands between `ensureVersion` and a no-op, which today returns `200` based on a stale read.
+2. Updates with filter `{ _id, $and: [activeFilter(), versionFilter] }` and `$inc: { version: 1 }`, alongside the diff's `$set` / `$unset`. `$and` keeps both conditions even if they use the same top-level operator. When `current.version` is `0`, `versionFilter` also matches documents without a stored `version` field (mappers read a missing `version` as `0`), so legacy or imported documents are not locked out.
+3. Only if no document matched, one `countDocuments({ _id, ...activeFilter() })` tells the two cases apart:
+   - the aggregate still exists and is active → **`DomainStaleVersionException`** (HTTP `412`): another writer got there first;
    - otherwise → **`DomainNotFoundException`** (HTTP `404`).
+
+A concurrent delete that lands between the failed update and the count yields `404` instead of `412`. This is accepted: the resource is indeed gone.
+
+On the success path the cost is one read plus one conditional write; the existence count only runs after a failed write.
+
+#### Outcome precedence
+
+`401/403 → 428 → 400 (If-Match) → 400 (body/params) → 404 → 412 → 409 → success`
+
+- `404` wins over `412`: absent, soft-deleted or foreign resources never reveal their version.
+- `412` wins over business-rule `409` (e.g. deleting a bed that has plants with an outdated version → `412`).
+- `409` is reserved for business rules (duplicates, bed with plants); it no longer means "stale version".
 
 Rules:
 
-- `version` MUST NOT be set by patches or API input; it is exposed read-only in responses.
+- `version` MUST NOT be set by patches or API input (request schemas reject it with `400`); it is exposed read-only in responses and in `ETag`.
 - `save()` is reserved for creation (upsert of the initial document at `version: 0`). It MUST NOT be used to update existing aggregates, since it bypasses the version check.
 - Restoring a soft-deleted aggregate cannot use `updateWithDiff` (it only matches active documents) and requires a dedicated method.
+- Internal writes without an HTTP precondition (e.g. `addPlantToBed`) keep the in-request check: they read, then write with the version they read, and a concurrent change surfaces as `DomainStaleVersionException`.
 
 ---
 

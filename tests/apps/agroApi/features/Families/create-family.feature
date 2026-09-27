@@ -20,6 +20,7 @@ Feature: Create Family
       }
       """
     Then the response status code should be 201
+    And the response should have ETag '"0"'
     And the response body should contain
       """
       {
@@ -60,6 +61,7 @@ Feature: Create Family
       }
       """
     Then the response status code should be 201
+    And the response should have ETag '"0"'
     And the response body should contain
       """
       {

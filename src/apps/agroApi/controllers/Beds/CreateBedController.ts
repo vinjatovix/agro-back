@@ -2,6 +2,7 @@ import { type NextFunction, type Request, type Response } from 'express';
 
 import type { CreateBed } from '../../../../Contexts/Agro/Beds/application/useCases/CreateBed.js';
 import { HttpController } from '../../shared/HttpController.js';
+import { setVersionETag } from '../../shared/setVersionETag.js';
 import httpStatus from 'http-status';
 import type { CreateBedDto } from '../../../../Contexts/Agro/Beds/application/useCases/interfaces/CreateBedDto.js';
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
@@ -30,6 +31,7 @@ export class CreateBedController extends HttpController {
 
       const response = bedDomainMapper.toPrimitives(bed);
 
+      setVersionETag(res, response.version);
       res.status(httpStatus.CREATED).json(response);
     } catch (error) {
       next(error);

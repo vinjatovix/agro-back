@@ -1,6 +1,8 @@
 import { type NextFunction, type Request, type Response } from 'express';
 
 import { HttpController } from '../../shared/HttpController.js';
+import { getExpectedVersion } from '../../middlewares/requireIfMatch.js';
+import { setVersionETag } from '../../shared/setVersionETag.js';
 import type { UpdatePlant } from '../../../../Contexts/Agro/Plants/application/useCases/UpdatePlant.js';
 import type { UpdatePlantDto } from '../../../../Contexts/Agro/Plants/application/useCases/interfaces/UpdatePlantDto.js';
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
@@ -30,10 +32,12 @@ export class UpdatePlantController extends HttpController {
 
       const result = await this.updatePlant.execute(
         { ...dto, id },
-        user.username
+        user.username,
+        getExpectedVersion(res)
       );
       const mappedResult = plantDomainMapper.toPrimitives(result);
 
+      setVersionETag(res, mappedResult.version);
       res.status(this.status()).json(mappedResult);
     } catch (error) {
       next(error);

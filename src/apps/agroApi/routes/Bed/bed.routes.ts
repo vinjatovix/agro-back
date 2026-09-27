@@ -2,6 +2,7 @@ import type { Router } from 'express';
 import type { RegisterRoutes } from '../route.types.js';
 import { API_PREFIXES } from '../shared/apiPrefixes.js';
 import { auth } from '../../middlewares/auth.js';
+import { requireIfMatch } from '../../middlewares/requireIfMatch.js';
 import { validateBody } from '../../middlewares/validateBody.js';
 import {
   createBedReqSchema,
@@ -37,6 +38,7 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
   router.patch(
     `${prefix}/:id`,
     auth,
+    requireIfMatch,
     validateBody,
     updateBedReqSchema,
     validateReqSchema,
@@ -46,6 +48,7 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
   router.delete(
     `${prefix}/:id`,
     auth,
+    requireIfMatch,
     deleteBedReqSchema,
     validateReqSchema,
     bedApiInvoker('deleteBed')

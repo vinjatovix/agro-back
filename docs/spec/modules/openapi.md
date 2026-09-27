@@ -100,7 +100,19 @@ Future:
 
 ---
 
-### 5.3 Tooling
+### 5.3 Version preconditions
+
+- `components.headers.ETag`: strong tag `"<version>"`, declared (required) on the success responses of single-resource `GET`, `POST` and `PATCH` for beds, plants and families.
+- `components.parameters.IfMatch`: required header on `PATCH /beds/{id}`, `PATCH /plants/{id}`, `PATCH /families/{idOrSlug}`, `DELETE /beds/{id}` and `DELETE /plants/{id}`; same pattern as `ETag`.
+  - **`[TARGET STATE (Pending [Iteration 14](../../roadmap.md#iteration-14-migrate-beds-and-query-dsl-to-zod))]`** the single-tag pattern is dropped and the description documents the RFC 9110 entity-tag list grammar (validation.md §3.1).
+- `components.responses.PreconditionFailedError` (`412`) and `PreconditionRequiredError` (`428`) on those writes; `NotModified` (`304`) on single-resource `GET`s (accepted framework behavior).
+- `ConflictError` (`409`) documents business-rule conflicts only.
+- **`[TARGET STATE (Pending [Iteration 67](../../roadmap.md#iteration-67-implement-transactional-batch-save-layout-endpoint))]`** `PUT /api/v1/beds/:id/layout` MUST declare `IfMatch`, `412`, `428` and the `ETag` response header.
+- The acceptance contract step validates response headers as well as bodies, so a missing or malformed `ETag` fails the scenario.
+
+---
+
+### 5.4 Tooling
 
 Current:
 
