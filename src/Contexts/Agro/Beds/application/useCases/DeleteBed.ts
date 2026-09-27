@@ -1,4 +1,5 @@
 import type { UserSessionInfo } from '../../../../Auth/application/index.js';
+import { ensureFound } from '../../../../shared/application/utils/ensureFound.js';
 import {
   DomainConflictException,
   DomainForbiddenException
@@ -9,7 +10,7 @@ export class DeleteBed {
   constructor(private readonly bedRepository: BedRepository) {}
 
   async execute(id: string, user: UserSessionInfo): Promise<void> {
-    const bed = await this.bedRepository.findById(id);
+    const bed = ensureFound(await this.bedRepository.findById(id), 'Bed', id);
 
     if (bed.userId !== user.id) {
       throw new DomainForbiddenException(

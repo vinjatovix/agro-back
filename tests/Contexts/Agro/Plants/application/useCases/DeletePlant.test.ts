@@ -1,4 +1,6 @@
 import { DeletePlant } from '../../../../../../src/Contexts/Agro/Plants/application/useCases/DeletePlant.js';
+import { DomainNotFoundException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
+import { random } from '../../../../shared/fixtures/random.js';
 import { PlantRepositoryMock } from '../../__mocks__/PlantRepositoryMock.js';
 import { PlantFactory } from '../../domain/mothers/PlantFactory.js';
 
@@ -32,7 +34,12 @@ describe('DeletePlant use case', () => {
     repository.assertSaveNotCalled();
   });
 
-  it('should throw if plant does not exist', async () => {
-    await expect(useCase.execute('non-existent-id')).rejects.toThrow();
+  it('should throw not found and not write if plant does not exist', async () => {
+    await expect(useCase.execute(random.uuid())).rejects.toBeInstanceOf(
+      DomainNotFoundException
+    );
+
+    repository.assertSaveNotCalled();
+    repository.assertUpdateNotCalled();
   });
 });

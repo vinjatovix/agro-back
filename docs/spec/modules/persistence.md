@@ -186,15 +186,15 @@ Responsibilities:
 
 ### 5.5 REPOSITORY RETRIEVAL SEMANTICS
 
-#### 5.5.1 Retrieval Contract Principle `[TARGET STATE (Pending [Iteration 5](../../roadmap.md#iteration-5-refactor-repositories-to-return-null))]`
+#### 5.5.1 Retrieval Contract Principle (Completed — Iteration 5)
 
-Repositories MAY return `null` or `undefined` when an entity does not exist in persistence.
+Repositories return `null` or `undefined` when an entity does not exist in persistence.
 
 Repositories MUST NOT interpret absence as a domain error.
 
 Repositories MUST NOT throw domain-level exceptions (e.g. notFound, forbidden).
 
-_Migration Note: In the current codebase, `MongoCrudRepository` (along with concrete implementations like `MongoFamilyRepository`) throws `DomainNotFoundException` directly when an entity is not found by ID or slug in `findById`. Refactoring repositories to return null and shifting exception-throwing logic entirely to application use cases is a target state slated for Iterations 5 & 6._
+_Implementation Note: `MongoCrudRepository` (along with concrete implementations like `MongoFamilyRepository`, `MongoBedRepository`, and `MongoPlantRepository`) now returns `Nullable<Entity>` from `findById`. Exception-throwing logic has been shifted entirely to application use cases via the `ensureFound` utility (Iteration 5 & 6 in progress)._
 
 ---
 
@@ -204,6 +204,38 @@ _Migration Note: In the current codebase, `MongoCrudRepository` (along with conc
 | ----------- | --------------------------------------------------------- |
 | Repository  | Data access only (no semantic interpretation)             |
 | Application | Truth enforcement (notFound, forbidden, validation rules) |
+
+#### 5.5.2.1 Centralized Existence Validation Utility
+
+To avoid repetitive null-check boilerplate across all use cases, the `ensureFound<T>(value, entityName, key, keyName?)` utility function (located in `src/Contexts/shared/application/utils/ensureFound.ts`) provides a centralized, type-safe mechanism for validating that repository results are not null.
+
+**Contract:**
+
+```ts
+function ensureFound<T>(
+  value: Nullable<T>,
+  entityName: string,
+  key: string,
+  keyName?: string
+): T;
+```
+
+**Behavior:**
+
+- If `value` is not `null`, returns it immediately.
+- If `value` is `null`, throws `DomainNotFoundException` with a formatted message.
+- Optional `keyName` parameter (e.g. `'slug'`, `'id'`) enriches error messages for debugging.
+
+**Usage in Use Cases:**
+
+All application use cases that fetch entities via repositories MUST invoke `ensureFound` to validate the fetch result before proceeding:
+
+```ts
+const bed = await bedRepository.findById(bedId);
+const validatedBed = ensureFound(bed, 'Bed', bedId, 'id');
+```
+
+This ensures a consistent, semantic error contract across the entire application layer.
 
 ---
 

@@ -1,4 +1,4 @@
-import type { MongoClient } from 'mongodb';
+import { Collection, type MongoClient } from 'mongodb';
 import {
   type AppContainer,
   createAppContainer
@@ -38,6 +38,10 @@ describe('MongoFamilyRepository', () => {
     await (await environmentArranger).arrange();
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   afterAll(async () => {
     await (await environmentArranger).arrange();
     await (await environmentArranger).close();
@@ -52,19 +56,21 @@ describe('MongoFamilyRepository', () => {
 
       const found = await repository.findById(family.idValue);
 
-      expect(found.idValue).toBe(family.idValue);
-      expect(found.name).toBe(family.name);
-      expect(found.slug).toBe(family.slug);
-      expect(found.scientificName).toBe(family.scientificName);
-      expect(found.shortDescription).toBe(family.shortDescription);
-      expect(found.highlights).toEqual(family.highlights);
-      expect(found.aliases).toEqual(family.aliases);
+      expect(found).not.toBeNull();
+      expect(found && familyDomainMapper.toPrimitives(found)).toEqual(
+        familyDomainMapper.toPrimitives(family)
+      );
     });
 
-    it('should throw not found error if family does not exist', async () => {
-      await expect(repository.findById('non-existing-id')).rejects.toThrow(
-        'Family not found: non-existing-id'
-      );
+    it('should return null if family does not exist', async () => {
+      await expect(repository.findById(randomFamilyId())).resolves.toBeNull();
+    });
+
+    it('should reject with the driver error instead of returning null', async () => {
+      const error = new Error('driver failure');
+      jest.spyOn(Collection.prototype, 'findOne').mockRejectedValueOnce(error);
+
+      await expect(repository.findById(randomFamilyId())).rejects.toBe(error);
     });
 
     it('should return the correct family among multiple entries', async () => {
@@ -78,16 +84,35 @@ describe('MongoFamilyRepository', () => {
       const found1 = await repository.findById(family1.idValue);
       const found2 = await repository.findById(family2.idValue);
 
-      expect(found1.idValue).toBe(family1.idValue);
-      expect(found2.idValue).toBe(family2.idValue);
+      expect(found1?.idValue).toBe(family1.idValue);
+      expect(found2?.idValue).toBe(family2.idValue);
     });
   });
 
   describe('findBySlug', () => {
-    it('should throw not found error if family does not exist', async () => {
-      await expect(repository.findBySlug('non-existing-slug')).rejects.toThrow(
-        'Family not found with slug: non-existing-slug'
+    it('should return null if family does not exist', async () => {
+      await expect(
+        repository.findBySlug('non-existing-slug')
+      ).resolves.toBeNull();
+    });
+
+    it('should return the family when the slug exists', async () => {
+      const family = FamilyScenarios.domainRandom();
+      await repository.save(family);
+
+      const found = await repository.findBySlug(family.slug);
+
+      expect(found).not.toBeNull();
+      expect(found && familyDomainMapper.toPrimitives(found)).toEqual(
+        familyDomainMapper.toPrimitives(family)
       );
+    });
+
+    it('should reject with the driver error instead of returning null', async () => {
+      const error = new Error('driver failure');
+      jest.spyOn(Collection.prototype, 'findOne').mockRejectedValueOnce(error);
+
+      await expect(repository.findBySlug('any-slug')).rejects.toBe(error);
     });
 
     it('should return the correct family among multiple entries', async () => {
@@ -101,8 +126,8 @@ describe('MongoFamilyRepository', () => {
       const found1 = await repository.findBySlug(family1.slug);
       const found2 = await repository.findBySlug(family2.slug);
 
-      expect(found1.idValue).toBe(family1.idValue);
-      expect(found2.idValue).toBe(family2.idValue);
+      expect(found1?.idValue).toBe(family1.idValue);
+      expect(found2?.idValue).toBe(family2.idValue);
     });
   });
 
@@ -128,12 +153,12 @@ describe('MongoFamilyRepository', () => {
 
       const updated = await repository.findById(family.idValue);
 
-      expect(updated.name).toBe(updateDto.name);
-      expect(updated.slug).toBe(updateDto.slug);
-      expect(updated.scientificName).toBe(updateDto.scientificName);
-      expect(updated.shortDescription).toBe(updateDto.shortDescription);
-      expect(updated.highlights).toEqual(updateDto.highlights);
-      expect(updated.aliases).toEqual(updateDto.aliases);
+      expect(updated?.name).toBe(updateDto.name);
+      expect(updated?.slug).toBe(updateDto.slug);
+      expect(updated?.scientificName).toBe(updateDto.scientificName);
+      expect(updated?.shortDescription).toBe(updateDto.shortDescription);
+      expect(updated?.highlights).toEqual(updateDto.highlights);
+      expect(updated?.aliases).toEqual(updateDto.aliases);
     });
 
     it('should update metadata on every update', async () => {
@@ -150,12 +175,12 @@ describe('MongoFamilyRepository', () => {
 
       const updated = await repository.findById(family.idValue);
 
-      expect(updated.metadata.createdAt.getTime()).toBe(
+      expect(updated?.metadata.createdAt.getTime()).toBe(
         family.metadata.createdAt.getTime()
       );
-      expect(updated.metadata.createdBy).toBe(family.metadata.createdBy);
-      expect(updated.metadata.updatedBy).toBe(user);
-      expect(updated.metadata.updatedAt.getTime()).toBeGreaterThan(
+      expect(updated?.metadata.createdBy).toBe(family.metadata.createdBy);
+      expect(updated?.metadata.updatedBy).toBe(user);
+      expect(updated?.metadata.updatedAt.getTime()).toBeGreaterThan(
         family.metadata.updatedAt.getTime()
       );
     });

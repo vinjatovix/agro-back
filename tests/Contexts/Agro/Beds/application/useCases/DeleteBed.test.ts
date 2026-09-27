@@ -1,5 +1,6 @@
 import { DeleteBed } from '../../../../../../src/Contexts/Agro/Beds/application/useCases/DeleteBed.js';
 import type { UserSessionInfo } from '../../../../../../src/Contexts/Auth/application/index.js';
+import { DomainNotFoundException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { random } from '../../../../shared/fixtures/random.js';
 import { BedRepositoryMock } from '../../__mocks__/BedRepositoryMock.js';
 import { BedFactory } from '../../domain/mothers/BedFactory.js';
@@ -43,9 +44,20 @@ describe('DeleteBed', () => {
   it('should throw if bed does not exist', async () => {
     const nonExistentId = random.uuid();
 
-    await expect(useCase.execute(nonExistentId, USER)).rejects.toThrow(
-      `Bed not found: ${nonExistentId}`
+    await expect(useCase.execute(nonExistentId, USER)).rejects.toBeInstanceOf(
+      DomainNotFoundException
     );
+    repository.assertSaveNotCalled();
+    repository.assertUpdateNotCalled();
+  });
+
+  it('should report the missing bed id in the not found message', async () => {
+    const nonExistentId = random.uuid();
+    const expectedMessage = `Bed not found: ${nonExistentId}`;
+
+    await expect(useCase.execute(nonExistentId, USER)).rejects.toMatchObject({
+      message: expectedMessage
+    });
   });
 
   it('should throw if user is not the creator of the bed', async () => {
