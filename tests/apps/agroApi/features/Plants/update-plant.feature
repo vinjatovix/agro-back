@@ -7,6 +7,7 @@ Feature: Update a plant
   Scenario: Update a plant with a partial field
     Given a family exists
     And a plant exists
+    And I use If-Match '"0"'
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
@@ -34,6 +35,7 @@ Feature: Update a plant
   Scenario: Update nested range field
     Given a family exists
     And a plant exists
+    And I use If-Match '"0"'
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
@@ -61,6 +63,7 @@ Feature: Update a plant
     And response matches OpenAPI contract
 
   Scenario: Fail to update with invalid UUID
+    Given I use If-Match '"0"'
     When I send a PATCH admin request to "/api/v1/plants/invalid-uuid" with body
       """
       {
@@ -77,6 +80,7 @@ Feature: Update a plant
   Scenario: Fail to update with unknown field
     Given a family exists
     And a plant exists
+    And I use If-Match '"0"'
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
@@ -88,6 +92,7 @@ Feature: Update a plant
     And response matches OpenAPI contract
 
   Scenario: Fail to update a non-existing plant
+    Given I use If-Match '"0"'
     When I send a PATCH admin request to "/api/v1/plants/0ccd23ae-4ac5-4dbe-84b1-fc0e8dac26e3" with body
       """
       {
@@ -105,6 +110,7 @@ Feature: Update a plant
   Scenario: Fail to update a soft-deleted plant
     Given a family exists
     And a soft-deleted plant exists
+    And I use If-Match '"0"'
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
@@ -129,6 +135,7 @@ Feature: Update a plant
   Scenario: Fail to update with invalid range values
     Given a family exists
     Given a plant exists
+    And I use If-Match '"0"'
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
@@ -155,6 +162,7 @@ Feature: Update a plant
   Scenario: Fail to update with invalid months
     Given a family exists
     Given a plant exists
+    And I use If-Match '"0"'
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
@@ -181,6 +189,7 @@ Feature: Update a plant
   Scenario: Fail to update a plant without authentication
     Given a family exists
     Given a plant exists
+    And I use If-Match '"0"'
     When I send a PATCH request to "/api/v1/plants/<plantId>" with body
       """
       {
@@ -198,6 +207,7 @@ Feature: Update a plant
   Scenario: Fail to update a plant with invalid role
     Given a family exists
     Given a plant exists
+    And I use If-Match '"0"'
     When I send a PATCH user request to "/api/v1/plants/<plantId>" with body
       """
       {
@@ -215,6 +225,7 @@ Feature: Update a plant
   Scenario: Fail to update with empty body
     Given a family exists
     Given a plant exists
+    And I use If-Match '"0"'
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {}
@@ -225,6 +236,7 @@ Feature: Update a plant
   Scenario: Fail to update with an unexistent family
     Given a family exists
     And a plant exists
+    And I use If-Match '"0"'
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
@@ -233,4 +245,245 @@ Feature: Update a plant
       }
       """
     Then the response status code should be 400
+    And response matches OpenAPI contract
+
+  Scenario: A successful update returns the new version as ETag
+    Given a family exists
+    And a plant exists
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "id": "<plantId>",
+        "identity": {
+          "name": {
+            "primary": "Versioned plant"
+          }
+        }
+      }
+      """
+    Then the response status code should be 200
+    And the response body should contain
+      """
+      {
+        "version": 1
+      }
+      """
+    And the response should have ETag '"1"'
+    And the response ETag should match the body version
+    And response matches OpenAPI contract
+
+  Scenario: Update a plant that is already at a later version
+    Given a family exists
+    And a plant exists
+    And the plant is stored at version 2
+    And I use If-Match '"2"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "id": "<plantId>",
+        "identity": {
+          "name": {
+            "primary": "Round-tripped plant"
+          }
+        }
+      }
+      """
+    Then the response status code should be 200
+    And the response should have ETag '"3"'
+    And response matches OpenAPI contract
+
+  Scenario: Update with an outdated version is rejected
+    Given a family exists
+    And a plant exists
+    And the plant is stored at version 1
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "id": "<plantId>",
+        "identity": {
+          "name": {
+            "primary": "Lost update"
+          }
+        }
+      }
+      """
+    Then the response status code should be 412
+    And the response should not have an ETag
+    And the plant should be unchanged
+    And a GET user request to "/api/v1/plants/<plantId>" should return a body containing
+      """
+      {
+        "id": "<plantId>",
+        "identity": {
+          "name": {
+            "primary": "Test plant"
+          }
+        },
+        "version": 1
+      }
+      """
+    And response matches OpenAPI contract
+
+  Scenario: A no-op update with an outdated version is rejected
+    Given a family exists
+    And a plant exists
+    And the plant is stored at version 1
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "id": "<plantId>",
+        "identity": {
+          "name": {
+            "primary": "Test plant"
+          }
+        }
+      }
+      """
+    Then the response status code should be 412
+    And the plant should be unchanged
+    And response matches OpenAPI contract
+
+  Scenario: A non existing plant returns 404 whatever the version
+    Given I use If-Match '"999"'
+    When I send a PATCH admin request to "/api/v1/plants/0ccd23ae-4ac5-4dbe-84b1-fc0e8dac26e3" with body
+      """
+      {
+        "id": "0ccd23ae-4ac5-4dbe-84b1-fc0e8dac26e3",
+        "identity": {
+          "name": {
+            "primary": "Ghost"
+          }
+        }
+      }
+      """
+    Then the response status code should be 404
+    And response matches OpenAPI contract
+
+  Scenario: A soft-deleted plant returns 404 whatever the version
+    Given a family exists
+    And a soft-deleted plant exists
+    And I use If-Match '"999"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "id": "<plantId>",
+        "identity": {
+          "name": {
+            "primary": "Ghost"
+          }
+        }
+      }
+      """
+    Then the response status code should be 404
+    And the plant should be unchanged
+    And response matches OpenAPI contract
+
+  Scenario: The version cannot be set through the body
+    Given a family exists
+    And a plant exists
+    And I record the current plant
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "id": "<plantId>",
+        "version": 99
+      }
+      """
+    Then the response status code should be 400
+    And the plant should be unchanged
+    And response matches OpenAPI contract
+
+  Scenario: Concurrent updates with the same version have a single winner
+    Given a family exists
+    And a plant exists
+    And I use If-Match '"0"'
+    When I send 5 concurrent PATCH admin requests to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "id": "<plantId>",
+        "identity": {
+          "name": {
+            "primary": "Concurrent plant"
+          }
+        }
+      }
+      """
+    Then exactly 1 response should have status 200 and the rest 412
+    And response matches OpenAPI contract
+
+  Scenario: Update without If-Match is rejected
+    Given a family exists
+    And a plant exists
+    And I record the current plant
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "id": "<plantId>",
+        "identity": {
+          "name": {
+            "primary": "No precondition"
+          }
+        }
+      }
+      """
+    Then the response status code should be 428
+    And the plant should be unchanged
+    And response matches OpenAPI contract
+
+  Scenario: Update with a wildcard If-Match is rejected
+    Given a family exists
+    And a plant exists
+    And I use If-Match '*'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "id": "<plantId>",
+        "identity": {
+          "name": {
+            "primary": "Wildcard"
+          }
+        }
+      }
+      """
+    Then the response status code should be 428
+    And response matches OpenAPI contract
+
+  Scenario: Update with a negative If-Match is rejected
+    Given a family exists
+    And a plant exists
+    And I use If-Match '"-1"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "id": "<plantId>",
+        "identity": {
+          "name": {
+            "primary": "Negative"
+          }
+        }
+      }
+      """
+    Then the response status code should be 400
+    And the response errors should include "if-match"
+    And response matches OpenAPI contract
+
+  Scenario: The role check runs before the If-Match check
+    Given a family exists
+    And a plant exists
+    When I send a PATCH user request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "id": "<plantId>",
+        "identity": {
+          "name": {
+            "primary": "Forbidden"
+          }
+        }
+      }
+      """
+    Then the response status code should be 403
     And response matches OpenAPI contract

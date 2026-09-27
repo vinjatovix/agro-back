@@ -2,6 +2,7 @@ import { type NextFunction, type Request, type Response } from 'express';
 
 import type { CreateFamily } from '../../../../Contexts/Agro/Families/application/useCases/CreateFamily.js';
 import { HttpController } from '../../shared/HttpController.js';
+import { setVersionETag } from '../../shared/setVersionETag.js';
 import type { CreateFamilyDto } from '../../../../Contexts/Agro/Families/application/useCases/interfaces/CreateFamilyDto.js';
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
 import { familyDomainMapper } from '../../../../Contexts/Agro/Families/mappers/familyDomainMapper.js';
@@ -26,6 +27,7 @@ export class CreateFamilyController extends HttpController {
       const family = await this.createFamily.execute(dto, user.username);
       const result = familyDomainMapper.toPrimitives(family);
 
+      setVersionETag(res, result.version);
       res.status(httpStatus.CREATED).json(result);
     } catch (error) {
       next(error);

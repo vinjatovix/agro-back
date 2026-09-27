@@ -8,6 +8,7 @@ Feature: GetBed
         Given a bed exists
         When I get the bed
         Then the response status code should be 200
+        And the response ETag should match the body version
         And the response body should contain
             """
             {
@@ -62,4 +63,18 @@ Feature: GetBed
                 "message": "Invalid token"
             }
             """
+        And response matches OpenAPI contract
+
+    Scenario: A matching If-None-Match returns 304 without a body
+        Given a bed exists
+        And I use If-None-Match '"0"'
+        When I send a GET user request to "/api/v1/beds/<bedId>"
+        Then the response status code should be 304
+        And the response body should be empty
+        And response matches OpenAPI contract
+
+    Scenario: A missing bed returns no ETag
+        When I send a GET user request to "/api/v1/beds/12384ea3-e55d-4f69-8b0c-b54cccb9f443"
+        Then the response status code should be 404
+        And the response should not have an ETag
         And response matches OpenAPI contract

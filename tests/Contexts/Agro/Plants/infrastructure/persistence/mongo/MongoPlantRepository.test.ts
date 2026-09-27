@@ -1,4 +1,4 @@
-import type { MongoClient } from 'mongodb';
+import { Collection, type MongoClient } from 'mongodb';
 import {
   type AppContainer,
   createAppContainer
@@ -7,8 +7,8 @@ import type { Plant } from '../../../../../../../src/Contexts/Agro/Plants/domain
 import type { PlantPrimitives } from '../../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantPrimitives.js';
 import type { PlantRepository } from '../../../../../../../src/Contexts/Agro/Plants/domain/repositories/interfaces/PlantRepository.js';
 import {
-  DomainConflictException,
-  DomainNotFoundException
+  DomainNotFoundException,
+  DomainStaleVersionException
 } from '../../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { plantDomainMapper } from '../../../../../../../src/Contexts/Agro/Plants/mappers/plantDomainMapper.js';
 import { ensureFound } from '../../../../../../../src/Contexts/shared/application/utils/ensureFound.js';
@@ -153,7 +153,7 @@ describe('MongoPlantRepository', () => {
       expect(result.identity.name.primary).toBe('New name');
     });
 
-    it('should throw DomainConflictException when updating from a stale version', async () => {
+    it('should throw DomainStaleVersionException when updating from a stale version', async () => {
       const plant = PlantFactory.random();
       const stale = plantDomainMapper.toPrimitives(plant);
       await repository.save(plant);
@@ -170,11 +170,93 @@ describe('MongoPlantRepository', () => {
 
       await expect(
         repository.updateWithDiff(stale, renamed('Second writer'), 'user-1')
-      ).rejects.toThrow(DomainConflictException);
+      ).rejects.toThrow(DomainStaleVersionException);
 
       const result = await findExisting(plant.id);
       expect(result.identity.name.primary).toBe('First writer');
       expect(result.version).toBe(stale.version + 1);
+    });
+
+    it('should match a plant stored without a version field as version 0', async () => {
+      const plant = PlantFactory.random();
+      await repository.save(plant);
+      await client
+        .db()
+        .collection('plants')
+        .updateMany({}, { $unset: { version: '' } });
+
+      const current = plantDomainMapper.toPrimitives(
+        await findExisting(plant.id)
+      );
+      await repository.updateWithDiff(
+        current,
+        {
+          ...current,
+          identity: {
+            ...current.identity,
+            name: { ...current.identity.name, primary: 'Legacy rename' }
+          }
+        },
+        'user-1'
+      );
+
+      const result = await findExisting(plant.id);
+      expect(current.version).toBe(0);
+      expect(result.identity.name.primary).toBe('Legacy rename');
+      expect(result.version).toBe(1);
+    });
+
+    it('should not count documents after a successful conditional write', async () => {
+      const plant = PlantFactory.random();
+      await repository.save(plant);
+      const current = plantDomainMapper.toPrimitives(plant);
+      const countSpy = jest.spyOn(Collection.prototype, 'countDocuments');
+
+      try {
+        await repository.updateWithDiff(
+          current,
+          {
+            ...current,
+            identity: {
+              ...current.identity,
+              name: { ...current.identity.name, primary: 'Renamed' }
+            }
+          },
+          'user-1'
+        );
+
+        expect(countSpy).not.toHaveBeenCalled();
+      } finally {
+        countSpy.mockRestore();
+      }
+    });
+
+    it('should count documents exactly once after a failed conditional write', async () => {
+      const plant = PlantFactory.random();
+      await repository.save(plant);
+      const current = plantDomainMapper.toPrimitives(plant);
+      const countSpy = jest.spyOn(Collection.prototype, 'countDocuments');
+
+      try {
+        await expect(
+          repository.updateWithDiff(
+            { ...current, version: current.version + 3 },
+            {
+              ...current,
+              version: current.version + 3,
+              identity: {
+                ...current.identity,
+                name: { ...current.identity.name, primary: 'Renamed' }
+              }
+            },
+            'user-1'
+          )
+        ).rejects.toThrow(DomainStaleVersionException);
+
+        expect(countSpy).toHaveBeenCalledTimes(1);
+      } finally {
+        countSpy.mockRestore();
+      }
     });
 
     it('should allow clearing scientificName when set to null', async () => {

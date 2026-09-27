@@ -246,6 +246,9 @@ paths:
       responses:
         '201':
           description: Family created
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
           content:
             application/json:
               schema:
@@ -276,10 +279,15 @@ paths:
       responses:
         '200':
           description: OK
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Family'
+        '304':
+          $ref: '#/components/responses/NotModified'
         '400':
           $ref: '#/components/responses/ValidationError'
         '404':
@@ -295,6 +303,7 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/IfMatch'
       requestBody:
         required: true
         content:
@@ -304,6 +313,9 @@ paths:
       responses:
         '200':
           description: Updated
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
           content:
             application/json:
               schema:
@@ -318,6 +330,10 @@ paths:
           $ref: '#/components/responses/NotFoundError'
         '409':
           $ref: '#/components/responses/ConflictError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailedError'
+        '428':
+          $ref: '#/components/responses/PreconditionRequiredError'
 
   /api/v1/plants:
     get:
@@ -381,6 +397,9 @@ paths:
       responses:
         '201':
           description: Plant created
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
           content:
             application/json:
               schema:
@@ -407,10 +426,15 @@ paths:
       responses:
         '200':
           description: OK
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Plant'
+        '304':
+          $ref: '#/components/responses/NotModified'
         '400':
           $ref: '#/components/responses/ValidationError'
         '404':
@@ -427,6 +451,7 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/IfMatch'
       requestBody:
         required: true
         content:
@@ -436,6 +461,9 @@ paths:
       responses:
         '200':
           description: Updated
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
           content:
             application/json:
               schema:
@@ -450,6 +478,10 @@ paths:
           $ref: '#/components/responses/NotFoundError'
         '409':
           $ref: '#/components/responses/ConflictError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailedError'
+        '428':
+          $ref: '#/components/responses/PreconditionRequiredError'
 
     delete:
       tags: [Plants]
@@ -462,6 +494,7 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/IfMatch'
       responses:
         '204':
           description: No content
@@ -475,6 +508,10 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '409':
           $ref: '#/components/responses/ConflictError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailedError'
+        '428':
+          $ref: '#/components/responses/PreconditionRequiredError'
 
   /api/v1/beds:
     get:
@@ -508,6 +545,9 @@ paths:
       responses:
         '201':
           description: Bed created
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
           content:
             application/json:
               schema:
@@ -534,10 +574,15 @@ paths:
       responses:
         '200':
           description: Bed
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Bed'
+        '304':
+          $ref: '#/components/responses/NotModified'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '404':
@@ -554,6 +599,7 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/IfMatch'
       requestBody:
         required: true
         content:
@@ -563,6 +609,9 @@ paths:
       responses:
         '200':
           description: Updated bed
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
           content:
             application/json:
               schema:
@@ -575,6 +624,10 @@ paths:
           $ref: '#/components/responses/NotFoundError'
         '409':
           $ref: '#/components/responses/ConflictError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailedError'
+        '428':
+          $ref: '#/components/responses/PreconditionRequiredError'
 
     delete:
       tags: [Beds]
@@ -587,6 +640,7 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/IfMatch'
       responses:
         '204':
           description: No content
@@ -598,8 +652,37 @@ paths:
           $ref: '#/components/responses/NotFoundError'
         '409':
           $ref: '#/components/responses/ConflictError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailedError'
+        '428':
+          $ref: '#/components/responses/PreconditionRequiredError'
 
 components:
+  headers:
+    ETag:
+      description: >
+        Strong entity tag holding the resource's current `version` as a quoted
+        decimal integer. Always equal to the `version` field of the body.
+      required: true
+      schema:
+        type: string
+        pattern: '^"(0|[1-9][0-9]*)"$'
+        example: '"4"'
+
+  parameters:
+    IfMatch:
+      name: If-Match
+      in: header
+      required: true
+      description: >
+        Version the client is modifying, as returned in `ETag`. Exactly one
+        strong tag. Missing or `*` → 428; malformed (weak, list, non-integer,
+        negative) → 400; outdated → 412.
+      schema:
+        type: string
+        pattern: '^"(0|[1-9][0-9]*)"$'
+        example: '"3"'
+
   securitySchemes:
     bearerAuth:
       type: http
@@ -1362,7 +1445,9 @@ components:
                 type: string
 
     ConflictError:
-      description: Conflict
+      description: >-
+        Conflict with a business rule (e.g. duplicate resource, bed that still
+        has plants). Outdated versions are reported as 412, not 409.
       content:
         application/json:
           schema:
@@ -1397,3 +1482,30 @@ components:
             properties:
               message:
                 type: string
+
+    PreconditionFailedError:
+      description: The stated version is not the current one. Reload with GET and retry.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [message]
+            properties:
+              message:
+                type: string
+
+    PreconditionRequiredError:
+      description: The `If-Match` header is required (missing or `*`).
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [message]
+            properties:
+              message:
+                type: string
+
+    NotModified:
+      description: >-
+        The request's `If-None-Match` matches the current `ETag`; no body.
+        Framework behavior accepted by the contract (no caching semantics).

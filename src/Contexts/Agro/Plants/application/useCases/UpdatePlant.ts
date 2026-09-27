@@ -1,5 +1,6 @@
 import { applyPatch } from '../../../../../shared/domain/patch/applyPatch.js';
 import { ensureFound } from '../../../../shared/application/utils/ensureFound.js';
+import { ensureVersion } from '../../../../shared/application/utils/ensureVersion.js';
 import { InvalidArgumentException } from '../../../../shared/domain/errors/index.js';
 import type { FamilyRepository } from '../../../Families/domain/repositories/interfaces/FamilyRepository.js';
 import type { Plant } from '../../domain/entities/Plant.js';
@@ -16,8 +17,13 @@ export class UpdatePlant {
     private readonly familyRepository: FamilyRepository
   ) {}
 
-  async execute(input: UpdatePlantInput, user: string): Promise<Plant> {
+  async execute(
+    input: UpdatePlantInput,
+    user: string,
+    expectedVersion: number
+  ): Promise<Plant> {
     const plant = await this.findActivePlant(input.id);
+    ensureVersion(plant.version, expectedVersion, 'Plant', input.id);
 
     if (input.identity?.family) {
       const familyExists = await this.familyRepository.exists(

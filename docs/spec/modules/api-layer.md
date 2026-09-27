@@ -152,6 +152,8 @@ In addition to traditional CRUD actions, the Beds API supports interactive spati
 #### 5.3.2 Consolidated Batch Save (Transactional) `[TARGET STATE (Pending [Iteration 67](../../roadmap.md#iteration-67-implement-transactional-batch-save-layout-endpoint))]`
 
 - **Endpoint:** `PUT /api/v1/beds/:id/layout`
+- **Precondition:** requires `If-Match: "<bed version>"` (see §7.1). Missing or `*` → `428`, malformed → `400`, outdated → `412`, checked before any layout or stock validation. The response carries the new `ETag`. The dry-run `POST …/layout/validate` writes nothing and needs no `If-Match`.
+- **Open question (decide when specifying this endpoint):** should `412` carry the current version as `ETag`? Today `412` returns only the standard error body and the client reloads with `GET`. A version header would only help if the layout editor wants to tell the user "someone saved in the meantime" before reloading; it does not replace the reload, because the client still needs the other user's changes.
 - **Behavior:** Clears previous active plant instances for this Bed and batch-persists the new layout coordinates in a single database transaction.
 - **Database Action:** Transactional update. Pre-calculates and persists the resulting `ecologicalReport` on the `Bed` document and the calculated `warnings` on each `PlantInstance` document, optimizing all subsequent read operations.
 - **Events:** Dispatches a unified `BedLayoutSaved` event to Kafka post-commit for asynchronous care schedule recalculations.
@@ -240,7 +242,19 @@ Refer strictly to **Module: Validation (validation.md) Section 4 and 5** for the
 - 401 → unauthenticated
 - 403 → forbidden (role mismatch)
 - 404 → resource not found
-- 409 → conflict: duplicate resource, domain invariant violation (e.g. deleting a bed that still has plants), or stale write (the aggregate `version` changed since it was read; see persistence.md Sec. 4.3)
+- 409 → conflict: duplicate resource or domain invariant violation (e.g. deleting a bed that still has plants). Never used for stale versions.
+- 412 → precondition failed: the `If-Match` version is not the current one (see §7.1)
+- 428 → precondition required: `If-Match` missing or `*` on a protected write
+
+### 7.1 Version preconditions (`If-Match` / `ETag`)
+
+- The only entity tag the API emits is the version tag: `ETag: "<version>"` (strong, quoted decimal integer, equal to the body's `version`) on single-resource `GET`, `POST` and `PATCH` of beds, plants and families. Express's automatic `ETag` is disabled, so lists, `204` and error responses carry none.
+- `PATCH /beds/{id}`, `PATCH /plants/{id}`, `PATCH /families/{idOrSlug}`, `DELETE /beds/{id}` and `DELETE /plants/{id}` require `If-Match` with exactly one strong tag. The `requireIfMatch` middleware runs after `auth`/`isAdmin` and before body/params validation: missing or `*` → `428`; malformed → `400` with an `if-match` error key. It performs no DB access.
+- Precedence: `401/403 → 428 → 400 (If-Match) → 400 (body/params) → 404 → 412 → 409 → success`.
+- **`[TARGET STATE (Pending [Iteration 67](../../roadmap.md#iteration-67-implement-transactional-batch-save-layout-endpoint))]`** `PUT /beds/{id}/layout` joins this list with the same rules.
+- **`[TARGET STATE (Pending [Iteration 14](../../roadmap.md#iteration-14-migrate-beds-and-query-dsl-to-zod))]`** `If-Match` follows the RFC 9110 entity-tag list grammar (see validation.md §3.1): a list is accepted, weak or never-emitted tags yield `412` (after the existence check) instead of `400`, and use cases receive the list of acceptable versions. `getExpectedVersion` moves from the middleware module to `apps/agroApi/shared/`, next to its setter, so controllers stop importing from a middleware.
+- CORS exposes `ETag` (`Access-Control-Expose-Headers`) and reflects requested headers, so browsers can send `If-Match`.
+- A matching `If-None-Match` on a single-resource `GET` returns `304` with no body. This is accepted framework behavior; no caching headers are added.
 
 ---
 

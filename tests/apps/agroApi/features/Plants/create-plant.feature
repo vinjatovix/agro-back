@@ -189,6 +189,7 @@ Feature: Create a new plant
       }
       """
     Then the response status code should be 201
+    And the response should have ETag '"0"'
     And response matches OpenAPI contract
 
   Scenario: Create a new plant with all fields filled
@@ -403,6 +404,7 @@ Feature: Create a new plant
       }
       """
     Then the response status code should be 201
+    And the response should have ETag '"0"'
     And response matches OpenAPI contract
 
   Scenario: Fail to create a plant if family doesn't exists

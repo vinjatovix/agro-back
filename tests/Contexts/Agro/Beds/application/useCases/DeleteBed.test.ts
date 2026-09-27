@@ -3,13 +3,15 @@ import { createUserId } from '../../../../../../src/Contexts/Auth/domain/UserId.
 import type { UserSessionInfo } from '../../../../../../src/Contexts/Auth/application/index.js';
 import {
   DomainConflictException,
-  DomainNotFoundException
+  DomainNotFoundException,
+  DomainStaleVersionException
 } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { random } from '../../../../shared/fixtures/random.js';
 import { BedRepositoryMock } from '../../__mocks__/BedRepositoryMock.js';
 import { BedFactory } from '../../domain/mothers/BedFactory.js';
 
 describe('DeleteBed', () => {
+  const CURRENT_VERSION = 0;
   let repository: BedRepositoryMock;
   let useCase: DeleteBed;
   const USER: UserSessionInfo = {
@@ -28,9 +30,9 @@ describe('DeleteBed', () => {
 
     repository.addToStorage(bed);
 
-    await useCase.execute(bed.id, USER);
+    await useCase.execute(bed.id, USER, CURRENT_VERSION);
 
-    expect(bed.isDeleted).toBe(true);
+    expect(repository.getStored(bed.id)?.isDeleted).toBe(true);
     repository.assertUpdateCalled();
     repository.assertSaveNotCalled();
   });
@@ -44,9 +46,9 @@ describe('DeleteBed', () => {
 
     repository.addToStorage(bed);
 
-    await expect(useCase.execute(bed.id, USER)).rejects.toBeInstanceOf(
-      DomainNotFoundException
-    );
+    await expect(
+      useCase.execute(bed.id, USER, CURRENT_VERSION)
+    ).rejects.toBeInstanceOf(DomainNotFoundException);
     repository.assertUpdateNotCalled();
     repository.assertSaveNotCalled();
   });
@@ -54,9 +56,9 @@ describe('DeleteBed', () => {
   it('should throw if bed does not exist', async () => {
     const nonExistentId = random.uuid();
 
-    await expect(useCase.execute(nonExistentId, USER)).rejects.toBeInstanceOf(
-      DomainNotFoundException
-    );
+    await expect(
+      useCase.execute(nonExistentId, USER, CURRENT_VERSION)
+    ).rejects.toBeInstanceOf(DomainNotFoundException);
     repository.assertSaveNotCalled();
     repository.assertUpdateNotCalled();
   });
@@ -65,7 +67,9 @@ describe('DeleteBed', () => {
     const nonExistentId = random.uuid();
     const expectedMessage = `Bed not found: ${nonExistentId}`;
 
-    await expect(useCase.execute(nonExistentId, USER)).rejects.toMatchObject({
+    await expect(
+      useCase.execute(nonExistentId, USER, CURRENT_VERSION)
+    ).rejects.toMatchObject({
       message: expectedMessage
     });
   });
@@ -82,9 +86,9 @@ describe('DeleteBed', () => {
       roles: ['user']
     };
 
-    await expect(useCase.execute(bed.id, otherUser)).rejects.toBeInstanceOf(
-      DomainNotFoundException
-    );
+    await expect(
+      useCase.execute(bed.id, otherUser, CURRENT_VERSION)
+    ).rejects.toBeInstanceOf(DomainNotFoundException);
     repository.assertUpdateNotCalled();
   });
 
@@ -101,10 +105,70 @@ describe('DeleteBed', () => {
       roles: ['user']
     };
 
-    await expect(useCase.execute(bed.id, otherUser)).rejects.toBeInstanceOf(
-      DomainNotFoundException
-    );
+    await expect(
+      useCase.execute(bed.id, otherUser, CURRENT_VERSION)
+    ).rejects.toBeInstanceOf(DomainNotFoundException);
     repository.assertUpdateNotCalled();
+  });
+
+  describe('optimistic concurrency', () => {
+    it('should soft-delete via updateWithDiff when expectedVersion matches', async () => {
+      const bed = BedFactory.fromUser(USER);
+      repository.addToStorage(bed);
+
+      await useCase.execute(bed.id, USER, bed.version);
+
+      expect(repository.getStored(bed.id)?.isDeleted).toBe(true);
+      expect(repository.getStored(bed.id)?.version).toBe(bed.version + 1);
+    });
+
+    it('should throw DomainStaleVersionException without writing when expectedVersion is outdated', async () => {
+      const bed = BedFactory.fromUser(USER);
+      repository.addToStorage(bed);
+
+      await expect(
+        useCase.execute(bed.id, USER, bed.version + 1)
+      ).rejects.toBeInstanceOf(DomainStaleVersionException);
+
+      repository.assertUpdateNotCalled();
+      expect(repository.getStored(bed.id)?.isDeleted).toBe(false);
+    });
+
+    it('should report a stale version before the bed-has-plants conflict', async () => {
+      const bed = BedFactory.fromUser(USER, true);
+      repository.addToStorage(bed);
+
+      await expect(
+        useCase.execute(bed.id, USER, bed.version + 1)
+      ).rejects.toBeInstanceOf(DomainStaleVersionException);
+      repository.assertUpdateNotCalled();
+    });
+
+    it('should report the bed-has-plants conflict when the version is current', async () => {
+      const bed = BedFactory.fromUser(USER, true);
+      repository.addToStorage(bed);
+
+      await expect(
+        useCase.execute(bed.id, USER, bed.version)
+      ).rejects.toBeInstanceOf(DomainConflictException);
+    });
+
+    it('should throw DomainNotFoundException (not stale) for an absent bed with a wrong version', async () => {
+      await expect(
+        useCase.execute(random.uuid(), USER, 999)
+      ).rejects.toBeInstanceOf(DomainNotFoundException);
+    });
+
+    it('should read once, write once and never run the existence check on success', async () => {
+      const bed = BedFactory.fromUser(USER);
+      repository.addToStorage(bed);
+
+      await useCase.execute(bed.id, USER, bed.version);
+
+      repository.assertReadCalledTimes('findOwnedActiveById', 1);
+      repository.assertUpdateCalledTimes(1);
+      repository.assertExistenceCountCalledTimes(0);
+    });
   });
 
   it('should throw conflict error if own bed has plants', async () => {
@@ -113,9 +177,9 @@ describe('DeleteBed', () => {
 
     repository.addToStorage(bed);
 
-    await expect(useCase.execute(bed.id, USER)).rejects.toBeInstanceOf(
-      DomainConflictException
-    );
+    await expect(
+      useCase.execute(bed.id, USER, CURRENT_VERSION)
+    ).rejects.toBeInstanceOf(DomainConflictException);
     repository.assertUpdateNotCalled();
   });
 });

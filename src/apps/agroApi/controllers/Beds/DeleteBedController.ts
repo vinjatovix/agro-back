@@ -1,5 +1,6 @@
 import { type NextFunction, type Request, type Response } from 'express';
 import { HttpController } from '../../shared/HttpController.js';
+import { getExpectedVersion } from '../../middlewares/requireIfMatch.js';
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
 import httpStatus from 'http-status';
 import type { DeleteBed } from '../../../../Contexts/Agro/Beds/application/useCases/DeleteBed.js';
@@ -25,7 +26,7 @@ export class DeleteBedController extends HttpController {
         throw createError.badRequest('Bed ID is required');
       }
 
-      await this.deleteBed.execute(id, user);
+      await this.deleteBed.execute(id, user, getExpectedVersion(res));
 
       res.status(httpStatus.NO_CONTENT).end();
     } catch (error) {

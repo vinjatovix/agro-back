@@ -1,5 +1,6 @@
 import { applyPatch } from '../../../../../shared/domain/patch/applyPatch.js';
 import { ensureFound } from '../../../../shared/application/utils/ensureFound.js';
+import { ensureVersion } from '../../../../shared/application/utils/ensureVersion.js';
 import type { Family } from '../../domain/entities/Family.js';
 import type { FamilyRepository } from '../../domain/repositories/interfaces/FamilyRepository.js';
 import { familyDomainMapper } from '../../mappers/familyDomainMapper.js';
@@ -8,12 +9,17 @@ import type { FamilyPatch } from './interfaces/FamilyPatch.js';
 export class UpdateFamily {
   constructor(private readonly familyRepository: FamilyRepository) {}
 
-  async execute(patch: FamilyPatch, user: string): Promise<Family> {
+  async execute(
+    patch: FamilyPatch,
+    user: string,
+    expectedVersion: number
+  ): Promise<Family> {
     const family = ensureFound(
       await this.familyRepository.findById(patch.id),
       'Family',
       patch.id
     );
+    ensureVersion(family.version, expectedVersion, 'Family', patch.id);
 
     const current = familyDomainMapper.toPrimitives(family);
     const patched = applyPatch(current, patch);
