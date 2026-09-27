@@ -11,14 +11,33 @@ type ErrorHandlerDeps = {
   logger: AppLogger;
 };
 
+const handleHttpError = (
+  err: HttpError,
+  res: Response,
+  logger: AppLogger
+): void => {
+  // 5xx HttpErrors are programming errors: log them and never expose their
+  // internal message to the client.
+  if (err.statusCode >= httpStatus.INTERNAL_SERVER_ERROR) {
+    logger.error('Unexpected error at error handler', err);
+
+    res.status(err.statusCode).json({
+      message: 'Internal server error'
+    } satisfies ApiErrorResponse);
+    return;
+  }
+
+  res.status(err.statusCode).json({
+    message: err.message,
+    ...(err.errors && { errors: err.errors })
+  } satisfies ApiErrorResponse);
+};
+
 export const errorHandler =
   ({ logger }: ErrorHandlerDeps) =>
   (err: Error, req: Request, res: Response, _next: NextFunction): void => {
     if (err instanceof HttpError) {
-      res.status(err.statusCode).json({
-        message: err.message,
-        ...(err.errors && { errors: err.errors })
-      } satisfies ApiErrorResponse);
+      handleHttpError(err, res, logger);
       return;
     }
 
