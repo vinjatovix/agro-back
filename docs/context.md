@@ -20,13 +20,14 @@ This document serves as the absolute technical baseline and source of truth for 
 The technical stack is strictly versioned and configured for high-performance, type-safe operations:
 
 - **Runtime Engine:** Node.js v22.23.2 (running with native ES Modules, `"type": "module"`).
-- **Language Specification:** TypeScript v6.0.2 in strict mode (no `any` types allowed).
-- **Web Framework:** Express v5.2.1.
-- **Dependency Injection (DI):** Awilix v13.0.3 and Awilix-Express v11.0.1 (scoped container-per-request).
-- **Database / Persistence:** MongoDB v7.1.1 (Official native driver, binary UUID keys).
+- **Language Specification:** TypeScript v6.0.3 in strict mode (no `any` types allowed).
+- **Web Framework:** Express v5.2.1. Rejected promises from async handlers and middlewares reach the global `errorHandler` natively (no `asyncHandler` wrapper). `req.body` is `undefined` when no body parser ran; `validateBody` treats it as an empty body (`400`).
+- **Dependency Injection (DI):** Awilix v13.0.5 and Awilix-Express v11.0.1 (scoped container-per-request).
+- **Database / Persistence:** MongoDB native driver v7.5.0 (binary UUID keys), pinned to `~7.5.0`: from v7.6.0 the driver loads `os` via dynamic `import()`, which fails inside Jest and breaks the connection handshake (upstream bug NODE-7832). Remove the pin once a release ships the fix.
 - **Logging & Diagnostics:** Winston v3.19.0.
-- **Testing Ecosystem:** Jest v30.3.0 (`ts-jest`), Cucumber v12.8.1 (BDD features), Supertest v7.2.2.
-- **Boundary Security:** Helmet v8.1.0, Cors v2.8.6, Express-Rate-Limit v8.3.2, BcryptJS v3.0.3, Google-Auth-Library v10.6.2, JSONWebToken v9.0.3.
+- **Testing Ecosystem:** Jest v30.5.2 (`ts-jest` v29.4.14), Cucumber v13.2.1 (BDD features), Supertest v7.3.0, `pure-openapi-assert` v1.0.3 (OpenAPI contract assertions). Coverage comes from `jest --coverage` (`coverage/lcov.info`, consumed by SonarCloud). ESM-only dependencies (currently `uuid`) are transpiled for Jest via `transformIgnorePatterns` in `jest.config.ts`.
+- **Boundary Security:** Helmet v8.3.0, Cors v2.8.6, Express-Rate-Limit v8.7.0, BcryptJS v3.0.3, Google-Auth-Library v11.1.0, JSONWebToken v9.0.3.
+- **Utilities:** `uuid` v14.0.2 (UUIDv7 IDs), `js-yaml` v5.4.2 (OpenAPI spec loading), `dotenv` v18.0.4, `env-var` v7.5.0.
 
 ### Tooling Transitions (Phase 0 Targets)
 
@@ -260,7 +261,7 @@ Agro-Back implements an Express HTTP server starting at `src/index.ts`. All endp
     - `POST /` ──► Creates a bed.
     - `GET /` ──► Lists beds of the authenticated user.
     - `GET /:id` ──► Retrieves details of a specific bed.
-    - `PATCH /:id` ──► Partially updates a bed via the patch/diff system.
+    - `PATCH /:id` ──► Partially updates a bed through aggregate mutation methods (`rename`, `resize`).
     - `DELETE /:id` ──► Logically marks a bed as deleted.
 3.  **Families (`/api/v1/families`):**
     - `POST /` ──► Creates a taxonomy (Admin only).

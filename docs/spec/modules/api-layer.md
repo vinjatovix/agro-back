@@ -234,6 +234,9 @@ All endpoints MUST return a consistent error structure.
 
 Refer strictly to **Module: Validation (validation.md) Section 4 and 5** for the canonical definition of the `ApiErrorResponse` type and the structured validation error behaviors.
 
+- Errors thrown or rejected by async controllers and middlewares are forwarded to the global `errorHandler` by Express 5 itself; handlers MUST NOT be wrapped in custom async helpers.
+- A write request with no body (Express 5 leaves `req.body` `undefined`) is treated as an empty body and returns `400` ("Empty body is not allowed"), never `500`.
+
 ---
 
 ## 7. STATUS CODES
