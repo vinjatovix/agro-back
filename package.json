@@ -110,7 +110,7 @@
     "mongodb": "~7.5.0",
     "qs": "^6.16.0",
     "swagger-ui-express": "^5.0.1",
-    "uuid": "^11.1.1",
+    "uuid": "^14.0.2",
     "winston": "^3.19.0",
     "winston-mongodb": "^7.0.1"
   }

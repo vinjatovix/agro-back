@@ -16,8 +16,22 @@ const config: Config = {
           ignoreDeprecations: '6.0'
         }
       }
+    ],
+    // uuid >= 12 ships ESM only; transpile it to CommonJS for the Jest runtime.
+    '^.+/node_modules/uuid/.+\\.js$': [
+      'ts-jest',
+      {
+        tsconfig: {
+          allowJs: true,
+          module: 'CommonJS',
+          moduleResolution: 'node',
+          ignoreDeprecations: '6.0'
+        }
+      }
     ]
   },
+
+  transformIgnorePatterns: ['/node_modules/(?!uuid/)'],
 
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1'
