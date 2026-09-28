@@ -1,5 +1,5 @@
-import { InvalidArgumentException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { WateringAmount } from '../../../../../../src/Contexts/Agro/Events/domain/value-objects/WateringAmount.js';
+import { InvalidArgumentException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 
 describe('WateringAmount Value Object', () => {
   it('should create a valid WateringAmount instance', () => {

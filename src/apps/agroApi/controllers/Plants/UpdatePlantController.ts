@@ -1,13 +1,13 @@
 import { type NextFunction, type Request, type Response } from 'express';
 
-import { HttpController } from '../../shared/HttpController.js';
-import { getExpectedVersion } from '../../middlewares/requireIfMatch.js';
-import { setVersionETag } from '../../shared/setVersionETag.js';
-import type { UpdatePlant } from '../../../../Contexts/Agro/Plants/application/useCases/UpdatePlant.js';
 import type { UpdatePlantDto } from '../../../../Contexts/Agro/Plants/application/useCases/interfaces/UpdatePlantDto.js';
-import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
+import type { UpdatePlant } from '../../../../Contexts/Agro/Plants/application/useCases/UpdatePlant.js';
 import { plantDomainMapper } from '../../../../Contexts/Agro/Plants/mappers/plantDomainMapper.js';
+import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
 import { createError } from '../../../../shared/errors/index.js';
+import { getExpectedVersion } from '../../middlewares/requireIfMatch.js';
+import { HttpController } from '../../shared/HttpController.js';
+import { setVersionETag } from '../../shared/setVersionETag.js';
 
 export type UpdatePlantControllerDependencies = {
   updatePlant: UpdatePlant;

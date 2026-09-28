@@ -1,15 +1,15 @@
 import { type NextFunction, type Request, type Response } from 'express';
 
-import { HttpController } from '../../shared/HttpController.js';
-import { getExpectedVersion } from '../../middlewares/requireIfMatch.js';
-import { setVersionETag } from '../../shared/setVersionETag.js';
-import type { UpdateBed } from '../../../../Contexts/Agro/Beds/application/useCases/UpdateBed.js';
 import type { UpdateBedDto } from '../../../../Contexts/Agro/Beds/application/useCases/interfaces/UpdateBedDto.js';
-import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
-import { bedDomainMapper } from '../../../../Contexts/Agro/Beds/mappers/bedDomainMapper.js';
-import { createError } from '../../../../shared/errors/index.js';
-import { bedApiMapper } from '../../../../Contexts/Agro/Beds/mappers/bedApiMapper.js';
 import type { UpdateBedInput } from '../../../../Contexts/Agro/Beds/application/useCases/interfaces/UpdateBedInput.js';
+import type { UpdateBed } from '../../../../Contexts/Agro/Beds/application/useCases/UpdateBed.js';
+import { bedApiMapper } from '../../../../Contexts/Agro/Beds/mappers/bedApiMapper.js';
+import { bedDomainMapper } from '../../../../Contexts/Agro/Beds/mappers/bedDomainMapper.js';
+import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
+import { createError } from '../../../../shared/errors/index.js';
+import { getExpectedVersion } from '../../middlewares/requireIfMatch.js';
+import { HttpController } from '../../shared/HttpController.js';
+import { setVersionETag } from '../../shared/setVersionETag.js';
 
 export type UpdateBedControllerDependencies = {
   updateBed: UpdateBed;

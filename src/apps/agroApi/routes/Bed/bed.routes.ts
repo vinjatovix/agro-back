@@ -1,17 +1,17 @@
 import type { Router } from 'express';
-import type { RegisterRoutes } from '../route.types.js';
-import { API_PREFIXES } from '../shared/apiPrefixes.js';
 import { auth } from '../../middlewares/auth.js';
 import { requireIfMatch } from '../../middlewares/requireIfMatch.js';
 import { validateBody } from '../../middlewares/validateBody.js';
+import { validateReqSchema } from '../../middlewares/validateReqSchema.js';
+import type { RegisterRoutes } from '../route.types.js';
+import { API_PREFIXES } from '../shared/apiPrefixes.js';
+import { bedApiInvoker } from './bedApiInvoker.js';
 import {
   createBedReqSchema,
   deleteBedReqSchema,
   getBedByIdReqSchema,
   updateBedReqSchema
 } from './reqSchemas.js';
-import { validateReqSchema } from '../../middlewares/validateReqSchema.js';
-import { bedApiInvoker } from './bedApiInvoker.js';
 
 const prefix = API_PREFIXES.beds;
 

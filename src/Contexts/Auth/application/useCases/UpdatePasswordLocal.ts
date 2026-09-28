@@ -1,5 +1,5 @@
-import { DomainUnauthorizedException } from '../../../shared/domain/errors/index.js';
 import { ensureFound } from '../../../shared/application/utils/ensureFound.js';
+import { DomainUnauthorizedException } from '../../../shared/domain/errors/index.js';
 import {
   buildLogger,
   type EncrypterTool

@@ -1,9 +1,9 @@
 import { makeInvoker } from 'awilix-express';
 import type { CreateBedController } from '../../controllers/Beds/CreateBedController.js';
-import type { GetUserBedsController } from '../../controllers/Beds/GetUserBedsController.js';
-import type { GetBedByIdController } from '../../controllers/Beds/GetBedByIdController.js';
-import type { UpdateBedController } from '../../controllers/Beds/UpdateBedController.js';
 import type { DeleteBedController } from '../../controllers/Beds/DeleteBedController.js';
+import type { GetBedByIdController } from '../../controllers/Beds/GetBedByIdController.js';
+import type { GetUserBedsController } from '../../controllers/Beds/GetUserBedsController.js';
+import type { UpdateBedController } from '../../controllers/Beds/UpdateBedController.js';
 
 const api = ({
   createBedController,

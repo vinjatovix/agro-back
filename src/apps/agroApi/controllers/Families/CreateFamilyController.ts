@@ -1,12 +1,12 @@
 import { type NextFunction, type Request, type Response } from 'express';
 
+import httpStatus from 'http-status';
 import type { CreateFamily } from '../../../../Contexts/Agro/Families/application/useCases/CreateFamily.js';
+import type { CreateFamilyDto } from '../../../../Contexts/Agro/Families/application/useCases/interfaces/CreateFamilyDto.js';
+import { familyDomainMapper } from '../../../../Contexts/Agro/Families/mappers/familyDomainMapper.js';
+import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
 import { HttpController } from '../../shared/HttpController.js';
 import { setVersionETag } from '../../shared/setVersionETag.js';
-import type { CreateFamilyDto } from '../../../../Contexts/Agro/Families/application/useCases/interfaces/CreateFamilyDto.js';
-import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
-import { familyDomainMapper } from '../../../../Contexts/Agro/Families/mappers/familyDomainMapper.js';
-import httpStatus from 'http-status';
 
 export type CreateFamilyControllerDependencies = {
   createFamily: CreateFamily;

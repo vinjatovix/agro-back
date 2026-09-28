@@ -1,10 +1,11 @@
-import qs from 'qs';
+import * as http from 'node:http';
 import { scopePerRequest } from 'awilix-express';
 import cors from 'cors';
 import express, { Router } from 'express';
 import helmet from 'helmet';
-import * as http from 'node:http';
+import qs from 'qs';
 
+import migrations from '../../../migrations/index.js';
 import type { AppLogger } from '../../Contexts/shared/plugins/logger.plugin.js';
 import { envs } from './config/plugins/envs.plugin.js';
 import {
@@ -12,14 +13,13 @@ import {
   type AppContainer,
   type containerDeps as ContainerDeps
 } from './container.js';
+import { errorHandler } from './middlewares/errorHandler.js';
 import {
   createRequestLoggerMiddleware,
   globalLimiter
 } from './middlewares/index.js';
-import { registerRoutes } from './routes/registerRoutes.js';
-import { errorHandler } from './middlewares/errorHandler.js';
 import { setupSwagger } from './openapi/setupSwagger.js';
-import migrations from '../../../migrations/index.js';
+import { registerRoutes } from './routes/registerRoutes.js';
 
 const allowedOrigins = envs.ALLOWED_ORIGINS.split(',')
   .map((origin) => origin.trim())

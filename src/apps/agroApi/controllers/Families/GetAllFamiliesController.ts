@@ -2,8 +2,8 @@ import { type NextFunction, type Request, type Response } from 'express';
 
 import { ListFamilies } from '../../../../Contexts/Agro/Families/application/useCases/ListFamilies.js';
 import { familyDomainMapper } from '../../../../Contexts/Agro/Families/mappers/familyDomainMapper.js';
-import { HttpController } from '../../shared/HttpController.js';
 import { FamilyQueryParser } from '../../query/index.js';
+import { HttpController } from '../../shared/HttpController.js';
 
 export type GetAllFamiliesControllerDependencies = {
   listFamilies: ListFamilies;

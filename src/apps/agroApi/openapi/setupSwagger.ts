@@ -1,5 +1,5 @@
-import swaggerUi from 'swagger-ui-express';
 import type { Express } from 'express';
+import swaggerUi from 'swagger-ui-express';
 import { loadOpenApiSpec } from './loadOpenApiSpec.js';
 
 export function setupSwagger(app: Express): void {

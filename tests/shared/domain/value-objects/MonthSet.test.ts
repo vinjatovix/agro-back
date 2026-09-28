@@ -1,5 +1,5 @@
-import { MonthSet } from '../../../../src/shared/domain/value-objects/MonthSet.js';
 import { InvalidArgumentException } from '../../../../src/Contexts/shared/domain/errors/index.js';
+import { MonthSet } from '../../../../src/shared/domain/value-objects/MonthSet.js';
 
 describe('MonthSet', () => {
   it('should create valid MonthSet', () => {

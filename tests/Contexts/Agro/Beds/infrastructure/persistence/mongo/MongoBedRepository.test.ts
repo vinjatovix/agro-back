@@ -7,12 +7,12 @@ import { randomBedId } from '../../../../../../../src/Contexts/Agro/Beds/domain/
 import type { Bed } from '../../../../../../../src/Contexts/Agro/Beds/domain/entities/Bed.js';
 import type { BedPrimitives } from '../../../../../../../src/Contexts/Agro/Beds/domain/entities/types/BedPrimitives.js';
 import type { BedRepository } from '../../../../../../../src/Contexts/Agro/Beds/domain/repositories/interfaces/BedRepository.js';
+import { bedDomainMapper } from '../../../../../../../src/Contexts/Agro/Beds/mappers/bedDomainMapper.js';
 import {
   DomainConflictException,
   DomainNotFoundException,
   DomainStaleVersionException
 } from '../../../../../../../src/Contexts/shared/domain/errors/index.js';
-import { bedDomainMapper } from '../../../../../../../src/Contexts/Agro/Beds/mappers/bedDomainMapper.js';
 import type { EnvironmentArranger } from '../../../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
 import {
   DBClientFactory,

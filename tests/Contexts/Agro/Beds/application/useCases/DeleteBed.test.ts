@@ -1,6 +1,6 @@
 import { DeleteBed } from '../../../../../../src/Contexts/Agro/Beds/application/useCases/DeleteBed.js';
-import { createUserId } from '../../../../../../src/Contexts/Auth/domain/UserId.js';
 import type { UserSessionInfo } from '../../../../../../src/Contexts/Auth/application/index.js';
+import { createUserId } from '../../../../../../src/Contexts/Auth/domain/UserId.js';
 import {
   DomainConflictException,
   DomainNotFoundException,

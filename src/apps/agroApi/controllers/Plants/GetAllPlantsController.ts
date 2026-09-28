@@ -1,10 +1,10 @@
 import { type NextFunction, type Request, type Response } from 'express';
 
-import { HttpController } from '../../shared/HttpController.js';
 import type { ListPlants } from '../../../../Contexts/Agro/Plants/application/useCases/ListPlants.js';
-import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
 import { plantDomainMapper } from '../../../../Contexts/Agro/Plants/mappers/plantDomainMapper.js';
+import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
 import { type PlantQueryParser } from '../../query/index.js';
+import { HttpController } from '../../shared/HttpController.js';
 
 export type GetAllPlantsControllerDependencies = {
   listPlants: ListPlants;

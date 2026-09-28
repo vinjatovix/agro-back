@@ -1,7 +1,7 @@
 import { UserRoles } from '../../../../src/Contexts/Auth/domain/value-objects/UserRoles.js';
+import { InvalidArgumentException } from '../../../../src/Contexts/shared/domain/errors/index.js';
 import { random } from '../../shared/fixtures/index.js';
 import { UserRolesMother } from './mothers/UserRolesMother.js';
-import { InvalidArgumentException } from '../../../../src/Contexts/shared/domain/errors/index.js';
 
 describe('UserRoles', () => {
   it('should create valid user roles', () => {

@@ -1,5 +1,5 @@
-import { InvalidArgumentException } from '../../domain/errors/index.js';
 import type { PaginationParams } from '../../../../shared/domain/query/interfaces/PaginationParams.js';
+import { InvalidArgumentException } from '../../domain/errors/index.js';
 
 export function normalizePagination(
   pagination?: PaginationParams

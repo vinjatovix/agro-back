@@ -1,5 +1,5 @@
-import { UserAuthMethod } from '../../../../src/Contexts/Auth/domain/value-objects/UserAuthMethod.js';
 import { PasswordHash } from '../../../../src/Contexts/Auth/domain/value-objects/PasswordHash.js';
+import { UserAuthMethod } from '../../../../src/Contexts/Auth/domain/value-objects/UserAuthMethod.js';
 import { InvalidArgumentException } from '../../../../src/Contexts/shared/domain/errors/index.js';
 
 const VALID_PASSWORD_HASH = `$2b$10$${'a'.repeat(53)}`;

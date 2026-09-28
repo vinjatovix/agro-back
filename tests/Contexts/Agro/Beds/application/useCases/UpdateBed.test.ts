@@ -1,8 +1,8 @@
 import { UpdateBed } from '../../../../../../src/Contexts/Agro/Beds/application/useCases/UpdateBed.js';
 import { randomBedId } from '../../../../../../src/Contexts/Agro/Beds/domain/BedId.js';
 import type { BedPrimitives } from '../../../../../../src/Contexts/Agro/Beds/domain/entities/types/BedPrimitives.js';
-import { createUserId } from '../../../../../../src/Contexts/Auth/domain/UserId.js';
 import type { UserSessionInfo } from '../../../../../../src/Contexts/Auth/application/index.js';
+import { createUserId } from '../../../../../../src/Contexts/Auth/domain/UserId.js';
 import {
   DomainNotFoundException,
   DomainStaleVersionException

@@ -1,6 +1,6 @@
-import { Email } from '../../../../../src/Contexts/shared/domain/valueObject/Email.js';
-import { DISPOSABLE_EMAIL_DOMAINS } from '../../../../../src/Contexts/shared/domain/valueObject/disposableEmailDomains.js';
 import { InvalidArgumentException } from '../../../../../src/Contexts/shared/domain/errors/index.js';
+import { DISPOSABLE_EMAIL_DOMAINS } from '../../../../../src/Contexts/shared/domain/valueObject/disposableEmailDomains.js';
+import { Email } from '../../../../../src/Contexts/shared/domain/valueObject/Email.js';
 
 describe('Email', () => {
   it('should create a valid email', () => {

@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/require-await */
+import type { Server } from 'node:http';
+import path from 'node:path';
 import {
   AfterAll,
   Before,
@@ -13,8 +15,6 @@ import {
 } from '@cucumber/cucumber';
 import { assert } from 'chai';
 import type { Binary, Collection, MongoClient } from 'mongodb';
-import type { Server } from 'node:http';
-import path from 'node:path';
 import { assertResponseMatchesOpenApi } from 'pure-openapi-assert';
 import request from 'supertest';
 

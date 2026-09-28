@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/require-await */
 
-import type { Nullable } from '../../../../../src/shared/domain/types/Nullable.js';
 import type { Bed } from '../../../../../src/Contexts/Agro/Beds/domain/entities/Bed.js';
 import type { BedPrimitives } from '../../../../../src/Contexts/Agro/Beds/domain/entities/types/BedPrimitives.js';
 import type { BedRepository } from '../../../../../src/Contexts/Agro/Beds/domain/repositories/interfaces/BedRepository.js';
 import { bedDomainMapper } from '../../../../../src/Contexts/Agro/Beds/mappers/bedDomainMapper.js';
+import type { Nullable } from '../../../../../src/shared/domain/types/Nullable.js';
 import { BaseMongoCrudRepositoryMock } from '../../__mocks__/BaseMongoCrudRepositoryMock.js';
 
 export class BedRepositoryMock

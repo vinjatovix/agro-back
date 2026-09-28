@@ -1,5 +1,5 @@
-import type { Serializable } from '../../../Contexts/shared/domain/interfaces/Serializable.js';
 import { InvalidArgumentException } from '../../../Contexts/shared/domain/errors/index.js';
+import type { Serializable } from '../../../Contexts/shared/domain/interfaces/Serializable.js';
 import type { RangePrimitives } from './interfaces/RangePrimitives.js';
 
 export class Range implements Serializable<RangePrimitives> {

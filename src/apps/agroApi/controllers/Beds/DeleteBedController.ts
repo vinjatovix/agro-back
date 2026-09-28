@@ -1,10 +1,10 @@
 import { type NextFunction, type Request, type Response } from 'express';
-import { HttpController } from '../../shared/HttpController.js';
-import { getExpectedVersion } from '../../middlewares/requireIfMatch.js';
-import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
 import httpStatus from 'http-status';
 import type { DeleteBed } from '../../../../Contexts/Agro/Beds/application/useCases/DeleteBed.js';
+import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
 import { createError } from '../../../../shared/errors/index.js';
+import { getExpectedVersion } from '../../middlewares/requireIfMatch.js';
+import { HttpController } from '../../shared/HttpController.js';
 
 export type DeleteBedControllerDependencies = {
   deleteBed: DeleteBed;

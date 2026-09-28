@@ -2,7 +2,6 @@ import type { Request, Response, NextFunction } from 'express';
 import httpStatus from 'http-status';
 
 import { errorHandler } from '../../../../src/apps/agroApi/middlewares/errorHandler.js';
-import type { AppLogger } from '../../../../src/Contexts/shared/plugins/logger.plugin.js';
 import {
   DomainException,
   DomainConflictException,
@@ -12,6 +11,7 @@ import {
   DomainUnauthorizedException,
   InvalidArgumentException
 } from '../../../../src/Contexts/shared/domain/errors/index.js';
+import type { AppLogger } from '../../../../src/Contexts/shared/plugins/logger.plugin.js';
 import { createError, HttpError } from '../../../../src/shared/errors/index.js';
 
 class MockAppLogger implements AppLogger {

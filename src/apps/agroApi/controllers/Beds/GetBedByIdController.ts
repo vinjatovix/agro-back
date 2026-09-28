@@ -1,11 +1,11 @@
 import { type NextFunction, type Request, type Response } from 'express';
 
-import { HttpController } from '../../shared/HttpController.js';
-import { setVersionETag } from '../../shared/setVersionETag.js';
-import { createError } from '../../../../shared/errors/index.js';
 import type { GetBedById } from '../../../../Contexts/Agro/Beds/application/useCases/GetBedById.js';
 import { bedDomainMapper } from '../../../../Contexts/Agro/Beds/mappers/bedDomainMapper.js';
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
+import { createError } from '../../../../shared/errors/index.js';
+import { HttpController } from '../../shared/HttpController.js';
+import { setVersionETag } from '../../shared/setVersionETag.js';
 
 export type GetBedByIdControllerDependencies = {
   getBedById: GetBedById;

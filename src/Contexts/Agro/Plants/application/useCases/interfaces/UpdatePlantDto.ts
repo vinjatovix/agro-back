@@ -1,6 +1,6 @@
 import type { RangePrimitives } from '../../../../../../shared/domain/value-objects/interfaces/RangePrimitives.js';
-import type { PlantLifecycleValue } from '../../../domain/entities/types/PlantLifecycleValue.js';
 import type { PlantKnowledgePrimitives } from '../../../domain/entities/types/PlantKnowledgePrimitives.js';
+import type { PlantLifecycleValue } from '../../../domain/entities/types/PlantLifecycleValue.js';
 
 export interface UpdatePlantDto {
   identity?: {

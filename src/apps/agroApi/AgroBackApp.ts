@@ -4,12 +4,11 @@ import {
   attachMongoTransport,
   detachMongoTransport
 } from '../../Contexts/shared/plugins/logger.plugin.js';
-import { Server } from './server.js';
-
 import {
   DBClientFactory,
   DBConfigFactory
 } from '../../shared/infrastructure/persistence/index.js';
+import { Server } from './server.js';
 
 export interface AgroBackAppConfig {
   host: string;
