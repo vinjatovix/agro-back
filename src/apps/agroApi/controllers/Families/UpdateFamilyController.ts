@@ -14,6 +14,10 @@ import { getExpectedVersion } from '../../middlewares/requireIfMatch.js';
 import { HttpController } from '../../shared/HttpController.js';
 import { setVersionETag } from '../../shared/setVersionETag.js';
 
+type UpdateFamilyParams = {
+  idOrSlug: string;
+};
+
 export type UpdateFamilyControllerDependencies = {
   updateFamily: UpdateFamily;
   getFamilyById: GetFamilyById;
@@ -35,7 +39,11 @@ export class UpdateFamilyController extends HttpController {
     this.getFamilyById = getFamilyById;
     this.getFamilyBySlug = getFamilyBySlug;
   }
-  run = async (req: Request, res: Response, next: NextFunction) => {
+  run = async (
+    req: Request<UpdateFamilyParams>,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const { idOrSlug } = req.params;
       if (!idOrSlug) {

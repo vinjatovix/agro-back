@@ -7,6 +7,10 @@ import { createError } from '../../../../shared/errors/index.js';
 import { HttpController } from '../../shared/HttpController.js';
 import { setVersionETag } from '../../shared/setVersionETag.js';
 
+type GetPlantByIdParams = {
+  id: string;
+};
+
 export type GetPlantByIdControllerDependencies = {
   getPlant: GetPlant;
 };
@@ -18,7 +22,11 @@ export class GetPlantByIdController extends HttpController {
     this.getPlant = getPlant;
   }
 
-  run = async (req: Request, res: Response, next: NextFunction) => {
+  run = async (
+    req: Request<GetPlantByIdParams>,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const plantId = req.params.id;
       const user = res.locals.user as UserSessionInfo | undefined;

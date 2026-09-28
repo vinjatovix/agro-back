@@ -6,6 +6,10 @@ import { createError } from '../../../../shared/errors/index.js';
 import { getExpectedVersion } from '../../middlewares/requireIfMatch.js';
 import { HttpController } from '../../shared/HttpController.js';
 
+type DeleteBedParams = {
+  id: string;
+};
+
 export type DeleteBedControllerDependencies = {
   deleteBed: DeleteBed;
 };
@@ -17,7 +21,11 @@ export class DeleteBedController extends HttpController {
     this.deleteBed = deleteBed;
   }
 
-  run = async (req: Request, res: Response, next: NextFunction) => {
+  run = async (
+    req: Request<DeleteBedParams>,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const { id } = req.params;
       const user = res.locals.user as UserSessionInfo;

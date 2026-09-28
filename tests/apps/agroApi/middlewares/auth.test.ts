@@ -3,7 +3,7 @@ import { auth } from '../../../../src/apps/agroApi/middlewares/auth.js';
 import { EnsureAuthentication } from '../../../../src/apps/agroApi/middlewares/EnsureAuthentication.js';
 
 describe('auth middleware', () => {
-  it('should call EnsureAuthentication.run', () => {
+  it('should call EnsureAuthentication.run', async () => {
     const req = {
       container: {
         resolve: jest.fn().mockReturnValue('logger')
@@ -15,7 +15,7 @@ describe('auth middleware', () => {
 
     const runSpy = jest.spyOn(EnsureAuthentication, 'run').mockResolvedValue();
 
-    auth(req, res, next);
+    await auth(req, res, next);
 
     expect(runSpy).toHaveBeenCalled();
 
