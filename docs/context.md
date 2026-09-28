@@ -21,7 +21,7 @@ The technical stack is strictly versioned and configured for high-performance, t
 
 - **Runtime Engine:** Node.js v22.23.2 (running with native ES Modules, `"type": "module"`).
 - **Language Specification:** TypeScript v6.0.2 in strict mode (no `any` types allowed).
-- **Web Framework:** Express v4.22.1.
+- **Web Framework:** Express v5.2.1.
 - **Dependency Injection (DI):** Awilix v13.0.3 and Awilix-Express v11.0.1 (scoped container-per-request).
 - **Database / Persistence:** MongoDB v7.1.1 (Official native driver, binary UUID keys).
 - **Logging & Diagnostics:** Winston v3.19.0.

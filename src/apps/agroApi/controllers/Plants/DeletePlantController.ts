@@ -7,6 +7,10 @@ import { createError } from '../../../../shared/errors/index.js';
 import { getExpectedVersion } from '../../middlewares/requireIfMatch.js';
 import { HttpController } from '../../shared/HttpController.js';
 
+type DeletePlantParams = {
+  id: string;
+};
+
 export type DeletePlantControllerDependencies = {
   deletePlant: DeletePlant;
 };
@@ -18,7 +22,11 @@ export class DeletePlantController extends HttpController {
     this.deletePlant = deletePlant;
   }
 
-  run = async (req: Request, res: Response, next: NextFunction) => {
+  run = async (
+    req: Request<DeletePlantParams>,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const plantId = req.params.id;
 

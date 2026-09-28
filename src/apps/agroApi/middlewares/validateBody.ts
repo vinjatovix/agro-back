@@ -8,7 +8,8 @@ export const validateBody = (
   res: Response,
   next: NextFunction
 ) => {
-  if (Object.keys(req.body).length) {
+  // Express 5 leaves req.body undefined when no body parser matched.
+  if (req.body && Object.keys(req.body).length) {
     return next();
   }
 

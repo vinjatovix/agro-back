@@ -7,6 +7,10 @@ import { createError } from '../../../../shared/errors/index.js';
 import { HttpController } from '../../shared/HttpController.js';
 import { setVersionETag } from '../../shared/setVersionETag.js';
 
+type GetBedByIdParams = {
+  id: string;
+};
+
 export type GetBedByIdControllerDependencies = {
   getBedById: GetBedById;
 };
@@ -18,7 +22,11 @@ export class GetBedByIdController extends HttpController {
     this.getBedById = getBedById;
   }
 
-  run = async (req: Request, res: Response, next: NextFunction) => {
+  run = async (
+    req: Request<GetBedByIdParams>,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const bedId = req.params.id;
       const user = res.locals.user as UserSessionInfo;

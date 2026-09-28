@@ -9,6 +9,10 @@ import { getExpectedVersion } from '../../middlewares/requireIfMatch.js';
 import { HttpController } from '../../shared/HttpController.js';
 import { setVersionETag } from '../../shared/setVersionETag.js';
 
+type UpdatePlantParams = {
+  id: string;
+};
+
 export type UpdatePlantControllerDependencies = {
   updatePlant: UpdatePlant;
 };
@@ -20,7 +24,11 @@ export class UpdatePlantController extends HttpController {
     this.updatePlant = updatePlant;
   }
 
-  run = async (req: Request, res: Response, next: NextFunction) => {
+  run = async (
+    req: Request<UpdatePlantParams>,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const { id } = req.params;
       if (!id) {
