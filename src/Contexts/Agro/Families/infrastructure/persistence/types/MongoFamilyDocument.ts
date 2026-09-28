@@ -1,6 +1,6 @@
 import type { Binary, UUID } from 'mongodb';
-import type { FamilyExtraPrimitives } from '../../../domain/types/FamilyExtraPrimitives.js';
 import type { MetadataPrimitives } from '../../../../../shared/domain/MetadataPrimitives.js';
+import type { FamilyExtraPrimitives } from '../../../domain/types/FamilyExtraPrimitives.js';
 
 export type MongoFamilyDocument = {
   _id: string | Binary | UUID;

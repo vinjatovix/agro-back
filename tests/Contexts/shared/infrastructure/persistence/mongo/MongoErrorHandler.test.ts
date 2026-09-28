@@ -4,8 +4,8 @@ import {
   InvalidArgumentException,
   DomainConflictException
 } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
-import { MongoErrorHandler } from '../../../../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoErrorHandler.js';
 import { MONGO_ERROR_CODES } from '../../../../../../src/Contexts/shared/infrastructure/persistence/mongo/mongoErrorCodes.js';
+import { MongoErrorHandler } from '../../../../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoErrorHandler.js';
 
 describe('MongoErrorHandler', () => {
   describe('formatError', () => {

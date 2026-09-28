@@ -5,8 +5,8 @@ import type { Family } from '../../domain/entities/Family.js';
 import type { FamilyRepository } from '../../domain/repositories/interfaces/FamilyRepository.js';
 import type { FamilyFilter } from '../../domain/types/FamilyFilter.js';
 import type { FamilyPrimitives } from '../../domain/types/FamilyPrimitives.js';
-import type { MongoFamilyDocument } from './types/MongoFamilyDocument.js';
 import type { FamilyPersistenceMapper } from '../../mappers/interfaces/FamilyPersistenceMapper.js';
+import type { MongoFamilyDocument } from './types/MongoFamilyDocument.js';
 
 export class MongoFamilyRepository
   extends MongoCrudRepository<

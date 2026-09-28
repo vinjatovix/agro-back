@@ -1,10 +1,10 @@
-import { familyPersistenceMapper } from '../../../../../src/Contexts/Agro/Families/mappers/familyPersistenceMapper.js';
 import { Family } from '../../../../../src/Contexts/Agro/Families/domain/entities/Family.js';
+import type { MongoFamilyDocument } from '../../../../../src/Contexts/Agro/Families/infrastructure/persistence/types/MongoFamilyDocument.js';
+import { familyPersistenceMapper } from '../../../../../src/Contexts/Agro/Families/mappers/familyPersistenceMapper.js';
 import {
   toMongoId,
   fromMongoId
 } from '../../../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoId.js';
-import type { MongoFamilyDocument } from '../../../../../src/Contexts/Agro/Families/infrastructure/persistence/types/MongoFamilyDocument.js';
 import { FamilyScenarios } from '../domain/mothers/FamilyScenarios.js';
 
 describe('familyPersistenceMapper', () => {

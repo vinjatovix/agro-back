@@ -1,5 +1,5 @@
-import { isObject } from '../utils/isObject.js';
 import type { UnknownRecord } from '../types/UnknownRecord.js';
+import { isObject } from '../utils/isObject.js';
 import { resolveDiffAction } from './resolveDiffAction.js';
 import { walkDiff } from './walkDiff.js';
 

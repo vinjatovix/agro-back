@@ -1,11 +1,11 @@
 import { type NextFunction, type Request, type Response } from 'express';
 
+import httpStatus from 'http-status';
 import type { DeletePlant } from '../../../../Contexts/Agro/Plants/application/useCases/DeletePlant.js';
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
 import { createError } from '../../../../shared/errors/index.js';
-import { HttpController } from '../../shared/HttpController.js';
 import { getExpectedVersion } from '../../middlewares/requireIfMatch.js';
-import httpStatus from 'http-status';
+import { HttpController } from '../../shared/HttpController.js';
 
 export type DeletePlantControllerDependencies = {
   deletePlant: DeletePlant;

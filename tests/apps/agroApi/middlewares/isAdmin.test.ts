@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
-import { isAdmin } from '../../../../src/apps/agroApi/middlewares/isAdmin.js';
-import { EnsureAuthentication } from '../../../../src/apps/agroApi/middlewares/EnsureAuthentication.js';
 import type { AppContainer } from '../../../../src/apps/agroApi/container.js';
+import { EnsureAuthentication } from '../../../../src/apps/agroApi/middlewares/EnsureAuthentication.js';
+import { isAdmin } from '../../../../src/apps/agroApi/middlewares/isAdmin.js';
 
 describe('isAdmin middleware', () => {
   it('should delegate to EnsureAuthentication.isAdministrator', () => {

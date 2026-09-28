@@ -4,9 +4,9 @@ import type { SignOptions } from 'jsonwebtoken';
 
 import { envs } from '../../../apps/agroApi/config/plugins/envs.plugin.js';
 import type { Nullable } from '../../../shared/domain/types/Nullable.js';
-import type { EncrypterTool } from './EncrypterTool.js';
 import type { UnknownRecord } from '../../../shared/domain/types/UnknownRecord.js';
 import { isRecord } from '../../../shared/domain/utils/isRecord.js';
+import type { EncrypterTool } from './EncrypterTool.js';
 
 const JWT_SECRET = envs.JWT_SECRET;
 const SALT_ROUNDS = envs.BCRYPT_SALT_ROUNDS;

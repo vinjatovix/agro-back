@@ -1,11 +1,11 @@
 import { type NextFunction, type Request, type Response } from 'express';
 
 import type { GetPlant } from '../../../../Contexts/Agro/Plants/application/useCases/GetPlant.js';
+import { plantDomainMapper } from '../../../../Contexts/Agro/Plants/mappers/plantDomainMapper.js';
+import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
+import { createError } from '../../../../shared/errors/index.js';
 import { HttpController } from '../../shared/HttpController.js';
 import { setVersionETag } from '../../shared/setVersionETag.js';
-import { createError } from '../../../../shared/errors/index.js';
-import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
-import { plantDomainMapper } from '../../../../Contexts/Agro/Plants/mappers/plantDomainMapper.js';
 
 export type GetPlantByIdControllerDependencies = {
   getPlant: GetPlant;

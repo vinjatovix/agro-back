@@ -1,6 +1,6 @@
 import { PlainPassword } from '../../../../src/Contexts/Auth/domain/value-objects/PlainPassword.js';
-import { PlainPasswordMother } from './mothers/PlainPasswordMother.js';
 import { InvalidArgumentException } from '../../../../src/Contexts/shared/domain/errors/index.js';
+import { PlainPasswordMother } from './mothers/PlainPasswordMother.js';
 
 describe('PlainPassword', () => {
   it('should create a valid password', () => {

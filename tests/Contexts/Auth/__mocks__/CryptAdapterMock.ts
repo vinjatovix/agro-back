@@ -1,9 +1,9 @@
-import type { CryptAdapter } from '../../../../src/Contexts/shared/plugins/CryptAdapter.js';
 import { jest, expect } from '@jest/globals';
-import { random } from '../../shared/fixtures/index.js';
-import { EmailMother } from '../../shared/domain/mothers/EmailMother.js';
+import type { CryptAdapter } from '../../../../src/Contexts/shared/plugins/CryptAdapter.js';
 import type { Nullable } from '../../../../src/shared/domain/types/Nullable.js';
 import type { UnknownRecord } from '../../../../src/shared/domain/types/UnknownRecord.js';
+import { EmailMother } from '../../shared/domain/mothers/EmailMother.js';
+import { random } from '../../shared/fixtures/index.js';
 
 interface Options {
   login?: boolean;

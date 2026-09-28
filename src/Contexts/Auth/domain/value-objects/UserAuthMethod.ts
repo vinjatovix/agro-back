@@ -1,9 +1,9 @@
 import { InvalidArgumentException } from '../../../shared/domain/errors/index.js';
+import { PasswordHash } from './PasswordHash.js';
 import {
   SUPPORTED_AUTH_PROVIDERS,
   type AuthProvider
 } from './types/AuthProvider.js';
-import { PasswordHash } from './PasswordHash.js';
 import type { UserAuthMethodPrimitives } from './types/UserAuthMethodPrimitives.js';
 
 export class UserAuthMethod {

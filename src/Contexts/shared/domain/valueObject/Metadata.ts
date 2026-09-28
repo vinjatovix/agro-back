@@ -1,5 +1,5 @@
-import type { MetadataPrimitives } from '../MetadataPrimitives.js';
 import type { Serializable } from '../interfaces/Serializable.js';
+import type { MetadataPrimitives } from '../MetadataPrimitives.js';
 
 export class Metadata implements Serializable<MetadataPrimitives> {
   private constructor(

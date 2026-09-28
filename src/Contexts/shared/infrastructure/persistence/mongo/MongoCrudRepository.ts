@@ -1,21 +1,21 @@
 import type { CollationOptions, FindCursor } from 'mongodb';
 import { diffObjects } from '../../../../../shared/domain/diff/diffObjects.js';
+import type { PaginatedResult } from '../../../../../shared/domain/query/interfaces/PaginatedResult.js';
+import type { QueryOptions } from '../../../../../shared/domain/query/interfaces/QueryOptions.js';
+import type { SortOptions } from '../../../../../shared/domain/query/interfaces/SortOptions.js';
 import type { Nullable } from '../../../../../shared/domain/types/Nullable.js';
 import type { UnknownRecord } from '../../../../../shared/domain/types/UnknownRecord.js';
+import { Username } from '../../../../Auth/domain/value-objects/Username.js';
 import {
   DomainNotFoundException,
   DomainStaleVersionException
 } from '../../../../shared/domain/errors/index.js';
-import { Username } from '../../../../Auth/domain/value-objects/Username.js';
+import { normalizePagination } from '../../../application/utils/normalizePagination.js';
 import { updateMetadata } from '../../../application/utils/updateMetadata.js';
-import type { QueryOptions } from '../../../../../shared/domain/query/interfaces/QueryOptions.js';
-import type { SortOptions } from '../../../../../shared/domain/query/interfaces/SortOptions.js';
 import { toMongoId } from './MongoId.js';
 import { MongoQueryTranslator } from './MongoQueryTranslator.js';
 import { MongoRepository } from './MongoRepository.js';
 import type { Entity, WithId } from './types/index.js';
-import { normalizePagination } from '../../../application/utils/normalizePagination.js';
-import type { PaginatedResult } from '../../../../../shared/domain/query/interfaces/PaginatedResult.js';
 
 export abstract class MongoCrudRepository<
   TDomain,
