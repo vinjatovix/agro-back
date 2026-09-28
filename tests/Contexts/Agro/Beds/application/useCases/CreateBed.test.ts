@@ -1,5 +1,5 @@
 import { CreateBed } from '../../../../../../src/Contexts/Agro/Beds/application/useCases/CreateBed.js';
-import { bedApiMapper } from '../../../../../../src/Contexts/Agro/Beds/mappers/bedApiMapper.js';
+import { bedInputMapper } from '../../../../../../src/Contexts/Agro/Beds/mappers/bedInputMapper.js';
 import { DomainConflictException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { random } from '../../../../shared/fixtures/random.js';
 import { BedRepositoryMock } from '../../__mocks__/BedRepositoryMock.js';
@@ -27,7 +27,7 @@ describe('CreateBed', () => {
   });
 
   it('should throw conflict if bed already exists', async () => {
-    const bed = bedApiMapper.fromCreateInputToDomain(input, USER_NAME);
+    const bed = bedInputMapper.fromCreateInputToDomain(input, USER_NAME);
     repository.addToStorage(bed);
 
     await expect(useCase.execute(input, USER_NAME)).rejects.toThrow(

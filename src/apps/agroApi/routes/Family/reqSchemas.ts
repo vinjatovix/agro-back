@@ -64,11 +64,12 @@ const extraFieldsValidators = [
 ];
 
 const familyBaseValidators = [
-  body('slug').optional().isString().notEmpty(),
-  body('name').optional().isString().notEmpty(),
+  body('slug').optional().isString(),
+  body('name').optional().isString(),
   body('aliases').optional().isArray(),
-  body('scientificName').optional().isString().notEmpty(),
-  body('shortDescription').optional().isString().notEmpty(),
+  body('aliases.*').isString(),
+  body('scientificName').optional().isString(),
+  body('shortDescription').optional().isString(),
   body('highlights').optional().isArray(),
   body('extra')
     .optional()

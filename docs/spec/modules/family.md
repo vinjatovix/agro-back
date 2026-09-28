@@ -94,6 +94,7 @@ _Note: For the exact HTTP verbs, status codes, and routing parameters exposing t
 - API endpoints (create, retrieve, list, update) `[TARGET STATE (Pending [Iteration 13](../../roadmap.md#iteration-13-migrate-families-endpoints-to-zod))]`
 - Dataset seeding strategy (JSON-based)
 - Validation rules for family references
+- Aggregate mutation method: `Family.updateInformation(changes)` — scalar fields (`slug`, `name`, `scientificName`, `shortDescription`) are trimmed; empty or whitespace-only after trim → `InvalidArgumentException` (`400`); `null` remains `400` (string fields are never nullable); `shortDescription` is a domain invariant (required and non-empty); lists (`aliases`, `highlights`) replace the current value in full; aliases are trimmed one by one and empty aliases are dropped (a non-string alias → `400`); `extra: null` removes the field; `extra` object is merged key by key with `null` per key removing that key; an `extra` left without keys is removed (never stored as `{}`)
 
 ---
 

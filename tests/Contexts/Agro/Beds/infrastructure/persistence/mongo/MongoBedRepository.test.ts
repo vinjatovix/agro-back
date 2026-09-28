@@ -186,10 +186,10 @@ describe('MongoBedRepository', () => {
       await repository.save(bed);
 
       const updated = {
-        id: bed.id,
+        ...current,
         width: bed.width.value + 100,
         height: bed.height.value + 100
-      } as unknown as BedPrimitives;
+      };
 
       await repository.updateWithDiff(current, updated, 'test-user');
 

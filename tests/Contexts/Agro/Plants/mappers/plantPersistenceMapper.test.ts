@@ -74,7 +74,7 @@ describe('PlantPersistenceMapper', () => {
 
     it('should map deletedAt correctly', () => {
       const plant = PlantFactory.create();
-      plant.deletedAt = new Date();
+      plant.markAsDeleted();
 
       const doc = plantPersistenceMapper.toMongoDocument(plant);
 

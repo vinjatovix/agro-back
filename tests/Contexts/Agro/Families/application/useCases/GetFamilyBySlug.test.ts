@@ -24,7 +24,7 @@ describe('GetFamilyBySlug', () => {
 
     const result = await useCase.execute(family.slug);
 
-    expect(result).toBe(family);
+    expect(result.idValue).toBe(family.idValue);
     repository.assertFindBySlugHasBeenCalledWith(family.slug);
   });
 

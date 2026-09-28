@@ -136,6 +136,7 @@ describe('MongoFamilyRepository', () => {
     it('should update family with diff', async () => {
       const family = FamilyScenarios.domainRandom();
       await repository.save(family);
+      const before = familyDomainMapper.toPrimitives(family);
 
       const updateDto = {
         name: 'Updated name',
@@ -147,8 +148,8 @@ describe('MongoFamilyRepository', () => {
       };
 
       await repository.updateWithDiff(
-        familyDomainMapper.toPrimitives(family),
-        updateDto as unknown as FamilyPrimitives,
+        before,
+        { ...before, ...updateDto },
         'test-user'
       );
 
@@ -191,10 +192,11 @@ describe('MongoFamilyRepository', () => {
       await repository.save(family);
 
       const user = 'random-user';
+      const primitives = familyDomainMapper.toPrimitives(family);
 
       await repository.updateWithDiff(
-        familyDomainMapper.toPrimitives(family),
-        { name: 'Another name' } as unknown as FamilyPrimitives,
+        primitives,
+        { ...primitives, name: 'Another name' },
         user
       );
 
@@ -215,10 +217,11 @@ describe('MongoFamilyRepository', () => {
         id: randomFamilyId()
       });
 
+      const primitives = familyDomainMapper.toPrimitives(nonExistingFamily);
       await expect(
         repository.updateWithDiff(
-          familyDomainMapper.toPrimitives(nonExistingFamily),
-          { name: 'Name' } as unknown as FamilyPrimitives,
+          primitives,
+          { ...primitives, name: 'Name' },
           'test-user'
         )
       ).rejects.toThrow(`Family not found: ${nonExistingFamily.idValue}`);
@@ -229,14 +232,49 @@ describe('MongoFamilyRepository', () => {
       await repository.save(family);
 
       const newName = 'Regression Test Family';
+      const primitives = familyDomainMapper.toPrimitives(family);
       await repository.updateWithDiff(
-        familyDomainMapper.toPrimitives(family),
-        { name: newName } as unknown as FamilyPrimitives,
+        primitives,
+        { ...primitives, name: newName },
         'test-user'
       );
 
       const updated = await repository.findById(family.idValue);
       expect(updated?.name).toBe(newName);
+    });
+
+    it('removes an optional field absent from updated and leaves version incremented by 1', async () => {
+      const family = FamilyScenarios.domainBaseWithExtra();
+      await repository.save(family);
+
+      const before = familyDomainMapper.toPrimitives(family);
+      const { extra: _extra, ...afterWithoutExtra } = before;
+      const after = afterWithoutExtra as FamilyPrimitives;
+
+      await repository.updateWithDiff(before, after, 'test-user');
+
+      const updated = await repository.findById(family.idValue);
+
+      expect(updated?.extra).toBeUndefined();
+      expect(updated?.version).toBe(before.version + 1);
+    });
+
+    it('leaves a field untouched when absent from both current and updated', async () => {
+      const family = FamilyScenarios.domainRandom();
+      await repository.save(family);
+
+      const before = familyDomainMapper.toPrimitives(family);
+      const after = { ...before };
+
+      await repository.updateWithDiff(
+        before,
+        { ...after, name: 'Changed' },
+        'test-user'
+      );
+
+      const updated = await repository.findById(family.idValue);
+
+      expect(updated?.extra).toBeUndefined();
     });
   });
 

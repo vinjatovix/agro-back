@@ -1,10 +1,10 @@
 import type { Binary, UUID } from 'mongodb';
 import type { RangePrimitives } from '../../../../../../shared/domain/value-objects/interfaces/RangePrimitives.js';
+import type { IdentityPrimitives } from '../../../domain/entities/types/IdentityPrimitives.js';
 import type { PlantKnowledgePrimitives } from '../../../domain/entities/types/PlantKnowledgePrimitives.js';
 import type { PlantLifecycleValue } from '../../../domain/entities/types/PlantLifecycleValue.js';
 import type { PlantPrimitives } from '../../../domain/entities/types/PlantPrimitives.js';
 import type { PlantSowingPrimitives } from '../../../domain/entities/types/PlantSowingPrimitives.js';
-import type { IdentityPrimitives } from '../../../mappers/plantIdentityMapper.js';
 
 export type MongoPlantDocument = {
   _id: string | Binary | UUID;

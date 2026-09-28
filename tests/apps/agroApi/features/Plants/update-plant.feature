@@ -487,3 +487,238 @@ Feature: Update a plant
       """
     Then the response status code should be 403
     And response matches OpenAPI contract
+
+  Scenario: Whitespace-only scientificName is rejected
+    Given a family exists
+    And a plant exists
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "id": "<plantId>",
+        "identity": {
+          "scientificName": "   "
+        }
+      }
+      """
+    Then the response status code should be 400
+    And response matches OpenAPI contract
+
+  Scenario: Whitespace-only name.primary is rejected
+    Given a family exists
+    And a plant exists
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "id": "<plantId>",
+        "identity": {
+          "name": {
+            "primary": ""
+          }
+        }
+      }
+      """
+    Then the response status code should be 400
+    And response matches OpenAPI contract
+
+  Scenario: Aliases must be strings
+    Given a family exists
+    And a plant exists
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "id": "<plantId>",
+        "identity": {
+          "name": {
+            "aliases": [1]
+          }
+        }
+      }
+      """
+    Then the response status code should be 400
+    And the response errors should include "identity.name.aliases[0]"
+    And response matches OpenAPI contract
+
+  Scenario: spacingCm must be an object
+    Given a family exists
+    And a plant exists
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "id": "<plantId>",
+        "traits": {
+          "spacingCm": null
+        }
+      }
+      """
+    Then the response status code should be 400
+    And the response errors should include "traits.spacingCm"
+    And response matches OpenAPI contract
+
+  Scenario: knowledge.rootSystem null is rejected
+    Given a family exists
+    And a plant exists
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "id": "<plantId>",
+        "knowledge": {
+          "rootSystem": null
+        }
+      }
+      """
+    Then the response status code should be 400
+    And the response errors should include "knowledge.rootSystem"
+    And response matches OpenAPI contract
+
+  Scenario: knowledge.rootSystem range null is rejected
+    Given a family exists
+    And a plant exists
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "id": "<plantId>",
+        "knowledge": {
+          "rootSystem": {
+            "depthCm": null
+          }
+        }
+      }
+      """
+    Then the response status code should be 400
+    And the response errors should include "knowledge.rootSystem.depthCm"
+    And response matches OpenAPI contract
+
+  Scenario: knowledge.rootSystem.type must be a string
+    Given a family exists
+    And a plant exists
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "id": "<plantId>",
+        "knowledge": {
+          "rootSystem": {
+            "type": 5
+          }
+        }
+      }
+      """
+    Then the response status code should be 400
+    And the response errors should include "knowledge.rootSystem.type"
+    And response matches OpenAPI contract
+
+  Scenario: Trimmed name and aliases – empty alias dropped
+    Given a family exists
+    And a plant exists
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "id": "<plantId>",
+        "identity": {
+          "name": {
+            "primary": "  Tomate  ",
+            "aliases": [" tomatera ", "  "]
+          }
+        }
+      }
+      """
+    Then the response status code should be 200
+    And the response body matches "Tomate" for field "identity.name.primary"
+    And the response body should contain
+      """
+      {
+        "identity": {
+          "name": {
+            "primary": "Tomate",
+            "aliases": ["tomatera"]
+          }
+        }
+      }
+      """
+    And response matches OpenAPI contract
+
+  Scenario: scientificName null is rejected
+    Given a family exists
+    And a plant exists
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "id": "<plantId>",
+        "identity": {
+          "scientificName": null
+        }
+      }
+      """
+    Then the response status code should be 400
+    And the response errors should include "identity.scientificName"
+    And response matches OpenAPI contract
+
+  Scenario: knowledge.watering.amountMm is rejected
+    Given a family exists
+    And a plant exists
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "id": "<plantId>",
+        "knowledge": {
+          "watering": {
+            "frequency": "weekly",
+            "amountMm": 25
+          }
+        }
+      }
+      """
+    Then the response status code should be 400
+    And the response errors should include "knowledge.watering"
+    And response matches OpenAPI contract
+
+  Scenario: A propagation method name that is not camelCase is rejected
+    Given a family exists
+    And a plant exists
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "id": "<plantId>",
+        "knowledge": {
+          "propagation": {
+            "methods": {
+              "seed.season": {
+                "season": "spring"
+              }
+            }
+          }
+        }
+      }
+      """
+    Then the response status code should be 400
+    And the response errors should include "knowledge.propagation.methods"
+    And response matches OpenAPI contract
+
+  Scenario: Empty propagation and ecology leave the plant unchanged
+    Given a family exists
+    And a plant exists
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "id": "<plantId>",
+        "knowledge": {
+          "propagation": {},
+          "ecology": {}
+        }
+      }
+      """
+    Then the response status code should be 200
+    And the response body matches "0" for field "version"
+    And the response should have ETag '"0"'
+    And response matches OpenAPI contract

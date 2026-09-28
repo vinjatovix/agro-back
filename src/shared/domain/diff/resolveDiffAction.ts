@@ -4,7 +4,11 @@ export function resolveDiffAction(
   currentValue: unknown,
   updatedValue: unknown
 ): DiffAction {
-  if (updatedValue === undefined) return 'noop';
+  if (updatedValue === undefined) {
+    return currentValue === null || currentValue === undefined
+      ? 'noop'
+      : 'unset';
+  }
   if (updatedValue === null) {
     // Clearing a field that is already empty changes nothing, so it must not
     // trigger a write (nor bump the aggregate version).

@@ -1,11 +1,9 @@
-import type { DeepPartial } from '../../../../shared/domain/patch/interfaces/DeepPartial.js';
 import {
   MonthSet,
   Range
 } from '../../../../shared/domain/value-objects/index.js';
 import { Metadata } from '../../../shared/domain/valueObject/index.js';
 import type { CreatePlantDto } from '../application/useCases/interfaces/CreatePlantDto.js';
-import type { UpdatePlantDto } from '../application/useCases/interfaces/UpdatePlantDto.js';
 import { Plant } from '../domain/entities/Plant.js';
 import type {
   PlantKnowledgePrimitives,
@@ -25,9 +23,6 @@ export interface PlantMapper {
   toPrimitives(plant: Plant): PlantPrimitives;
   fromPrimitives(primitives: PlantPrimitives): Plant;
   fromCreateDtoToDomain(dto: CreatePlantDto, user: string): Plant;
-  fromUpdateDtoToPrimitivesPatch(
-    dto: UpdatePlantDto
-  ): DeepPartial<PlantPrimitives>;
 }
 
 export const plantDomainMapper = {

@@ -20,6 +20,7 @@ Contract-driven REST API for agricultural asset management.
 - **Validation vs Business Logic:** Use `express-validator` strictly for transport/schema-shape checking. Never enforce business logic or DB checks in validation.
 - **Error Handling:** Use `shared/errors/index.ts` (`createError` factory). Let errors bubble up to global `errorHandler`.
 - **Contract Testing:** HTTP responses must match the OpenAPI contract (`assertResponseMatchesOpenApi` / Gherkin step).
+- **Acceptance Test Setup:** In Gherkin scenarios, call the API only in the `When` step under test. Build prior state (created, updated, soft-deleted…) in `Given` steps with seeders/DB helpers (e.g. `a soft-deleted bed exists for the current user`), never with setup `PATCH`/`DELETE` requests, so scenarios don't depend on unrelated rules such as `If-Match` versions.
 - **Dependency Injection:** Config in `src/apps/agroApi/container.ts`. Use constructor injection.
 - **Imports Order:**
   1. **External dependencies** (from `package.json`): Node.js built-ins, then npm packages, **all alphabetical**.
@@ -44,6 +45,7 @@ Contract-driven REST API for agricultural asset management.
 
 - **Always Use Subagents for Running Scripts:** To prevent the main context window from being cluttered with voluminous logs (such as test runs, coverage, linters, or builds), you MUST delegate all script executions (e.g., `npm test`, `npm run build`, `npm run lint`) to a specialized subagent (e.g., `generalist`).
 - **Do Not Run Heavy Commands Inline:** Running test suites, full linter passes, or build processes directly in the main session generates excessive token overhead that slows down future turns. Delegate these tasks, and let the subagent return a concise summary.
+- **Always** use CodeGraph instead of grep or read.
 
 ## Do Not Do
 

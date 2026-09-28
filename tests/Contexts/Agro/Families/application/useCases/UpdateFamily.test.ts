@@ -2,7 +2,8 @@ import { UpdateFamily } from '../../../../../../src/Contexts/Agro/Families/appli
 import { familyDomainMapper } from '../../../../../../src/Contexts/Agro/Families/mappers/familyDomainMapper.js';
 import {
   DomainNotFoundException,
-  DomainStaleVersionException
+  DomainStaleVersionException,
+  InvalidArgumentException
 } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { random } from '../../../../shared/fixtures/random.js';
 import { FamilyRepositoryMock } from '../../__mocks__/FamilyRepositoryMock.js';
@@ -22,40 +23,74 @@ describe('UpdateFamily', () => {
     repository.clear();
   });
 
-  it('should call updateWithDiff with correct arguments', async () => {
+  it('should call updateWithDiff with two complete FamilyPrimitives states', async () => {
     const family = FamilyScenarios.domainRandom();
     repository.addToStorage(family);
-
-    const updateDto = {
-      name: 'New name',
-      slug: 'new-slug',
-      scientificName: 'New scientific name',
-      shortDescription: 'New short description',
-      highlights: ['h1', 'h2'],
-      aliases: ['a1', 'a2']
-    };
+    const before = familyDomainMapper.toPrimitives(family);
 
     await useCase.execute(
-      {
-        id: family.idValue,
-        ...updateDto
-      },
+      { id: family.idValue, name: 'New name', slug: 'new-slug' },
       'test-user',
       CURRENT_VERSION
     );
 
-    repository.assertUpdateHasBeenCalledWith(
-      familyDomainMapper.toPrimitives(family),
-      expect.objectContaining({
-        name: updateDto.name,
-        slug: updateDto.slug,
-        scientificName: updateDto.scientificName,
-        shortDescription: updateDto.shortDescription,
-        highlights: updateDto.highlights,
-        aliases: updateDto.aliases
-      }),
-      'test-user'
+    const [calledBefore, calledAfter] = repository.getLastUpdateArgs();
+    expect(calledBefore).toEqual(before);
+    expect(calledAfter).toMatchObject({
+      id: family.idValue,
+      name: 'New name',
+      slug: 'new-slug',
+      scientificName: before.scientificName,
+      shortDescription: before.shortDescription,
+      aliases: before.aliases,
+      highlights: before.highlights
+    });
+    expect(calledAfter.metadata.createdBy).toBe(before.metadata.createdBy);
+  });
+
+  it('should remove extra from stored family when extra is null', async () => {
+    const family = FamilyScenarios.domainBaseWithExtra();
+    repository.addToStorage(family);
+    expect(familyDomainMapper.toPrimitives(family).extra).toBeDefined();
+
+    await useCase.execute(
+      { id: family.idValue, extra: null },
+      'test-user',
+      CURRENT_VERSION
     );
+
+    const stored = repository.getStored(family.idValue);
+    expect(stored?.extra).toBeUndefined();
+  });
+
+  it('should reject an empty name and leave family unchanged', async () => {
+    const family = FamilyScenarios.domainRandom();
+    repository.addToStorage(family);
+
+    await expect(
+      useCase.execute(
+        { id: family.idValue, name: '' },
+        'test-user',
+        CURRENT_VERSION
+      )
+    ).rejects.toThrow(InvalidArgumentException);
+
+    expect(repository.getStored(family.idValue)?.version).toBe(family.version);
+    expect(repository.getStored(family.idValue)?.name).toBe(family.name);
+  });
+
+  it('should perform no write when input has only id', async () => {
+    const family = FamilyScenarios.domainRandom();
+    repository.addToStorage(family);
+
+    const result = await useCase.execute(
+      { id: family.idValue },
+      'test-user',
+      CURRENT_VERSION
+    );
+
+    repository.assertUpdateNotCalled();
+    expect(result.version).toBe(family.version);
   });
 
   it('should call repository.findById with correct id', async () => {

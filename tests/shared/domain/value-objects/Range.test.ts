@@ -54,4 +54,67 @@ describe('Range', () => {
     expect(a.equals(b)).toBe(true);
     expect(a.equals(c)).toBe(false);
   });
+
+  describe('with', () => {
+    it('keeps max when only min is given', () => {
+      const range = new Range(10, 20);
+      const result = range.with({ min: 5 });
+
+      expect(result.min).toBe(5);
+      expect(result.max).toBe(20);
+    });
+
+    it('keeps min when only max is given', () => {
+      const range = new Range(10, 20);
+      const result = range.with({ max: 30 });
+
+      expect(result.min).toBe(10);
+      expect(result.max).toBe(30);
+    });
+
+    it('returns an equal range when called with empty object', () => {
+      const range = new Range(10, 20);
+      const result = range.with({});
+
+      expect(result.min).toBe(10);
+      expect(result.max).toBe(20);
+    });
+
+    it('throws when min exceeds max', () => {
+      const range = new Range(10, 20);
+
+      expect(() => range.with({ min: 25 })).toThrow(
+        'Range min cannot be greater than max'
+      );
+    });
+
+    it('does not modify the original range', () => {
+      const range = new Range(10, 20);
+      range.with({ min: 5 });
+
+      expect(range.min).toBe(10);
+      expect(range.max).toBe(20);
+    });
+  });
+
+  describe('fromPartial', () => {
+    it('builds a range when both bounds are given', () => {
+      const range = Range.fromPartial({ min: 2, max: 8 });
+
+      expect(range.toPrimitives()).toEqual({ min: 2, max: 8 });
+    });
+
+    it.each([{ min: 2 }, { max: 8 }, {}])(
+      'throws when a bound is missing (%o)',
+      (partial) => {
+        expect(() => Range.fromPartial(partial)).toThrow(/min and max/);
+      }
+    );
+
+    it('names the incomplete range in the error', () => {
+      expect(() => Range.fromPartial({ min: 2 }, 'knowledge.soil.ph')).toThrow(
+        /knowledge\.soil\.ph/
+      );
+    });
+  });
 });

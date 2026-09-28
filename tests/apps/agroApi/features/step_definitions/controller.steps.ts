@@ -1343,6 +1343,19 @@ Then(
   }
 );
 
+Then(
+  'the response body matches {string} for field {string}',
+  function (this: CucumberWorld, expected: string, field: string) {
+    const interpolated = interpolateRoute(expected, this);
+    const body = this.responseRaw!.body as Record<string, unknown>;
+    const actual = field.split('.').reduce<unknown>((obj, key) => {
+      if (obj === null || typeof obj !== 'object') return undefined;
+      return (obj as Record<string, unknown>)[key];
+    }, body);
+    assert.strictEqual(String(actual), interpolated);
+  }
+);
+
 Then('response matches OpenAPI contract', async function (this: CucumberWorld) {
   const responses = this.responses ?? [this.responseRaw!];
 

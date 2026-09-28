@@ -24,7 +24,7 @@ describe('GetFamilyById', () => {
 
     const result = await useCase.execute(family.idValue);
 
-    expect(result).toBe(family);
+    expect(result.idValue).toBe(family.idValue);
     repository.assertFindByIdHasBeenCalledWith(family.idValue);
   });
 

@@ -1,5 +1,6 @@
 import { InvalidArgumentException } from '../../../Contexts/shared/domain/errors/index.js';
 import type { Serializable } from '../../../Contexts/shared/domain/interfaces/Serializable.js';
+import type { PartialRange } from './interfaces/PartialRange.js';
 import type { RangePrimitives } from './interfaces/RangePrimitives.js';
 
 export class Range implements Serializable<RangePrimitives> {
@@ -51,5 +52,21 @@ export class Range implements Serializable<RangePrimitives> {
 
   static fromPrimitives(primitives: RangePrimitives): Range {
     return new Range(primitives.min, primitives.max);
+  }
+
+  /**
+   * Builds a range from a partial input; both bounds are required. `field`
+   * names the range in the error so the client knows which one is incomplete.
+   */
+  static fromPartial(changes: PartialRange, field = 'Range'): Range {
+    if (changes.min === undefined || changes.max === undefined) {
+      throw new InvalidArgumentException(`${field} requires both min and max`);
+    }
+
+    return new Range(changes.min, changes.max);
+  }
+
+  with(changes: PartialRange): Range {
+    return new Range(changes.min ?? this.min, changes.max ?? this.max);
   }
 }

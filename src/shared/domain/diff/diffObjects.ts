@@ -47,5 +47,9 @@ function isSameValue(current: unknown, updated: unknown): boolean {
     return current.getTime() === updated.getTime();
   }
 
+  if (Array.isArray(current) && Array.isArray(updated)) {
+    return JSON.stringify(current) === JSON.stringify(updated);
+  }
+
   return current === updated;
 }

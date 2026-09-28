@@ -14,6 +14,7 @@
     "lint:fix": "eslint \"{src,tests}/**/*.{ts,tsx}\" --fix --fix-type problem,layout,suggestion",
     "format": "prettier . --write",
     "check": "npm run lint && prettier . --check",
+    "full-check": "npm run format && npm run lint && npm run build && npm run check-circular && npm test",
     "build": "npm run build:clean && npm run build:validate-routes && npm run build:tsc && npm run build:copy-assets",
     "build:clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "build:validate-routes": "tsx ./scripts/validate-routes.ts",

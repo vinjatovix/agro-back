@@ -110,9 +110,9 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [domain-core.md](spec/modules/domain-core.md)
 
+- **Status**: Completed
 - **Value delivered**: Eliminates anemic domain models by enforcing mutations via explicit business methods.
 - **Definition of Done**: Generic `applyPatch` helpers are removed from use cases. Aggregates expose methods like `updateTraits()`.
-- **Pending here**: `UpdateBed`, `UpdatePlant` and `UpdateFamily` still use `applyPatch` (they were only touched to add the `ensureVersion` check for `If-Match`).
 - **Dependencies**: None.
 - **Risks**: Forgetting to map patch inputs to aggregate methods correctly.
 - **Prompt for /speckit.specify**:
@@ -190,8 +190,13 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 - **Value delivered**: Unifies runtime payload validation and TypeScript type-safety for the botanical catalog.
 - **Definition of Done**: `express-validator` is retired for Plants routes. Zod schemas are implemented.
+- **Pending here**:
+  - **behavior change (decision open)**: `PATCH /plants/:id` accepts `phenology.flowering` and `phenology.harvest`, but the request mapping silently drops them (only `phenology.sowing` is applied). Decide between making them editable (extend the Plant phenology mutation method from Iteration 7) or rejecting them with `400`; either way the Zod schema and `UpdatePlant` in the OpenAPI contract must match what is actually applied. Kept as-is in Iteration 7 to keep that refactor behavior-neutral.
+  - **behavior change (decided 2026-09-27)**: creating a plant requires a non-empty `identity.name.primary`, `identity.scientificName`, `identity.family` and a `knowledge.rootSystem`; `null` is never accepted for them. Enforce it in the Zod schema, the OpenAPI `Plant`/`CreatePlant` schema (`required`, `minLength: 1`) and the Plant constructor. Iteration 7 already applies the update rules (never `null`; trimmed; empty or whitespace-only on update → `400` (changed 2026-09-29, before: ignored); aliases trimmed, empty dropped; `rootSystem: null` → `400`).
+  - **migration**: before making them required in the constructor, count stored plants without `scientificName`, with an empty `name.primary` or without `knowledge.rootSystem`, and add a `migrate-mongo` migration (or a data fix) so every stored plant can still be loaded.
+  - unify the trimming rules that Iteration 7 put in `plantInputMapper.toChanges` and the Plant mutation methods into the Zod schema (e.g. a shared trimmed, non-empty string schema).
 - **Dependencies**: Iteration 9.
-- **Risks**: Breaking complex nested trait validation.
+- **Risks**: Breaking complex nested trait validation; loading legacy plants that lack the now-required fields.
 - **Prompt for /speckit.specify**:
   ```text
   MIGRATE PLANTS ENDPOINTS TO ZOD
@@ -205,6 +210,8 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 - **Value delivered**: Secures taxonomy catalog endpoints with strict typing.
 - **Definition of Done**: `express-validator` is retired for Families routes. Zod schemas are implemented.
+- **Pending here**:
+  - move the update text rules applied in Iteration 7 by `Family.updateInformation` (`slug`, `name`, `scientificName`, `shortDescription` trimmed; empty or whitespace-only → `400`; `null` → `400`; aliases trimmed with empty entries dropped, as plant aliases are) into the Zod schema, and decide whether `highlights` follow the same alias rule.
 - **Dependencies**: Iteration 9.
 - **Risks**: None.
 - **Prompt for /speckit.specify**:
@@ -222,8 +229,10 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 - **Definition of Done**: `express-validator` is removed from `package.json`. Beds and generic Query options (filters, pagination, sort) use Zod.
 - **Pending here**:
   - the `requireIfMatch` middleware uses a hand-written pure parser (`parseIfMatch`); wrap it in a Zod schema, keeping the `428` (missing/`*`) vs `400` (malformed) split.
+  - **behavior change**: the OpenAPI `UpdateBed` schema does not match what `PATCH /beds/:id` applies. It lists `plantInstances` (silently ignored) and omits `name` and `depth` (both applied). The Zod schema and the OpenAPI contract must accept `name`, `width`, `height` and `depth`, and stop accepting `plantInstances`: plants are placed only through their own operations (Iterations 20 and 67), never by patching the bed. Kept as-is in Iteration 7 to keep that refactor behavior-neutral.
   - **behavior change**: adopt the RFC 9110 `If-Match` grammar. Lists are accepted; weak tags and never-emitted tags yield `412` (after the existence check) instead of `400`; use cases take a list of acceptable versions. This reverses the "weak tag or list → `400`" rule decided in the If-Match feature spec. See validation.md §3.1.
   - move `getExpectedVersion` out of the middleware module to `apps/agroApi/shared/`, next to its setter.
+  - **behavior change (decision open)**: a bed `name` of only spaces passes the validator (`notEmpty()` does not trim) and is stored as `""` after `StringValueObject` trims it. Align with the Plant/Family rule (trimmed; empty or whitespace-only on update → `400`).
 - **Dependencies**: Iteration 12, Iteration 13.
 - **Risks**: Dynamic filter validation using Zod records can be tricky to type correctly.
 - **Prompt for /speckit.specify**:

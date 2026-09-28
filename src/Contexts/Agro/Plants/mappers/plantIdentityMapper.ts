@@ -1,25 +1,6 @@
-import {
-  createFamilyId,
-  type FamilyId
-} from '../../Families/domain/FamilyId.js';
-
-export interface IdentityPrimitives {
-  name: {
-    primary: string;
-    aliases?: string[];
-  };
-  family: string;
-  scientificName?: string | null;
-}
-
-export interface IdentityDomain {
-  name: {
-    primary: string;
-    aliases?: string[];
-  };
-  family: FamilyId;
-  scientificName?: string;
-}
+import { createFamilyId } from '../../Families/domain/FamilyId.js';
+import type { IdentityDomain } from '../domain/entities/types/IdentityDomain.js';
+import type { IdentityPrimitives } from '../domain/entities/types/IdentityPrimitives.js';
 
 export const plantIdentityMapper = {
   toPrimitives(identity: IdentityDomain): IdentityPrimitives {

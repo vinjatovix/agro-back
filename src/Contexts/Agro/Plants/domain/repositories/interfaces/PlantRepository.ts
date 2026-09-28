@@ -9,6 +9,13 @@ export interface PlantRepository {
   findById(id: string): Promise<Nullable<Plant>>;
   findActiveById(id: string): Promise<Nullable<Plant>>;
   save(plant: Plant): Promise<void>;
+  /**
+   * Receives two complete states of the same aggregate, both produced by the
+   * same domain mapper (`toPrimitives` before and after the mutation method).
+   * MUST NOT receive a partial object or patch: a field missing from `updated`
+   * is removed (`$unset`). An empty diff writes nothing and does not bump
+   * `version`.
+   */
   updateWithDiff(
     current: PlantPrimitives,
     updated: PlantPrimitives,

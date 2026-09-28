@@ -7,11 +7,15 @@ import type {
 import { bedDomainMapper } from '../../../../../../src/Contexts/Agro/Beds/mappers/bedDomainMapper.js';
 import { randomPlantInstanceId } from '../../../../../../src/Contexts/Agro/PlantInstances/domain/PlantInstanceId.js';
 import { randomUserId } from '../../../../../../src/Contexts/Auth/domain/UserId.js';
-import { DomainConflictException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
+import {
+  DomainConflictException,
+  InvalidArgumentException
+} from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { Metadata } from '../../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
 import { PositiveNumber } from '../../../../../../src/Contexts/shared/domain/valueObject/PositiveNumber.js';
 import { StringValueObject } from '../../../../../../src/Contexts/shared/domain/valueObject/StringValueObject.js';
 import { PlantInstanceMother } from '../../../PlantInstances/domain/mothers/PlantInstanceMother.js';
+import { BedFactory } from '../mothers/BedFactory.js';
 
 describe('Bed (unit)', () => {
   let validatePlacement: jest.Mock;
@@ -269,5 +273,93 @@ describe('Bed (unit)', () => {
     bed.markAsDeleted();
 
     expect(() => bed.markAsDeleted()).toThrow(DomainConflictException);
+  });
+
+  describe('rename', () => {
+    it('changes only name', () => {
+      const original = bedDomainMapper.toPrimitives(bed);
+      bed.rename('New Name');
+      const result = bedDomainMapper.toPrimitives(bed);
+
+      expect(result.name).toBe('New Name');
+      expect(result.width).toBe(original.width);
+      expect(result.height).toBe(original.height);
+      expect(result.depth).toBe(original.depth);
+      expect(result.id).toBe(original.id);
+      expect(result.userId).toBe(original.userId);
+      expect(result.version).toBe(original.version);
+    });
+
+    it('throws DomainConflictException on a soft-deleted bed', () => {
+      bed.markAsDeleted();
+      expect(() => bed.rename('New Name')).toThrow(DomainConflictException);
+    });
+  });
+
+  describe('resize', () => {
+    it('changes only width when given', () => {
+      const original = bedDomainMapper.toPrimitives(bed);
+      bed.resize({ width: 150 });
+      const result = bedDomainMapper.toPrimitives(bed);
+
+      expect(result.width).toBe(150);
+      expect(result.height).toBe(original.height);
+      expect(result.depth).toBe(original.depth);
+    });
+
+    it('changes several dimensions at once', () => {
+      bed.resize({ width: 300, height: 400, depth: 50 });
+      const result = bedDomainMapper.toPrimitives(bed);
+
+      expect(result.width).toBe(300);
+      expect(result.height).toBe(400);
+      expect(result.depth).toBe(50);
+    });
+
+    it('throws InvalidArgumentException naming field for zero width', () => {
+      const before = bedDomainMapper.toPrimitives(bed);
+      expect(() => bed.resize({ width: 0 })).toThrow(/width/);
+      expect(bedDomainMapper.toPrimitives(bed)).toEqual(before);
+    });
+
+    it('throws InvalidArgumentException for non-finite value', () => {
+      const before = bedDomainMapper.toPrimitives(bed);
+      expect(() => bed.resize({ width: Number.NaN })).toThrow(
+        InvalidArgumentException
+      );
+      expect(bedDomainMapper.toPrimitives(bed)).toEqual(before);
+    });
+
+    it('is atomic: throws and leaves bed unchanged on invalid combined input', () => {
+      const before = bedDomainMapper.toPrimitives(bed);
+      expect(() => bed.resize({ width: 300, height: -1 })).toThrow();
+      expect(bedDomainMapper.toPrimitives(bed)).toEqual(before);
+    });
+
+    it('throws DomainConflictException on a soft-deleted bed', () => {
+      bed.markAsDeleted();
+      expect(() => bed.resize({ width: 150 })).toThrow(DomainConflictException);
+    });
+
+    it('does not modify id, userId, version, metadata, or plantInstances', () => {
+      const original = bedDomainMapper.toPrimitives(bed);
+      bed.resize({ width: 150 });
+      const result = bedDomainMapper.toPrimitives(bed);
+
+      expect(result.id).toBe(original.id);
+      expect(result.userId).toBe(original.userId);
+      expect(result.version).toBe(original.version);
+    });
+  });
+
+  describe('rename + resize on deleted bed', () => {
+    it('rename does not modify a deleted bed', () => {
+      const deletedBed = BedFactory.randomDeleted();
+      const before = bedDomainMapper.toPrimitives(deletedBed);
+      expect(() => deletedBed.rename('Changed')).toThrow(
+        DomainConflictException
+      );
+      expect(bedDomainMapper.toPrimitives(deletedBed)).toEqual(before);
+    });
   });
 });

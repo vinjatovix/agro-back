@@ -6,7 +6,6 @@ import {
   DomainStaleVersionException
 } from '../../../../src/Contexts/shared/domain/errors/index.js';
 import { diffObjects } from '../../../../src/shared/domain/diff/diffObjects.js';
-import { applyPatch } from '../../../../src/shared/domain/patch/applyPatch.js';
 import type { PaginatedResult } from '../../../../src/shared/domain/query/interfaces/PaginatedResult.js';
 import type { QueryOptions } from '../../../../src/shared/domain/query/interfaces/QueryOptions.js';
 import type { Nullable } from '../../../../src/shared/domain/types/Nullable.js';
@@ -41,6 +40,7 @@ export abstract class BaseMongoCrudRepositoryMock<
   private failOnSave = false;
 
   protected abstract toDomain(primitives: TPrimitives): TEntity;
+  protected abstract toPrimitives(entity: TEntity): TPrimitives;
   protected abstract entityName(): string;
 
   protected isActive(_entity: TEntity): boolean {
@@ -61,7 +61,9 @@ export abstract class BaseMongoCrudRepositoryMock<
     this.findByIdMock(id);
     this.readCalls.findById += 1;
 
-    return this.storage.get(id) ?? null;
+    const entity = this.storage.get(id);
+
+    return entity ? this.toDomain(this.toPrimitives(entity)) : null;
   }
 
   async findActiveById(id: string): Promise<Nullable<TEntity>> {
@@ -70,7 +72,9 @@ export abstract class BaseMongoCrudRepositoryMock<
 
     const entity = this.storage.get(id);
 
-    return entity && this.isActive(entity) ? entity : null;
+    return entity && this.isActive(entity)
+      ? this.toDomain(this.toPrimitives(entity))
+      : null;
   }
 
   async findAll(
@@ -114,20 +118,19 @@ export abstract class BaseMongoCrudRepositoryMock<
    */
   async updateWithDiff(
     current: TPrimitives,
-    updated: unknown,
+    updated: TPrimitives,
     username: string
   ): Promise<void> {
     this.updateMock(current, updated, username);
 
     const id = current.id;
-    const patched = applyPatch(current, updated as TPrimitives);
 
-    if (!this.hasChanges(current, patched)) return;
+    if (!this.hasChanges(current, updated)) return;
 
     const persisted = this.persisted.get(id);
 
     if (persisted?.active && persisted.version === current.version) {
-      this.store(this.toDomain({ ...patched, version: current.version + 1 }));
+      this.store(this.toDomain({ ...updated, version: current.version + 1 }));
       return;
     }
 
@@ -142,13 +145,11 @@ export abstract class BaseMongoCrudRepositoryMock<
     throw new DomainNotFoundException(`${this.entityName()} not found: ${id}`);
   }
 
-  /** Same rule as MongoRepository.normalizePatch: `undefined` is ignored. */
-  private hasChanges(current: TPrimitives, patched: TPrimitives): boolean {
-    const diff = diffObjects(current, patched);
+  private hasChanges(current: TPrimitives, updated: TPrimitives): boolean {
+    const diff = diffObjects(current, updated);
 
     return (
-      Object.values(diff.set).some((value) => value !== undefined) ||
-      Object.keys(diff.unset).length > 0
+      Object.keys(diff.set).length > 0 || Object.keys(diff.unset).length > 0
     );
   }
 
@@ -220,6 +221,17 @@ export abstract class BaseMongoCrudRepositoryMock<
 
   assertUpdateNotCalled(): void {
     expect(this.updateMock).not.toHaveBeenCalled();
+  }
+
+  getLastUpdateArgs(): [TPrimitives, TPrimitives, string] {
+    const calls = this.updateMock.mock.calls as [
+      TPrimitives,
+      TPrimitives,
+      string
+    ][];
+    expect(this.updateMock).toHaveBeenCalled();
+
+    return calls[calls.length - 1] as [TPrimitives, TPrimitives, string];
   }
 
   assertFindAllCalled(): void {

@@ -1,35 +1,36 @@
-import type { RangePrimitives } from '../../../../../../shared/domain/value-objects/interfaces/RangePrimitives.js';
-import type { PlantKnowledgePrimitives } from '../../../domain/entities/types/PlantKnowledgePrimitives.js';
+import type { PartialRange } from '../../../../../../shared/domain/value-objects/interfaces/PartialRange.js';
+import type { PlantKnowledgeChanges } from '../../../domain/entities/types/PlantKnowledgeChanges.js';
 import type { PlantLifecycleValue } from '../../../domain/entities/types/PlantLifecycleValue.js';
 
+// Ranges are partial: PATCH may send a single bound, merged by the domain.
 export interface UpdatePlantDto {
   identity?: {
     name?: {
       primary?: string;
       aliases?: string[];
     };
-    scientificName?: string | null;
+    scientificName?: string;
     family?: string;
   };
 
   traits?: {
     lifecycle?: PlantLifecycleValue;
     size?: {
-      height?: RangePrimitives;
-      spread?: RangePrimitives;
+      height?: PartialRange;
+      spread?: PartialRange;
     };
 
-    spacingCm?: RangePrimitives;
+    spacingCm?: PartialRange;
   };
 
   phenology?: {
     sowing?: {
       months?: number[];
-      seedsPerHole?: RangePrimitives;
-      germinationDays?: RangePrimitives;
+      seedsPerHole?: PartialRange;
+      germinationDays?: PartialRange;
       methods?: {
-        direct?: { depthCm: RangePrimitives };
-        starter?: { depthCm: RangePrimitives };
+        direct?: { depthCm?: PartialRange };
+        starter?: { depthCm?: PartialRange };
       };
     };
     flowering?: {
@@ -45,5 +46,5 @@ export interface UpdatePlantDto {
     };
   };
 
-  knowledge?: PlantKnowledgePrimitives;
+  knowledge?: PlantKnowledgeChanges;
 }

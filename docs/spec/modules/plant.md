@@ -156,7 +156,9 @@ The `knowledge` field contains rich agronomic and ecological information (option
 
 #### 4.4.1 Propagation Knowledge `[TARGET STATE (Pending [Iteration 12](../../roadmap.md#iteration-12-migrate-plants-endpoints-to-zod))]`
 
-Instead of a flat array of keywords, propagation methods are defined as a rich structured object under `knowledge.propagation.methods` where each active propagation technique is mapped by name (e.g., `'division'`, `'cutting'`, `'layering'`, `'seed'`, `'sucker'`, `'grafting'`) to its own biological requirements:
+Instead of a flat array of keywords, propagation methods are defined as a rich structured object under `knowledge.propagation.methods` where each active propagation technique is mapped by name (e.g., `'division'`, `'cutting'`, `'layering'`, `'seed'`, `'sucker'`, `'grafting'`) to its own biological requirements.
+
+**Current state (Iteration 7):** on `PATCH`, method names must be camelCase letters (`^[a-z][a-zA-Z]*$`), because they become storage paths; any other name returns `400`. Restricting them to a closed list of known techniques is left to Iteration 12.
 
 ```ts
 type PropagationMethodDetails = {
@@ -252,6 +254,19 @@ This is enforced in constructor.
 - props are deeply frozen
 - domain state cannot be mutated externally
 - only controlled mutations via explicit methods
+
+---
+
+### 5.4 Aggregate mutation methods (Iteration 7)
+
+`Plant` exposes four explicit mutation methods:
+
+- `updateIdentity(changes)` — updates `name.primary`, `name.aliases`, `scientificName`, `family`; text fields trimmed, empty after trim → `InvalidArgumentException` (`400`); `scientificName`/`family` cannot be `null`; aliases trimmed with empty entries dropped; ranges must be objects, aliases must be strings
+- `updateTraits(changes)` — updates trait fields
+- `updatePhenology(changes)` — updates phenology fields
+- `updateKnowledge(changes)` — updates knowledge fields; `rootSystem` cannot be cleared with `null` (`rootSystem: null` → `400`). Object sections (`soil`, `rootSystem`, `watering`, `light`, propagation methods) merge key by key and ranges merge by bound. A section or range created from scratch must carry its required fields (both range bounds, `rootSystem.type`, `watering.frequency`, `light.hoursMin` and `light.type`); no default values are filled in. `propagation` and `ecology` without any field to apply (e.g. `{}`) keep the current value, so they neither create an empty section nor bump `version`
+
+All methods: throw `DomainConflictException` on a soft-deleted plant; validate before mutating (atomic); `identity.scientificName` is never `null`.
 
 ---
 

@@ -13,7 +13,6 @@ export type PlantKnowledgePrimitives = {
   rootSystem?: RootSystemPrimitives;
   watering?: {
     frequency: WateringFrequency;
-    amountMm?: number;
     conditions?: string[];
   };
   light?: PlantLightPrimitives;

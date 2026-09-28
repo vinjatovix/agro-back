@@ -310,7 +310,6 @@ Feature: Create a new plant
           },
           "watering": {
             "frequency": "weekly",
-            "amountMm": 25,
             "conditions": [
               "no_rain"
             ]
@@ -726,3 +725,77 @@ Feature: Create a new plant
       }
       """
     And response matches OpenAPI contract
+
+  Scenario Outline: Fail to create a plant with an unsafe knowledge shape
+    Given a family exists
+    And a POST admin request to "/api/v1/plants" with body
+      """
+      {
+        "id": "5b0f3c1e-8d2a-4f6b-9c7e-1a2b3c4d5e6f",
+        "identity": {
+          "name": {
+            "primary": "Test"
+          },
+          "family": "<familyId>"
+        },
+        "traits": {
+          "lifecycle": "annual",
+          "size": {
+            "height": {
+              "min": 10,
+              "max": 20
+            },
+            "spread": {
+              "min": 10,
+              "max": 20
+            }
+          },
+          "spacingCm": {
+            "min": 10,
+            "max": 20
+          }
+        },
+        "phenology": {
+          "sowing": {
+            "months": [
+              1
+            ],
+            "seedsPerHole": {
+              "min": 1,
+              "max": 1
+            },
+            "germinationDays": {
+              "min": 1,
+              "max": 2
+            },
+            "methods": {
+              "direct": {
+                "depthCm": {
+                  "min": 1,
+                  "max": 1
+                }
+              }
+            }
+          },
+          "flowering": {
+            "months": [
+              1
+            ]
+          },
+          "harvest": {
+            "months": [
+              1
+            ]
+          }
+        },
+        "knowledge": <knowledge>
+      }
+      """
+    Then the response status code should be 400
+    And the response errors should include "<errorPath>"
+    And response matches OpenAPI contract
+
+    Examples:
+      | knowledge                                                                   | errorPath                     |
+      | { "watering": { "frequency": "weekly", "amountMm": 25 } }                   | knowledge.watering            |
+      | { "propagation": { "methods": { "seed.season": { "season": "spring" } } } } | knowledge.propagation.methods |
