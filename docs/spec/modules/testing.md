@@ -135,6 +135,7 @@ Added coverage:
 ## 3. COVERAGE RULES
 
 - minimum coverage: 80%
+- coverage is produced by `jest --coverage` (`coverage/lcov.info`), which SonarCloud consumes
 - enforced at CI level
 - PRs failing coverage MUST be rejected
 

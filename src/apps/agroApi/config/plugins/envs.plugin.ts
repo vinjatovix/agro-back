@@ -3,7 +3,8 @@ import env from 'env-var';
 
 dotenv.config({
   path: process.env.NODE_ENV === 'test' ? '.env.test' : '.env',
-  override: true
+  override: true,
+  quiet: true
 });
 
 export const envs = {

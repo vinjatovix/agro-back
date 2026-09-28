@@ -3,6 +3,10 @@ import type { ValidateMail } from '../../../../Contexts/Auth/application/index.j
 import { createError } from '../../../../shared/errors/index.js';
 import { HttpController } from '../../shared/HttpController.js';
 
+type ValidateMailParams = {
+  token: string;
+};
+
 export type ValidateMailControllerDependencies = {
   validateMail: ValidateMail;
 };
@@ -14,7 +18,11 @@ export class ValidateMailController extends HttpController {
     this.validateMail = validateMail;
   }
 
-  run = async (req: Request, res: Response, next: NextFunction) => {
+  run = async (
+    req: Request<ValidateMailParams>,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const { token } = req.params;
 

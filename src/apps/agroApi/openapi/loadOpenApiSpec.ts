@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import yaml from 'js-yaml';
+import { load } from 'js-yaml';
 
 export function loadOpenApiSpec() {
   const filePath = path.resolve(
@@ -10,7 +10,7 @@ export function loadOpenApiSpec() {
 
   const file = fs.readFileSync(filePath, 'utf8');
 
-  const doc = yaml.load(file);
+  const doc = load(file);
 
   if (!doc || typeof doc !== 'object') {
     throw new Error('Invalid OpenAPI spec');

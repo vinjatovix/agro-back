@@ -10,6 +10,10 @@ import { getExpectedVersion } from '../../middlewares/requireIfMatch.js';
 import { HttpController } from '../../shared/HttpController.js';
 import { setVersionETag } from '../../shared/setVersionETag.js';
 
+type UpdateBedParams = {
+  id: string;
+};
+
 export type UpdateBedControllerDependencies = {
   updateBed: UpdateBed;
 };
@@ -21,7 +25,11 @@ export class UpdateBedController extends HttpController {
     this.updateBed = updateBed;
   }
 
-  run = async (req: Request, res: Response, next: NextFunction) => {
+  run = async (
+    req: Request<UpdateBedParams>,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const { id } = req.params;
       if (!id) {

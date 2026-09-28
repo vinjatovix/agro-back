@@ -101,8 +101,7 @@ export class AuthRepositoryMock implements AuthRepository {
   assertUpdateHasBeenCalledWith(expected: UserPatch): void {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const lastCall = this.updateMock.mock.calls.at(-1) as
-      | [UserPatch, Username]
-      | undefined;
+      [UserPatch, Username] | undefined;
     expect(lastCall?.[0]).toEqual(expected);
   }
 
