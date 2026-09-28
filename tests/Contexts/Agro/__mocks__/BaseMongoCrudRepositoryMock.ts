@@ -11,9 +11,7 @@ import type { QueryOptions } from '../../../../src/shared/domain/query/interface
 import type { Nullable } from '../../../../src/shared/domain/types/Nullable.js';
 
 export type RepositoryReadMethod =
-  | 'findById'
-  | 'findActiveById'
-  | 'findOwnedActiveById';
+  'findById' | 'findActiveById' | 'findOwnedActiveById';
 
 export abstract class BaseMongoCrudRepositoryMock<
   TEntity extends { id: string; version: number },
