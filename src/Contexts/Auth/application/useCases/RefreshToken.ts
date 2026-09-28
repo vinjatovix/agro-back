@@ -1,5 +1,5 @@
-import type { EncrypterTool } from '../../../shared/plugins/EncrypterTool.js';
 import { DomainUnauthorizedException } from '../../../shared/domain/errors/index.js';
+import type { EncrypterTool } from '../../../shared/plugins/EncrypterTool.js';
 
 export class RefreshToken {
   constructor(private readonly encrypter: EncrypterTool) {}

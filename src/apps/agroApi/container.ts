@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import {
   asClass,
   asFunction,
@@ -6,8 +8,42 @@ import {
   InjectionMode,
   type AwilixContainer
 } from 'awilix';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import type { Db, MongoClient } from 'mongodb';
+import { CreateBed } from '../../Contexts/Agro/Beds/application/useCases/CreateBed.js';
+import { DeleteBed } from '../../Contexts/Agro/Beds/application/useCases/DeleteBed.js';
+import { GetBedById } from '../../Contexts/Agro/Beds/application/useCases/GetBedById.js';
+import { ListUserBeds } from '../../Contexts/Agro/Beds/application/useCases/ListUserBeds.js';
+import { UpdateBed } from '../../Contexts/Agro/Beds/application/useCases/UpdateBed.js';
+import { MongoBedRepository } from '../../Contexts/Agro/Beds/infrastructure/persistence/MongoBedRepository.js';
+import { bedPersistenceMapper } from '../../Contexts/Agro/Beds/mappers/bedPersistenceMapper.js';
+import {
+  CreateFamily,
+  GetFamilyById,
+  GetFamilyBySlug,
+  ListFamilies,
+  UpdateFamily
+} from '../../Contexts/Agro/Families/application/useCases/index.js';
+import { MongoFamilyRepository } from '../../Contexts/Agro/Families/infrastructure/persistence/MongoFamilyRepository.js';
+import { familyPersistenceMapper } from '../../Contexts/Agro/Families/mappers/familyPersistenceMapper.js';
+import { DeletePlant } from '../../Contexts/Agro/Plants/application/useCases/DeletePlant.js';
+import {
+  CreatePlant,
+  GetPlant,
+  UpdatePlant,
+  ListPlants
+} from '../../Contexts/Agro/Plants/application/useCases/index.js';
+import { PlantQueryMapper } from '../../Contexts/Agro/Plants/infrastructure/persistence/mongo/mappers/PlantQueryMapper.js';
+import { MongoPlantRepository } from '../../Contexts/Agro/Plants/infrastructure/persistence/mongo/MongoPlantRepository.js';
+import { plantPersistenceMapper } from '../../Contexts/Agro/Plants/mappers/plantPersistenceMapper.js';
+import {
+  AuthenticateWithGoogle,
+  LoginUserLocal,
+  RefreshToken,
+  RegisterUserLocal,
+  UpdatePasswordLocal,
+  ValidateMail
+} from '../../Contexts/Auth/application/index.js';
+import { MongoAuthRepository } from '../../Contexts/Auth/infrastructure/persistence/index.js';
 import { CheckHealth } from '../../Contexts/health/application/index.js';
 import {
   GoogleIdTokenVerifierAdapter,
@@ -19,22 +55,6 @@ import {
   DBEnvironmentArranger,
   type DBConfig
 } from '../../shared/infrastructure/persistence/index.js';
-import { MongoAuthRepository } from '../../Contexts/Auth/infrastructure/persistence/index.js';
-import {
-  AuthenticateWithGoogle,
-  LoginUserLocal,
-  RefreshToken,
-  RegisterUserLocal,
-  UpdatePasswordLocal,
-  ValidateMail
-} from '../../Contexts/Auth/application/index.js';
-import { MongoPlantRepository } from '../../Contexts/Agro/Plants/infrastructure/persistence/mongo/MongoPlantRepository.js';
-import {
-  CreatePlant,
-  GetPlant,
-  UpdatePlant,
-  ListPlants
-} from '../../Contexts/Agro/Plants/application/useCases/index.js';
 import {
   AuthenticateWithGoogleController,
   LoginUserLocalController,
@@ -49,6 +69,38 @@ import {
   type UpdatePasswordLocalControllerDependencies,
   type ValidateMailControllerDependencies
 } from './controllers/Auth/index.js';
+import {
+  CreateBedController,
+  type CreateBedControllerDependencies
+} from './controllers/Beds/CreateBedController.js';
+import {
+  DeleteBedController,
+  type DeleteBedControllerDependencies
+} from './controllers/Beds/DeleteBedController.js';
+import {
+  GetBedByIdController,
+  type GetBedByIdControllerDependencies
+} from './controllers/Beds/GetBedByIdController.js';
+import {
+  GetUserBedsController,
+  type GetUserBedsControllerDependencies
+} from './controllers/Beds/GetUserBedsController.js';
+import {
+  UpdateBedController,
+  type UpdateBedControllerDependencies
+} from './controllers/Beds/UpdateBedController.js';
+import {
+  CreateFamilyController,
+  GetFamilyBySlugController,
+  GetAllFamiliesController,
+  type CreateFamilyControllerDependencies,
+  type GetFamilyBySlugControllerDependencies,
+  type GetAllFamiliesControllerDependencies
+} from './controllers/Families/index.js';
+import {
+  UpdateFamilyController,
+  type UpdateFamilyControllerDependencies
+} from './controllers/Families/UpdateFamilyController.js';
 import {
   HealthController,
   type HealthControllerDependencies
@@ -65,59 +117,7 @@ import {
   type GetPlantByIdControllerDependencies,
   type UpdatePlantControllerDependencies
 } from './controllers/Plants/index.js';
-import { DeletePlant } from '../../Contexts/Agro/Plants/application/useCases/DeletePlant.js';
-import { MongoBedRepository } from '../../Contexts/Agro/Beds/infrastructure/persistence/MongoBedRepository.js';
-import {
-  CreateBedController,
-  type CreateBedControllerDependencies
-} from './controllers/Beds/CreateBedController.js';
-import { CreateBed } from '../../Contexts/Agro/Beds/application/useCases/CreateBed.js';
-import {
-  GetUserBedsController,
-  type GetUserBedsControllerDependencies
-} from './controllers/Beds/GetUserBedsController.js';
-import {
-  GetBedByIdController,
-  type GetBedByIdControllerDependencies
-} from './controllers/Beds/GetBedByIdController.js';
-import {
-  UpdateBedController,
-  type UpdateBedControllerDependencies
-} from './controllers/Beds/UpdateBedController.js';
-import { ListUserBeds } from '../../Contexts/Agro/Beds/application/useCases/ListUserBeds.js';
-import { UpdateBed } from '../../Contexts/Agro/Beds/application/useCases/UpdateBed.js';
-import {
-  DeleteBedController,
-  type DeleteBedControllerDependencies
-} from './controllers/Beds/DeleteBedController.js';
-import { DeleteBed } from '../../Contexts/Agro/Beds/application/useCases/DeleteBed.js';
-import { GetBedById } from '../../Contexts/Agro/Beds/application/useCases/GetBedById.js';
-import { MongoFamilyRepository } from '../../Contexts/Agro/Families/infrastructure/persistence/MongoFamilyRepository.js';
-import type { Db, MongoClient } from 'mongodb';
-import { bedPersistenceMapper } from '../../Contexts/Agro/Beds/mappers/bedPersistenceMapper.js';
-import { plantPersistenceMapper } from '../../Contexts/Agro/Plants/mappers/plantPersistenceMapper.js';
-import {
-  CreateFamily,
-  GetFamilyById,
-  GetFamilyBySlug,
-  ListFamilies,
-  UpdateFamily
-} from '../../Contexts/Agro/Families/application/useCases/index.js';
-import {
-  CreateFamilyController,
-  GetFamilyBySlugController,
-  GetAllFamiliesController,
-  type CreateFamilyControllerDependencies,
-  type GetFamilyBySlugControllerDependencies,
-  type GetAllFamiliesControllerDependencies
-} from './controllers/Families/index.js';
-import { familyPersistenceMapper } from '../../Contexts/Agro/Families/mappers/familyPersistenceMapper.js';
 import { FamilyQueryParser, PlantQueryParser } from './query/index.js';
-import { PlantQueryMapper } from '../../Contexts/Agro/Plants/infrastructure/persistence/mongo/mappers/PlantQueryMapper.js';
-import {
-  UpdateFamilyController,
-  type UpdateFamilyControllerDependencies
-} from './controllers/Families/UpdateFamilyController.js';
 
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 

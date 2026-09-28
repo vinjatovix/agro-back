@@ -1,5 +1,5 @@
-import { DateValueObject } from '../../../../../src/Contexts/shared/domain/valueObject/DateValueObject.js';
 import { InvalidArgumentException } from '../../../../../src/Contexts/shared/domain/errors/index.js';
+import { DateValueObject } from '../../../../../src/Contexts/shared/domain/valueObject/DateValueObject.js';
 
 describe('DateValueObject', () => {
   it('should create a valid date value object from an ISO string', () => {

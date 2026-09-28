@@ -1,14 +1,14 @@
 import type { Db } from 'mongodb';
+import type { Nullable } from '../../../../../shared/domain/types/Nullable.js';
+import type { UnknownRecord } from '../../../../../shared/domain/types/UnknownRecord.js';
 import { MongoCrudRepository } from '../../../../shared/infrastructure/persistence/mongo/MongoCrudRepository.js';
+import { toMongoId } from '../../../../shared/infrastructure/persistence/mongo/MongoId.js';
 import type { Bed } from '../../domain/entities/Bed.js';
 import type { BedFilter } from '../../domain/entities/types/BedFilter.js';
 import type { BedPrimitives } from '../../domain/entities/types/BedPrimitives.js';
 import type { BedRepository } from '../../domain/repositories/interfaces/BedRepository.js';
-import type { MongoBedDocument } from './types/MongoBedDocument.js';
 import type { BedPersistenceMapper } from '../../mappers/interfaces/BedPersistenceMapper.js';
-import { toMongoId } from '../../../../shared/infrastructure/persistence/mongo/MongoId.js';
-import type { Nullable } from '../../../../../shared/domain/types/Nullable.js';
-import type { UnknownRecord } from '../../../../../shared/domain/types/UnknownRecord.js';
+import type { MongoBedDocument } from './types/MongoBedDocument.js';
 
 export class MongoBedRepository
   extends MongoCrudRepository<Bed, BedPrimitives, MongoBedDocument, BedFilter>

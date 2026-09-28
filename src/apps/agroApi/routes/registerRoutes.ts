@@ -1,10 +1,9 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { Router } from 'express';
 import { globSync } from 'glob';
 import type { RouteModule } from './route.types.js';
 import { getRegisterRouteOrThrow } from './routeModuleValidation.js';
-
-import { fileURLToPath } from 'node:url';
-import path from 'node:path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

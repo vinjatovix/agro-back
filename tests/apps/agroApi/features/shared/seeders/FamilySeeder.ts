@@ -1,8 +1,8 @@
-import request from 'supertest';
 import type { Server } from 'node:http';
+import request from 'supertest';
 import type { CreateFamilyDto } from '../../../../../../src/Contexts/Agro/Families/application/useCases/interfaces/CreateFamilyDto.js';
-import { random } from '../../../../../Contexts/shared/fixtures/random.js';
 import type { FamilyPrimitives } from '../../../../../../src/Contexts/Agro/Families/domain/types/FamilyPrimitives.js';
+import { random } from '../../../../../Contexts/shared/fixtures/random.js';
 
 export const FamilySeeder = (httpServer: Server, token: string) => {
   return {

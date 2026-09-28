@@ -1,7 +1,7 @@
 import { InvalidArgumentException } from '../../../../../shared/domain/errors/index.js';
-import type { SpatialService } from './interfaces/SpatialService.js';
 import type { SpatialContext } from './interfaces/SpatialContext.js';
 import type { SpatialPlantModel } from './interfaces/SpatialPlantModel.js';
+import type { SpatialService } from './interfaces/SpatialService.js';
 
 export class BasicSpatialService implements SpatialService {
   validatePlacement(

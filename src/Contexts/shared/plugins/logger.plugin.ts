@@ -1,7 +1,7 @@
+import type { MongoClient } from 'mongodb';
 import winston from 'winston';
 import 'winston-mongodb';
 import { envs } from '../../../apps/agroApi/config/plugins/envs.plugin.js';
-import type { MongoClient } from 'mongodb';
 
 export interface AppLogger {
   debug: (message: string) => void;

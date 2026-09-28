@@ -1,8 +1,8 @@
 import type { UnknownRecord } from '../types/UnknownRecord.js';
-import type { DeepPartial } from './interfaces/DeepPartial.js';
 import { isArray } from '../utils/isArray.js';
 import { isObject } from '../utils/isObject.js';
 import { isPrimitive } from '../utils/isPrimitive.js';
+import type { DeepPartial } from './interfaces/DeepPartial.js';
 
 function applyObjectPatch<T extends UnknownRecord>(
   target: T,

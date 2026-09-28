@@ -1,11 +1,11 @@
 import type { Binary } from 'bson';
 import { Collection, Db, MongoServerError, type Document } from 'mongodb';
 
+import type { UnknownRecord } from '../../../../../shared/domain/types/UnknownRecord.js';
 import type { Username } from '../../../../Auth/domain/value-objects/Username.js';
 import { updateMetadata } from '../../../application/utils/updateMetadata.js';
 import { MongoErrorHandler } from './MongoErrorHandler.js';
 import { toMongoId } from './MongoId.js';
-import type { UnknownRecord } from '../../../../../shared/domain/types/UnknownRecord.js';
 
 export abstract class MongoRepository {
   constructor(protected readonly db: Db) {}

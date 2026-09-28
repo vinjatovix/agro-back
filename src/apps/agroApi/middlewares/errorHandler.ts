@@ -1,8 +1,8 @@
 import type { NextFunction, Request, Response } from 'express';
 import httpStatus from 'http-status';
 
-import type { AppLogger } from '../../../Contexts/shared/plugins/logger.plugin.js';
 import { DomainException } from '../../../Contexts/shared/domain/errors/index.js';
+import type { AppLogger } from '../../../Contexts/shared/plugins/logger.plugin.js';
 import { HttpError } from '../../../shared/errors/index.js';
 import type { ApiErrorResponse } from '../shared/interfaces/ApiErrorResponse.js';
 import { domainExceptionMapper } from './helpers/index.js';

@@ -3,6 +3,7 @@ const { defineConfig, globalIgnores } = require('eslint/config');
 const globals = require('globals');
 const tsParser = require('@typescript-eslint/parser');
 const typescriptEslint = require('@typescript-eslint/eslint-plugin');
+const importX = require('eslint-plugin-import-x');
 const js = require('@eslint/js');
 
 const { FlatCompat } = require('@eslint/eslintrc');
@@ -32,7 +33,8 @@ module.exports = defineConfig([
     },
 
     plugins: {
-      '@typescript-eslint': typescriptEslint
+      '@typescript-eslint': typescriptEslint,
+      'import-x': importX
     },
 
     extends: compat.extends(
@@ -44,6 +46,16 @@ module.exports = defineConfig([
 
     rules: {
       complexity: ['error', 10],
+      // AGENTS.md import order: Node built-ins, npm packages, then parent
+      // (distant first), then siblings; alphabetical within each group.
+      'import-x/order': [
+        'error',
+        {
+          groups: ['builtin', 'external', 'parent', ['sibling', 'index']],
+          'newlines-between': 'ignore',
+          alphabetize: { order: 'asc', caseInsensitive: true }
+        }
+      ],
       '@typescript-eslint/no-misused-promises': [
         'error',
         {
