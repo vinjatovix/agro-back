@@ -3,7 +3,6 @@ import type { EncrypterTool } from '../../../Contexts/shared/plugins/EncrypterTo
 import type { AppLogger } from '../../../Contexts/shared/plugins/logger.plugin.js';
 import type { AppContainer } from '../container.js';
 import { EnsureAuthentication } from './EnsureAuthentication.js';
-import { asyncHandler } from './helpers/index.js';
 
 type RequestWithContainer = Request & {
   container: AppContainer;
@@ -17,8 +16,10 @@ const getDeps = (req: Request) => {
   };
 };
 
-export const auth = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
-    await EnsureAuthentication.run(getDeps(req), req, res, next);
-  }
-);
+export const auth = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  await EnsureAuthentication.run(getDeps(req), req, res, next);
+};

@@ -3,7 +3,6 @@ import type { EncrypterTool } from '../../../Contexts/shared/plugins/EncrypterTo
 import type { AppLogger } from '../../../Contexts/shared/plugins/logger.plugin.js';
 import { createError } from '../../../shared/errors/index.js';
 import type { AppContainer } from '../container.js';
-import { asyncHandler } from './helpers/index.js';
 
 type RequestWithContainer = Request & {
   container: AppContainer;
@@ -17,39 +16,41 @@ const getDeps = (req: Request) => {
   };
 };
 
-export const optionalAuth = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const { logger, encrypter } = getDeps(req);
+export const optionalAuth = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  const { logger, encrypter } = getDeps(req);
 
-    try {
-      const token = req.headers.authorization;
+  try {
+    const token = req.headers.authorization;
 
-      if (!token) {
-        return next();
-      }
-
-      if (!token.startsWith('Bearer ')) {
-        logger.warn('[auth] invalid_bearer_optional');
-        return next(createError.auth('Invalid token'));
-      }
-
-      const trimmed = token.replace('Bearer ', '');
-
-      const userData = await encrypter.verifyToken(trimmed);
-      if (!userData) {
-        logger.warn('[auth] invalid_token_optional');
-        return next(createError.auth('Invalid token'));
-      }
-
-      res.locals.user = {
-        ...userData,
-        token: trimmed
-      };
-
-      next();
-    } catch (error) {
-      logger.error('[auth] optional_auth_failure', error);
-      next(error);
+    if (!token) {
+      return next();
     }
+
+    if (!token.startsWith('Bearer ')) {
+      logger.warn('[auth] invalid_bearer_optional');
+      return next(createError.auth('Invalid token'));
+    }
+
+    const trimmed = token.replace('Bearer ', '');
+
+    const userData = await encrypter.verifyToken(trimmed);
+    if (!userData) {
+      logger.warn('[auth] invalid_token_optional');
+      return next(createError.auth('Invalid token'));
+    }
+
+    res.locals.user = {
+      ...userData,
+      token: trimmed
+    };
+
+    next();
+  } catch (error) {
+    logger.error('[auth] optional_auth_failure', error);
+    next(error);
   }
-);
+};
