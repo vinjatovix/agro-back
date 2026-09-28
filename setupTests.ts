@@ -2,7 +2,8 @@ import { config } from 'dotenv';
 
 config({
   path: '.env.test',
-  override: true
+  override: true,
+  quiet: true
 });
 
 const {
