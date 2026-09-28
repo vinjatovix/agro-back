@@ -16,6 +16,10 @@ export class PlantRepositoryMock
     return plantDomainMapper.fromPrimitives(primitives);
   }
 
+  protected toPrimitives(entity: Plant): PlantPrimitives {
+    return plantDomainMapper.toPrimitives(entity);
+  }
+
   protected entityName(): string {
     return 'Plant';
   }

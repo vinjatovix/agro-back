@@ -1124,7 +1124,6 @@ components:
                     type: string
             scientificName:
               type: string
-              nullable: true
             family:
               type: string
 
@@ -1232,8 +1231,6 @@ components:
           properties:
             frequency:
               type: string
-            amountMm:
-              type: number
             conditions:
               type: array
               items:

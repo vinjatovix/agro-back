@@ -1,9 +1,9 @@
 import { createFamilyId } from '../../../../../src/Contexts/Agro/Families/domain/FamilyId.js';
-import {
-  type IdentityDomain,
-  type IdentityPrimitives,
-  plantIdentityMapper
-} from '../../../../../src/Contexts/Agro/Plants/mappers/plantIdentityMapper.js';
+import type {
+  IdentityDomain,
+  IdentityPrimitives
+} from '../../../../../src/Contexts/Agro/Plants/domain/entities/types/index.js';
+import { plantIdentityMapper } from '../../../../../src/Contexts/Agro/Plants/mappers/plantIdentityMapper.js';
 import { random } from '../../../shared/fixtures/random.js';
 
 describe('plantIdentityMapper', () => {

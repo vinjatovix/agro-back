@@ -212,6 +212,7 @@ _Note: For the exact HTTP verbs, status codes, and routing parameters exposing t
 - ownership enforcement in API layer
 - validation contract enforcement (OpenAPI-driven tests)
 - optimistic concurrency control via `version` and `If-Match` (stale version → `412`, missing `If-Match` → `428`)
+- aggregate mutation methods: `Bed.rename(name)` and `Bed.resize(changes)` — both throw `DomainConflictException` on a soft-deleted bed; `resize` validates each dimension with `PositiveNumber.create` before mutating (atomic: if any dimension is invalid, nothing changes)
 - soft-deletion invariant: a bed with plants cannot be deleted (`409`, checked after the version: an outdated version returns `412` first); deleting an already deleted bed returns `404`
 
 ### Partial

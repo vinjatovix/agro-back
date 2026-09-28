@@ -1,9 +1,12 @@
 import type { UserId } from '../../../../Auth/domain/UserId.js';
 import { AggregateRoot } from '../../../../shared/domain/entities/AggregateRoot.js';
-import { DomainConflictException } from '../../../../shared/domain/errors/index.js';
+import {
+  DomainConflictException,
+  InvalidArgumentException
+} from '../../../../shared/domain/errors/index.js';
 import type { Metadata } from '../../../../shared/domain/valueObject/Metadata.js';
-import type { PositiveNumber } from '../../../../shared/domain/valueObject/PositiveNumber.js';
-import type { StringValueObject } from '../../../../shared/domain/valueObject/StringValueObject.js';
+import { PositiveNumber } from '../../../../shared/domain/valueObject/PositiveNumber.js';
+import { StringValueObject } from '../../../../shared/domain/valueObject/StringValueObject.js';
 import type { PlantInstance } from '../../../PlantInstances/domain/entities/PlantInstance.js';
 import type { PlantInstanceId } from '../../../PlantInstances/domain/PlantInstanceId.js';
 import type { BedId } from '../BedId.js';
@@ -12,6 +15,7 @@ import type {
   SpatialPlantModel,
   SpatialService
 } from '../services/spatial/interfaces/index.js';
+import type { BedDimensionsChanges } from './types/BedDimensionsChanges.js';
 import type { BedProps } from './types/BedProps.js';
 
 export class Bed extends AggregateRoot<BedId> {
@@ -99,6 +103,46 @@ export class Bed extends AggregateRoot<BedId> {
     if (index === -1) return;
 
     this.props.plantInstances.splice(index, 1);
+  }
+
+  rename(name: string): void {
+    if (this.isDeleted) {
+      throw new DomainConflictException('Cannot rename a deleted bed');
+    }
+    this.props.name = new StringValueObject(name);
+  }
+
+  resize(changes: BedDimensionsChanges): void {
+    if (this.isDeleted) {
+      throw new DomainConflictException('Cannot resize a deleted bed');
+    }
+
+    const width =
+      changes.width !== undefined
+        ? this.buildDimension(changes.width, 'width')
+        : this.props.width;
+    const height =
+      changes.height !== undefined
+        ? this.buildDimension(changes.height, 'height')
+        : this.props.height;
+    const depth =
+      changes.depth !== undefined
+        ? this.buildDimension(changes.depth, 'depth')
+        : this.props.depth;
+
+    this.props.width = width;
+    this.props.height = height;
+    this.props.depth = depth;
+  }
+
+  private buildDimension(value: number, field: string): PositiveNumber {
+    try {
+      return PositiveNumber.create(value);
+    } catch {
+      throw new InvalidArgumentException(
+        `Bed.${field} must be a positive number`
+      );
+    }
   }
 
   static create(props: BedProps): Bed {

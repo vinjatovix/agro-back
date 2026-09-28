@@ -1,4 +1,4 @@
-# MODULE: PERSISTENCE + PATCH SYSTEM CORE
+# MODULE: PERSISTENCE + DIFF SYSTEM CORE
 
 version: 1.4.0
 source-spec: v1.4.0
@@ -13,7 +13,7 @@ This module defines the persistence model and update mechanics for AgroApp.
 It is responsible for:
 
 - translating domain primitives to persistence storage
-- applying partial updates through a deterministic patch system
+- computing and applying the deterministic full-state diff between aggregate states
 - maintaining consistency between stored state and domain model
 - supporting structured query-based read operations (filter/sort/pagination DSL)
 - translating **Query DSL → database queries (MongoDB)**
@@ -31,8 +31,7 @@ This module includes:
 - PlantRepository implementation
 - BedRepository implementation
 - PlantInstanceRepository implementation
-- Patch/diff system
-- DeepPartial update model
+- Full-state diff system (`diffObjects` / `updateWithDiff`)
 - DTO mapping layer
 - persistence lifecycle handling
 - **query translation layer (MongoQueryTranslator)**
@@ -51,32 +50,41 @@ Rules:
 
 ---
 
-## 4. PATCH MODEL
+## 4. DIFF MODEL
 
-### 4.1 DeepPartial<T>
+### 4.1 Full-State Contract
 
-Used for partial updates.
+`updateWithDiff(current, updated, username)` receives **two complete domain-mapper outputs** — the primitives of the same aggregate before and after the mutation method ran. It MUST NOT receive a partial object or a patch fragment.
 
-#### Semantics
+#### Diff semantics
 
-- `undefined` → no operation (field unchanged)
-- `null` → explicit deletion (field removed)
-- `null` on a field that is already `null` or absent → no operation. `diffObjects` emits no `$unset` for it, so a patch with no effective change does not write or bump the aggregate `version` (e.g. an active plant's `deletedAt: null`)
+| Field in `current` | Field in `updated` | Action                         |
+| ------------------ | ------------------ | ------------------------------ |
+| any value          | same value         | `noop` (no write, no `$unset`) |
+| any value          | different value    | `$set`                         |
+| present            | absent             | `$unset`                       |
+| absent             | absent             | `noop`                         |
+| absent             | present            | `$set`                         |
+| `null` or absent   | `null` or absent   | `noop` (no `$unset`)           |
+
+Nested objects are compared key by key. Lists are compared by value (serialized content, including element order) and, when different, replaced entirely with `$set`: the before and after states hold different list instances, so comparing by reference would turn every update into a write. `Date` values are compared by `getTime()`.
+
+An empty diff (no `$set`, no `$unset`) skips the write entirely and does not bump `version`.
 
 #### Constraints
 
-- must preserve type structure
-- must not introduce unknown fields
-- must not bypass domain validation
+- both arguments must be produced by the same domain mapper (`toPrimitives` before/after the mutation)
+- a field absent from `updated` is treated as a deletion — never pass a partial object
+- validation must occur before calling `updateWithDiff`
 
 ---
 
-### 4.2 Diff / Patch Pipeline
+### 4.2 Diff Pipeline
 
 #### Update flow
 
 1. Current persisted state is loaded.
-2. Explicit business method on the Aggregate Root is called (or patch is applied) to create the "next state" in memory.
+2. Explicit business method on the Aggregate Root is called to create the "next state" in memory; it validates and applies all changes atomically.
 3. Domain aggregate updates its own internal audit `metadata` (e.g., `updatedAt` and `updatedBy`) _in memory_ as part of the state transition.
 4. Resulting state is validated against domain rules.
 5. ONLY if validation passes -> persistence `updateWithDiff` is executed with the validated next state.
@@ -101,7 +109,7 @@ Persistence MUST ONLY receive a **validated final state transition**.
 
 ### NOTE
 
-- Patch application is a **transformation step**, not a persistence action
+- Aggregate mutation methods are the **transformation step**, not a persistence action
 - Diff calculation is **internal to persistence layer**, not part of domain flow
 - The system MUST NOT persist unvalidated intermediate states
 - `Date` values are compared as scalars (by `getTime()`) and replaced as a whole; they are never walked as nested objects
@@ -221,7 +229,7 @@ Responsibilities:
 - persistence of BedPrimitives
 - CRUD operations via MongoCrudRepository
 - ensuring spatial + identity consistency
-- uses shared diff/patch pipeline
+- uses shared diff pipeline
 
 ---
 
@@ -234,7 +242,7 @@ Responsibilities:
 - persistence of PlantInstancePrimitives
 - CRUD operations via MongoCrudRepository (standalone `plant_instances` collection)
 - retrieving active plant instances associated with a specific `bedId`
-- uses shared diff/patch pipeline
+- uses shared diff pipeline
 
 ---
 
@@ -678,7 +686,7 @@ Plant domain conversion is handled via:
 - plantMapper.toPrimitives(plant)
 - plantMapper.fromPrimitives(primitives)
 - plantMapper.fromCreateDtoToDomain(dto)
-- plantMapper.fromUpdateDtoToPrimitivesPatch(dto)
+- plantInputMapper.toChanges(dto) → `Plant.update*` mutation methods
 
 ---
 
@@ -733,13 +741,13 @@ Persistence MUST:
 - stored data MUST always be valid domain-compatible structure
 - partial updates MUST NOT break structural integrity
 - invalid updates MUST be rejected before persistence
-- domain validation MUST run on fully reconstructed state AFTER patch
+- domain validation MUST run inside the aggregate mutation method, before persistence
 
 ---
 
-### 7.2 Patch invariants
+### 7.2 Mutation invariants
 
-- patch application is deterministic
+- mutation methods are deterministic
 - order of operations must not change result
 - no implicit merges outside defined diff algorithm
 
@@ -753,7 +761,8 @@ Persistence MUST:
 - MongoRepository abstraction
 - PlantRepository implementation
 - BedRepository implementation
-- diffObjects + applyPatch system (Date-aware)
+- diffObjects full-state diff (Date-aware; a field absent from the updated state is `$unset`)
+- aggregate mutation methods (`Bed`, `Family`, `Plant`) replace generic patch merging
 - updateWithDiff pipeline
 - optimistic concurrency control (`version`) for Bed, Plant and Family
 - FamilyRepository implementation
@@ -764,7 +773,6 @@ Persistence MUST:
 
 ### Partial
 
-- strict typing of DeepPartial<T>
 - elimination of unsafe casts in repository layer
 - full consistency enforcement between DTO and domain
 
@@ -775,7 +783,6 @@ Persistence MUST:
 - removal of all `as unknown` usage in persistence layer
 - removal of `Record<string, unknown>` leakage
 - formal contract enforcement for null vs undefined semantics
-- stabilization of patch/diff boundary API
 - unification of mapping strategy across all aggregates
 
 ---
@@ -798,7 +805,7 @@ The following are forbidden in this module:
 
 This module evolves under strict rules:
 
-- patch system changes require explicit version bump
+- diff / mutation contract changes require explicit version bump
 - query DSL changes require explicit version bump
 - null/undefined semantics MUST NOT change silently
 - repository contract changes MUST be backward compatible or versioned

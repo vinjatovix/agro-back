@@ -301,3 +301,61 @@ Feature: Update Family
       """
     Then the response status code should be 428
     And response matches OpenAPI contract
+
+  Scenario: Empty name is rejected
+    Given I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/families/<familyId>" with body
+      """
+      {
+        "name": ""
+      }
+      """
+    Then the response status code should be 400
+    And response matches OpenAPI contract
+
+  Scenario: Aliases must be strings
+    Given I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/families/<familyId>" with body
+      """
+      {
+        "aliases": ["valid", 42]
+      }
+      """
+    Then the response status code should be 400
+    And the response errors should include "aliases[1]"
+    And response matches OpenAPI contract
+
+  Scenario: Whitespace-only scientificName is rejected
+    Given I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/families/<familyId>" with body
+      """
+      {
+        "scientificName": "   "
+      }
+      """
+    Then the response status code should be 400
+    And response matches OpenAPI contract
+
+  Scenario: Padded name is trimmed and stored
+    Given I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/families/<familyId>" with body
+      """
+      {
+        "name": "  Solanaceae  "
+      }
+      """
+    Then the response status code should be 200
+    And the response body matches "Solanaceae" for field "name"
+    And response matches OpenAPI contract
+
+  Scenario: slug null is rejected
+    Given I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/families/<familyId>" with body
+      """
+      {
+        "slug": null
+      }
+      """
+    Then the response status code should be 400
+    And the response errors should include "slug"
+    And response matches OpenAPI contract

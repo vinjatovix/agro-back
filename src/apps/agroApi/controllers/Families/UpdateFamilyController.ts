@@ -6,7 +6,6 @@ import type {
   UpdateFamilyInput
 } from '../../../../Contexts/Agro/Families/application/useCases/interfaces/index.js';
 import type { UpdateFamily } from '../../../../Contexts/Agro/Families/application/useCases/UpdateFamily.js';
-import { familyApiMapper } from '../../../../Contexts/Agro/Families/mappers/familyApiMapper.js';
 import { familyDomainMapper } from '../../../../Contexts/Agro/Families/mappers/familyDomainMapper.js';
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
 import { UuidValidator } from '../../../../Contexts/shared/domain/valueObject/index.js';
@@ -53,9 +52,8 @@ export class UpdateFamilyController extends HttpController {
       const user = res.locals.user as UserSessionInfo;
 
       const input: UpdateFamilyInput = { ...dto, id };
-      const patch = familyApiMapper.fromUpdateInputToPrimitivesPatch(input);
       const updatedFamily = await this.updateFamily.execute(
-        patch,
+        input,
         user.username,
         getExpectedVersion(res)
       );

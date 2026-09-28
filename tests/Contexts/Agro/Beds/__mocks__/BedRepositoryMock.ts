@@ -22,7 +22,9 @@ export class BedRepositoryMock
 
     const bed = this.storage.get(id);
 
-    return bed && this.isActive(bed) && bed.userId === userId ? bed : null;
+    return bed && this.isActive(bed) && bed.userId === userId
+      ? this.toDomain(this.toPrimitives(bed))
+      : null;
   }
 
   findByUserId(userId: string): Promise<Bed[]> {
@@ -33,6 +35,10 @@ export class BedRepositoryMock
   }
   protected toDomain(primitives: BedPrimitives): Bed {
     return bedDomainMapper.fromPrimitives(primitives);
+  }
+
+  protected toPrimitives(entity: Bed): BedPrimitives {
+    return bedDomainMapper.toPrimitives(entity);
   }
 
   protected entityName(): string {

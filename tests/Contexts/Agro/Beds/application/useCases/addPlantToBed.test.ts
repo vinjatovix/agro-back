@@ -163,7 +163,7 @@ describe('addPlantToBed', () => {
       user
     });
 
-    expect(bed.plantInstances).toHaveLength(2);
+    expect(bedRepository.getStored(bed.id)?.plantInstances).toHaveLength(2);
   });
 
   it('successfully adds plant and persists via updateWithDiff', async () => {
@@ -183,7 +183,7 @@ describe('addPlantToBed', () => {
       user
     });
 
-    expect(bed.plantInstances).toHaveLength(1);
+    expect(bedRepository.getStored(bed.id)?.plantInstances).toHaveLength(1);
     bedRepository.assertUpdateCalled();
   });
 });

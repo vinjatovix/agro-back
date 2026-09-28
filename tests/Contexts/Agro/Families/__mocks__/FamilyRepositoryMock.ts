@@ -14,13 +14,19 @@ export class FamilyRepositoryMock
   async findBySlug(slug: string): Promise<Nullable<Family>> {
     this.findBySlugMock(slug);
 
-    return (
-      Array.from(this.storage.values()).find((f) => f.slug === slug) ?? null
+    const family = Array.from(this.storage.values()).find(
+      (f) => f.slug === slug
     );
+
+    return family ? this.toDomain(this.toPrimitives(family)) : null;
   }
 
   protected toDomain(primitives: FamilyPrimitives): Family {
     return familyDomainMapper.fromPrimitives(primitives);
+  }
+
+  protected toPrimitives(entity: Family): FamilyPrimitives {
+    return familyDomainMapper.toPrimitives(entity);
   }
 
   protected entityName(): string {

@@ -1,6 +1,6 @@
 import type { RangePrimitives } from '../../../../../../shared/domain/value-objects/interfaces/RangePrimitives.js';
 import type { MetadataPrimitives } from '../../../../../shared/domain/MetadataPrimitives.js';
-import type { IdentityPrimitives } from '../../../mappers/plantIdentityMapper.js';
+import type { IdentityPrimitives } from './IdentityPrimitives.js';
 import type { PlantKnowledgePrimitives } from './PlantKnowledgePrimitives.js';
 import type { PlantLifecycleValue } from './PlantLifecycleValue.js';
 import type { PlantSowingPrimitives } from './PlantSowingPrimitives.js';
