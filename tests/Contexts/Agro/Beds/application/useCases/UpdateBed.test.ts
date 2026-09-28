@@ -1,11 +1,13 @@
 import { UpdateBed } from '../../../../../../src/Contexts/Agro/Beds/application/useCases/UpdateBed.js';
 import { randomBedId } from '../../../../../../src/Contexts/Agro/Beds/domain/BedId.js';
 import type { BedPrimitives } from '../../../../../../src/Contexts/Agro/Beds/domain/entities/types/BedPrimitives.js';
+import { bedDomainMapper } from '../../../../../../src/Contexts/Agro/Beds/mappers/bedDomainMapper.js';
 import type { UserSessionInfo } from '../../../../../../src/Contexts/Auth/application/index.js';
 import { createUserId } from '../../../../../../src/Contexts/Auth/domain/UserId.js';
 import {
   DomainNotFoundException,
-  DomainStaleVersionException
+  DomainStaleVersionException,
+  InvalidArgumentException
 } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { random } from '../../../../shared/fixtures/random.js';
 import { BedRepositoryMock } from '../../__mocks__/BedRepositoryMock.js';
@@ -44,6 +46,13 @@ describe('UpdateBed', () => {
       )
     ).rejects.toBeInstanceOf(DomainNotFoundException);
     repository.assertUpdateNotCalled();
+  });
+
+  it('should perform no write when input has only id', async () => {
+    const result = await useCase.execute({ id: bed.id }, USER, CURRENT_VERSION);
+
+    repository.assertUpdateNotCalled();
+    expect(result.version).toBe(bed.version);
   });
 
   it('should throw not found error if the bed disappears after the update', async () => {
@@ -273,6 +282,19 @@ describe('UpdateBed', () => {
       repository.assertUpdateCalledTimes(1);
       repository.assertExistenceCountCalledTimes(0);
     });
+  });
+
+  it('throws InvalidArgumentException and writes nothing when dimension is invalid', async () => {
+    const before = bedDomainMapper.toPrimitives(bed);
+
+    await expect(
+      useCase.execute({ id: bed.id, width: 0 }, USER, CURRENT_VERSION)
+    ).rejects.toBeInstanceOf(InvalidArgumentException);
+
+    repository.assertUpdateNotCalled();
+    expect(bedDomainMapper.toPrimitives(repository.getStored(bed.id)!)).toEqual(
+      before
+    );
   });
 
   it('should return the updated bed', async () => {

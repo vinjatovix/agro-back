@@ -163,7 +163,7 @@ The domain throws these exceptions directly by instantiating them using the stan
 
 ---
 
-### 5.2 DOMAIN MUTATIONS & METADATA OWNERSHIP `[TARGET STATE (Pending Iterations [7](../../roadmap.md#iteration-7-encapsulate-state-mutations-in-aggregates) & [8](../../roadmap.md#iteration-8-implement-in-memory-audit-metadata))]`
+### 5.2 DOMAIN MUTATIONS & METADATA OWNERSHIP ([Iteration 7](../../roadmap.md#iteration-7-encapsulate-state-mutations-in-aggregates) done — `[TARGET STATE (Pending [Iteration 8](../../roadmap.md#iteration-8-implement-in-memory-audit-metadata))]`)
 
 Aggregates MUST NOT be anemic. All state modifications (such as updating plant properties or resizing a bed) MUST be handled by explicit, business-oriented methods on the Aggregate Root itself (e.g., `bed.updateInfo()`, `plant.updateTraits()`).
 

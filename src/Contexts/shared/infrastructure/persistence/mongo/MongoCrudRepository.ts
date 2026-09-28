@@ -136,6 +136,13 @@ export abstract class MongoCrudRepository<
     return MongoQueryTranslator.toMongo(filter as Record<string, unknown>);
   }
 
+  /**
+   * Receives two complete states of the same aggregate, both produced by the
+   * same domain mapper (`toPrimitives` before and after the mutation method).
+   * MUST NOT receive a partial object or patch: a field missing from `updated`
+   * is removed (`$unset`). An empty diff writes nothing and does not bump
+   * `version`.
+   */
   async updateWithDiff(
     current: TPrimitives,
     updated: TPrimitives,

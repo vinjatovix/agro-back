@@ -26,14 +26,32 @@ describe('diffObjects', () => {
     expect(result.unset.name).toBe('');
   });
 
-  it('ignores undefined values', () => {
-    const current = { name: 'a' };
-    const updated = { name: undefined };
+  it('unsets a top-level key present in current and absent from updated', () => {
+    const current = { name: 'a', extra: 'value' };
+    const updated = { name: 'a' };
 
     const result = diffObjects(current, updated);
 
-    expect(result.set.name).toBeUndefined();
-    expect(result.unset.name).toBeUndefined();
+    expect(result.unset.extra).toBe('');
+  });
+
+  it('unsets a nested key (extra.order) present in current and absent from updated', () => {
+    const current = { name: 'a', extra: { order: 'Solanales' } };
+    const updated = { name: 'a', extra: {} };
+
+    const result = diffObjects(current, updated);
+
+    expect(result.unset['extra.order']).toBe('');
+  });
+
+  it('leaves untouched a key absent on both sides', () => {
+    const current = { name: 'a' };
+    const updated = { name: 'a' };
+
+    const result = diffObjects(current, updated);
+
+    expect(result.set.extra).toBeUndefined();
+    expect(result.unset.extra).toBeUndefined();
   });
 
   it('recursively diffs nested objects', () => {

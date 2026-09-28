@@ -1,8 +1,16 @@
 import { resolveDiffAction } from '../../../../src/shared/domain/diff/resolveDiffAction.js';
 
 describe('resolveDiffAction', () => {
-  it('returns noop when updated is undefined', () => {
-    expect(resolveDiffAction(1, undefined)).toBe('noop');
+  it('returns unset when updated is undefined and current has a value', () => {
+    expect(resolveDiffAction(1, undefined)).toBe('unset');
+  });
+
+  it('returns noop when updated is undefined and current is undefined', () => {
+    expect(resolveDiffAction(undefined, undefined)).toBe('noop');
+  });
+
+  it('returns noop when updated is undefined and current is null', () => {
+    expect(resolveDiffAction(null, undefined)).toBe('noop');
   });
 
   it.each([[null], [undefined]])(

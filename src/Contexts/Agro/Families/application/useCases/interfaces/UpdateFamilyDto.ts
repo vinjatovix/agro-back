@@ -1,4 +1,4 @@
-import type { FamilyExtraPrimitives } from '../../../domain/types/FamilyExtraPrimitives.js';
+import type { FamilyExtraChanges } from '../../../domain/types/FamilyExtraChanges.js';
 
 export interface UpdateFamilyDto {
   slug?: string;
@@ -7,5 +7,5 @@ export interface UpdateFamilyDto {
   scientificName?: string;
   shortDescription?: string;
   highlights?: string[];
-  extra?: FamilyExtraPrimitives;
+  extra?: FamilyExtraChanges | null;
 }

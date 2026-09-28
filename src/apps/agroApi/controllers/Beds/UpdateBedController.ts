@@ -3,7 +3,6 @@ import { type NextFunction, type Request, type Response } from 'express';
 import type { UpdateBedDto } from '../../../../Contexts/Agro/Beds/application/useCases/interfaces/UpdateBedDto.js';
 import type { UpdateBedInput } from '../../../../Contexts/Agro/Beds/application/useCases/interfaces/UpdateBedInput.js';
 import type { UpdateBed } from '../../../../Contexts/Agro/Beds/application/useCases/UpdateBed.js';
-import { bedApiMapper } from '../../../../Contexts/Agro/Beds/mappers/bedApiMapper.js';
 import { bedDomainMapper } from '../../../../Contexts/Agro/Beds/mappers/bedDomainMapper.js';
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
 import { createError } from '../../../../shared/errors/index.js';
@@ -31,10 +30,9 @@ export class UpdateBedController extends HttpController {
       const dto = req.body as UpdateBedDto;
       const user = res.locals.user as UserSessionInfo;
       const input: UpdateBedInput = { ...dto, id };
-      const patch = bedApiMapper.fromUpdateInputToPrimitivesPatch(input);
 
       const result = await this.updateBed.execute(
-        patch,
+        input,
         user,
         getExpectedVersion(res)
       );

@@ -1,6 +1,30 @@
 import { body, checkExact, param } from 'express-validator';
 import { PollinationType } from '../../../../Contexts/Agro/Plants/domain/entities/types/PollinationType.js';
-import { rangeSchema } from '../../middlewares/helpers/index.js';
+import {
+  hasKeysMatching,
+  hasOnlyKeys,
+  rangeSchema
+} from '../../middlewares/helpers/index.js';
+
+const PROPAGATION_METHOD_KEY = /^[a-z][a-zA-Z]*$/;
+
+// Shared by create and update: `knowledge` is validated as a whole object, so
+// `checkExact()` does not reject unknown keys below it.
+const knowledgeShapeValidators = [
+  body('knowledge.watering')
+    .optional()
+    .isObject()
+    .custom(hasOnlyKeys(['frequency', 'conditions'])),
+  body('knowledge.propagation')
+    .optional()
+    .isObject()
+    .custom(hasOnlyKeys(['methods'])),
+  // Method names become storage paths: camelCase letters only.
+  body('knowledge.propagation.methods')
+    .optional()
+    .isObject()
+    .custom(hasKeysMatching(PROPAGATION_METHOD_KEY))
+];
 
 // =====================================================
 // CREATE (FULL VALIDATION - STRICT)
@@ -38,6 +62,7 @@ export const createPlantReqSchema = [
   body('phenology.harvest.description').optional().isString(),
 
   body('knowledge').optional().isObject(),
+  ...knowledgeShapeValidators,
 
   checkExact()
 ];
@@ -72,6 +97,7 @@ export const updatePlantReqSchema = [
   body('identity.name').optional().isObject(),
   body('identity.name.primary').optional().isString(),
   body('identity.name.aliases').optional().isArray(),
+  body('identity.name.aliases.*').isString(),
 
   body('identity.scientificName').optional().isString(),
   body('identity.family').optional().isString(),
@@ -138,11 +164,13 @@ export const updatePlantReqSchema = [
   ...rangeSchema('knowledge.soil.ph', { optional: true }),
   ...rangeSchema('knowledge.soil.availableDepthCm', { optional: true }),
 
-  body('knowledge.rootSystem').optional(),
+  body('knowledge.rootSystem').optional().isObject(),
+  body('knowledge.rootSystem.type').optional().isString(),
+  ...rangeSchema('knowledge.rootSystem.depthCm', { optional: true }),
+  ...rangeSchema('knowledge.rootSystem.spreadCm', { optional: true }),
 
-  body('knowledge.watering').optional().isObject(),
+  ...knowledgeShapeValidators,
   body('knowledge.watering.frequency').optional().isString(),
-  body('knowledge.watering.amountMm').optional().isNumeric(),
   body('knowledge.watering.conditions').optional().isArray(),
 
   body('knowledge.light').optional().isObject(),
@@ -151,7 +179,6 @@ export const updatePlantReqSchema = [
   body('knowledge.light.preference').optional().isString(),
 
   body('knowledge.pruning').optional().isArray(),
-  body('knowledge.propagation').optional().isObject(),
 
   body('knowledge.ecology').optional().isObject(),
   body('knowledge.ecology.strategicBenefits').optional().isArray(),

@@ -235,9 +235,9 @@ Use **camelCase or PascalCase depending on the content**:
 
 | Type       | Example          |
 | ---------- | ---------------- |
-| utility    | `applyPatch.ts`  |
+| utility    | `diffObjects.ts` |
 | mapper     | `bedMapper.ts`   |
-| type/class | `DeepPartial.ts` |
+| type/class | `DiffResult.ts`  |
 
 No `snake_case` is used in this project.
 

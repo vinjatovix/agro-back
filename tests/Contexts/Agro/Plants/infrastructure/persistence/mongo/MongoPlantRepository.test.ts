@@ -134,19 +134,15 @@ describe('MongoPlantRepository', () => {
 
       await repository.save(plant);
 
-      const updated = {
+      const updated: PlantPrimitives = {
+        ...current,
         identity: {
-          name: {
-            primary: 'New name'
-          }
+          ...current.identity,
+          name: { ...current.identity.name, primary: 'New name' }
         }
       };
 
-      await repository.updateWithDiff(
-        current,
-        updated as unknown as PlantPrimitives,
-        'user-1'
-      );
+      await repository.updateWithDiff(current, updated, 'user-1');
 
       const result = await findExisting(plant.id);
 
@@ -264,17 +260,12 @@ describe('MongoPlantRepository', () => {
       const current = plantDomainMapper.toPrimitives(plant);
       await repository.save(plant);
 
-      const updated = {
-        identity: {
-          scientificName: null
-        }
+      const updated: PlantPrimitives = {
+        ...current,
+        identity: { ...current.identity, scientificName: null }
       };
 
-      await repository.updateWithDiff(
-        current,
-        updated as unknown as PlantPrimitives,
-        'user-1'
-      );
+      await repository.updateWithDiff(current, updated, 'user-1');
 
       const result = await findExisting(plant.id);
 
@@ -290,19 +281,15 @@ describe('MongoPlantRepository', () => {
       const originalHeight = plant.traits.size.height;
       const originalSpread = plant.traits.size.spread;
 
-      const updated = {
+      const updated: PlantPrimitives = {
+        ...current,
         identity: {
-          name: {
-            primary: random.name()
-          }
+          ...current.identity,
+          name: { ...current.identity.name, primary: random.name() }
         }
       };
 
-      await repository.updateWithDiff(
-        current,
-        updated as unknown as PlantPrimitives,
-        'user-1'
-      );
+      await repository.updateWithDiff(current, updated, 'user-1');
 
       const result = await findExisting(plant.id);
 
@@ -315,22 +302,18 @@ describe('MongoPlantRepository', () => {
       const current = plantDomainMapper.toPrimitives(plant);
       await repository.save(plant);
 
-      const updated = {
+      const updated: PlantPrimitives = {
+        ...current,
         traits: {
+          ...current.traits,
           size: {
-            height: {
-              max: 999
-            },
-            spread: plant.traits.size.spread
+            ...current.traits.size,
+            height: { ...current.traits.size.height, max: 999 }
           }
         }
       };
 
-      await repository.updateWithDiff(
-        current,
-        updated as unknown as PlantPrimitives,
-        'user-1'
-      );
+      await repository.updateWithDiff(current, updated, 'user-1');
 
       const result = await findExisting(plant.id);
 
@@ -345,13 +328,13 @@ describe('MongoPlantRepository', () => {
       const current = plantDomainMapper.toPrimitives(plant);
       await repository.save(plant);
 
-      const updated = {
+      const updated: PlantPrimitives = {
+        ...current,
         identity: {
-          name: {
-            primary: random.name()
-          }
+          ...current.identity,
+          name: { ...current.identity.name, primary: random.name() }
         }
-      } as unknown as PlantPrimitives;
+      };
 
       await repository.updateWithDiff(current, updated, 'user-1');
 
@@ -367,13 +350,13 @@ describe('MongoPlantRepository', () => {
 
       const originalCreatedBy = plant.metadata.createdBy;
 
-      const updated = {
+      const updated: PlantPrimitives = {
+        ...current,
         identity: {
-          name: {
-            primary: plant.identity.name.primary
-          }
+          ...current.identity,
+          name: { ...current.identity.name, primary: 'Different name' }
         }
-      } as unknown as PlantPrimitives;
+      };
 
       await repository.updateWithDiff(current, updated, 'user-1');
 
@@ -389,15 +372,7 @@ describe('MongoPlantRepository', () => {
 
       const originalMetadata = plant.metadata;
 
-      const updated = {
-        identity: {
-          name: {
-            primary: plant.identity.name.primary
-          }
-        }
-      } as unknown as PlantPrimitives;
-
-      await repository.updateWithDiff(current, updated, 'user-1');
+      await repository.updateWithDiff(current, { ...current }, 'user-1');
 
       const result = await findExisting(plant.id);
 
@@ -408,13 +383,13 @@ describe('MongoPlantRepository', () => {
       const plant = PlantFactory.random();
       const current = plantDomainMapper.toPrimitives(plant);
 
-      const updated = {
+      const updated: PlantPrimitives = {
+        ...current,
         identity: {
-          name: {
-            primary: 'New name'
-          }
+          ...current.identity,
+          name: { ...current.identity.name, primary: 'New name' }
         }
-      } as unknown as PlantPrimitives;
+      };
 
       await expect(
         repository.updateWithDiff(current, updated, 'user-1')
@@ -428,13 +403,13 @@ describe('MongoPlantRepository', () => {
 
       await repository.save(plant);
 
-      const updated = {
+      const updated: PlantPrimitives = {
+        ...current,
         identity: {
-          name: {
-            primary: 'Updated Name'
-          }
+          ...current.identity,
+          name: { ...current.identity.name, primary: 'Updated Name' }
         }
-      } as unknown as PlantPrimitives;
+      };
 
       await expect(
         repository.updateWithDiff(current, updated, 'test-user')

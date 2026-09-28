@@ -5,7 +5,7 @@ import {
 import type { FamilyRepository } from '../../../Families/domain/repositories/interfaces/FamilyRepository.js';
 import type { Plant } from '../../domain/entities/Plant.js';
 import type { PlantRepository } from '../../domain/repositories/interfaces/PlantRepository.js';
-import { plantApiMapper } from '../../mappers/plantApiMapper.js';
+import { plantInputMapper } from '../../mappers/plantInputMapper.js';
 import type { CreatePlantDto } from './interfaces/CreatePlantDto.js';
 
 export class CreatePlant {
@@ -30,7 +30,7 @@ export class CreatePlant {
       );
     }
 
-    const plant = plantApiMapper.fromCreateDto(dto, user);
+    const plant = plantInputMapper.fromCreateDto(dto, user);
 
     await this.plantRepository.save(plant);
 

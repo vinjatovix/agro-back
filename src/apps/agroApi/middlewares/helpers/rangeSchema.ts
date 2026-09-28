@@ -1,7 +1,9 @@
 import { body } from 'express-validator';
 
 export const rangeSchema = (path: string, options?: { optional?: boolean }) => {
-  const chain = options?.optional ? body(path).optional() : body(path).exists();
+  const chain = options?.optional
+    ? body(path).optional().isObject()
+    : body(path).exists().isObject();
 
   return [
     chain,

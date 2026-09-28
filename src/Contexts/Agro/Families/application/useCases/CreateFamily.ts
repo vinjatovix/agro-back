@@ -1,7 +1,7 @@
 import { DomainConflictException } from '../../../../shared/domain/errors/index.js';
 import type { Family } from '../../domain/entities/Family.js';
 import type { FamilyRepository } from '../../domain/repositories/interfaces/FamilyRepository.js';
-import { familyApiMapper } from '../../mappers/familyApiMapper.js';
+import { familyInputMapper } from '../../mappers/familyInputMapper.js';
 import type { CreateFamilyDto } from './interfaces/CreateFamilyDto.js';
 
 export class CreateFamily {
@@ -14,7 +14,7 @@ export class CreateFamily {
       throw new DomainConflictException(`Family already exists: ${dto.id}`);
     }
 
-    const family = familyApiMapper.fromCreateDto(dto, user);
+    const family = familyInputMapper.fromCreateDto(dto, user);
 
     await this.familyRepository.save(family);
 
