@@ -144,8 +144,16 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [validation.md](spec/modules/validation.md)
 
+- **Status**: Completed
 - **Value delivered**: Provides a robust foundation for strict, type-safe payload validation.
 - **Definition of Done**: Zod middleware is created. Output matches the dot-notation `ApiErrorResponse` contract.
+- **Implementation notes**:
+  - Zod `^4.6.5` added. `validateRequest({ params?, query?, body? })` parses the declared parts in order params → query → body and throws `createError.badRequest('Validation error', errors)` on failure; chained steps merge their outputs.
+  - Parsed outputs live in a store private to the middleware and are read only with the typed `getValidatedRequest(res, schemas)`, which also checks every declared part was validated with that same schema; `req.*` stays raw.
+  - Query and body schemas are made strict at any depth once, at route registration (`strictifySchema`). `.catch()`, intersections, loose or catchall objects, loose records, maps, sets, promises, functions and unknown schema types are rejected at start-up; a failed start-up check leaves nothing cached.
+  - The pure mapper `zodIssuesToErrors` builds the dot-notation dictionary: first message per key, `"Unknown field"` per unknown key, `"Invalid format"` instead of any regex message that prints the pattern, at most 20 entries plus `_truncated`, keys cut to 64 code points, no submitted values. Only `strictifySchema`, `zodIssuesToErrors` and their types leave the helpers.
+  - Proven with unit tests and a supertest integration test checked against the OpenAPI `ValidationError` response; tests keep the contract values in their own fixture (`jest.config.ts` now transpiles the ESM-only dependency of `pure-openapi-assert`, like `uuid`).
+  - No route uses the step yet; `express-validator` stays until Iterations 10–14. See validation.md §3.2, §5 and §6.
 - **Dependencies**: None.
 - **Risks**: Error formatting mismatching the OpenAPI contract.
 - **Prompt for /speckit.specify**:
