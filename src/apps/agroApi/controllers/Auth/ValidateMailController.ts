@@ -1,11 +1,8 @@
 import { type NextFunction, type Request, type Response } from 'express';
 import type { ValidateMail } from '../../../../Contexts/Auth/application/index.js';
-import { createError } from '../../../../shared/errors/index.js';
+import { getValidatedRequest } from '../../middlewares/validateRequest.js';
 import { HttpController } from '../../shared/HttpController.js';
-
-type ValidateMailParams = {
-  token: string;
-};
+import { validateMailRequest } from './requestSchemas.js';
 
 export type ValidateMailControllerDependencies = {
   validateMail: ValidateMail;
@@ -19,16 +16,12 @@ export class ValidateMailController extends HttpController {
   }
 
   run = async (
-    req: Request<ValidateMailParams>,
+    _req: Request,
     res: Response,
     next: NextFunction
-  ) => {
+  ): Promise<void> => {
     try {
-      const { token } = req.params;
-
-      if (!token) {
-        throw createError.badRequest('Token is required');
-      }
+      const { token } = getValidatedRequest(res, validateMailRequest).params;
 
       const newToken = await this.validateMail.run({ token });
 

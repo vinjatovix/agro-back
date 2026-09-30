@@ -94,15 +94,7 @@ Feature: Register a new user
       }
       """
     Then the response status code should be 400
-    Then the response body should be
-      """
-      {
-        "message": "Validation error",
-        "errors": {
-          "repeatPassword": "Passwords do not match at body."
-        }
-      }
-      """
+    And the response body matches "Passwords do not match" for field "errors.repeatPassword"
     And response matches OpenAPI contract
 
   Scenario: Invalid arguments
@@ -110,22 +102,130 @@ Feature: Register a new user
       """
       {
         "email": "aaJaa",
-        "password": "1234",
-        "repeatPassword": "1234"
+        "password": 7654321,
+        "repeatPassword": 7654321
       }
       """
     Then the response status code should be 400
-    Then the response body should be
+    And the response errors should include "id"
+    And the response errors should include "email"
+    And the response errors should include "username"
+    And the response errors should include "password"
+    And the response errors should include "repeatPassword"
+    And the response body should not echo "aaJaa"
+    And the response body should not echo "7654321"
+    And response matches OpenAPI contract
+
+  Scenario: Email outside the strict format
+    When a POST request to "/api/v1/auth/register" with body
       """
       {
-        "message": "Validation error",
-        "errors": {
-          "id": "Invalid value at body. Value: undefined",
-          "email": "Invalid value at body. Value: aaJaa",
-          "username": "Invalid value at body. Value: undefined",
-          "password": "Invalid value at body.",
-          "repeatPassword": "Invalid value at body."
-        }
+        "id": "5b0f3c2e-8d4f-4a57-9f55-2f8f4c2a1d10",
+        "username": "strictmail",
+        "email": "a!b@example.com",
+        "password": "#aD3fe2.0%",
+        "repeatPassword": "#aD3fe2.0%"
       }
       """
+    Then the response status code should be 400
+    And the response errors should include "email"
+    And the response body should not echo "a!b@example.com"
+    And response matches OpenAPI contract
+
+  Scenario: Id that is not an RFC UUID
+    When a POST request to "/api/v1/auth/register" with body
+      """
+      {
+        "id": "12345678-1234-1234-1234-123456789012",
+        "username": "strictid",
+        "email": "strictid@aa.com",
+        "password": "#aD3fe2.0%",
+        "repeatPassword": "#aD3fe2.0%"
+      }
+      """
+    Then the response status code should be 400
+    And the response errors should include "id"
+    And the response body should not echo "12345678-1234-1234-1234-123456789012"
+    And response matches OpenAPI contract
+
+  Scenario: Unknown body field
+    When a POST request to "/api/v1/auth/register" with body
+      """
+      {
+        "id": "7c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f",
+        "username": "unknownfield",
+        "email": "unknownfield@aa.com",
+        "password": "#aD3fe2.0%",
+        "repeatPassword": "#aD3fe2.0%",
+        "role": "admin"
+      }
+      """
+    Then the response status code should be 400
+    And the response body matches "Unknown field" for field "errors.role"
+    And response matches OpenAPI contract
+
+  Scenario: Empty body
+    When a POST request to "/api/v1/auth/register" with body
+      """
+      {}
+      """
+    Then the response status code should be 400
+    And the response errors should include "id"
+    And the response errors should include "email"
+    And the response errors should include "username"
+    And the response errors should include "password"
+    And the response errors should include "repeatPassword"
+    And response matches OpenAPI contract
+
+  Scenario Outline: Password outside the domain rule is rejected
+    When a POST request to "/api/v1/auth/register" with body
+      """
+      {
+        "id": "3f9a1b2c-5d6e-4f70-8a9b-0c1d2e3f4a5b",
+        "username": "weakpass",
+        "email": "weakpass@aa.com",
+        "password": "<password>",
+        "repeatPassword": "<password>"
+      }
+      """
+    Then the response status code should be 400
+    And the response body should not echo "<password>"
+    And response matches OpenAPI contract
+
+    # Which rule failed is covered by the PlainPassword unit tests.
+    Examples:
+      | password                                                          |
+      | Abcde1!                                                           |
+      | abcdef1!                                                          |
+      | Abcdefg!                                                          |
+      | Abcdefg1                                                          |
+      | Abcdef1!Abcdef1!Abcdef1!Abcdef1!Abcdef1!Abcdef1!Abcdef1!Abcdef1!a |
+      | Abcdef1!ñññññññññññññññññññññññññññññññññ                         |
+
+  Scenario: Shortest strong password is accepted
+    When a POST request to "/api/v1/auth/register" with body
+      """
+      {
+        "id": "8e2d4c6a-1b3f-4d5e-9a7c-2b4d6f8a0c1e",
+        "username": "shortpass",
+        "email": "shortpass@aa.com",
+        "password": "Abcdef1!",
+        "repeatPassword": "Abcdef1!"
+      }
+      """
+    Then the response status code should be 201
+    And response matches OpenAPI contract
+
+  Scenario: Non-ASCII character counts as the special character
+    When a POST request to "/api/v1/auth/register" with body
+      """
+      {
+        "id": "5b7c9d1e-2f3a-4b5c-8d6e-7f8a9b0c1d2e",
+        "username": "unicodepass",
+        "email": "unicodepass@aa.com",
+        "password": "Abcdefg1ñ",
+        "repeatPassword": "Abcdefg1ñ"
+      }
+      """
+    Then the response status code should be 201
     And response matches OpenAPI contract

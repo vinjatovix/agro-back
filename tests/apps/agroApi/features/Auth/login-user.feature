@@ -64,3 +64,51 @@ Feature: Login
       }
       """
     And response matches OpenAPI contract
+
+  Scenario: Unknown body field
+    When a POST request to "/api/v1/auth/login" with body
+      """
+      {
+        "email": "login@aa.com",
+        "password": "#aD3fe2.0%",
+        "bar": 1
+      }
+      """
+    Then the response status code should be 400
+    And the response body matches "Unknown field" for field "errors.bar"
+    And response matches OpenAPI contract
+
+  Scenario: Unknown query parameter
+    When a POST request to "/api/v1/auth/login" with query "foo=1" and body
+      """
+      {
+        "email": "login@aa.com",
+        "password": "#aD3fe2.0%"
+      }
+      """
+    Then the response status code should be 400
+    And the response body matches "Unknown field" for field "errors.foo"
+    And response matches OpenAPI contract
+
+  Scenario: Email outside the strict format
+    When a POST request to "/api/v1/auth/login" with body
+      """
+      {
+        "email": "a!b@example.com",
+        "password": "#aD3fe2.0%"
+      }
+      """
+    Then the response status code should be 400
+    And the response errors should include "email"
+    And the response body should not echo "a!b@example.com"
+    And response matches OpenAPI contract
+
+  Scenario: Empty body
+    When a POST request to "/api/v1/auth/login" with body
+      """
+      {}
+      """
+    Then the response status code should be 400
+    And the response errors should include "email"
+    And the response errors should include "password"
+    And response matches OpenAPI contract

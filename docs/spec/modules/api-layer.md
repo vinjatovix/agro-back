@@ -1,7 +1,7 @@
 # APPLICATION CONTRACT (API SURFACE)
 
-version: 1.4.0
-source-spec: v1.4.0
+version: 1.5.0
+source-spec: v1.5.0
 status: evolving
 
 ---
@@ -47,6 +47,21 @@ All authentication, session, JWT payload, and user profile location management d
 ### 3.1 Exposed Endpoints
 
 > **For exposed HTTP endpoints, routing, payloads, and REST semantics, refer strictly to Module: OpenAPI Contract (openapi.md).**
+
+### 3.2 Middleware Chains
+
+Auth routes validate input with the shared Zod step `validateRequest` (validation.md §3.2–§3.3; rules per route in auth.md §3.3). They do not use `validateBody`: the strict body schema reports an empty body as one error per missing field. The request objects live in `controllers/Auth/requestSchemas.ts`: routes import them from the controllers barrel and controllers from the sibling file, so dependencies only go `routes → controllers`.
+
+| Route                       | Chain                                                           |
+| --------------------------- | --------------------------------------------------------------- |
+| `POST /auth/register`       | `authLimiter → validateRequest(registerRequest) → controller`   |
+| `POST /auth/login`          | `authLimiter → validateRequest(loginRequest) → controller`      |
+| `POST /auth/google`         | `authLimiter → validateRequest(googleAuthRequest) → controller` |
+| `GET /auth/validate/:token` | `validateRequest(validateMailRequest) → controller`             |
+| `POST /auth/refresh`        | `auth → controller` (no input schema)                           |
+| `POST /auth/update`         | `auth → validateRequest(updatePasswordRequest) → controller`    |
+
+Health (`GET /health`, `GET /test-error`) reads no client input and has no input schema.
 
 ---
 
@@ -176,7 +191,7 @@ Event payloads require `scope` and `bedId`; `plantInstanceId` is only allowed an
 
 ---
 
-### 5.5 Users `[TARGET STATE (Pending [Iteration 10](../../roadmap.md#iteration-10-migrate-health-and-auth-endpoints-to-zod))]`
+### 5.5 Users
 
 All endpoints, payload schemas, and session configurations for local registration, standard login, multi-provider OAuth, token refreshing, and geolocation update are specified in **auth.md**.
 
@@ -235,7 +250,7 @@ All endpoints MUST return a consistent error structure.
 Refer strictly to **Module: Validation (validation.md) Section 4 and 5** for the canonical definition of the `ApiErrorResponse` type and the structured validation error behaviors.
 
 - Errors thrown or rejected by async controllers and middlewares are forwarded to the global `errorHandler` by Express 5 itself; handlers MUST NOT be wrapped in custom async helpers.
-- A write request with no body (Express 5 leaves `req.body` `undefined`) is treated as an empty body and returns `400` ("Empty body is not allowed"), never `500`.
+- A write request with no body (Express 5 leaves `req.body` `undefined`) returns `400`, never `500`: `"Empty body is not allowed"` on routes still behind `validateBody`, a `body` error on routes validated with `validateRequest`.
 
 ---
 
@@ -294,7 +309,7 @@ To guarantee resilience against network instability (e.g., poor 3G/4G connectivi
 - Plants, Beds: READ + CREATE + PATCH + DELETE
 - Families: READ + CREATE + PATCH (DELETE is pending `[TARGET STATE (Pending [Iteration 32](../../roadmap.md#iteration-32-implement-deletefamily-and-enable-polymorphic-lookups-for-family-mutations))]`)
 - Auth system (functional end-to-end, Swagger tested)
-- validation middleware (partial → evolving)
+- validation middleware: Zod `validateRequest` on Auth; Plants, Families and Beds still on `express-validator` (Iterations 12–14)
 - error handling (structured)
 
 ### Partially designed

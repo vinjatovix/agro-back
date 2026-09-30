@@ -17,7 +17,7 @@ Contract-driven REST API for agricultural asset management.
 - **Strict Boundaries:** No DTOs, Express, or DB imports in `Contexts/*/domain`. No persistence in Spatial.
 - **Explicit Interfaces:** Always define explicit return types for use cases, controllers, mappers, and adapters.
 - **PATCH Semantics:** `undefined` fields are ignored; `null` explicitly deletes/clears fields. Domain validation must occur before persistence.
-- **Validation vs Business Logic:** Use `express-validator` strictly for transport/schema-shape checking. Never enforce business logic or DB checks in validation.
+- **Validation vs Business Logic:** Validate transport/schema shape with Zod via `validateRequest` (modules not yet migrated still use `express-validator`). Never enforce business logic or DB checks in validation.
 - **Error Handling:** Use `shared/errors/index.ts` (`createError` factory). Let errors bubble up to global `errorHandler`.
 - **Contract Testing:** HTTP responses must match the OpenAPI contract (`assertResponseMatchesOpenApi` / Gherkin step).
 - **Acceptance Test Setup:** In Gherkin scenarios, call the API only in the `When` step under test. Build prior state (created, updated, soft-deleted…) in `Given` steps with seeders/DB helpers (e.g. `a soft-deleted bed exists for the current user`), never with setup `PATCH`/`DELETE` requests, so scenarios don't depend on unrelated rules such as `If-Match` versions.

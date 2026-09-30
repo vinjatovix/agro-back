@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import { InvalidArgumentException } from '../../../../../src/Contexts/shared/domain/errors/index.js';
 import { DISPOSABLE_EMAIL_DOMAINS } from '../../../../../src/Contexts/shared/domain/valueObject/disposableEmailDomains.js';
 import { Email } from '../../../../../src/Contexts/shared/domain/valueObject/Email.js';
@@ -27,6 +29,31 @@ describe('Email', () => {
 
   it('should throw for invalid format', () => {
     expect(() => new Email('invalid-email')).toThrow(InvalidArgumentException);
+  });
+
+  it.each([
+    'a!b@example.com',
+    'a#b@example.com',
+    'a/b@example.com',
+    '.user@example.com',
+    'user.@example.com',
+    'us..er@example.com',
+    'user@-example.com',
+    'user@example.c0m'
+  ])('should throw for %s, which Zod also rejects', (value) => {
+    expect(z.email().safeParse(value).success).toBe(false);
+    expect(() => new Email(value)).toThrow(InvalidArgumentException);
+  });
+
+  it.each([
+    'user@example.com',
+    'first.last@example.com',
+    "o'neil@example.com",
+    'user+tag@sub.example.co',
+    'user_name-1@example-mail.com'
+  ])('should accept %s, which Zod also accepts', (value) => {
+    expect(z.email().safeParse(value).success).toBe(true);
+    expect(new Email(value).value).toBe(value);
   });
 
   it('should throw for disposable blocked domain', () => {

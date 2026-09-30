@@ -1,9 +1,8 @@
 import { type NextFunction, type Request, type Response } from 'express';
-import type {
-  LoginUserLocal,
-  LoginUserRequest
-} from '../../../../Contexts/Auth/application/index.js';
+import type { LoginUserLocal } from '../../../../Contexts/Auth/application/index.js';
+import { getValidatedRequest } from '../../middlewares/validateRequest.js';
 import { HttpController } from '../../shared/HttpController.js';
+import { loginRequest } from './requestSchemas.js';
 
 export type LoginUserLocalControllerDependencies = {
   loginUser: LoginUserLocal;
@@ -16,10 +15,14 @@ export class LoginUserLocalController extends HttpController {
     this.loginUser = loginUser;
   }
 
-  run = async (req: Request, res: Response, next: NextFunction) => {
+  run = async (
+    _req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     try {
-      const request = req.body as LoginUserRequest;
-      const token = await this.loginUser.run(request);
+      const { body } = getValidatedRequest(res, loginRequest);
+      const token = await this.loginUser.run(body);
       res.status(this.status()).json({ token });
     } catch (error) {
       next(error);

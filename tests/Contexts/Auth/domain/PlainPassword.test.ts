@@ -53,6 +53,42 @@ describe('PlainPassword', () => {
       );
     });
 
+    it('should accept exactly MAX_LENGTH characters', () => {
+      const longest = PlainPasswordMother.withLength(PlainPassword.MAX_LENGTH);
+      expect(PlainPasswordMother.create(longest)).toBeInstanceOf(PlainPassword);
+    });
+
+    it('should count an emoji as one character', () => {
+      // MIN_LENGTH - 1 code points, but more UTF-16 units than MIN_LENGTH.
+      const withEmoji = PlainPasswordMother.withLength(
+        PlainPassword.MIN_LENGTH - 1,
+        '😀'
+      );
+      expect(withEmoji.length).toBeGreaterThanOrEqual(PlainPassword.MIN_LENGTH);
+      expect(() => PlainPasswordMother.create(withEmoji)).toThrow(
+        InvalidArgumentException
+      );
+    });
+
+    it('should accept exactly MAX_BYTES bytes of UTF-8', () => {
+      const fullBytes = PlainPasswordMother.withBytes(PlainPassword.MAX_BYTES);
+      expect(PlainPasswordMother.create(fullBytes)).toBeInstanceOf(
+        PlainPassword
+      );
+    });
+
+    it('should throw if longer than MAX_BYTES bytes of UTF-8 within MAX_LENGTH characters', () => {
+      const tooManyBytes = PlainPasswordMother.withBytes(
+        PlainPassword.MAX_BYTES + 2
+      );
+      expect(Array.from(tooManyBytes).length).toBeLessThanOrEqual(
+        PlainPassword.MAX_LENGTH
+      );
+      expect(() => PlainPasswordMother.create(tooManyBytes)).toThrow(
+        InvalidArgumentException
+      );
+    });
+
     it('should throw if missing uppercase letter', () => {
       expect(() => PlainPasswordMother.create('validpass1!')).toThrow(
         InvalidArgumentException

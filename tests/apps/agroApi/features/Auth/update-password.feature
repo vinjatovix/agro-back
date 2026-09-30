@@ -86,15 +86,7 @@ Feature: Update Password
       }
       """
     Then the response status code should be 400
-    And the response body should be
-      """
-      {
-        "message": "Validation error",
-        "errors": {
-          "repeatPassword": "Passwords do not match at body."
-        }
-      }
-      """
+    And the response body matches "Passwords do not match" for field "errors.repeatPassword"
     And response matches OpenAPI contract
 
   Scenario: Fail when new password equals old password
@@ -113,7 +105,7 @@ Feature: Update Password
         "repeatPassword": "#aD3fe2.0%"
       }
       """
-    Then the response status code should be 401
+    Then the response status code should be 400
     And the response body should be
       """
       {
@@ -146,4 +138,63 @@ Feature: Update Password
         "message": "User not found with email: update@password.com"
       }
       """
+    And response matches OpenAPI contract
+
+  Scenario: Fail with an unknown body field
+    Given an authentication with body
+      """
+      {
+        "email": "update@password.com",
+        "password": "#aD3fe2.0%"
+      }
+      """
+    When a POST user request to "/api/v1/auth/update" with body
+      """
+      {
+        "oldPassword": "#aD3fe2.0%",
+        "password": "Sup3rSecretPassword!",
+        "repeatPassword": "Sup3rSecretPassword!",
+        "username": "hacker"
+      }
+      """
+    Then the response status code should be 400
+    And the response body matches "Unknown field" for field "errors.username"
+    And response matches OpenAPI contract
+
+  Scenario: Fail with an empty body
+    Given an authentication with body
+      """
+      {
+        "email": "update@password.com",
+        "password": "#aD3fe2.0%"
+      }
+      """
+    When a POST user request to "/api/v1/auth/update" with body
+      """
+      {}
+      """
+    Then the response status code should be 400
+    And the response errors should include "password"
+    And the response errors should include "repeatPassword"
+    And the response errors should include "oldPassword"
+    And response matches OpenAPI contract
+
+  Scenario: Fail with a weak new password
+    Given an authentication with body
+      """
+      {
+        "email": "update@password.com",
+        "password": "#aD3fe2.0%"
+      }
+      """
+    When a POST user request to "/api/v1/auth/update" with body
+      """
+      {
+        "oldPassword": "#aD3fe2.0%",
+        "password": "Abcde1!",
+        "repeatPassword": "Abcde1!"
+      }
+      """
+    Then the response status code should be 400
+    And the response body should not echo "Abcde1!"
     And response matches OpenAPI contract

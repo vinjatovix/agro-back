@@ -167,8 +167,15 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [validation.md](spec/modules/validation.md), [auth.md](spec/modules/auth.md), [api-layer.md](spec/modules/api-layer.md)
 
+- **Status**: Completed
 - **Value delivered**: Proves the Zod validation pattern on simple endpoints before tackling complex domains.
 - **Definition of Done**: `express-validator` is retired for Health and Auth. Zod schemas are active.
+- **Implementation notes**:
+  - The five Auth routes that read input (register, login, Google, validation link, password update) use `validateRequest` with one request object per route in `controllers/Auth/requestSchemas.ts` (`satisfies RequestSchemas`); routes import them from the controllers barrel (same direction as `authApiInvoker`), controllers from the sibling file, and read `getValidatedRequest(res, xRequest)` with no casts, and `ValidateMailController` drops its manual token check.
+  - Shared `emptyQuery`/`emptyBody` in `apps/agroApi/shared/requestSchemas.ts` keep rejecting unknown query parameters (and a body on the GET validation link), now one `"Unknown field"` per key; the pattern for Iterations 12–14.
+  - Password strength is left to the domain (`PlainPassword`, checked before any lookup) instead of duplicating it in the schema, which had drifted from it (no 72-character limit, a different symbol set). After review, the limit is 8–64 characters (code points; NIST SP 800-63B asks to accept at least 64) and at most 72 bytes in UTF-8, since bcrypt ignores every byte after the 72nd and a multibyte password under 72 characters could exceed it; OpenAPI documents both. The use cases share the `"Passwords do not match"` message with the schemas, and `UpdatePasswordLocal` answers it, and a new password equal to the old one, with `400` instead of `401` (the caller is authenticated; the input is invalid). `"Passwords do not match"` is reported together with other errors. `email` and `id` use Zod's stricter formats (clarified in the spec).
+  - Auth routes drop `validateBody`: an empty body now lists each missing required field.
+  - Health and `/auth/refresh` read no client input: no schema. OpenAPI gains the missing `400` responses, formats and `additionalProperties: false`. See validation.md §3.3 and auth.md §3.3.
 - **Dependencies**: Iteration 9.
 - **Risks**: Minor ATDD test assertions failing on error message strings.
 - **Prompt for /speckit.specify**:
@@ -200,6 +207,7 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 - **Value delivered**: Unifies runtime payload validation and TypeScript type-safety for the botanical catalog.
 - **Definition of Done**: `express-validator` is retired for Plants routes. Zod schemas are implemented.
 - **Pending here**:
+  - move the schemas from `routes/Plant/reqSchemas.ts` to `controllers/Plant/requestSchemas.ts` (pattern set in Iteration 10).
   - **behavior change (decision open)**: `PATCH /plants/:id` accepts `phenology.flowering` and `phenology.harvest`, but the request mapping silently drops them (only `phenology.sowing` is applied). Decide between making them editable (extend the Plant phenology mutation method from Iteration 7) or rejecting them with `400`; either way the Zod schema and `UpdatePlant` in the OpenAPI contract must match what is actually applied. Kept as-is in Iteration 7 to keep that refactor behavior-neutral.
   - **behavior change (decided 2026-09-27)**: creating a plant requires a non-empty `identity.name.primary`, `identity.scientificName`, `identity.family` and a `knowledge.rootSystem`; `null` is never accepted for them. Enforce it in the Zod schema, the OpenAPI `Plant`/`CreatePlant` schema (`required`, `minLength: 1`) and the Plant constructor. Iteration 7 already applies the update rules (never `null`; trimmed; empty or whitespace-only on update → `400` (changed 2026-09-29, before: ignored); aliases trimmed, empty dropped; `rootSystem: null` → `400`).
   - **migration**: before making them required in the constructor, count stored plants without `scientificName`, with an empty `name.primary` or without `knowledge.rootSystem`, and add a `migrate-mongo` migration (or a data fix) so every stored plant can still be loaded.
@@ -221,6 +229,7 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 - **Value delivered**: Secures taxonomy catalog endpoints with strict typing.
 - **Definition of Done**: `express-validator` is retired for Families routes. Zod schemas are implemented.
 - **Pending here**:
+  - move the schemas from `routes/Family/reqSchemas.ts` to `controllers/Family/requestSchemas.ts` (pattern set in Iteration 10).
   - move the update text rules applied in Iteration 7 by `Family.updateInformation` (`slug`, `name`, `scientificName`, `shortDescription` trimmed; empty or whitespace-only → `400`; `null` → `400`; aliases trimmed with empty entries dropped, as plant aliases are) into the Zod schema, and decide whether `highlights` follow the same alias rule.
 - **Dependencies**: Iteration 9.
 - **Risks**: None.
@@ -238,6 +247,9 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 - **Value delivered**: Completes the Zod transition, fully retiring `express-validator` and securing dynamic query parameters.
 - **Definition of Done**: `express-validator` is removed from `package.json`. Beds and generic Query options (filters, pagination, sort) use Zod.
 - **Pending here**:
+  - move the schemas from `routes/Bed/reqSchemas.ts` to `controllers/Bed/requestSchemas.ts` (pattern set in Iteration 10).
+  - drop `validateBody` from each route as it moves to `validateRequest` (already done for Auth in Iteration 10), and delete the middleware and its test with the last one. An empty body then lists each missing required field instead of `"Empty body is not allowed"`; update the features (e.g. `update-bed.feature`) together.
+  - **Proposal (from the Iteration 10 review, not yet decided)**: return domain validation errors in the per-field `ApiErrorResponse` shape. Since Iteration 10 password strength is checked only by `PlainPassword`, so a weak password answers `400` with a top-level `message` such as `"<PlainPassword> must include at least one digit"`, while schema errors come per field (`errors.password`). The client gets two error shapes, and the message exposes an internal class name. Option: let value objects raise `InvalidArgumentException` with the field it applies to and a client-facing message, and have `errorHandler` map it to `errors.<field>`. It changes the body of every domain `400`, so update the features and the OpenAPI examples together.
   - the `requireIfMatch` middleware uses a hand-written pure parser (`parseIfMatch`); wrap it in a Zod schema, keeping the `428` (missing/`*`) vs `400` (malformed) split.
   - **behavior change**: the OpenAPI `UpdateBed` schema does not match what `PATCH /beds/:id` applies. It lists `plantInstances` (silently ignored) and omits `name` and `depth` (both applied). The Zod schema and the OpenAPI contract must accept `name`, `width`, `height` and `depth`, and stop accepting `plantInstances`: plants are placed only through their own operations (Iterations 20 and 67), never by patching the bed. Kept as-is in Iteration 7 to keep that refactor behavior-neutral.
   - **behavior change**: adopt the RFC 9110 `If-Match` grammar. Lists are accepted; weak tags and never-emitted tags yield `412` (after the existence check) instead of `400`; use cases take a list of acceptable versions. This reverses the "weak tag or list → `400`" rule decided in the If-Match feature spec. See validation.md §3.1.
@@ -440,6 +452,7 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 - **Value delivered**: Secures user workspace access through verifiable identities.
 - **Definition of Done**: Account creation issues an activation token. Login is blocked for unverified users (except in local bypass).
 - **Proposal (from the Iteration 8 review, not yet decided)**: `User` is still anemic: use cases build a partial `UserPatch` and compute its audit metadata themselves, the pattern Iteration 7 removed from Bed, Plant and Family. Since this iteration rewrites the activation flow (a User write), give `User` mutation methods that take the acting user and refresh `updatedAt`/`updatedBy` in memory (e.g. `validateEmail(user)`, `changePassword(hash, user)`, `linkAuthMethod(method, user)`), persist the full state (as `updateWithDiff` does) and remove `UserPatch`. Decide first whether User also needs a `version` (`If-Match`); today no User endpoint uses it.
+- **Proposal (from the Iteration 10 review, decided 2026-09-30 to do here)**: `POST /auth/register` reveals whether an email already has an account (`400` if the email is taken, `409` if the id is, `201` otherwise). Follow OWASP: answer every well-formed registration the same way and email the owner of an existing account instead ("someone tried to register with your email"). It needs the `Mailer` from Iteration 25, changes the register contract (OpenAPI and features), and must still reject a reused `id` without saying whether it exists. Until then `authLimiter` (5 failed attempts per IP every 15 minutes) is the only mitigation.
 - **Dependencies**: Iteration 25.
 - **Risks**: Locking out existing test users.
 - **Prompt for /speckit.specify**:

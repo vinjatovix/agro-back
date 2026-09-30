@@ -85,3 +85,35 @@ Feature: Authenticate with Google
       }
       """
     And response matches OpenAPI contract
+
+  Scenario: idToken with the wrong type
+    When a POST request to "/api/v1/auth/google" with body
+      """
+      {
+        "idToken": 123
+      }
+      """
+    Then the response status code should be 400
+    And the response errors should include "idToken"
+    And response matches OpenAPI contract
+
+  Scenario: Unknown body field
+    When a POST request to "/api/v1/auth/google" with body
+      """
+      {
+        "idToken": "invalid-google-token",
+        "extra": true
+      }
+      """
+    Then the response status code should be 400
+    And the response body matches "Unknown field" for field "errors.extra"
+    And response matches OpenAPI contract
+
+  Scenario: Empty body
+    When a POST request to "/api/v1/auth/google" with body
+      """
+      {}
+      """
+    Then the response status code should be 400
+    And the response errors should include "idToken"
+    And response matches OpenAPI contract

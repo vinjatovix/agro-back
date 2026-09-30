@@ -1,7 +1,7 @@
 # MODULE: VALIDATION
 
-version: 1.4.0
-source-spec: v1.4.0
+version: 1.5.0
+source-spec: v1.5.0
 status: stable
 
 ---
@@ -20,7 +20,7 @@ Validation is a **schema enforcement layer**, not a business logic layer.
 
 ## 3. RULES
 
-- Zod is the central tool used for all transport boundary validation and schema declarations. The shared Zod step `validateRequest` (§3.2) exists since [Iteration 9](../../roadmap.md#iteration-9-establish-zod-validation-middleware); endpoints move to it in **`[TARGET STATE (Pending Iterations [10](../../roadmap.md#iteration-10-migrate-health-and-auth-endpoints-to-zod), [12](../../roadmap.md#iteration-12-migrate-plants-endpoints-to-zod), [13](../../roadmap.md#iteration-13-migrate-families-endpoints-to-zod) & [14](../../roadmap.md#iteration-14-migrate-beds-and-query-dsl-to-zod))]`** (Currently, `express-validator` is used at the route boundary).
+- Zod is the central tool used for all transport boundary validation and schema declarations. The shared Zod step `validateRequest` (§3.2) exists since [Iteration 9](../../roadmap.md#iteration-9-establish-zod-validation-middleware); Auth moved to it in [Iteration 10](../../roadmap.md#iteration-10-migrate-health-and-auth-endpoints-to-zod) (§3.3); the remaining endpoints move in **`[TARGET STATE (Pending Iterations [12](../../roadmap.md#iteration-12-migrate-plants-endpoints-to-zod), [13](../../roadmap.md#iteration-13-migrate-families-endpoints-to-zod) & [14](../../roadmap.md#iteration-14-migrate-beds-and-query-dsl-to-zod))]`** (Currently, Plants, Families and Beds use `express-validator` at the route boundary).
 - MUST NOT contain domain logic
 - MUST NOT enforce business rules
 - MUST be aligned with OpenAPI schemas
@@ -69,6 +69,24 @@ const { params, body } = getValidatedRequest(res, updateBedRequest);
 - The step checks shape and types only: no DB access, no use cases, no business rules. Unknown-field rules and their limits are in §6.
 - Schema authors MUST NOT write custom messages that echo the submitted value.
 
+### 3.3 Route schemas and empty parts (first applied to Auth)
+
+- Each migrated module keeps its schemas in `controllers/<Module>/requestSchemas.ts`: one schema per part (`registerBody`, `validateMailParams`…) and one request object per route declared `satisfies RequestSchemas` (`registerRequest`, `loginRequest`…). Routes import the request objects from the controllers barrel (the direction `routes → controllers` already used by the API invokers) and pass them to `validateRequest`; controllers import the same object from the sibling file and read `getValidatedRequest(res, xRequest)`, with no `req.body as X` casts or manual checks. Controllers never import from `routes/`. Modules still on `express-validator` keep `routes/<Module>/reqSchemas.ts` until they migrate.
+- `apps/agroApi/shared/requestSchemas.ts` holds the shared empty parts, the pattern for later iterations:
+  - `emptyQuery` (`z.object({})`): declared as `query` on routes that take no query string; made strict by the step, so any key gets `"Unknown field"` (replaces what `checkExact()` did for the query).
+  - `emptyBody` (`z.object({}).optional()`): declared as `body` on GET routes; Express 5 leaves `req.body` `undefined` without a body, so a missing body passes and any field gets `"Unknown field"`.
+- Routes validated with `validateRequest` drop `validateBody`: the strict body schema already reports an empty body `{}` as one error per missing required field, and a missing body as `body`. `validateBody` stays only on routes not yet migrated and is removed with the last of them.
+- Project message used by Auth (fixed, never echoes input): `"Passwords do not match"` (object refinement with `when`, so it is reported together with other field errors). The Auth use cases import the same constant, so both layers use one text. Password strength is a domain rule, not a schema check. Rules per route: auth.md §3.3.
+- Messages, new vs before (Auth):
+
+  | Case                | Before (`express-validator`)                                       | Now (Zod)                                               |
+  | ------------------- | ------------------------------------------------------------------ | ------------------------------------------------------- |
+  | Bad email `aaJaa`   | `"Invalid value at body. Value: aaJaa"`                            | `"Invalid email address"`                               |
+  | Missing `id`        | `"Invalid value at body. Value: undefined"`                        | `"Invalid input: expected string, received undefined"`  |
+  | Weak password       | `"Invalid value at body."`                                         | top-level `message` from `PlainPassword` (auth.md §3.3) |
+  | Passwords differ    | `"Passwords do not match at body."`                                | `"Passwords do not match"`                              |
+  | Unknown field `bar` | one key `fields`: `"Unknown field <bar> in <body> with value <1>"` | `bar`: `"Unknown field"`                                |
+
 ---
 
 ## 4. ERROR CONTRACT (CRITICAL)
@@ -88,7 +106,7 @@ Validation errors MUST:
 
 - use field path as key in dot-notation format
 - be deterministic across environments
-- **`[TARGET STATE (Pending Iterations [10](../../roadmap.md#iteration-10-migrate-health-and-auth-endpoints-to-zod), [12](../../roadmap.md#iteration-12-migrate-plants-endpoints-to-zod), [13](../../roadmap.md#iteration-13-migrate-families-endpoints-to-zod) & [14](../../roadmap.md#iteration-14-migrate-beds-and-query-dsl-to-zod))]`** include a stable, clean, and idiomatic string message provided natively by Zod (Zod 4 defaults, e.g., `"Invalid input: expected string, received undefined"`, `"Invalid UUID"`). (Currently, `express-validator` custom errors are returned).
+- include a stable, clean, and idiomatic string message provided natively by Zod (Zod 4 defaults, e.g., `"Invalid input: expected string, received undefined"`, `"Invalid UUID"`) — done for Auth; **`[TARGET STATE (Pending Iterations [12](../../roadmap.md#iteration-12-migrate-plants-endpoints-to-zod), [13](../../roadmap.md#iteration-13-migrate-families-endpoints-to-zod) & [14](../../roadmap.md#iteration-14-migrate-beds-and-query-dsl-to-zod))]`** for the other modules (currently `express-validator` custom errors are returned there).
 - MUST NOT require full object presence for PATCH requests
 - follow these key and message rules on routes validated with the shared `validateRequest` middleware (§3.2); routes still on `express-validator` keep their current keys until they migrate:
   - keys are the path inside the request part, without a part prefix (`id`, not `params.id`); array positions are numeric segments (`tags.1`); a problem on the root of a part uses the part name (`params`, `query`, `body`);
@@ -193,7 +211,8 @@ Validation system currently includes rules affecting:
 - Plants endpoints
 - Beds endpoints (new full CRUD coverage)
 - Query DSL parsing (filters, sorting, pagination)
-- Health and Auth endpoints `[TARGET STATE (Pending [Iteration 10](../../roadmap.md#iteration-10-migrate-health-and-auth-endpoints-to-zod))]`
+- Auth endpoints (Zod via `validateRequest` since [Iteration 10](../../roadmap.md#iteration-10-migrate-health-and-auth-endpoints-to-zod); §3.3)
+- Health endpoints and `POST /auth/refresh`: migrated — no input to validate (they read no client input, so they declare no schema and extra query or body is ignored)
 - Families endpoints `[TARGET STATE (Pending [Iteration 13](../../roadmap.md#iteration-13-migrate-families-endpoints-to-zod))]`
 
 All MUST maintain consistent error structure, PATCH behavior semantics, and query parsing rules.
