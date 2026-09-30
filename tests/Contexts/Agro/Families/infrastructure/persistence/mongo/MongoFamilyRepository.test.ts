@@ -7,7 +7,10 @@ import { randomFamilyId } from '../../../../../../../src/Contexts/Agro/Families/
 import type { FamilyRepository } from '../../../../../../../src/Contexts/Agro/Families/domain/repositories/interfaces/FamilyRepository.js';
 import type { FamilyPrimitives } from '../../../../../../../src/Contexts/Agro/Families/domain/types/FamilyPrimitives.js';
 import { familyDomainMapper } from '../../../../../../../src/Contexts/Agro/Families/mappers/familyDomainMapper.js';
-import { DomainStaleVersionException } from '../../../../../../../src/Contexts/shared/domain/errors/index.js';
+import {
+  DomainNotFoundException,
+  DomainStaleVersionException
+} from '../../../../../../../src/Contexts/shared/domain/errors/index.js';
 import type { EnvironmentArranger } from '../../../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
 import {
   DBClientFactory,
@@ -147,11 +150,7 @@ describe('MongoFamilyRepository', () => {
         aliases: ['a1', 'a2']
       };
 
-      await repository.updateWithDiff(
-        before,
-        { ...before, ...updateDto },
-        'test-user'
-      );
+      await repository.updateWithDiff(before, { ...before, ...updateDto });
 
       const updated = await repository.findById(family.idValue);
 
@@ -168,18 +167,13 @@ describe('MongoFamilyRepository', () => {
       await repository.save(family);
       const stale = familyDomainMapper.toPrimitives(family);
 
-      await repository.updateWithDiff(
-        stale,
-        { ...stale, name: 'First writer' },
-        'test-user'
-      );
+      await repository.updateWithDiff(stale, {
+        ...stale,
+        name: 'First writer'
+      });
 
       await expect(
-        repository.updateWithDiff(
-          stale,
-          { ...stale, name: 'Second writer' },
-          'test-user'
-        )
+        repository.updateWithDiff(stale, { ...stale, name: 'Second writer' })
       ).rejects.toThrow(DomainStaleVersionException);
 
       const stored = await repository.findById(family.idValue);
@@ -187,29 +181,61 @@ describe('MongoFamilyRepository', () => {
       expect(stored?.version).toBe(stale.version + 1);
     });
 
-    it('should update metadata on every update', async () => {
+    it('stores the audit metadata it receives and adds none of its own', async () => {
       const family = FamilyScenarios.domainRandom();
       await repository.save(family);
+      const before = familyDomainMapper.toPrimitives(family);
 
-      const user = 'random-user';
-      const primitives = familyDomainMapper.toPrimitives(family);
-
-      await repository.updateWithDiff(
-        primitives,
-        { ...primitives, name: 'Another name' },
-        user
-      );
+      const outcome = await repository.updateWithDiff(before, {
+        ...before,
+        name: 'Another name'
+      });
 
       const updated = await repository.findById(family.idValue);
 
-      expect(updated?.metadata.createdAt.getTime()).toBe(
-        family.metadata.createdAt.getTime()
-      );
-      expect(updated?.metadata.createdBy).toBe(family.metadata.createdBy);
-      expect(updated?.metadata.updatedBy).toBe(user);
-      expect(updated?.metadata.updatedAt.getTime()).toBeGreaterThan(
-        family.metadata.updatedAt.getTime()
-      );
+      expect(updated && familyDomainMapper.toPrimitives(updated)).toEqual({
+        ...before,
+        name: 'Another name',
+        version: before.version + 1
+      });
+      expect(outcome).toBe('written');
+    });
+
+    describe('empty diff', () => {
+      it('reports unchanged and writes nothing when the family is at the expected version', async () => {
+        const family = FamilyScenarios.domainRandom();
+        await repository.save(family);
+        const before = familyDomainMapper.toPrimitives(family);
+
+        const outcome = await repository.updateWithDiff(before, { ...before });
+
+        const stored = await repository.findById(family.idValue);
+        expect(outcome).toBe('unchanged');
+        expect(stored && familyDomainMapper.toPrimitives(stored)).toEqual(
+          before
+        );
+      });
+
+      it('throws DomainStaleVersionException when the stored version moved', async () => {
+        const family = FamilyScenarios.domainRandom();
+        await repository.save(family);
+        const stale = familyDomainMapper.toPrimitives(family);
+        await repository.updateWithDiff(stale, { ...stale, name: 'Moved' });
+
+        await expect(
+          repository.updateWithDiff(stale, { ...stale })
+        ).rejects.toThrow(DomainStaleVersionException);
+      });
+
+      it('throws DomainNotFoundException when the family does not exist', async () => {
+        const missing = familyDomainMapper.toPrimitives(
+          FamilyScenarios.domainRandom()
+        );
+
+        await expect(
+          repository.updateWithDiff(missing, { ...missing })
+        ).rejects.toThrow(DomainNotFoundException);
+      });
     });
 
     it('should throw not found error if family does not exist', async () => {
@@ -219,11 +245,7 @@ describe('MongoFamilyRepository', () => {
 
       const primitives = familyDomainMapper.toPrimitives(nonExistingFamily);
       await expect(
-        repository.updateWithDiff(
-          primitives,
-          { ...primitives, name: 'Name' },
-          'test-user'
-        )
+        repository.updateWithDiff(primitives, { ...primitives, name: 'Name' })
       ).rejects.toThrow(`Family not found: ${nonExistingFamily.idValue}`);
     });
 
@@ -233,11 +255,10 @@ describe('MongoFamilyRepository', () => {
 
       const newName = 'Regression Test Family';
       const primitives = familyDomainMapper.toPrimitives(family);
-      await repository.updateWithDiff(
-        primitives,
-        { ...primitives, name: newName },
-        'test-user'
-      );
+      await repository.updateWithDiff(primitives, {
+        ...primitives,
+        name: newName
+      });
 
       const updated = await repository.findById(family.idValue);
       expect(updated?.name).toBe(newName);
@@ -251,7 +272,7 @@ describe('MongoFamilyRepository', () => {
       const { extra: _extra, ...afterWithoutExtra } = before;
       const after = afterWithoutExtra as FamilyPrimitives;
 
-      await repository.updateWithDiff(before, after, 'test-user');
+      await repository.updateWithDiff(before, after);
 
       const updated = await repository.findById(family.idValue);
 
@@ -266,11 +287,7 @@ describe('MongoFamilyRepository', () => {
       const before = familyDomainMapper.toPrimitives(family);
       const after = { ...before };
 
-      await repository.updateWithDiff(
-        before,
-        { ...after, name: 'Changed' },
-        'test-user'
-      );
+      await repository.updateWithDiff(before, { ...after, name: 'Changed' });
 
       const updated = await repository.findById(family.idValue);
 

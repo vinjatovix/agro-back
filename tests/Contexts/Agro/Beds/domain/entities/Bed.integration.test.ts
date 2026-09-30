@@ -62,8 +62,8 @@ describe('Bed + SpatialService (integration)', () => {
       SpatialTestScenarioBuilder.safePlacement(createBed(), SPACING_CM)
     );
 
-    bed.addPlant(p1, s1, []);
-    bed.addPlant(p2, s2, [s1]);
+    bed.addPlant(p1, s1, [], 'test-user');
+    bed.addPlant(p2, s2, [s1], 'test-user');
 
     expect(bed.plantInstances).toHaveLength(2);
   });
@@ -73,9 +73,11 @@ describe('Bed + SpatialService (integration)', () => {
       SpatialTestScenarioBuilder.colliding(SPACING_CM)
     );
 
-    bed.addPlant(p1, s1, []);
+    bed.addPlant(p1, s1, [], 'test-user');
 
-    expect(() => bed.addPlant(p2, s2, [s1])).toThrow('Collision detected');
+    expect(() => bed.addPlant(p2, s2, [s1], 'test-user')).toThrow(
+      'Collision detected'
+    );
     expect(bed.plantInstances).toHaveLength(1);
   });
 
@@ -89,7 +91,7 @@ describe('Bed + SpatialService (integration)', () => {
 
     const spatial = createSpatialPlant(plant);
 
-    expect(() => bed.addPlant(plant, spatial, [])).toThrow(
+    expect(() => bed.addPlant(plant, spatial, [], 'test-user')).toThrow(
       'Plant out of bounds (min limit)'
     );
 
@@ -101,8 +103,8 @@ describe('Bed + SpatialService (integration)', () => {
       SpatialTestScenarioBuilder.safePlacement(createBed(), SPACING_CM)
     );
 
-    bed.addPlant(p1, s1, []);
-    bed.addPlant(p2, s2, [s1]);
+    bed.addPlant(p1, s1, [], 'test-user');
+    bed.addPlant(p2, s2, [s1], 'test-user');
 
     expect(bed.plantInstances).toHaveLength(2);
   });
@@ -114,7 +116,7 @@ describe('Bed + SpatialService (integration)', () => {
     const plant = PlantInstanceMother.fromPlantAtPosition(CROP, center, center);
     const spatial = createSpatialPlant(plant);
 
-    bed.addPlant(plant, spatial, []);
+    bed.addPlant(plant, spatial, [], 'test-user');
 
     expect(bed.plantInstances).toHaveLength(1);
   });
@@ -124,10 +126,10 @@ describe('Bed + SpatialService (integration)', () => {
       SpatialTestScenarioBuilder.safePlacement(createBed(), SPACING_CM)
     );
 
-    bed.addPlant(p1, s1, []);
-    bed.removePlant(p1.id);
+    bed.addPlant(p1, s1, [], 'test-user');
+    bed.removePlant(p1.id, 'test-user');
 
-    expect(() => bed.addPlant(p2, s2, [])).not.toThrow();
+    expect(() => bed.addPlant(p2, s2, [], 'test-user')).not.toThrow();
     expect(bed.plantInstances).toHaveLength(1);
   });
 
@@ -144,9 +146,11 @@ describe('Bed + SpatialService (integration)', () => {
     const s1 = createSpatialPlant(base);
     const s2 = createSpatialPlant(near);
 
-    bed.addPlant(base, s1, []);
+    bed.addPlant(base, s1, [], 'test-user');
 
-    expect(() => bed.addPlant(near, s2, [s1])).toThrow('Collision detected');
+    expect(() => bed.addPlant(near, s2, [s1], 'test-user')).toThrow(
+      'Collision detected'
+    );
   });
 
   it('ignores same plant instance in collision detection', () => {
@@ -155,7 +159,7 @@ describe('Bed + SpatialService (integration)', () => {
     const plant = PlantInstanceMother.fromPlantAtPosition(CROP, 100, 100);
     const spatial = createSpatialPlant(plant);
 
-    bed.addPlant(plant, spatial, [spatial]);
+    bed.addPlant(plant, spatial, [spatial], 'test-user');
 
     expect(bed.plantInstances).toHaveLength(1);
   });
@@ -171,10 +175,10 @@ describe('Bed + SpatialService (integration)', () => {
     const s2 = createSpatialPlant(plant2);
     const sNew = createSpatialPlant(newPlant);
 
-    bed.addPlant(plant1, s1, []);
-    bed.addPlant(plant2, s2, [s1]);
+    bed.addPlant(plant1, s1, [], 'test-user');
+    bed.addPlant(plant2, s2, [s1], 'test-user');
 
-    expect(() => bed.addPlant(newPlant, sNew, [s1, s2])).toThrow(
+    expect(() => bed.addPlant(newPlant, sNew, [s1, s2], 'test-user')).toThrow(
       'Collision detected'
     );
 

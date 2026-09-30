@@ -74,7 +74,7 @@ describe('PlantPersistenceMapper', () => {
 
     it('should map deletedAt correctly', () => {
       const plant = PlantFactory.create();
-      plant.markAsDeleted();
+      plant.markAsDeleted('test-user');
 
       const doc = plantPersistenceMapper.toMongoDocument(plant);
 
@@ -117,7 +117,7 @@ describe('PlantPersistenceMapper', () => {
 
     it('should map deletedAt correctly', () => {
       const plant = PlantFactory.create();
-      plant.markAsDeleted();
+      plant.markAsDeleted('test-user');
 
       const doc = plantPersistenceMapper.toMongoDocument(plant);
       const restored = plantPersistenceMapper.fromMongoDocument(doc);

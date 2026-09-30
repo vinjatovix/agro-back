@@ -67,8 +67,13 @@ export async function addPlantToBed({
 
   const current = bedDomainMapper.toPrimitives(bed);
 
-  bed.addPlant(plantInstance, newPlantSpatial, existingSpatialPlants);
+  bed.addPlant(
+    plantInstance,
+    newPlantSpatial,
+    existingSpatialPlants,
+    user.username
+  );
   const updated = bedDomainMapper.toPrimitives(bed);
 
-  await bedRepository.updateWithDiff(current, updated, user.username);
+  await bedRepository.updateWithDiff(current, updated);
 }

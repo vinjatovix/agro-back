@@ -722,3 +722,61 @@ Feature: Update a plant
     And the response body matches "0" for field "version"
     And the response should have ETag '"0"'
     And response matches OpenAPI contract
+
+  Scenario: A multi-section update answers from memory with one consistent audit entry
+    Given a family exists
+    And a plant exists
+    And the plant was last updated by another user
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "id": "<plantId>",
+        "identity": {
+          "name": {
+            "primary": "Audited plant"
+          }
+        },
+        "traits": {
+          "lifecycle": "perennial"
+        },
+        "phenology": {
+          "sowing": {
+            "months": [4, 5]
+          }
+        },
+        "knowledge": {
+          "notes": ["audited note"]
+        }
+      }
+      """
+    Then the response status code should be 200
+    And the response should have ETag '"1"'
+    And the response audit data should show the admin as last editor
+    And a GET admin request to "/api/v1/plants/<plantId>" should return the same body
+    And response matches OpenAPI contract
+
+  Scenario: An update with the values the plant already has changes nothing
+    Given a family exists
+    And a plant exists
+    And the plant was last updated by another user
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "id": "<plantId>",
+        "identity": {
+          "name": {
+            "primary": "Test plant"
+          }
+        },
+        "traits": {
+          "lifecycle": "annual"
+        }
+      }
+      """
+    Then the response status code should be 200
+    And the response should have ETag '"0"'
+    And the response body matches "0" for field "version"
+    And the plant should be unchanged
+    And response matches OpenAPI contract

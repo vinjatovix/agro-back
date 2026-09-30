@@ -75,7 +75,7 @@ describe('MongoPlantRepository', () => {
 
     it('should return a soft-deleted plant instead of null', async () => {
       const plant = PlantFactory.random();
-      plant.markAsDeleted();
+      plant.markAsDeleted('test-user');
 
       await repository.save(plant);
 
@@ -113,7 +113,7 @@ describe('MongoPlantRepository', () => {
 
     it('should return null when the plant is soft-deleted', async () => {
       const plant = PlantFactory.random();
-      plant.markAsDeleted();
+      plant.markAsDeleted('test-user');
 
       await repository.save(plant);
 
@@ -142,7 +142,7 @@ describe('MongoPlantRepository', () => {
         }
       };
 
-      await repository.updateWithDiff(current, updated, 'user-1');
+      await repository.updateWithDiff(current, updated);
 
       const result = await findExisting(plant.id);
 
@@ -162,10 +162,10 @@ describe('MongoPlantRepository', () => {
         }
       });
 
-      await repository.updateWithDiff(stale, renamed('First writer'), 'user-1');
+      await repository.updateWithDiff(stale, renamed('First writer'));
 
       await expect(
-        repository.updateWithDiff(stale, renamed('Second writer'), 'user-1')
+        repository.updateWithDiff(stale, renamed('Second writer'))
       ).rejects.toThrow(DomainStaleVersionException);
 
       const result = await findExisting(plant.id);
@@ -184,17 +184,13 @@ describe('MongoPlantRepository', () => {
       const current = plantDomainMapper.toPrimitives(
         await findExisting(plant.id)
       );
-      await repository.updateWithDiff(
-        current,
-        {
-          ...current,
-          identity: {
-            ...current.identity,
-            name: { ...current.identity.name, primary: 'Legacy rename' }
-          }
-        },
-        'user-1'
-      );
+      await repository.updateWithDiff(current, {
+        ...current,
+        identity: {
+          ...current.identity,
+          name: { ...current.identity.name, primary: 'Legacy rename' }
+        }
+      });
 
       const result = await findExisting(plant.id);
       expect(current.version).toBe(0);
@@ -209,17 +205,13 @@ describe('MongoPlantRepository', () => {
       const countSpy = jest.spyOn(Collection.prototype, 'countDocuments');
 
       try {
-        await repository.updateWithDiff(
-          current,
-          {
-            ...current,
-            identity: {
-              ...current.identity,
-              name: { ...current.identity.name, primary: 'Renamed' }
-            }
-          },
-          'user-1'
-        );
+        await repository.updateWithDiff(current, {
+          ...current,
+          identity: {
+            ...current.identity,
+            name: { ...current.identity.name, primary: 'Renamed' }
+          }
+        });
 
         expect(countSpy).not.toHaveBeenCalled();
       } finally {
@@ -244,8 +236,7 @@ describe('MongoPlantRepository', () => {
                 ...current.identity,
                 name: { ...current.identity.name, primary: 'Renamed' }
               }
-            },
-            'user-1'
+            }
           )
         ).rejects.toThrow(DomainStaleVersionException);
 
@@ -265,7 +256,7 @@ describe('MongoPlantRepository', () => {
         identity: { ...current.identity, scientificName: null }
       };
 
-      await repository.updateWithDiff(current, updated, 'user-1');
+      await repository.updateWithDiff(current, updated);
 
       const result = await findExisting(plant.id);
 
@@ -289,7 +280,7 @@ describe('MongoPlantRepository', () => {
         }
       };
 
-      await repository.updateWithDiff(current, updated, 'user-1');
+      await repository.updateWithDiff(current, updated);
 
       const result = await findExisting(plant.id);
 
@@ -313,7 +304,7 @@ describe('MongoPlantRepository', () => {
         }
       };
 
-      await repository.updateWithDiff(current, updated, 'user-1');
+      await repository.updateWithDiff(current, updated);
 
       const result = await findExisting(plant.id);
 
@@ -323,7 +314,7 @@ describe('MongoPlantRepository', () => {
       expect(result.traits.size.spread.max).toBe(plant.traits.size.spread.max);
     });
 
-    it('should update metadata on every update', async () => {
+    it('stores the audit metadata it receives, adds none of its own and reports it wrote', async () => {
       const plant = PlantFactory.random();
       const current = plantDomainMapper.toPrimitives(plant);
       await repository.save(plant);
@@ -336,11 +327,15 @@ describe('MongoPlantRepository', () => {
         }
       };
 
-      await repository.updateWithDiff(current, updated, 'user-1');
+      const outcome = await repository.updateWithDiff(current, updated);
 
       const result = await findExisting(plant.id);
 
-      expect(result.metadata.updatedBy).toBe('user-1');
+      expect(plantDomainMapper.toPrimitives(result)).toEqual({
+        ...updated,
+        version: current.version + 1
+      });
+      expect(outcome).toBe('written');
     });
 
     it("should not update metadata's createdBy on update", async () => {
@@ -358,7 +353,7 @@ describe('MongoPlantRepository', () => {
         }
       };
 
-      await repository.updateWithDiff(current, updated, 'user-1');
+      await repository.updateWithDiff(current, updated);
 
       const result = await findExisting(plant.id);
 
@@ -372,11 +367,63 @@ describe('MongoPlantRepository', () => {
 
       const originalMetadata = plant.metadata;
 
-      await repository.updateWithDiff(current, { ...current }, 'user-1');
+      await repository.updateWithDiff(current, { ...current });
 
       const result = await findExisting(plant.id);
 
       expect(result.metadata).toEqual(originalMetadata);
+    });
+
+    describe('empty diff', () => {
+      it('reports unchanged and writes nothing when the plant is active at the expected version', async () => {
+        const plant = PlantFactory.random();
+        const current = plantDomainMapper.toPrimitives(plant);
+        await repository.save(plant);
+
+        const outcome = await repository.updateWithDiff(current, {
+          ...current
+        });
+
+        const result = await findExisting(plant.id);
+        expect(outcome).toBe('unchanged');
+        expect(plantDomainMapper.toPrimitives(result)).toEqual(current);
+      });
+
+      it('throws DomainStaleVersionException when the stored version moved', async () => {
+        const plant = PlantFactory.random();
+        const stale = plantDomainMapper.toPrimitives(plant);
+        await repository.save(plant);
+        await repository.updateWithDiff(stale, {
+          ...stale,
+          identity: {
+            ...stale.identity,
+            name: { ...stale.identity.name, primary: 'Moved' }
+          }
+        });
+
+        await expect(
+          repository.updateWithDiff(stale, { ...stale })
+        ).rejects.toThrow(DomainStaleVersionException);
+      });
+
+      it('throws DomainNotFoundException when the plant was soft-deleted', async () => {
+        const plant = PlantFactory.random();
+        const current = plantDomainMapper.toPrimitives(plant);
+        plant.markAsDeleted('test-user');
+        await repository.save(plant);
+
+        await expect(
+          repository.updateWithDiff(current, { ...current })
+        ).rejects.toThrow(DomainNotFoundException);
+      });
+
+      it('throws DomainNotFoundException when the plant does not exist', async () => {
+        const current = plantDomainMapper.toPrimitives(PlantFactory.random());
+
+        await expect(
+          repository.updateWithDiff(current, { ...current })
+        ).rejects.toThrow(DomainNotFoundException);
+      });
     });
 
     it('should handle non-existent plant on update', async () => {
@@ -391,14 +438,14 @@ describe('MongoPlantRepository', () => {
         }
       };
 
-      await expect(
-        repository.updateWithDiff(current, updated, 'user-1')
-      ).rejects.toThrow(`Plant not found: ${plant.id}`);
+      await expect(repository.updateWithDiff(current, updated)).rejects.toThrow(
+        `Plant not found: ${plant.id}`
+      );
     });
 
     it('should throw DomainNotFoundException when updating a soft-deleted plant', async () => {
       const plant = PlantFactory.random();
-      plant.markAsDeleted();
+      plant.markAsDeleted('test-user');
       const current = plantDomainMapper.toPrimitives(plant);
 
       await repository.save(plant);
@@ -411,13 +458,13 @@ describe('MongoPlantRepository', () => {
         }
       };
 
-      await expect(
-        repository.updateWithDiff(current, updated, 'test-user')
-      ).rejects.toThrow(DomainNotFoundException);
+      await expect(repository.updateWithDiff(current, updated)).rejects.toThrow(
+        DomainNotFoundException
+      );
 
-      await expect(
-        repository.updateWithDiff(current, updated, 'test-user')
-      ).rejects.toThrow(`Plant not found: ${plant.id}`);
+      await expect(repository.updateWithDiff(current, updated)).rejects.toThrow(
+        `Plant not found: ${plant.id}`
+      );
 
       const storedPlant = await findExisting(plant.id);
       expect(storedPlant.identity.name.primary).toBe(

@@ -20,9 +20,9 @@ export class DeleteBed {
     ensureVersion(bed.version, expectedVersion, 'Bed', id);
 
     const current = bedDomainMapper.toPrimitives(bed);
-    bed.markAsDeleted();
+    bed.markAsDeleted(user.username);
     const deleted = bedDomainMapper.toPrimitives(bed);
 
-    await this.bedRepository.updateWithDiff(current, deleted, user.username);
+    await this.bedRepository.updateWithDiff(current, deleted);
   }
 }

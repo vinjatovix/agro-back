@@ -2,7 +2,6 @@ import type { UserSessionInfo } from '../../../../Auth/application/index.js';
 import { ensureFound } from '../../../../shared/application/utils/ensureFound.js';
 import { ensureVersion } from '../../../../shared/application/utils/ensureVersion.js';
 import type { Bed } from '../../domain/entities/Bed.js';
-import type { BedChanges } from '../../domain/entities/types/BedChanges.js';
 import type { BedRepository } from '../../domain/repositories/interfaces/BedRepository.js';
 import { bedDomainMapper } from '../../mappers/bedDomainMapper.js';
 import { bedInputMapper } from '../../mappers/bedInputMapper.js';
@@ -16,43 +15,28 @@ export class UpdateBed {
     user: UserSessionInfo,
     expectedVersion: number
   ): Promise<Bed> {
-    const bed = await this.findOwnedActiveBed(input.id, user);
+    const bed = ensureFound(
+      await this.bedRepository.findOwnedActiveById(input.id, user.id),
+      'Bed',
+      input.id
+    );
     ensureVersion(bed.version, expectedVersion, 'Bed', input.id);
 
     const changes = bedInputMapper.toChanges(input);
-
-    if (!this.hasAnyChanges(changes)) {
-      return bed;
-    }
-
     const before = bedDomainMapper.toPrimitives(bed);
+    // One timestamp for the whole request, whatever fields it touches.
+    const at = new Date();
 
     if (changes.name !== undefined) {
-      bed.rename(changes.name);
+      bed.rename(changes.name, user.username, at);
     }
-    bed.resize(changes.dimensions);
+    bed.resize(changes.dimensions, user.username, at);
 
     const after = bedDomainMapper.toPrimitives(bed);
 
-    await this.bedRepository.updateWithDiff(before, after, user.username);
+    // Always called: an empty diff is still confirmed against storage.
+    bed.syncVersion(await this.bedRepository.updateWithDiff(before, after));
 
-    return this.findOwnedActiveBed(input.id, user);
-  }
-
-  private hasAnyChanges(changes: BedChanges): boolean {
-    return (
-      changes.name !== undefined || Object.keys(changes.dimensions).length > 0
-    );
-  }
-
-  private async findOwnedActiveBed(
-    id: string,
-    user: UserSessionInfo
-  ): Promise<Bed> {
-    return ensureFound(
-      await this.bedRepository.findOwnedActiveById(id, user.id),
-      'Bed',
-      id
-    );
+    return bed;
   }
 }

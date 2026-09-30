@@ -151,7 +151,7 @@ _Note: For the exact HTTP verbs, status codes, and routing parameters exposing t
 
 ### 7.1 Deletion Lifecycle (Soft Deletion) `[TARGET STATE (Pending [Iteration 22](../../roadmap.md#iteration-22-standardize-soft-deletion-on-bed-and-plantinstance))]`
 
-- To maintain consistency and align with the standard defined in `plant-instance.md` and `plant.md`, the `Bed` aggregate root MUST support soft deletion using an anti-anemic, model-driven business method in the domain (e.g., `markAsDeleted()`).
+- To maintain consistency and align with the standard defined in `plant-instance.md` and `plant.md`, the `Bed` aggregate root MUST support soft deletion using an anti-anemic, model-driven business method in the domain (e.g., `markAsDeleted(user)`).
 - Calling this method sets the `status` property to `'removed'` and records the `deletedAt` timestamp (ISODate) within the aggregate root.
 - Access control and status invariants (e.g., preventing operations on deleted beds) are enforced inside the domain.
 - _Migration Note: Currently, the codebase implements Bed soft deletion using a boolean flag `deleted: boolean` and timestamp `deletedAt`. Standardizing Bed to utilize `status: 'active' | 'removed'` is a target state slated to be refactored in [Iteration 22](../../roadmap.md#iteration-22-standardize-soft-deletion-on-bed-and-plantinstance)._
@@ -212,7 +212,8 @@ _Note: For the exact HTTP verbs, status codes, and routing parameters exposing t
 - ownership enforcement in API layer
 - validation contract enforcement (OpenAPI-driven tests)
 - optimistic concurrency control via `version` and `If-Match` (stale version → `412`, missing `If-Match` → `428`)
-- aggregate mutation methods: `Bed.rename(name)` and `Bed.resize(changes)` — both throw `DomainConflictException` on a soft-deleted bed; `resize` validates each dimension with `PositiveNumber.create` before mutating (atomic: if any dimension is invalid, nothing changes)
+- aggregate mutation methods: `Bed.rename(name, user)` and `Bed.resize(changes, user)` — both throw `DomainConflictException` on a soft-deleted bed; `resize` validates each dimension with `PositiveNumber.create` before mutating (atomic: if any dimension is invalid, nothing changes)
+- in-memory audit metadata (domain-core.md Sec. 5.2): `rename`/`resize` refresh `updatedAt`/`updatedBy` only on a real change; `markAsDeleted(user)` uses one timestamp for `deletedAt` and `updatedAt`; `addPlant(plant, spatial, existing, user)` always refreshes audit data; `removePlant(plantId, user)` refreshes audit data only when a plant is actually removed (an unknown id is a no-op). All of them accept an optional `at` timestamp; `UpdateBed` passes one `at` to `rename` and `resize`. `UpdateBed` returns the in-memory bed after `syncVersion` (1 read + 1 write, no read-back)
 - soft-deletion invariant: a bed with plants cannot be deleted (`409`, checked after the version: an outdated version returns `412` first); deleting an already deleted bed returns `404`
 
 ### Partial

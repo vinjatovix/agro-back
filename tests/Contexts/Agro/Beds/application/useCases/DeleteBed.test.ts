@@ -37,6 +37,22 @@ describe('DeleteBed', () => {
     repository.assertSaveNotCalled();
   });
 
+  it('should store the deleting user and time as audit data with one read and one write', async () => {
+    const bed = BedFactory.fromUser(USER);
+    repository.addToStorage(bed);
+    const deleter: UserSessionInfo = { ...USER, username: 'deleter' };
+
+    await useCase.execute(bed.id, deleter, bed.version);
+
+    const stored = repository.getStoredPrimitives(bed.id);
+    expect(stored?.metadata.updatedBy).toBe('deleter');
+    expect(stored?.metadata.updatedAt.toISOString()).toBe(stored?.deletedAt);
+    expect(stored?.metadata.createdBy).toBe(bed.metadata.createdBy);
+    expect(stored?.version).toBe(bed.version + 1);
+    repository.assertReadCalledTimes('findOwnedActiveById', 1);
+    repository.assertUpdateCalledTimes(1);
+  });
+
   it('should throw not found error if bed already deleted (repeat delete)', async () => {
     const bed = BedFactory.create({
       deleted: true,

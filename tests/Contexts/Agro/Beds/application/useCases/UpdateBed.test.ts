@@ -9,6 +9,7 @@ import {
   DomainStaleVersionException,
   InvalidArgumentException
 } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
+import { Metadata } from '../../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
 import { random } from '../../../../shared/fixtures/random.js';
 import { BedRepositoryMock } from '../../__mocks__/BedRepositoryMock.js';
 import { BedFactory } from '../../domain/mothers/BedFactory.js';
@@ -48,30 +49,33 @@ describe('UpdateBed', () => {
     repository.assertUpdateNotCalled();
   });
 
-  it('should perform no write when input has only id', async () => {
+  it('should confirm a no-op against storage when input has only id', async () => {
     const result = await useCase.execute({ id: bed.id }, USER, CURRENT_VERSION);
 
-    repository.assertUpdateNotCalled();
+    repository.assertUpdateCalledTimes(1);
     expect(result.version).toBe(bed.version);
+    expect(result.metadata).toEqual(bed.metadata);
   });
 
-  it('should throw not found error if the bed disappears after the update', async () => {
+  it('should return the edited bed even if it is deleted right after the write', async () => {
     jest
       .spyOn(repository, 'findOwnedActiveById')
-      .mockResolvedValueOnce(bed)
+      .mockResolvedValueOnce(
+        bedDomainMapper.fromPrimitives(bedDomainMapper.toPrimitives(bed))
+      )
       .mockResolvedValueOnce(null);
 
-    await expect(
-      useCase.execute(
-        {
-          id: bed.id,
-          width: bed.width.value + 50,
-          height: bed.height.value + 50
-        },
-        USER,
-        CURRENT_VERSION
-      )
-    ).rejects.toBeInstanceOf(DomainNotFoundException);
+    const result = await useCase.execute(
+      {
+        id: bed.id,
+        width: bed.width.value + 50,
+        height: bed.height.value + 50
+      },
+      USER,
+      CURRENT_VERSION
+    );
+
+    expect(result.width.value).toBe(bed.width.value + 50);
   });
 
   it('should throw not found error if user is not the creator of the bed', async () => {
@@ -138,31 +142,6 @@ describe('UpdateBed', () => {
     ).rejects.toBeInstanceOf(DomainNotFoundException);
   });
 
-  it('should throw not found error when re-read finds soft-deleted bed after update (FR-007a)', async () => {
-    const deletedBed = BedFactory.create({
-      id: bed.id,
-      userId: createUserId(USER.id),
-      deleted: true,
-      deletedAt: new Date()
-    });
-    jest.spyOn(repository, 'updateWithDiff').mockImplementationOnce(() => {
-      repository.addToStorage(deletedBed);
-      return Promise.resolve();
-    });
-
-    await expect(
-      useCase.execute(
-        {
-          id: bed.id,
-          width: bed.width.value + 50,
-          height: bed.height.value + 50
-        },
-        USER,
-        CURRENT_VERSION
-      )
-    ).rejects.toBeInstanceOf(DomainNotFoundException);
-  });
-
   it('should update bed width and height', async () => {
     await useCase.execute(
       {
@@ -186,8 +165,7 @@ describe('UpdateBed', () => {
         width: bed.width.value + 50,
         height: bed.height.value + 50,
         depth: bed.depth.value
-      }),
-      USER.username
+      })
     );
   });
 
@@ -275,10 +253,47 @@ describe('UpdateBed', () => {
       expect(storedVersion()).toBe(bed.version);
     });
 
-    it('should read twice, write once and never run the existence check on success', async () => {
+    it('should answer stale for a no-op when the stored version moved after the read', async () => {
+      const readCopy = bedDomainMapper.fromPrimitives(
+        bedDomainMapper.toPrimitives(bed)
+      );
+      repository.addToStorage(
+        bedDomainMapper.fromPrimitives({
+          ...bedDomainMapper.toPrimitives(bed),
+          version: bed.version + 1
+        })
+      );
+      jest
+        .spyOn(repository, 'findOwnedActiveById')
+        .mockResolvedValueOnce(readCopy);
+
+      await expect(
+        useCase.execute({ id: bed.id }, USER, bed.version)
+      ).rejects.toBeInstanceOf(DomainStaleVersionException);
+    });
+
+    it('should answer not found for a no-op when the bed was removed after the read', async () => {
+      const readCopy = bedDomainMapper.fromPrimitives(
+        bedDomainMapper.toPrimitives(bed)
+      );
+      repository.clear();
+      jest
+        .spyOn(repository, 'findOwnedActiveById')
+        .mockResolvedValueOnce(readCopy);
+
+      await expect(
+        useCase.execute(
+          { id: bed.id, width: bed.width.value },
+          USER,
+          bed.version
+        )
+      ).rejects.toBeInstanceOf(DomainNotFoundException);
+    });
+
+    it('should read once, write once and never run the existence check on success', async () => {
       await useCase.execute(resize(), USER, bed.version);
 
-      repository.assertReadCalledTimes('findOwnedActiveById', 2);
+      repository.assertReadCalledTimes('findOwnedActiveById', 1);
       repository.assertUpdateCalledTimes(1);
       repository.assertExistenceCountCalledTimes(0);
     });
@@ -314,5 +329,70 @@ describe('UpdateBed', () => {
       createdBy: USER.username,
       updatedBy: USER.username
     });
+  });
+
+  it('should return the in-memory bed with audit data by the acting user and the stored version', async () => {
+    const editor: UserSessionInfo = { ...USER, username: 'editor' };
+    const stored = BedFactory.create({
+      userId: createUserId(USER.id),
+      metadata: Metadata.fromPrimitives({
+        createdAt: new Date('2024-01-01T00:00:00.000Z'),
+        createdBy: 'creator',
+        updatedAt: new Date('2024-01-01T00:00:00.000Z'),
+        updatedBy: 'creator'
+      })
+    });
+    repository.addToStorage(stored);
+
+    const updated = await useCase.execute(
+      { id: stored.id, name: 'Renamed' },
+      editor,
+      stored.version
+    );
+
+    expect(updated.version).toBe(stored.version + 1);
+    expect(updated.metadata.updatedBy).toBe('editor');
+    expect(updated.metadata.updatedAt.getTime()).toBeGreaterThan(
+      stored.metadata.updatedAt.getTime()
+    );
+    expect(updated.metadata.createdBy).toBe('creator');
+    expect(updated.metadata.createdAt).toEqual(stored.metadata.createdAt);
+    expect(bedDomainMapper.toPrimitives(updated)).toEqual(
+      repository.getStoredPrimitives(stored.id)
+    );
+    repository.assertReadCalledTimes('findOwnedActiveById', 1);
+    repository.assertUpdateCalledTimes(1);
+  });
+
+  it('should stamp every change of one request with the same time', async () => {
+    const loaded = bedDomainMapper.fromPrimitives(
+      bedDomainMapper.toPrimitives(bed)
+    );
+    jest.spyOn(repository, 'findOwnedActiveById').mockResolvedValueOnce(loaded);
+    const rename = jest.spyOn(loaded, 'rename');
+    const resize = jest.spyOn(loaded, 'resize');
+
+    const updated = await useCase.execute(
+      { id: bed.id, name: 'Renamed', width: bed.width.value + 10 },
+      USER,
+      CURRENT_VERSION
+    );
+
+    const at = rename.mock.calls[0]?.[2];
+    expect(at).toBeInstanceOf(Date);
+    expect(resize.mock.calls[0]?.[2]).toBe(at);
+    expect(updated.metadata.updatedAt).toBe(at);
+  });
+
+  it('should return no bed when the write fails', async () => {
+    jest
+      .spyOn(repository, 'updateWithDiff')
+      .mockRejectedValueOnce(
+        new DomainStaleVersionException(`Bed was modified: ${bed.id}`)
+      );
+
+    await expect(
+      useCase.execute({ id: bed.id, name: 'Renamed' }, USER, CURRENT_VERSION)
+    ).rejects.toBeInstanceOf(DomainStaleVersionException);
   });
 });

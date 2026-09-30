@@ -120,7 +120,7 @@ describe('Plant (aggregate root)', () => {
 
     expect(plant.isDeleted()).toBe(false);
 
-    plant.markAsDeleted();
+    plant.markAsDeleted('test-user');
 
     expect(plant.isDeleted()).toBe(true);
     expect(plant.deletedAt).toBeInstanceOf(Date);
@@ -129,10 +129,10 @@ describe('Plant (aggregate root)', () => {
   it('should not change status if already deleted', () => {
     const plant = buildPlant();
 
-    plant.markAsDeleted();
+    plant.markAsDeleted('test-user');
     const firstDeletedAt = plant.deletedAt;
 
-    plant.markAsDeleted();
+    plant.markAsDeleted('test-user');
 
     expect(plant.status).toBe(PlantStatus.DELETED);
     expect(plant.deletedAt).toBe(firstDeletedAt);
@@ -210,7 +210,7 @@ describe('Plant (aggregate root)', () => {
   it('should allow DELETED plant without deletedAt only if set via markAsDeleted', () => {
     const plant = buildPlant();
 
-    plant.markAsDeleted();
+    plant.markAsDeleted('test-user');
 
     expect(plant.status).toBe(PlantStatus.DELETED);
     expect(plant.deletedAt).toBeInstanceOf(Date);
@@ -252,7 +252,7 @@ describe('Plant mutation methods', () => {
     it('should trim and replace name.primary', () => {
       const plant = PlantFactory.create();
 
-      plant.updateIdentity({ name: { primary: '  Tomate  ' } });
+      plant.updateIdentity({ name: { primary: '  Tomate  ' } }, 'test-user');
 
       expect(plant.identity.name.primary).toBe('Tomate');
     });
@@ -260,9 +260,12 @@ describe('Plant mutation methods', () => {
     it('should trim aliases and drop empty ones', () => {
       const plant = PlantFactory.create();
 
-      plant.updateIdentity({
-        name: { aliases: [' tomatera ', '  ', 'cherry'] }
-      });
+      plant.updateIdentity(
+        {
+          name: { aliases: [' tomatera ', '  ', 'cherry'] }
+        },
+        'test-user'
+      );
 
       expect(plant.identity.name.aliases).toEqual(['tomatera', 'cherry']);
     });
@@ -270,7 +273,10 @@ describe('Plant mutation methods', () => {
     it('should replace scientificName trimmed', () => {
       const plant = PlantFactory.create();
 
-      plant.updateIdentity({ scientificName: '  Solanum lycopersicum  ' });
+      plant.updateIdentity(
+        { scientificName: '  Solanum lycopersicum  ' },
+        'test-user'
+      );
 
       expect(plant.identity.scientificName).toBe('Solanum lycopersicum');
     });
@@ -279,9 +285,9 @@ describe('Plant mutation methods', () => {
       const plant = PlantFactory.create();
       const before = plantDomainMapper.toPrimitives(plant);
 
-      expect(() => plant.updateIdentity({ name: { primary: '   ' } })).toThrow(
-        /primary/
-      );
+      expect(() =>
+        plant.updateIdentity({ name: { primary: '   ' } }, 'test-user')
+      ).toThrow(/primary/);
       assertUnchanged(plant, before);
     });
 
@@ -289,9 +295,9 @@ describe('Plant mutation methods', () => {
       const plant = PlantFactory.create();
       const before = plantDomainMapper.toPrimitives(plant);
 
-      expect(() => plant.updateIdentity({ scientificName: '   ' })).toThrow(
-        /scientificName/
-      );
+      expect(() =>
+        plant.updateIdentity({ scientificName: '   ' }, 'test-user')
+      ).toThrow(/scientificName/);
       assertUnchanged(plant, before);
     });
 
@@ -299,7 +305,7 @@ describe('Plant mutation methods', () => {
       const plant = PlantFactory.create();
       const newFamilyId = randomFamilyId();
 
-      plant.updateIdentity({ family: newFamilyId });
+      plant.updateIdentity({ family: newFamilyId }, 'test-user');
 
       expect(plant.identity.family).toBe(newFamilyId);
     });
@@ -308,7 +314,7 @@ describe('Plant mutation methods', () => {
       const plant = PlantFactory.create();
       const newFamilyId = randomFamilyId();
 
-      plant.updateIdentity({ family: `  ${newFamilyId}  ` });
+      plant.updateIdentity({ family: `  ${newFamilyId}  ` }, 'test-user');
 
       expect(plant.identity.family).toBe(newFamilyId);
     });
@@ -317,14 +323,16 @@ describe('Plant mutation methods', () => {
       const plant = PlantFactory.create();
       const before = plantDomainMapper.toPrimitives(plant);
 
-      expect(() => plant.updateIdentity({ family: '   ' })).toThrow(/family/);
+      expect(() =>
+        plant.updateIdentity({ family: '   ' }, 'test-user')
+      ).toThrow(/family/);
       assertUnchanged(plant, before);
     });
 
     it('should keep props frozen after the change', () => {
       const plant = PlantFactory.create();
 
-      plant.updateIdentity({ name: { primary: 'New' } });
+      plant.updateIdentity({ name: { primary: 'New' } }, 'test-user');
 
       expect(Object.isFrozen(plant.identity)).toBe(true);
       expect(Object.isFrozen(plant.identity.name)).toBe(true);
@@ -333,22 +341,24 @@ describe('Plant mutation methods', () => {
     it('should throw DomainConflictException on a soft-deleted plant', () => {
       const plant = PlantFactory.create({ deletedAt: new Date() });
 
-      expect(() => plant.updateIdentity({ name: { primary: 'New' } })).toThrow(
-        DomainConflictException
-      );
+      expect(() =>
+        plant.updateIdentity({ name: { primary: 'New' } }, 'test-user')
+      ).toThrow(DomainConflictException);
     });
 
-    it('should not change id, version, metadata, status, deletedAt', () => {
+    it('should not change id, version, created audit data, status, deletedAt', () => {
       const plant = PlantFactory.create();
       const before = plantDomainMapper.toPrimitives(plant);
 
-      plant.updateIdentity({ name: { primary: 'New Name' } });
+      plant.updateIdentity({ name: { primary: 'New Name' } }, 'test-user');
 
       const after = plantDomainMapper.toPrimitives(plant);
       expect(after.id).toBe(before.id);
       expect(after.version).toBe(before.version);
-      expect(after.metadata).toEqual(before.metadata);
+      expect(after.metadata.createdAt).toEqual(before.metadata.createdAt);
+      expect(after.metadata.createdBy).toBe(before.metadata.createdBy);
       expect(after.status).toBe(before.status);
+      expect(after.deletedAt).toBe(before.deletedAt);
     });
   });
 
@@ -356,7 +366,7 @@ describe('Plant mutation methods', () => {
     it('should replace lifecycle', () => {
       const plant = PlantFactory.create();
 
-      plant.updateTraits({ lifecycle: 'perennial' });
+      plant.updateTraits({ lifecycle: 'perennial' }, 'test-user');
 
       expect(plant.traits.lifecycle.getValue()).toBe('perennial');
     });
@@ -365,7 +375,7 @@ describe('Plant mutation methods', () => {
       const plant = PlantFactory.create();
       const originalMax = plant.traits.spacingCm.max;
 
-      plant.updateTraits({ spacingCm: { min: 5 } });
+      plant.updateTraits({ spacingCm: { min: 5 } }, 'test-user');
 
       expect(plant.traits.spacingCm.min).toBe(5);
       expect(plant.traits.spacingCm.max).toBe(originalMax);
@@ -375,7 +385,10 @@ describe('Plant mutation methods', () => {
       const plant = PlantFactory.create();
       const originalSpread = plant.traits.size.spread.min;
 
-      plant.updateTraits({ size: { height: { min: 20, max: 40 } } });
+      plant.updateTraits(
+        { size: { height: { min: 20, max: 40 } } },
+        'test-user'
+      );
 
       expect(plant.traits.size.height.min).toBe(20);
       expect(plant.traits.size.height.max).toBe(40);
@@ -387,7 +400,7 @@ describe('Plant mutation methods', () => {
       const before = plantDomainMapper.toPrimitives(plant);
 
       expect(() =>
-        plant.updateTraits({ spacingCm: { min: 100, max: 1 } })
+        plant.updateTraits({ spacingCm: { min: 100, max: 1 } }, 'test-user')
       ).toThrow(/greater/);
       assertUnchanged(plant, before);
     });
@@ -395,21 +408,22 @@ describe('Plant mutation methods', () => {
     it('should throw DomainConflictException on a soft-deleted plant', () => {
       const plant = PlantFactory.create({ deletedAt: new Date() });
 
-      expect(() => plant.updateTraits({ lifecycle: 'annual' })).toThrow(
-        DomainConflictException
-      );
+      expect(() =>
+        plant.updateTraits({ lifecycle: 'annual' }, 'test-user')
+      ).toThrow(DomainConflictException);
     });
 
-    it('should not change id, version, metadata on success', () => {
+    it('should not change id, version or created audit data on success', () => {
       const plant = PlantFactory.create();
       const before = plantDomainMapper.toPrimitives(plant);
 
-      plant.updateTraits({ lifecycle: 'perennial' });
+      plant.updateTraits({ lifecycle: 'perennial' }, 'test-user');
 
       const after = plantDomainMapper.toPrimitives(plant);
       expect(after.id).toBe(before.id);
       expect(after.version).toBe(before.version);
-      expect(after.metadata).toEqual(before.metadata);
+      expect(after.metadata.createdAt).toEqual(before.metadata.createdAt);
+      expect(after.metadata.createdBy).toBe(before.metadata.createdBy);
     });
   });
 
@@ -419,7 +433,7 @@ describe('Plant mutation methods', () => {
       const originalGermination =
         plant.phenology.sowing.germinationDays.toPrimitives();
 
-      plant.updatePhenology({ sowing: { months: [6, 7] } });
+      plant.updatePhenology({ sowing: { months: [6, 7] } }, 'test-user');
 
       expect(plant.phenology.sowing.months.toArray()).toEqual([6, 7]);
       expect(plant.phenology.sowing.germinationDays.toPrimitives()).toEqual(
@@ -431,20 +445,23 @@ describe('Plant mutation methods', () => {
       const plant = PlantFactory.create();
       const before = plantDomainMapper.toPrimitives(plant);
 
-      expect(() => plant.updatePhenology({ sowing: { months: [13] } })).toThrow(
-        /13/
-      );
+      expect(() =>
+        plant.updatePhenology({ sowing: { months: [13] } }, 'test-user')
+      ).toThrow(/13/);
       assertUnchanged(plant, before);
     });
 
     it('should build starter depthCm from a full range when absent', () => {
       const plant = PlantFactory.create();
 
-      plant.updatePhenology({
-        sowing: {
-          methods: { starter: { depthCm: { min: 1, max: 3 } } }
-        }
-      });
+      plant.updatePhenology(
+        {
+          sowing: {
+            methods: { starter: { depthCm: { min: 1, max: 3 } } }
+          }
+        },
+        'test-user'
+      );
 
       expect(plant.phenology.sowing.methods.starter?.depthCm.min).toBe(1);
     });
@@ -453,9 +470,12 @@ describe('Plant mutation methods', () => {
       const plant = PlantFactory.tomato();
       const before = plantDomainMapper.toPrimitives(plant);
 
-      plant.updatePhenology({
-        sowing: { methods: { starter: { depthCm: { max: 4 } } } }
-      });
+      plant.updatePhenology(
+        {
+          sowing: { methods: { starter: { depthCm: { max: 4 } } } }
+        },
+        'test-user'
+      );
 
       expect(
         plant.phenology.sowing.methods.starter?.depthCm.toPrimitives()
@@ -470,9 +490,12 @@ describe('Plant mutation methods', () => {
       const before = plantDomainMapper.toPrimitives(plant);
 
       expect(() =>
-        plant.updatePhenology({
-          sowing: { methods: { starter: { depthCm: { max: 3 } } } }
-        })
+        plant.updatePhenology(
+          {
+            sowing: { methods: { starter: { depthCm: { max: 3 } } } }
+          },
+          'test-user'
+        )
       ).toThrow(InvalidArgumentException);
       assertUnchanged(plant, before);
     });
@@ -480,16 +503,16 @@ describe('Plant mutation methods', () => {
     it('should throw DomainConflictException on a soft-deleted plant', () => {
       const plant = PlantFactory.create({ deletedAt: new Date() });
 
-      expect(() => plant.updatePhenology({ sowing: { months: [3] } })).toThrow(
-        DomainConflictException
-      );
+      expect(() =>
+        plant.updatePhenology({ sowing: { months: [3] } }, 'test-user')
+      ).toThrow(DomainConflictException);
     });
 
     it('should not change flowering and harvest when only sowing is updated', () => {
       const plant = PlantFactory.create();
       const before = plantDomainMapper.toPrimitives(plant);
 
-      plant.updatePhenology({ sowing: { months: [5] } });
+      plant.updatePhenology({ sowing: { months: [5] } }, 'test-user');
 
       const after = plantDomainMapper.toPrimitives(plant);
       expect(after.phenology.flowering).toEqual(before.phenology.flowering);
@@ -503,7 +526,7 @@ describe('Plant mutation methods', () => {
         knowledge: PlantKnowledgeBuilder.full()
       });
 
-      plant.updateKnowledge({ notes: ['new note'] });
+      plant.updateKnowledge({ notes: ['new note'] }, 'test-user');
 
       expect(plant.knowledge?.notes).toEqual(['new note']);
     });
@@ -511,9 +534,161 @@ describe('Plant mutation methods', () => {
     it('should throw DomainConflictException on a soft-deleted plant', () => {
       const plant = PlantFactory.create({ deletedAt: new Date() });
 
-      expect(() => plant.updateKnowledge({ notes: ['note'] })).toThrow(
-        DomainConflictException
-      );
+      expect(() =>
+        plant.updateKnowledge({ notes: ['note'] }, 'test-user')
+      ).toThrow(DomainConflictException);
     });
+  });
+});
+
+describe('Plant audit metadata', () => {
+  const OLD = new Date('2024-01-01T00:00:00.000Z');
+
+  const auditedPlant = (): Plant =>
+    plantDomainMapper.fromPrimitives({
+      ...plantDomainMapper.toPrimitives(buildPlant()),
+      metadata: {
+        createdAt: OLD,
+        createdBy: 'creator',
+        updatedAt: OLD,
+        updatedBy: 'creator'
+      }
+    });
+
+  const expectAuditedBy = (plant: Plant, user: string): void => {
+    expect(plant.metadata.updatedBy).toBe(user);
+    expect(plant.metadata.updatedAt.getTime()).toBeGreaterThan(OLD.getTime());
+    expect(plant.metadata.createdBy).toBe('creator');
+    expect(plant.metadata.createdAt).toEqual(OLD);
+  };
+
+  it.each([
+    [
+      'updateIdentity',
+      (p: Plant, user: string) =>
+        p.updateIdentity({ name: { primary: 'Other' } }, user)
+    ],
+    [
+      'updateTraits',
+      (p: Plant, user: string) =>
+        p.updateTraits({ lifecycle: 'perennial' }, user)
+    ],
+    [
+      'updatePhenology',
+      (p: Plant, user: string) =>
+        p.updatePhenology({ sowing: { months: [5, 6] } }, user)
+    ],
+    [
+      'updateKnowledge',
+      (p: Plant, user: string) =>
+        p.updateKnowledge({ notes: ['new note'] }, user)
+    ]
+  ])('%s with a real change refreshes audit data', (_name, mutate) => {
+    const plant = auditedPlant();
+
+    mutate(plant, 'editor');
+
+    expectAuditedBy(plant, 'editor');
+  });
+
+  it.each([
+    [
+      'updateIdentity',
+      (p: Plant, user: string) =>
+        p.updateIdentity({ name: { primary: p.identity.name.primary } }, user)
+    ],
+    [
+      'updateTraits',
+      (p: Plant, user: string) =>
+        p.updateTraits({ lifecycle: p.traits.lifecycle.getValue() }, user)
+    ],
+    [
+      'updatePhenology',
+      (p: Plant, user: string) =>
+        p.updatePhenology(
+          { sowing: { months: p.phenology.sowing.months.toArray() } },
+          user
+        )
+    ],
+    ['updateKnowledge', (p: Plant, user: string) => p.updateKnowledge({}, user)]
+  ])('%s with the same values leaves the aggregate untouched', (_n, mutate) => {
+    const plant = auditedPlant();
+    const metadata = plant.metadata;
+    const before = plantDomainMapper.toPrimitives(plant);
+
+    mutate(plant, 'editor');
+
+    expect(plant.metadata).toBe(metadata);
+    expect(plantDomainMapper.toPrimitives(plant)).toEqual(before);
+  });
+
+  it('several sections in one request: last real change wins and no-op sections do not refresh audit', () => {
+    const plant = auditedPlant();
+
+    plant.updateIdentity({ name: { primary: 'Other' } }, 'first');
+    plant.updateTraits({ lifecycle: 'perennial' }, 'second');
+    const metadata = plant.metadata;
+    plant.updateKnowledge({}, 'third');
+
+    expectAuditedBy(plant, 'second');
+    expect(plant.metadata).toBe(metadata);
+  });
+
+  it('invalid change leaves metadata untouched', () => {
+    const plant = auditedPlant();
+    const metadata = plant.metadata;
+
+    expect(() =>
+      plant.updateTraits({ spacingCm: { min: 100, max: 1 } }, 'editor')
+    ).toThrow();
+    expect(plant.metadata).toBe(metadata);
+  });
+
+  it('mutation on a deleted plant leaves metadata untouched', () => {
+    const plant = auditedPlant();
+    plant.markAsDeleted('deleter');
+    const metadata = plant.metadata;
+
+    expect(() =>
+      plant.updateIdentity({ name: { primary: 'Other' } }, 'editor')
+    ).toThrow(DomainConflictException);
+    expect(plant.metadata).toBe(metadata);
+  });
+
+  it('markAsDeleted records the deleting user at the deletion time', () => {
+    const plant = auditedPlant();
+
+    plant.markAsDeleted('deleter');
+
+    expectAuditedBy(plant, 'deleter');
+    expect(plant.metadata.updatedAt).toBe(plant.deletedAt);
+  });
+
+  it('markAsDeleted on a deleted plant is a silent no-op that keeps metadata', () => {
+    const plant = auditedPlant();
+    plant.markAsDeleted('deleter');
+    const metadata = plant.metadata;
+
+    plant.markAsDeleted('someone-else');
+
+    expect(plant.metadata).toBe(metadata);
+  });
+
+  describe('syncVersion', () => {
+    it.each([
+      ['written', 1],
+      ['unchanged', 0]
+    ] as const)(
+      'applies a %s outcome as the current version + %i without touching metadata',
+      (outcome, step) => {
+        const plant = buildPlant(3);
+        const metadata = plant.metadata;
+
+        plant.syncVersion(outcome);
+
+        expect(plant.version).toBe(3 + step);
+        expect(plant.metadata).toBe(metadata);
+      }
+    );
   });
 });

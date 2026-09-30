@@ -176,3 +176,12 @@ Feature: Delete a plant
     When I send a DELETE user request to "/api/v1/plants/<plantId>"
     Then the response status code should be 403
     And response matches OpenAPI contract
+
+  Scenario: A soft delete records who deleted the plant and when
+    Given a family exists
+    And a plant exists
+    And the plant was last updated by another user
+    And I use If-Match '"0"'
+    When I send a DELETE admin request to "/api/v1/plants/<plantId>"
+    Then the response status code should be 204
+    And the stored plant should record the admin as deleter at version 1

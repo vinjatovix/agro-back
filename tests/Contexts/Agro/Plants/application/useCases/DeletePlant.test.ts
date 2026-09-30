@@ -30,9 +30,24 @@ describe('DeletePlant use case', () => {
     repository.assertSaveNotCalled();
   });
 
+  it('should store the deleting user and time as audit data with one read and one write', async () => {
+    const plant = PlantFactory.create();
+    repository.addToStorage(plant);
+
+    await useCase.execute(plant.id, 'deleter', plant.version);
+
+    const stored = repository.getStoredPrimitives(plant.id);
+    expect(stored?.metadata.updatedBy).toBe('deleter');
+    expect(stored?.metadata.updatedAt.toISOString()).toBe(stored?.deletedAt);
+    expect(stored?.metadata.createdBy).toBe(plant.metadata.createdBy);
+    expect(stored?.version).toBe(plant.version + 1);
+    repository.assertReadCalledTimes('findActiveById', 1);
+    repository.assertUpdateCalledTimes(1);
+  });
+
   it('should throw not found error if plant already deleted (repeat delete)', async () => {
     const plant = PlantFactory.create();
-    plant.markAsDeleted();
+    plant.markAsDeleted('test-user');
 
     repository.addToStorage(plant);
 
@@ -75,7 +90,7 @@ describe('DeletePlant use case', () => {
 
   it('should throw DomainNotFoundException (not stale) for a soft-deleted plant with a wrong version', async () => {
     const plant = PlantFactory.create();
-    plant.markAsDeleted();
+    plant.markAsDeleted('test-user');
     repository.addToStorage(plant);
 
     await expect(

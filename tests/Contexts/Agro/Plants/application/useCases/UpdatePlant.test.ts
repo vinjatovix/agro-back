@@ -126,13 +126,19 @@ describe('UpdatePlant use case', () => {
     expect(repository.getStored(plant.id)?.version).toBe(plant.version);
   });
 
-  it('should perform no write when input has only id', async () => {
+  it('should confirm a no-op against storage when input has only id', async () => {
     const plant = PlantFactory.random();
     repository.addToStorage(plant);
 
-    await useCase.execute({ id: plant.id }, 'user-1', CURRENT_VERSION);
+    const result = await useCase.execute(
+      { id: plant.id },
+      'user-1',
+      CURRENT_VERSION
+    );
 
-    repository.assertUpdateNotCalled();
+    repository.assertUpdateCalledTimes(1);
+    expect(result.version).toBe(plant.version);
+    expect(result.metadata).toEqual(plant.metadata);
     expect(repository.getStored(plant.id)?.version).toBe(plant.version);
   });
 
@@ -254,13 +260,44 @@ describe('UpdatePlant use case', () => {
       expect(repository.getStored(plant.id)?.version).toBe(plant.version);
     });
 
-    it('should read twice, write once on success', async () => {
+    it('should answer stale for a no-op when the stored version moved after the read', async () => {
+      const plant = PlantFactory.random();
+      const primitives = plantDomainMapper.toPrimitives(plant);
+      repository.addToStorage(
+        plantDomainMapper.fromPrimitives({
+          ...primitives,
+          version: plant.version + 1
+        })
+      );
+      jest
+        .spyOn(repository, 'findActiveById')
+        .mockResolvedValueOnce(plantDomainMapper.fromPrimitives(primitives));
+
+      await expect(
+        useCase.execute({ id: plant.id }, 'user-1', plant.version)
+      ).rejects.toBeInstanceOf(DomainStaleVersionException);
+    });
+
+    it('should answer not found for a no-op when the plant was removed after the read', async () => {
+      const plant = PlantFactory.random();
+      jest.spyOn(repository, 'findActiveById').mockResolvedValueOnce(plant);
+
+      await expect(
+        useCase.execute(
+          rename(plant.id, plant.identity.name.primary),
+          'user-1',
+          plant.version
+        )
+      ).rejects.toBeInstanceOf(DomainNotFoundException);
+    });
+
+    it('should read once, write once on success', async () => {
       const plant = PlantFactory.random();
       repository.addToStorage(plant);
 
       await useCase.execute(rename(plant.id), 'user-1', plant.version);
 
-      repository.assertReadCalledTimes('findActiveById', 2);
+      repository.assertReadCalledTimes('findActiveById', 1);
       repository.assertUpdateCalledTimes(1);
       repository.assertExistenceCountCalledTimes(0);
     });
@@ -290,19 +327,64 @@ describe('UpdatePlant use case', () => {
     expect((error as DomainNotFoundException).message).toBe(expectedMessage);
   });
 
-  it('should throw not found if plant disappears after the update', async () => {
+  it('should return the edited plant even if it is deleted right after the write', async () => {
     const plant = PlantFactory.random();
     repository.addToStorage(plant);
     jest
       .spyOn(repository, 'findActiveById')
-      .mockResolvedValueOnce(plant)
+      .mockResolvedValueOnce(
+        plantDomainMapper.fromPrimitives(plantDomainMapper.toPrimitives(plant))
+      )
       .mockResolvedValueOnce(null);
+
+    const result = await useCase.execute(
+      { id: plant.id, identity: { name: { primary: 'New name' } } },
+      'user-1',
+      CURRENT_VERSION
+    );
+
+    expect(result.identity.name.primary).toBe('New name');
+  });
+
+  it('should return the in-memory plant with audit data by the acting user and the stored version', async () => {
+    const plant = PlantFactory.random();
+    repository.addToStorage(plant);
+
+    const updated = await useCase.execute(
+      {
+        id: plant.id,
+        identity: { name: { primary: 'New name' } },
+        traits: { lifecycle: 'perennial' }
+      },
+      'editor',
+      plant.version
+    );
+
+    expect(updated.version).toBe(plant.version + 1);
+    expect(updated.metadata.updatedBy).toBe('editor');
+    expect(updated.metadata.createdBy).toBe(plant.metadata.createdBy);
+    expect(updated.metadata.createdAt).toEqual(plant.metadata.createdAt);
+    expect(plantDomainMapper.toPrimitives(updated)).toEqual(
+      repository.getStoredPrimitives(plant.id)
+    );
+    repository.assertReadCalledTimes('findActiveById', 1);
+    repository.assertUpdateCalledTimes(1);
+  });
+
+  it('should return no plant when the write fails', async () => {
+    const plant = PlantFactory.random();
+    repository.addToStorage(plant);
+    jest
+      .spyOn(repository, 'updateWithDiff')
+      .mockRejectedValueOnce(
+        new DomainNotFoundException(`Plant not found: ${plant.id}`)
+      );
 
     await expect(
       useCase.execute(
         { id: plant.id, identity: { name: { primary: 'New name' } } },
         'user-1',
-        CURRENT_VERSION
+        plant.version
       )
     ).rejects.toBeInstanceOf(DomainNotFoundException);
   });
@@ -335,6 +417,32 @@ describe('UpdatePlant use case', () => {
         CURRENT_VERSION
       )
     ).rejects.toThrow(`Family with id ${family} does not exist`);
+  });
+
+  it('should stamp every section changed in one request with the same time', async () => {
+    const plant = PlantFactory.random();
+    repository.addToStorage(plant);
+    const loaded = plantDomainMapper.fromPrimitives(
+      plantDomainMapper.toPrimitives(plant)
+    );
+    jest.spyOn(repository, 'findActiveById').mockResolvedValueOnce(loaded);
+    const updateIdentity = jest.spyOn(loaded, 'updateIdentity');
+    const updateTraits = jest.spyOn(loaded, 'updateTraits');
+
+    const updated = await useCase.execute(
+      {
+        id: plant.id,
+        identity: { name: { primary: 'New name' } },
+        traits: { size: { height: { min: 1, max: 999 } } }
+      },
+      'user-1',
+      CURRENT_VERSION
+    );
+
+    const at = updateIdentity.mock.calls[0]?.[2];
+    expect(at).toBeInstanceOf(Date);
+    expect(updateTraits.mock.calls[0]?.[2]).toBe(at);
+    expect(updated.metadata.updatedAt).toBe(at);
   });
 
   it('should throw not found error if plant is soft-deleted', async () => {

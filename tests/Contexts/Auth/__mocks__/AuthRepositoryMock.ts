@@ -2,12 +2,12 @@ import type { AuthRepository } from '../../../../src/Contexts/Auth/domain/entiti
 import type { User } from '../../../../src/Contexts/Auth/domain/entities/User.js';
 import type { UserPatch } from '../../../../src/Contexts/Auth/domain/entities/UserPatch.js';
 import { createUserId } from '../../../../src/Contexts/Auth/domain/UserId.js';
-import {
-  PasswordHash,
-  Username
-} from '../../../../src/Contexts/Auth/domain/value-objects/index.js';
+import { PasswordHash } from '../../../../src/Contexts/Auth/domain/value-objects/index.js';
 import type { AuthProvider } from '../../../../src/Contexts/Auth/domain/value-objects/types/AuthProvider.js';
-import { Email } from '../../../../src/Contexts/shared/domain/valueObject/index.js';
+import {
+  Email,
+  type Metadata
+} from '../../../../src/Contexts/shared/domain/valueObject/index.js';
 import type { Nullable } from '../../../../src/shared/domain/types/Nullable.js';
 import { UserMother } from '../domain/mothers/UserMother.js';
 
@@ -94,22 +94,28 @@ export class AuthRepositoryMock implements AuthRepository {
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
-  async update(user: UserPatch, username: Username): Promise<void> {
-    this.updateMock(user, username);
+  async update(user: UserPatch): Promise<void> {
+    this.updateMock(user);
   }
 
   assertUpdateHasBeenCalledWith(expected: UserPatch): void {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const lastCall = this.updateMock.mock.calls.at(-1) as
-      [UserPatch, Username] | undefined;
+      [UserPatch] | undefined;
     expect(lastCall?.[0]).toEqual(expected);
   }
 
-  assertUpdateHasBeenCalledWithUsername(expected: Username): void {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const lastCall: [UserPatch, Username] | undefined =
-      this.updateMock.mock.calls.at(-1);
-    expect(lastCall?.[1]).toEqual(expected);
+  /** The patch carries audit data by `username`, keeping the creation data. */
+  assertUpdateAuditedBy(username: string, previous: Metadata): void {
+    const lastCall = this.updateMock.mock.calls.at(-1) as
+      [UserPatch] | undefined;
+    expect(lastCall?.[0].metadata).toEqual(
+      expect.objectContaining({
+        createdAt: previous.createdAt,
+        createdBy: previous.createdBy,
+        updatedBy: username
+      })
+    );
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await

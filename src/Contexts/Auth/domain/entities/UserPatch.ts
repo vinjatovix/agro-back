@@ -1,13 +1,18 @@
-import { createUserId, type UserId } from '../UserId.js';
-import {
+import type { Metadata } from '../../../shared/domain/valueObject/index.js';
+import type { UserId } from '../UserId.js';
+import type {
   PasswordHash,
   UserAuthMethod,
   UserRoles
 } from '../value-objects/index.js';
-import type { UserAuthMethodPrimitives } from '../value-objects/types/UserAuthMethodPrimitives.js';
 
+/**
+ * Partial write of a User. Always carries the audit metadata of the change,
+ * computed in memory (`Metadata.update`): storage never adds its own.
+ */
 export class UserPatch {
   readonly id: UserId;
+  readonly metadata: Metadata;
   readonly password?: PasswordHash;
   readonly emailValidated?: boolean;
   readonly authMethods?: UserAuthMethod[];
@@ -15,18 +20,21 @@ export class UserPatch {
 
   constructor({
     id,
+    metadata,
     password,
     emailValidated,
     authMethods,
     roles
   }: {
     id: UserId;
+    metadata: Metadata;
     password?: PasswordHash;
     emailValidated?: boolean;
     authMethods?: UserAuthMethod[];
     roles?: UserRoles;
   }) {
     this.id = id;
+    this.metadata = metadata;
     if (password !== undefined) {
       this.password = password;
     }
@@ -51,33 +59,8 @@ export class UserPatch {
       ...(this.authMethods !== undefined && {
         authMethods: this.authMethods.map((method) => method.toPrimitives())
       }),
-      ...(this.roles !== undefined && { roles: this.roles.value })
+      ...(this.roles !== undefined && { roles: this.roles.value }),
+      metadata: this.metadata.toPrimitives()
     };
-  }
-
-  static fromPrimitives({
-    id,
-    password,
-    emailValidated,
-    authMethods,
-    roles
-  }: {
-    id: string;
-    password?: string;
-    emailValidated?: boolean;
-    authMethods?: UserAuthMethodPrimitives[];
-    roles?: string[];
-  }) {
-    return new UserPatch({
-      id: createUserId(id),
-      ...(password !== undefined && { password: new PasswordHash(password) }),
-      ...(emailValidated !== undefined && { emailValidated }),
-      ...(authMethods !== undefined && {
-        authMethods: authMethods.map((method) =>
-          UserAuthMethod.fromPrimitives(method)
-        )
-      }),
-      ...(roles !== undefined && { roles: new UserRoles(roles) })
-    });
   }
 }

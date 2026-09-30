@@ -10,10 +10,12 @@ import {
   DomainNotFoundException,
   DomainUnauthorizedException
 } from '../../../../../src/Contexts/shared/domain/errors/index.js';
+import { Email } from '../../../../../src/Contexts/shared/domain/valueObject/index.js';
 import { EmailMother } from '../../../shared/domain/mothers/EmailMother.js';
 import { random } from '../../../shared/fixtures/index.js';
 import { AuthRepositoryMock } from '../../__mocks__/AuthRepositoryMock.js';
 import { CryptAdapterMock } from '../../__mocks__/CryptAdapterMock.js';
+import { UserMother } from '../../domain/mothers/UserMother.js';
 
 const CURRENT_USER = {
   id: randomUserId(),
@@ -87,6 +89,11 @@ describe('UpdatePasswordLocal', () => {
   });
 
   it('should patch a valid user', async () => {
+    const storedUser = UserMother.create({
+      email: new Email(CURRENT_USER.email)
+    });
+    repository.setSearchResult(storedUser);
+
     expect(await updatePassword.run(PAYLOAD, CURRENT_USER)).toBeUndefined();
 
     repository.assertUpdateHasBeenCalledWith(
@@ -96,6 +103,10 @@ describe('UpdatePasswordLocal', () => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         password: expect.any(PasswordHash)
       }) as UserPatch
+    );
+    repository.assertUpdateAuditedBy(
+      CURRENT_USER.username,
+      storedUser.metadata
     );
   });
 });

@@ -19,9 +19,9 @@ export class DeletePlant {
     ensureVersion(plant.version, expectedVersion, 'Plant', id);
 
     const current = plantDomainMapper.toPrimitives(plant);
-    plant.markAsDeleted();
+    plant.markAsDeleted(username);
     const deleted = plantDomainMapper.toPrimitives(plant);
 
-    await this.plantRepository.updateWithDiff(current, deleted, username);
+    await this.plantRepository.updateWithDiff(current, deleted);
   }
 }

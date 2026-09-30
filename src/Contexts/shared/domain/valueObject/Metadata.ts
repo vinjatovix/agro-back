@@ -15,13 +15,12 @@ export class Metadata implements Serializable<MetadataPrimitives> {
     return new Metadata(now, user, now, user);
   }
 
-  static update(previous: Metadata, user: string): Metadata {
-    return new Metadata(
-      previous.createdAt,
-      previous.createdBy,
-      new Date(),
-      user
-    );
+  static update(
+    previous: Metadata,
+    user: string,
+    at: Date = new Date()
+  ): Metadata {
+    return new Metadata(previous.createdAt, previous.createdBy, at, user);
   }
 
   static fromPrimitives(p: MetadataPrimitives): Metadata {

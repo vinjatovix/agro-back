@@ -359,3 +359,18 @@ Feature: Update Family
     Then the response status code should be 400
     And the response errors should include "slug"
     And response matches OpenAPI contract
+
+  Scenario: A successful update answers from memory with the acting user's audit data
+    Given the family was last updated by another user
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/families/<familyId>" with body
+      """
+      {
+        "name": "Audited Family Name"
+      }
+      """
+    Then the response status code should be 200
+    And the response should have ETag '"1"'
+    And the response audit data should show the admin as last editor
+    And a GET admin request to "/api/v1/families/<familyId>" should return the same body
+    And response matches OpenAPI contract

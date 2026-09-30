@@ -159,3 +159,12 @@ Feature: Delete a bed
         When I send a DELETE user request to "/api/v1/beds/<bedId>"
         Then the response status code should be 409
         And response matches OpenAPI contract
+
+    Scenario: A soft delete records who deleted the bed and when
+        Given a bed exists
+        And the bed is stored at version 2
+        And the bed was last updated by another user
+        And I use If-Match '"2"'
+        When I send a DELETE user request to "/api/v1/beds/<bedId>"
+        Then the response status code should be 204
+        And the stored bed should record the user as deleter at version 3

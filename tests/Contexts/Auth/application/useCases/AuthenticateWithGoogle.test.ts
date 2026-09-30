@@ -75,7 +75,10 @@ describe('AuthenticateWithGoogle', () => {
         ]) as UserAuthMethod[]
       }) as UserPatch
     );
-    repository.assertUpdateHasBeenCalledWithUsername(storedUser.username);
+    repository.assertUpdateAuditedBy(
+      storedUser.username.value,
+      storedUser.metadata
+    );
   });
 
   it('should create a new user when user does not exist', async () => {

@@ -87,6 +87,7 @@ export class AuthenticateWithGoogle {
     const linkedAt = new Date();
     const userPatch = new UserPatch({
       id: user.id,
+      metadata: Metadata.update(user.metadata, user.username.value, linkedAt),
       ...(user.emailValidated ? {} : { emailValidated: true }),
       authMethods: [
         ...user.authMethods,
@@ -98,7 +99,7 @@ export class AuthenticateWithGoogle {
       ]
     });
 
-    await this.repository.update(userPatch, user.username);
+    await this.repository.update(userPatch);
   }
 
   private async createGoogleUser(
