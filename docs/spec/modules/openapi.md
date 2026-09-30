@@ -399,9 +399,9 @@ Validation errors MUST be represented as a consistent flat dictionary where keys
 {
   "message": "Validation error",
   "errors": {
-    "identity.name.primary": "Required",
+    "identity.name.primary": "Invalid input: expected string, received undefined",
     "id": "Invalid UUID",
-    "traits.spacingCm.min": "Expected number, received string"
+    "traits.spacingCm.min": "Invalid input: expected number, received string"
   }
 }
 ```
@@ -413,6 +413,7 @@ Rules:
 - no runtime value leakage or internal framework details should be exposed in validation messages
 - OpenAPI MUST define this structure exactly
 - system MUST safely handle invalid URI encoding without exposing raw URIError stack traces
+- on routes validated with `validateRequest` (validation.md §3.2), three messages are fixed by the API instead of Zod: `"Unknown field"` (one entry per unknown field), `"Invalid format"` (a failed `.regex()` check whose message would reveal the pattern) and the `_truncated` entry added when there are more than 20 field errors; keys have no request-part prefix, the root of a part uses the part name, and keys are cut to 64 characters ending with `…` (full rules in validation.md §5). The `ValidationError.errors` description in `openapi.yaml` documents these rules; its schema shape does not change
 
 ---
 

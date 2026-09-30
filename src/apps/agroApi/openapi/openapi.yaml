@@ -1466,6 +1466,18 @@ components:
                 type: string
               errors:
                 type: object
+                description: >-
+                  One message per invalid field. Keys are dot-notation paths
+                  inside the request part, without a part prefix (`id`,
+                  `identity.name.primary`, `tags.1`); a wrong part root uses
+                  `params`, `query` or `body`. When a field has several
+                  problems, the first one wins. Unknown fields get the message
+                  "Unknown field"; a failed pattern check whose message would
+                  reveal the pattern gets "Invalid format". At most 20 field
+                  entries are returned; if there are more, an extra
+                  `_truncated` entry is added. Keys longer than 64 characters
+                  are cut to 64 ending in `…`; two keys equal after cutting
+                  share one entry. Messages never contain submitted values.
                 additionalProperties:
                   type: string
 
