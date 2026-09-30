@@ -1,5 +1,8 @@
 import { ensureFound } from '../../../shared/application/utils/ensureFound.js';
-import { DomainUnauthorizedException } from '../../../shared/domain/errors/index.js';
+import {
+  DomainUnauthorizedException,
+  InvalidArgumentException
+} from '../../../shared/domain/errors/index.js';
 import { Metadata } from '../../../shared/domain/valueObject/index.js';
 import {
   buildLogger,
@@ -18,10 +21,10 @@ import type {
   UpdatePasswordRequest,
   UserSessionInfo
 } from '../interfaces/index.js';
+import { PASSWORDS_DO_NOT_MATCH_MESSAGE } from '../messages.js';
 
 const logger = buildLogger('updatePassword');
 const INVALID_CREDENTIALS_MESSAGE = 'Invalid credentials';
-const PASSWORDS_DO_NOT_MATCH_MESSAGE = 'Passwords do not match';
 const PASSWORD_MUST_DIFFER_FROM_OLD_MESSAGE =
   'New password must be different from old password';
 
@@ -35,12 +38,13 @@ export class UpdatePasswordLocal {
     { password, repeatPassword, oldPassword }: UpdatePasswordRequest,
     user: UserSessionInfo
   ): Promise<void> {
+    // Password rule before any lookup: a weak password is always a 400.
+    const newPassword = new PlainPassword(password);
     const storedUser = await this.validatePatchAndGetStoredUser(
       { password, repeatPassword, oldPassword },
       user
     );
 
-    const newPassword = new PlainPassword(password);
     const encryptedPassword = new PasswordHash(
       this.encrypter.hash(newPassword.value)
     );
@@ -102,7 +106,7 @@ export class UpdatePasswordLocal {
     repeatPassword: string
   ): void {
     if (password !== repeatPassword) {
-      throw new DomainUnauthorizedException(PASSWORDS_DO_NOT_MATCH_MESSAGE);
+      throw new InvalidArgumentException(PASSWORDS_DO_NOT_MATCH_MESSAGE);
     }
   }
 
@@ -111,9 +115,7 @@ export class UpdatePasswordLocal {
     oldPassword: string
   ): void {
     if (password === oldPassword) {
-      throw new DomainUnauthorizedException(
-        PASSWORD_MUST_DIFFER_FROM_OLD_MESSAGE
-      );
+      throw new InvalidArgumentException(PASSWORD_MUST_DIFFER_FROM_OLD_MESSAGE);
     }
   }
 }

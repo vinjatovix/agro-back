@@ -1,7 +1,7 @@
 # MODULE: AUTHENTICATION & IDENTITY (AUTH)
 
-version: 1.4.0
-source-spec: v1.4.0
+version: 1.5.0
+source-spec: v1.5.0
 status: stable
 
 ---
@@ -40,7 +40,26 @@ The current codebase in `@src/Contexts/Auth` implements:
 ### 3.2 Planned Features
 
 - **Stateless OAuth Multi-provider:** Clean verification and profile generation for Github and others. **`[TARGET STATE (Pending [Iteration 28](../../roadmap.md#iteration-28-implement-stateless-github-oauth))]`**
+- **Registration without account enumeration:** today `POST /auth/register` answers `400` when the email is taken and `409` when the id is, so a caller can find out whether an email has an account (`authLimiter` limits it to 5 failed attempts per IP every 15 minutes). **`[TARGET STATE (Proposal in [Iteration 26](../../roadmap.md#iteration-26-implement-email-account-activation-flow))]`**
 - **Core Mailer Infrastructure (Activation Mail):** Programmatically sending actual registration validation emails. **`[TARGET STATE (Pending Iterations [25](../../roadmap.md#iteration-25-implement-mailer-port-and-local-bypass) & [26](../../roadmap.md#iteration-26-implement-email-account-activation-flow))]`**
+
+### 3.3 Request Validation _(CURRENTLY IMPLEMENTED)_
+
+Auth routes validate input with Zod through `validateRequest` (validation.md §3.2–§3.3); schemas live in `src/apps/agroApi/controllers/Auth/requestSchemas.ts`. Every route below also declares an empty strict `query`, so any query parameter gets `"Unknown field"`, and any body field not listed gets `"Unknown field"` too. Field order is the order of the error keys.
+
+| Route                       | Validated input                                                                                                   |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `POST /auth/register`       | body `id` (RFC UUID), `email` (email), `username` (string), `password` and `repeatPassword` (strings, must match) |
+| `POST /auth/login`          | body `email` (email), `password` (string)                                                                         |
+| `POST /auth/google`         | body `idToken` (string)                                                                                           |
+| `GET /auth/validate/:token` | path `token` (non-empty string); no body allowed                                                                  |
+| `POST /auth/update`         | body `password` and `repeatPassword` (strings, must match), `oldPassword` (string)                                |
+| `POST /auth/refresh`        | no client input, no schema                                                                                        |
+
+- **Strength rule** lives only in the domain value object `PlainPassword`: 8 to 64 characters (counted in code points, so an emoji is one) and at most 72 bytes in UTF-8, because bcrypt ignores every byte after the 72nd, with at least one uppercase letter, one lowercase letter, one digit and one non-alphanumeric character (ASCII letters and digits; anything else, such as `ñ` or a space, counts as the special character). `RegisterUserLocal` and `UpdatePasswordLocal` build it before any repository lookup, so a weak password is always a `400` with a top-level `message` (e.g. `"<PlainPassword> must include at least one digit"`), never a `409` or `401`. The schemas only check that both fields are strings.
+- **Match rule:** `"Passwords do not match"` under `repeatPassword`, reported together with other field errors. The use cases check it again with the same text and answer `400` (`InvalidArgumentException`) if called without the schema. A new password equal to the old one is also a `400` (`"New password must be different from old password"`), checked after the old password is verified.
+- **Stricter formats:** `email` uses Zod's email format and `id` an RFC UUID (version and variant digits checked). Examples now answered `400`: email `a!b@example.com`, id `12345678-1234-1234-1234-123456789012`. The domain value object `Email` uses the same pattern as Zod, so any entry point (not only HTTP) rejects the same addresses; `User.fromPrimitives` builds `Email` too, so a stored user whose email no longer matches can no longer be loaded.
+- No message contains the submitted value.
 
 ---
 

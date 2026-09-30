@@ -234,6 +234,9 @@ function buildGetRequestWithQuery(
 ) {
   const normalizedRoute = interpolateRoute(route, this);
 
+  // The OpenAPI check looks the path up without the query string.
+  setRequestContext(this, 'GET', normalizedRoute);
+
   const query = encodeURIComponent(docString);
 
   return buildRequest({
@@ -515,6 +518,22 @@ Given(
     this.request = buildRequest({
       method: 'post',
       route: normalizedRoute,
+      body: parseBody(body, this)
+    });
+  }
+);
+
+Given(
+  'a POST request to {string} with query {string} and body',
+  async function (route: string, query: string, body: string) {
+    const normalizedRoute = interpolateRoute(route, this);
+
+    // The OpenAPI check looks the path up without the query string.
+    setRequestContext(this, 'POST', normalizedRoute);
+
+    this.request = buildRequest({
+      method: 'post',
+      route: `${normalizedRoute}?${query}`,
       body: parseBody(body, this)
     });
   }
@@ -844,6 +863,36 @@ When(
     this.request = buildRequest({
       method: 'get',
       route: normalizedRoute
+    });
+  }
+);
+
+When(
+  'I send a GET request to {string} with body:',
+  async function (this: CucumberWorld, route: string, body: string) {
+    const normalizedRoute = interpolateRoute(route, this);
+
+    setRequestContext(this, 'GET', normalizedRoute);
+
+    this.request = buildRequest({
+      method: 'get',
+      route: normalizedRoute,
+      body: parseBody(body, this)
+    });
+  }
+);
+
+When(
+  'I send a GET request to {string} with query string {string}',
+  async function (this: CucumberWorld, route: string, query: string) {
+    const normalizedRoute = interpolateRoute(route, this);
+
+    // The OpenAPI check looks the path up without the query string.
+    setRequestContext(this, 'GET', normalizedRoute);
+
+    this.request = buildRequest({
+      method: 'get',
+      route: `${normalizedRoute}?${query}`
     });
   }
 );
@@ -1447,6 +1496,13 @@ Then(
 
     assert.isObject(body.errors, 'Response body has no errors object');
     assert.property(body.errors, key);
+  }
+);
+
+Then(
+  'the response body should not echo {string}',
+  function (this: CucumberWorld, value: string) {
+    assert.notInclude(JSON.stringify(this.responseRaw!.body), value);
   }
 );
 

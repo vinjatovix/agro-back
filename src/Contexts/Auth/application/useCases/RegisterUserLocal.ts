@@ -18,9 +18,9 @@ import {
   UserRoles
 } from '../../domain/value-objects/index.js';
 import type { RegisterUserRequest } from '../interfaces/index.js';
+import { PASSWORDS_DO_NOT_MATCH_MESSAGE } from '../messages.js';
 
 const logger = buildLogger('registerUser');
-const PASSWORDS_DO_NOT_MATCH_MESSAGE = 'Passwords do not match';
 
 export class RegisterUserLocal {
   private readonly repository: AuthRepository;
@@ -38,11 +38,12 @@ export class RegisterUserLocal {
     email,
     id
   }: RegisterUserRequest): Promise<void> {
+    // Password rule before any lookup: a weak password is always a 400.
+    const plainPassword = new PlainPassword(password);
+    this.validatePasswordConfirmation(password, repeatPassword);
     await this.ensureIdDoesNotExist(id);
     await this.ensureUserDoesNotExist(email);
-    this.validatePasswordConfirmation(password, repeatPassword);
 
-    const plainPassword = new PlainPassword(password);
     const encryptedPassword = this.encrypter.hash(plainPassword.value);
     const date = new Date();
 

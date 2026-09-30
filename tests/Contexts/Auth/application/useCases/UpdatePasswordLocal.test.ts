@@ -8,7 +8,8 @@ import { PasswordHash } from '../../../../../src/Contexts/Auth/domain/value-obje
 import { Username } from '../../../../../src/Contexts/Auth/domain/value-objects/Username.js';
 import {
   DomainNotFoundException,
-  DomainUnauthorizedException
+  DomainUnauthorizedException,
+  InvalidArgumentException
 } from '../../../../../src/Contexts/shared/domain/errors/index.js';
 import { Email } from '../../../../../src/Contexts/shared/domain/valueObject/index.js';
 import { EmailMother } from '../../../shared/domain/mothers/EmailMother.js';
@@ -56,6 +57,21 @@ describe('UpdatePasswordLocal', () => {
     );
   });
 
+  it('should reject a weak new password before looking up the user', async () => {
+    repository = new AuthRepositoryMock();
+    updatePassword = new UpdatePasswordLocal(repository, encrypter);
+    const searchSpy = jest.spyOn(repository, 'search');
+
+    await expect(
+      updatePassword.run(
+        { ...PAYLOAD, password: 'weak', repeatPassword: 'weak' },
+        CURRENT_USER
+      )
+    ).rejects.toThrow(InvalidArgumentException);
+
+    expect(searchSpy).not.toHaveBeenCalled();
+  });
+
   it('should throw an error when the password is invalid', async () => {
     encrypter = new CryptAdapterMock({ login: false });
     updatePassword = new UpdatePasswordLocal(repository, encrypter);
@@ -72,7 +88,7 @@ describe('UpdatePasswordLocal', () => {
     };
 
     await expect(updatePassword.run(request, CURRENT_USER)).rejects.toThrow(
-      DomainUnauthorizedException
+      InvalidArgumentException
     );
   });
 
@@ -84,7 +100,7 @@ describe('UpdatePasswordLocal', () => {
     };
 
     await expect(updatePassword.run(request, CURRENT_USER)).rejects.toThrow(
-      DomainUnauthorizedException
+      InvalidArgumentException
     );
   });
 

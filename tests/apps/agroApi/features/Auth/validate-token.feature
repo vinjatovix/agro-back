@@ -41,3 +41,20 @@ Feature: Validate token
       }
       """
     And response matches OpenAPI contract
+
+  Scenario: Body on the validation link
+    When I send a GET request to "/api/v1/auth/validate/any-token" with body:
+      """
+      {
+        "a": 1
+      }
+      """
+    Then the response status code should be 400
+    And the response body matches "Unknown field" for field "errors.a"
+    And response matches OpenAPI contract
+
+  Scenario: Unknown query parameter on the validation link
+    When I send a GET request to "/api/v1/auth/validate/any-token" with query string "foo=1"
+    Then the response status code should be 400
+    And the response body matches "Unknown field" for field "errors.foo"
+    And response matches OpenAPI contract
