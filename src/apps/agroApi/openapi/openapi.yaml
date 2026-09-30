@@ -85,6 +85,8 @@ paths:
                 properties:
                   token:
                     type: string
+        '400':
+          $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
@@ -109,6 +111,8 @@ paths:
                 properties:
                   token:
                     type: string
+        '400':
+          $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
@@ -122,6 +126,7 @@ paths:
           required: true
           schema:
             type: string
+            minLength: 1
       responses:
         '200':
           description: Email validated
@@ -132,6 +137,8 @@ paths:
                 properties:
                   token:
                     type: string
+        '400':
+          $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
@@ -777,30 +784,42 @@ components:
 
     LoginUserRequest:
       type: object
+      additionalProperties: false
       required: [email, password]
       properties:
         email:
           type: string
+          format: email
         password:
           type: string
 
     RegisterUserRequest:
       type: object
+      additionalProperties: false
       required: [id, email, username, password, repeatPassword]
       properties:
         id:
           type: string
+          format: uuid
         email:
           type: string
+          format: email
         username:
           type: string
         password:
           type: string
+          minLength: 8
+          maxLength: 64
+          description: 8 to 64 characters and at most 72 bytes in UTF-8, including a lowercase letter, an uppercase letter, a digit and a non-alphanumeric character.
         repeatPassword:
           type: string
+          minLength: 8
+          maxLength: 64
+          description: Must equal `password`.
 
     AuthenticateWithGoogleRequest:
       type: object
+      additionalProperties: false
       required: [idToken]
       properties:
         idToken:
@@ -808,12 +827,19 @@ components:
 
     UpdatePasswordRequest:
       type: object
+      additionalProperties: false
       required: [password, repeatPassword, oldPassword]
       properties:
         password:
           type: string
+          minLength: 8
+          maxLength: 64
+          description: 8 to 64 characters and at most 72 bytes in UTF-8, including a lowercase letter, an uppercase letter, a digit and a non-alphanumeric character.
         repeatPassword:
           type: string
+          minLength: 8
+          maxLength: 64
+          description: Must equal `password`.
         oldPassword:
           type: string
 

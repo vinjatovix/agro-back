@@ -1,7 +1,11 @@
-import { RegisterUserLocal } from '../../../../../src/Contexts/Auth/application/index.js';
+import {
+  PASSWORDS_DO_NOT_MATCH_MESSAGE,
+  RegisterUserLocal
+} from '../../../../../src/Contexts/Auth/application/index.js';
 import { PasswordHash } from '../../../../../src/Contexts/Auth/domain/value-objects/PasswordHash.js';
 import { Username } from '../../../../../src/Contexts/Auth/domain/value-objects/Username.js';
 import { UserRoles } from '../../../../../src/Contexts/Auth/domain/value-objects/UserRoles.js';
+import { InvalidArgumentException } from '../../../../../src/Contexts/shared/domain/errors/index.js';
 import { Email } from '../../../../../src/Contexts/shared/domain/valueObject/Email.js';
 import { AuthRepositoryMock, CryptAdapterMock } from '../../__mocks__/index.js';
 import { RegisterUserRequestMother } from '../mothers/RegisterUserRequestMother.js';
@@ -53,6 +57,22 @@ describe('RegisterUserLocal', () => {
     );
   });
 
+  it('should reject a weak password before looking up the user', async () => {
+    repository = new AuthRepositoryMock({ find: true });
+    registerUser = new RegisterUserLocal(repository, encrypter);
+    const lookupSpy = jest.spyOn(repository, 'findByQuery');
+
+    await expect(
+      registerUser.run({
+        ...RegisterUserRequestMother.random(),
+        password: 'weak',
+        repeatPassword: 'weak'
+      })
+    ).rejects.toThrow(InvalidArgumentException);
+
+    expect(lookupSpy).not.toHaveBeenCalled();
+  });
+
   it('should throw an error when password confirmation does not match', async () => {
     const request = RegisterUserRequestMother.random();
     const hashSpy = jest.spyOn(encrypter, 'hash');
@@ -62,7 +82,7 @@ describe('RegisterUserLocal', () => {
         ...request,
         repeatPassword: 'DifferentPassword1*'
       })
-    ).rejects.toThrow('Passwords do not match');
+    ).rejects.toThrow(PASSWORDS_DO_NOT_MATCH_MESSAGE);
 
     expect(hashSpy).not.toHaveBeenCalled();
   });

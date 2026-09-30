@@ -2,8 +2,10 @@ import { InvalidArgumentException } from '../errors/index.js';
 import { DISPOSABLE_EMAIL_DOMAINS } from './disposableEmailDomains.js';
 
 export class Email {
+  // Same pattern as Zod's `z.email()`, so every entry point accepts the same
+  // addresses as the HTTP layer.
   private static readonly EMAIL_REGEX =
-    /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+$/;
+    /^(?:[A-Za-z0-9_'+-]+\.)*[A-Za-z0-9_'+-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9-]*\.)+[A-Za-z]{2,}$/;
   private static readonly MIN_LENGTH = 6;
   private static readonly MAX_LENGTH = 255;
   private static readonly DOMAINS_BLACKLIST = new Set<string>(
