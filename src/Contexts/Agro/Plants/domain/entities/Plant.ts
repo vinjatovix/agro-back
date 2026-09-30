@@ -1,3 +1,5 @@
+import { hasStateChanged } from '../../../../../shared/domain/diff/hasStateChanged.js';
+import type { UnknownRecord } from '../../../../../shared/domain/types/UnknownRecord.js';
 import { deepFreeze } from '../../../../../shared/domain/utils/deepFreeze.js';
 import { MonthSet } from '../../../../../shared/domain/value-objects/MonthSet.js';
 import { Range } from '../../../../../shared/domain/value-objects/Range.js';
@@ -6,6 +8,10 @@ import {
   DomainConflictException,
   InvalidArgumentException
 } from '../../../../shared/domain/errors/index.js';
+import {
+  type WriteOutcome,
+  versionAfter
+} from '../../../../shared/domain/repositories/WriteOutcome.js';
 import { Metadata } from '../../../../shared/domain/valueObject/index.js';
 import { createFamilyId } from '../../../Families/domain/FamilyId.js';
 import type { PlantId } from '../PlantId.js';
@@ -85,13 +91,25 @@ export class Plant extends AggregateRoot<PlantId> {
     return this.status === PlantStatus.DELETED;
   }
 
-  markAsDeleted(): void {
+  markAsDeleted(user: string, at: Date = new Date()): void {
     if (this.isDeleted()) return;
 
+    this.commit({ status: PlantStatus.DELETED, deletedAt: at }, user, at);
+  }
+
+  syncVersion(outcome: WriteOutcome): void {
     this.props = deepFreeze({
       ...this.props,
-      status: PlantStatus.DELETED,
-      deletedAt: new Date()
+      version: versionAfter(this.props.version, outcome)
+    });
+  }
+
+  /** Applies a real state change together with the acting user and time. */
+  private commit(changes: Partial<PlantProps>, user: string, at: Date): void {
+    this.props = deepFreeze({
+      ...this.props,
+      ...changes,
+      metadata: Metadata.update(this.props.metadata, user, at)
     });
   }
 
@@ -129,7 +147,11 @@ export class Plant extends AggregateRoot<PlantId> {
     return createFamilyId(trimmed);
   }
 
-  updateIdentity(changes: PlantIdentityChanges): void {
+  updateIdentity(
+    changes: PlantIdentityChanges,
+    user: string,
+    at: Date = new Date()
+  ): void {
     this.assertActive();
 
     const primary = this.resolveIdentityPrimary(changes);
@@ -137,22 +159,28 @@ export class Plant extends AggregateRoot<PlantId> {
     const aliases = changes.name?.aliases?.map((a) => a.trim()).filter(Boolean);
     const family = this.resolveIdentityFamily(changes);
 
-    this.props = deepFreeze({
-      ...this.props,
-      identity: {
-        ...this.props.identity,
-        name: {
-          ...this.props.identity.name,
-          ...(primary !== undefined && { primary }),
-          ...(aliases !== undefined && { aliases })
-        },
-        ...(scientificName !== undefined && { scientificName }),
-        family
-      }
-    });
+    const identity = {
+      ...this.props.identity,
+      name: {
+        ...this.props.identity.name,
+        ...(primary !== undefined && { primary }),
+        ...(aliases !== undefined && { aliases })
+      },
+      ...(scientificName !== undefined && { scientificName }),
+      family
+    };
+
+    if (!hasStateChanged({ identity: this.props.identity }, { identity }))
+      return;
+
+    this.commit({ identity }, user, at);
   }
 
-  updateTraits(changes: PlantTraitsChanges): void {
+  updateTraits(
+    changes: PlantTraitsChanges,
+    user: string,
+    at: Date = new Date()
+  ): void {
     this.assertActive();
 
     const lifecycle = changes.lifecycle
@@ -171,10 +199,26 @@ export class Plant extends AggregateRoot<PlantId> {
       ? this.props.traits.size.spread.with(changes.size.spread)
       : this.props.traits.size.spread;
 
-    this.props = deepFreeze({
-      ...this.props,
-      traits: { lifecycle, spacingCm, size: { height, spread } }
-    });
+    const traits = { lifecycle, spacingCm, size: { height, spread } };
+
+    if (
+      !hasStateChanged(
+        Plant.traitsSnapshot(this.props.traits),
+        Plant.traitsSnapshot(traits)
+      )
+    )
+      return;
+
+    this.commit({ traits }, user, at);
+  }
+
+  private static traitsSnapshot(traits: PlantProps['traits']): UnknownRecord {
+    return {
+      lifecycle: traits.lifecycle.getValue(),
+      spacingCm: traits.spacingCm.toPrimitives(),
+      height: traits.size.height.toPrimitives(),
+      spread: traits.size.spread.toPrimitives()
+    };
   }
 
   private resolveStarterDepth(
@@ -191,14 +235,7 @@ export class Plant extends AggregateRoot<PlantId> {
     );
   }
 
-  updatePhenology(changes: PlantPhenologyChanges): void {
-    this.assertActive();
-
-    if (!changes.sowing) return;
-
-    const sc = changes.sowing;
-    const cur = this.props.phenology.sowing;
-
+  private buildSowing(sc: PlantSowingChanges, cur: PlantSowing): PlantSowing {
     const months = sc.months ? MonthSet.fromArray(sc.months) : cur.months;
     const seedsPerHole = sc.seedsPerHole
       ? cur.seedsPerHole.with(sc.seedsPerHole)
@@ -211,7 +248,7 @@ export class Plant extends AggregateRoot<PlantId> {
       : cur.methods.direct.depthCm;
     const starterDepth = this.resolveStarterDepth(sc, cur);
 
-    const sowing = new PlantSowing({
+    return new PlantSowing({
       months,
       seedsPerHole,
       germinationDays,
@@ -222,21 +259,45 @@ export class Plant extends AggregateRoot<PlantId> {
         })
       }
     });
-
-    this.props = deepFreeze({
-      ...this.props,
-      phenology: { ...this.props.phenology, sowing }
-    });
   }
 
-  updateKnowledge(changes: PlantKnowledgeChanges): void {
+  updatePhenology(
+    changes: PlantPhenologyChanges,
+    user: string,
+    at: Date = new Date()
+  ): void {
+    this.assertActive();
+
+    if (!changes.sowing) return;
+
+    const cur = this.props.phenology.sowing;
+    const sowing = this.buildSowing(changes.sowing, cur);
+
+    if (!hasStateChanged(cur.toPrimitives(), sowing.toPrimitives())) return;
+
+    this.commit({ phenology: { ...this.props.phenology, sowing } }, user, at);
+  }
+
+  updateKnowledge(
+    changes: PlantKnowledgeChanges,
+    user: string,
+    at: Date = new Date()
+  ): void {
     this.assertActive();
 
     const knowledge = (this.props.knowledge ?? PlantKnowledge.empty()).update(
       changes
     );
 
-    this.props = deepFreeze({ ...this.props, knowledge });
+    if (
+      !hasStateChanged(
+        { knowledge: this.props.knowledge?.toPrimitives() },
+        { knowledge: knowledge.toPrimitives() }
+      )
+    )
+      return;
+
+    this.commit({ knowledge }, user, at);
   }
 
   static create(props: PlantProps): Plant {

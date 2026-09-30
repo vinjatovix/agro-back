@@ -79,7 +79,7 @@ describe('UpdateFamily', () => {
     expect(repository.getStored(family.idValue)?.name).toBe(family.name);
   });
 
-  it('should perform no write when input has only id', async () => {
+  it('should confirm a no-op against storage when input has only id', async () => {
     const family = FamilyScenarios.domainRandom();
     repository.addToStorage(family);
 
@@ -89,8 +89,9 @@ describe('UpdateFamily', () => {
       CURRENT_VERSION
     );
 
-    repository.assertUpdateNotCalled();
+    repository.assertUpdateCalledTimes(1);
     expect(result.version).toBe(family.version);
+    expect(result.metadata).toEqual(family.metadata);
   });
 
   it('should call repository.findById with correct id', async () => {
@@ -138,21 +139,62 @@ describe('UpdateFamily', () => {
     repository.assertUpdateNotCalled();
   });
 
-  it('should throw not found error when the post-write re-read returns null', async () => {
+  it('should return the edited family even if it is removed right after the write', async () => {
     const family = FamilyScenarios.domainRandom();
     repository.addToStorage(family);
     jest
       .spyOn(repository, 'findById')
-      .mockResolvedValueOnce(family)
+      .mockResolvedValueOnce(
+        familyDomainMapper.fromPrimitives(
+          familyDomainMapper.toPrimitives(family)
+        )
+      )
       .mockResolvedValueOnce(null);
+
+    const result = await useCase.execute(
+      { id: family.idValue, name: 'Updated name' },
+      'test-user',
+      CURRENT_VERSION
+    );
+
+    expect(result.name).toBe('Updated name');
+  });
+
+  it('should return the in-memory family with audit data by the acting user and the stored version', async () => {
+    const family = FamilyScenarios.domainRandom();
+    repository.addToStorage(family);
+
+    const result = await useCase.execute(
+      { id: family.idValue, name: 'Renamed' },
+      'editor',
+      family.version
+    );
+
+    expect(result.version).toBe(family.version + 1);
+    expect(result.metadata.updatedBy).toBe('editor');
+    expect(result.metadata.createdBy).toBe(family.metadata.createdBy);
+    expect(result.metadata.createdAt).toEqual(family.metadata.createdAt);
+    expect(familyDomainMapper.toPrimitives(result)).toEqual(
+      repository.getStoredPrimitives(family.idValue)
+    );
+  });
+
+  it('should return no family when the write fails', async () => {
+    const family = FamilyScenarios.domainRandom();
+    repository.addToStorage(family);
+    jest
+      .spyOn(repository, 'updateWithDiff')
+      .mockRejectedValueOnce(
+        new DomainStaleVersionException(`Family was modified: ${family.id}`)
+      );
 
     await expect(
       useCase.execute(
-        { id: family.idValue, name: 'Updated name' },
+        { id: family.idValue, name: 'Renamed' },
         'test-user',
-        CURRENT_VERSION
+        family.version
       )
-    ).rejects.toBeInstanceOf(DomainNotFoundException);
+    ).rejects.toBeInstanceOf(DomainStaleVersionException);
   });
 
   describe('optimistic concurrency', () => {
@@ -226,7 +268,38 @@ describe('UpdateFamily', () => {
       );
     });
 
-    it('should read twice, write once and never run the existence check on success', async () => {
+    it('should answer stale for a no-op when the stored version moved after the read', async () => {
+      const family = FamilyScenarios.domainRandom();
+      const primitives = familyDomainMapper.toPrimitives(family);
+      repository.addToStorage(
+        familyDomainMapper.fromPrimitives({
+          ...primitives,
+          version: family.version + 1
+        })
+      );
+      jest
+        .spyOn(repository, 'findById')
+        .mockResolvedValueOnce(familyDomainMapper.fromPrimitives(primitives));
+
+      await expect(
+        useCase.execute({ id: family.idValue }, 'test-user', family.version)
+      ).rejects.toBeInstanceOf(DomainStaleVersionException);
+    });
+
+    it('should answer not found for a no-op when the family was removed after the read', async () => {
+      const family = FamilyScenarios.domainRandom();
+      jest.spyOn(repository, 'findById').mockResolvedValueOnce(family);
+
+      await expect(
+        useCase.execute(
+          { id: family.idValue, name: family.name },
+          'test-user',
+          family.version
+        )
+      ).rejects.toBeInstanceOf(DomainNotFoundException);
+    });
+
+    it('should read once, write once and never run the existence check on success', async () => {
       const family = FamilyScenarios.domainRandom();
       repository.addToStorage(family);
 
@@ -236,7 +309,7 @@ describe('UpdateFamily', () => {
         family.version
       );
 
-      repository.assertReadCalledTimes('findById', 2);
+      repository.assertReadCalledTimes('findById', 1);
       repository.assertUpdateCalledTimes(1);
       repository.assertExistenceCountCalledTimes(0);
     });

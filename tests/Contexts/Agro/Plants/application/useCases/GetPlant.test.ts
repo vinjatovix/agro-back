@@ -52,7 +52,7 @@ describe('GetPlant', () => {
 
   it('should throw error if plant is deleted and user tries to access it', async () => {
     const plant = PlantFactory.tomato();
-    plant.markAsDeleted();
+    plant.markAsDeleted('test-user');
     repository.addToStorage(plant);
 
     await expect(getPlant.execute(plant.id, USER)).rejects.toBeInstanceOf(
@@ -64,7 +64,7 @@ describe('GetPlant', () => {
 
   it('should only look up active plants for anonymous requests', async () => {
     const plant = PlantFactory.tomato();
-    plant.markAsDeleted();
+    plant.markAsDeleted('test-user');
     repository.addToStorage(plant);
 
     await expect(getPlant.execute(plant.id, undefined)).rejects.toBeInstanceOf(
@@ -76,7 +76,7 @@ describe('GetPlant', () => {
 
   it('should return plant if it is deleted but user has admin role', async () => {
     const plant = PlantFactory.tomato();
-    plant.markAsDeleted();
+    plant.markAsDeleted('test-user');
     repository.addToStorage(plant);
 
     await expect(getPlant.execute(plant.id, ADMIN)).resolves.toEqual(plant);
@@ -87,7 +87,7 @@ describe('GetPlant', () => {
 
   it('should return plant if it is deleted but user has collaborator role', async () => {
     const plant = PlantFactory.tomato();
-    plant.markAsDeleted();
+    plant.markAsDeleted('test-user');
     repository.addToStorage(plant);
 
     await expect(getPlant.execute(plant.id, COLLABORATOR)).resolves.toEqual(

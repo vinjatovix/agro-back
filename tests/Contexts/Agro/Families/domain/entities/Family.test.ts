@@ -117,7 +117,7 @@ describe('Family.updateInformation', () => {
     const family = FamilyScenarios.domainRandom();
     const before = familyDomainMapper.toPrimitives(family);
 
-    family.updateInformation({ name: 'New Name' });
+    family.updateInformation({ name: 'New Name' }, 'test-user');
 
     expect(family.name).toBe('New Name');
     expect(family.slug).toBe(before.slug);
@@ -129,7 +129,10 @@ describe('Family.updateInformation', () => {
 
   it('should replace aliases and highlights as a full list', () => {
     const family = FamilyScenarios.domainBaseWithExtra();
-    family.updateInformation({ aliases: ['a1', 'a2'], highlights: ['h1'] });
+    family.updateInformation(
+      { aliases: ['a1', 'a2'], highlights: ['h1'] },
+      'test-user'
+    );
 
     expect(family.aliases).toEqual(['a1', 'a2']);
     expect(family.highlights).toEqual(['h1']);
@@ -139,7 +142,7 @@ describe('Family.updateInformation', () => {
     const family = FamilyScenarios.domainBaseWithExtra();
     expect(family.extra).toBeDefined();
 
-    family.updateInformation({ extra: null });
+    family.updateInformation({ extra: null }, 'test-user');
 
     expect(family.extra).toBeUndefined();
   });
@@ -151,7 +154,7 @@ describe('Family.updateInformation', () => {
       subfamilies: [],
       distribution: 'Cosmopolitan'
     });
-    family.updateInformation({ extra: { order: null } });
+    family.updateInformation({ extra: { order: null } }, 'test-user');
 
     expect(family.extra?.order).toBeUndefined();
     expect(family.extra?.speciesCount).toBe(32000);
@@ -163,7 +166,10 @@ describe('Family.updateInformation', () => {
       speciesCount: 32000
     });
 
-    family.updateInformation({ extra: { order: null, speciesCount: null } });
+    family.updateInformation(
+      { extra: { order: null, speciesCount: null } },
+      'test-user'
+    );
 
     expect(family.extra).toBeUndefined();
   });
@@ -171,7 +177,7 @@ describe('Family.updateInformation', () => {
   it('should not create extra from an empty object', () => {
     const family = FamilyScenarios.domainRandom();
 
-    family.updateInformation({ extra: {} });
+    family.updateInformation({ extra: {} }, 'test-user');
 
     expect(family.extra).toBeUndefined();
   });
@@ -183,7 +189,10 @@ describe('Family.updateInformation', () => {
       subfamilies: [],
       distribution: 'Cosmopolitan'
     });
-    family.updateInformation({ extra: { distribution: 'Worldwide' } });
+    family.updateInformation(
+      { extra: { distribution: 'Worldwide' } },
+      'test-user'
+    );
 
     expect(family.extra?.order).toBe('Asterales');
     expect(family.extra?.distribution).toBe('Worldwide');
@@ -192,14 +201,14 @@ describe('Family.updateInformation', () => {
 
   it('should trim aliases and drop empty ones', () => {
     const family = FamilyScenarios.domainRandom();
-    family.updateInformation({ aliases: [' a1 ', '  ', 'a2'] });
+    family.updateInformation({ aliases: [' a1 ', '  ', 'a2'] }, 'test-user');
 
     expect(family.aliases).toEqual(['a1', 'a2']);
   });
 
   it('should trim and store a padded name', () => {
     const family = FamilyScenarios.domainRandom();
-    family.updateInformation({ name: '  Solanaceae  ' });
+    family.updateInformation({ name: '  Solanaceae  ' }, 'test-user');
 
     expect(family.name).toBe('Solanaceae');
   });
@@ -211,7 +220,7 @@ describe('Family.updateInformation', () => {
       const before = familyDomainMapper.toPrimitives(family);
 
       expect(() => {
-        family.updateInformation({ [field]: '   ' });
+        family.updateInformation({ [field]: '   ' }, 'test-user');
       }).toThrow(new RegExp(field));
 
       expect(familyDomainMapper.toPrimitives(family)).toEqual(before);
@@ -225,25 +234,90 @@ describe('Family.updateInformation', () => {
       const before = familyDomainMapper.toPrimitives(family);
 
       expect(() => {
-        family.updateInformation({ [field]: '' });
+        family.updateInformation({ [field]: '' }, 'test-user');
       }).toThrow(new RegExp(field));
 
       expect(familyDomainMapper.toPrimitives(family)).toEqual(before);
     }
   );
 
-  it('should not change id, version, or metadata after update', () => {
+  it('should not change id or version after update', () => {
     const family = FamilyScenarios.domainRandom();
     const beforeId = family.idValue;
     const beforeVersion = family.version;
-    const beforeMetadata = familyDomainMapper.toPrimitives(family).metadata;
 
-    family.updateInformation({ name: 'Changed' });
+    family.updateInformation({ name: 'Changed' }, 'test-user');
 
     expect(family.idValue).toBe(beforeId);
     expect(family.version).toBe(beforeVersion);
-    expect(familyDomainMapper.toPrimitives(family).metadata).toEqual(
-      beforeMetadata
+  });
+});
+
+describe('Family audit metadata', () => {
+  const OLD = new Date('2024-01-01T00:00:00.000Z');
+
+  const auditedFamily = () =>
+    familyDomainMapper.fromPrimitives({
+      ...familyDomainMapper.toPrimitives(FamilyScenarios.domainBaseWithExtra()),
+      metadata: {
+        createdAt: OLD,
+        createdBy: 'creator',
+        updatedAt: OLD,
+        updatedBy: 'creator'
+      }
+    });
+
+  it('a real change refreshes audit data and keeps the created pair', () => {
+    const family = auditedFamily();
+
+    family.updateInformation({ name: 'Changed' }, 'editor');
+
+    expect(family.metadata.updatedBy).toBe('editor');
+    expect(family.metadata.updatedAt.getTime()).toBeGreaterThan(OLD.getTime());
+    expect(family.metadata.createdBy).toBe('creator');
+    expect(family.metadata.createdAt).toEqual(OLD);
+  });
+
+  it.each([
+    ['no fields', {}],
+    ['the same name', { name: 'Asteraceae' }],
+    ['the same extra key', { extra: { order: 'Asterales' } }]
+  ])('%s leaves the aggregate untouched', (_label, changes) => {
+    const family = auditedFamily();
+    const metadata = family.metadata;
+    const before = familyDomainMapper.toPrimitives(family);
+
+    family.updateInformation(changes, 'editor');
+
+    expect(family.metadata).toBe(metadata);
+    expect(familyDomainMapper.toPrimitives(family)).toEqual(before);
+  });
+
+  it('an invalid change leaves metadata untouched', () => {
+    const family = auditedFamily();
+    const metadata = family.metadata;
+
+    expect(() => family.updateInformation({ name: '  ' }, 'editor')).toThrow(
+      InvalidArgumentException
+    );
+    expect(family.metadata).toBe(metadata);
+  });
+
+  describe('syncVersion', () => {
+    it.each([
+      ['written', 1],
+      ['unchanged', 0]
+    ] as const)(
+      'applies a %s outcome as the current version + %i without touching metadata',
+      (outcome, step) => {
+        const family = auditedFamily();
+        const metadata = family.metadata;
+
+        family.syncVersion(outcome);
+
+        expect(family.version).toBe(step);
+        expect(family.metadata).toBe(metadata);
+      }
     );
   });
 });

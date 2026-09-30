@@ -1,5 +1,6 @@
 import { ensureFound } from '../../../shared/application/utils/ensureFound.js';
 import { DomainUnauthorizedException } from '../../../shared/domain/errors/index.js';
+import { Metadata } from '../../../shared/domain/valueObject/index.js';
 import {
   buildLogger,
   type EncrypterTool
@@ -11,8 +12,7 @@ import { createUserId } from '../../domain/UserId.js';
 import {
   PasswordHash,
   PlainPassword,
-  UserAuthMethod,
-  Username
+  UserAuthMethod
 } from '../../domain/value-objects/index.js';
 import type {
   UpdatePasswordRequest,
@@ -46,6 +46,7 @@ export class UpdatePasswordLocal {
     );
     const userPatch = new UserPatch({
       id: createUserId(user.id),
+      metadata: Metadata.update(storedUser.metadata, user.username),
       password: encryptedPassword,
       authMethods: storedUser.authMethods.map((method) =>
         method.isLocal()
@@ -54,7 +55,7 @@ export class UpdatePasswordLocal {
       )
     });
 
-    await this.repository.update(userPatch, new Username(user.username));
+    await this.repository.update(userPatch);
     logger.info(`Updated User: <${userPatch.id}> by <${user.username}>`);
   }
 

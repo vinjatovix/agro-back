@@ -75,7 +75,7 @@ describe('PlantDomainMapper', () => {
 
   it('should preserve deletedAt when present', () => {
     const plant = PlantFactory.tomato();
-    plant.markAsDeleted();
+    plant.markAsDeleted('test-user');
 
     const p = plantDomainMapper.toPrimitives(plant);
 

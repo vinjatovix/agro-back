@@ -69,9 +69,13 @@ export class UserMother {
     return this.create({ id: createUserId(id ?? random.uuid()) });
   }
 
-  static randomPatch(id: string): UserPatch {
+  static randomPatch(user: User): UserPatch {
     return new UserPatch({
-      id: createUserId(id),
+      id: createUserId(user.id),
+      metadata: Metadata.update(
+        user.metadata,
+        random.word({ min: 4, max: 20 })
+      ),
       password: UserMother.randomPasswordHash(),
       emailValidated: random.boolean(),
       roles: UserRolesMother.random()

@@ -21,7 +21,7 @@ describe('ListPlants', () => {
 
   it('should call repository with all plants for admin users', async () => {
     const plant1 = PlantFactory.random();
-    plant1.markAsDeleted();
+    plant1.markAsDeleted('test-user');
     const plant2 = PlantFactory.random();
     repository.addToStorage(plant1);
     repository.addToStorage(plant2);
@@ -33,7 +33,7 @@ describe('ListPlants', () => {
 
   it('should call repository with active status filter for non-admin users', async () => {
     const plant1 = PlantFactory.random();
-    plant1.markAsDeleted();
+    plant1.markAsDeleted('test-user');
     const plant2 = PlantFactory.random();
     repository.addToStorage(plant1);
     repository.addToStorage(plant2);

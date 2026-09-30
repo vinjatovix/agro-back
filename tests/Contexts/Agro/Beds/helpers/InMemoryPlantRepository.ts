@@ -2,6 +2,8 @@ import type { Plant } from '../../../../../src/Contexts/Agro/Plants/domain/entit
 import type { PlantPrimitives } from '../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantPrimitives.js';
 import type { PlantRepository } from '../../../../../src/Contexts/Agro/Plants/domain/repositories/interfaces/PlantRepository.js';
 import { plantDomainMapper } from '../../../../../src/Contexts/Agro/Plants/mappers/plantDomainMapper.js';
+import { DomainNotFoundException } from '../../../../../src/Contexts/shared/domain/errors/index.js';
+import type { WriteOutcome } from '../../../../../src/Contexts/shared/domain/repositories/WriteOutcome.js';
 import type { Nullable } from '../../../../../src/shared/domain/types/Nullable.js';
 import { PlantFactory } from '../../Plants/domain/mothers/PlantFactory.js';
 
@@ -41,18 +43,23 @@ export class InMemoryPlantRepository implements PlantRepository {
 
   // eslint-disable-next-line @typescript-eslint/require-await
   async updateWithDiff(
-    _current: PlantPrimitives,
-    updated: PlantPrimitives,
-    _username: string
-  ): Promise<void> {
-    const id = _current.id;
+    current: PlantPrimitives,
+    updated: PlantPrimitives
+  ): Promise<WriteOutcome> {
+    const id = current.id;
     if (!this.plants.has(id)) {
-      throw new Error(`Plant not found: ${id}`);
+      throw new DomainNotFoundException(`Plant not found: ${id}`);
     }
 
-    const updatedPlant = plantDomainMapper.fromPrimitives(updated);
+    this.plants.set(
+      id,
+      plantDomainMapper.fromPrimitives({
+        ...updated,
+        version: current.version + 1
+      })
+    );
 
-    this.plants.set(id, updatedPlant);
+    return 'written';
   }
 }
 

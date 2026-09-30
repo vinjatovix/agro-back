@@ -54,7 +54,7 @@ Rules:
 
 ### 4.1 Full-State Contract
 
-`updateWithDiff(current, updated, username)` receives **two complete domain-mapper outputs** — the primitives of the same aggregate before and after the mutation method ran. It MUST NOT receive a partial object or a patch fragment.
+`updateWithDiff(current, updated): Promise<WriteOutcome>` receives **two complete domain-mapper outputs** — the primitives of the same aggregate before and after the mutation method ran — and returns what it did: `'written'` (version advanced by one) or `'unchanged'` (confirmed no-op). It never returns a version number, so the aggregate cannot receive a version it could not have reached. It MUST NOT receive a partial object or a patch fragment.
 
 #### Diff semantics
 
@@ -69,7 +69,7 @@ Rules:
 
 Nested objects are compared key by key. Lists are compared by value (serialized content, including element order) and, when different, replaced entirely with `$set`: the before and after states hold different list instances, so comparing by reference would turn every update into a write. `Date` values are compared by `getTime()`.
 
-An empty diff (no `$set`, no `$unset`) skips the write entirely and does not bump `version`.
+An empty diff (no `$set`, no `$unset`) writes nothing and does not bump `version`; it is still confirmed against storage (Sec. 4.3).
 
 #### Constraints
 
@@ -88,14 +88,18 @@ An empty diff (no `$set`, no `$unset`) skips the write entirely and does not bum
 3. Domain aggregate updates its own internal audit `metadata` (e.g., `updatedAt` and `updatedBy`) _in memory_ as part of the state transition.
 4. Resulting state is validated against domain rules.
 5. ONLY if validation passes -> persistence `updateWithDiff` is executed with the validated next state.
-6. Persistence layer applies the deterministic diff between states.
-7. **`[TARGET STATE (Pending [Iteration 8](../../roadmap.md#iteration-8-implement-in-memory-audit-metadata))]`** The application use case immediately returns the in-memory aggregate, completely eliminating any redundant `findById` post-update reads.
+6. Persistence layer applies the deterministic diff between states and returns a `WriteOutcome`.
+7. The use case applies it with `aggregate.syncVersion(outcome)` and returns the in-memory aggregate: no `findById` after the write (successful edit = 1 read + 1 write).
 
 ---
 
 ### CRITICAL RULE: METADATA OWNERSHIP
 
-The persistence layer (`updateWithDiff`, repositories, or DB-level triggers) MUST NOT dynamically alter or inject metadata values (like `updatedAt` or `updatedBy`) under the hood. All audit metadata is owned strictly by the Domain/Application layers and must be synchronized in memory before the persistence step.
+The persistence layer (`updateWithDiff`, repositories, or DB-level triggers) MUST NOT dynamically alter or inject metadata values (like `updatedAt` or `updatedBy`) under the hood. All audit metadata is owned strictly by the Domain and is already set in memory before the persistence step.
+
+**Explicit exception — `version`**: `updateWithDiff` advances `version` with `$inc: { version: 1 }` in the same conditional write. This is a concurrency mechanism, not audit data, and it is the only field storage changes on its own. Because every write advances it by exactly one, storage only reports whether it wrote and the aggregate derives its own version (`syncVersion`).
+
+The User aggregate follows the same rule outside `MongoCrudRepository`: `MongoAuthRepository.update(patch)` stores the `UserPatch` as received, including the metadata the use case computed with `Metadata.update`, and adds no audit data of its own. The patch metadata is written with dotted paths (`metadata.updatedAt`, …), so a field stored under `metadata` that the patch does not carry is kept.
 
 ---
 
@@ -135,18 +139,17 @@ The client states the version it is modifying; the server never assumes it.
 
 #### Conditional write
 
-`updateWithDiff(current, updated, username)` keeps the check atomic:
+`updateWithDiff(current, updated): Promise<WriteOutcome>` keeps the check atomic:
 
-1. Computes the diff; if there are no changes, it returns without writing (the version is not bumped).
-   - **`[TARGET STATE (Pending [Iteration 8](../../roadmap.md#iteration-8-implement-in-memory-audit-metadata))]`** an empty diff still runs a read with the same `{ _id, $and: [activeFilter(), versionFilter] }` filter and reports stale (`412`) or missing (`404`) exactly like a failed write. This closes the window where another writer lands between `ensureVersion` and a no-op, which today returns `200` based on a stale read.
-2. Updates with filter `{ _id, $and: [activeFilter(), versionFilter] }` and `$inc: { version: 1 }`, alongside the diff's `$set` / `$unset`. `$and` keeps both conditions even if they use the same top-level operator. When `current.version` is `0`, `versionFilter` also matches documents without a stored `version` field (mappers read a missing `version` as `0`), so legacy or imported documents are not locked out.
-3. Only if no document matched, one `countDocuments({ _id, ...activeFilter() })` tells the two cases apart:
+1. Computes the diff. If it is empty, it writes nothing but runs `countDocuments` with the same `{ _id, $and: [activeFilter(), versionFilter] }` filter (`limit: 1`): a match returns `'unchanged'`; no match goes to step 3. This closes the window where another writer lands between `ensureVersion` and a no-op, which would otherwise answer `200` from a stale read.
+2. Otherwise updates with filter `{ _id, $and: [activeFilter(), versionFilter] }` and `$inc: { version: 1 }`, alongside the diff's `$set` / `$unset`, and returns `'written'`. It never adds `updatedAt`/`updatedBy`. `$and` keeps both conditions even if they use the same top-level operator. When `current.version` is `0`, `versionFilter` also matches documents without a stored `version` field (mappers read a missing `version` as `0`), so legacy or imported documents are not locked out.
+3. Only if no document matched (write or no-op confirmation), one `countDocuments({ _id, ...activeFilter() })` tells the two cases apart:
    - the aggregate still exists and is active → **`DomainStaleVersionException`** (HTTP `412`): another writer got there first;
    - otherwise → **`DomainNotFoundException`** (HTTP `404`).
 
-A concurrent delete that lands between the failed update and the count yields `404` instead of `412`. This is accepted: the resource is indeed gone.
+A concurrent delete that lands between the failed check and the count yields `404` instead of `412`. This is accepted: the resource is indeed gone.
 
-On the success path the cost is one read plus one conditional write; the existence count only runs after a failed write.
+Cost: a successful edit is one read plus one conditional write; a no-op edit is one read plus one indexed count; the existence count only runs after a failed write or confirmation.
 
 #### Outcome precedence
 
@@ -765,6 +768,8 @@ Persistence MUST:
 - aggregate mutation methods (`Bed`, `Family`, `Plant`) replace generic patch merging
 - updateWithDiff pipeline
 - optimistic concurrency control (`version`) for Bed, Plant and Family
+- metadata ownership: `MongoCrudRepository` never injects `updatedAt`/`updatedBy`; `updateWithDiff` returns a `WriteOutcome` and confirms empty diffs against storage
+- metadata ownership for User: `MongoAuthRepository.update(patch)` stores the audit data carried by `UserPatch` and never adds its own (`updateMetadata` removed)
 - FamilyRepository implementation
 - PlantDtoMapper
 - Query DSL + parser support (GenericQueryParser, QueryParserUtils)
@@ -784,6 +789,7 @@ Persistence MUST:
 - removal of `Record<string, unknown>` leakage
 - formal contract enforcement for null vs undefined semantics
 - unification of mapping strategy across all aggregates
+- User mutation methods: `User` is still updated through a partial `UserPatch` built by use cases (proposal in [Iteration 26](../../roadmap.md#iteration-26-implement-email-account-activation-flow))
 
 ---
 

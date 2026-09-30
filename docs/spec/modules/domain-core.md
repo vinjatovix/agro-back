@@ -163,14 +163,20 @@ The domain throws these exceptions directly by instantiating them using the stan
 
 ---
 
-### 5.2 DOMAIN MUTATIONS & METADATA OWNERSHIP ([Iteration 7](../../roadmap.md#iteration-7-encapsulate-state-mutations-in-aggregates) done — `[TARGET STATE (Pending [Iteration 8](../../roadmap.md#iteration-8-implement-in-memory-audit-metadata))]`)
+### 5.2 DOMAIN MUTATIONS & METADATA OWNERSHIP ([Iterations 7](../../roadmap.md#iteration-7-encapsulate-state-mutations-in-aggregates) & [8](../../roadmap.md#iteration-8-implement-in-memory-audit-metadata) done)
 
-Aggregates MUST NOT be anemic. All state modifications (such as updating plant properties or resizing a bed) MUST be handled by explicit, business-oriented methods on the Aggregate Root itself (e.g., `bed.updateInfo()`, `plant.updateTraits()`).
+Aggregates MUST NOT be anemic. All state modifications (such as updating plant properties or resizing a bed) MUST be handled by explicit, business-oriented methods on the Aggregate Root itself (e.g., `bed.rename(name, user)`, `plant.updateTraits(changes, user)`).
 
 Furthermore, the Domain is the sole owner of audit metadata:
 
-- Any business method mutating aggregate state is responsible for updating its own `metadata.updatedAt` timestamp and `metadata.updatedBy` username _in memory_.
-- **`[TARGET STATE (Pending [Iteration 8](../../roadmap.md#iteration-8-implement-in-memory-audit-metadata))]`** This ensures that when the mutated aggregate is returned by the application layer directly from memory (without a redundant read-after-write `findById`), its audit trail is 100% accurate and up-to-date.
+- Every business method mutating aggregate state receives the acting user's username as its last argument and updates its own `metadata.updatedAt` timestamp and `metadata.updatedBy` username _in memory_ with `Metadata.update(previous, user, at?)`, which keeps `createdAt`/`createdBy`.
+- Mutation methods take an optional `at: Date` after the user. A use case that calls several of them for one request (`UpdateBed`, `UpdatePlant`) creates one `at` and passes it to all of them, so the request leaves a single `updatedAt`.
+- Aggregate state is immutable: every change replaces the frozen props object (`Bed` and `Family` with `Object.freeze`, `Plant` with `deepFreeze`) instead of mutating it.
+- **Audit only on real change**: a method refreshes audit data only when the section of state it owns really changed. "Changed" is decided with `hasStateChanged(before, after)` (`src/shared/domain/diff/`), built on the same `diffObjects` that storage uses, so the aggregate and storage always agree on what a no-op is. A same-value call leaves the aggregate untouched (same `Metadata` instance, no new timestamp).
+- **Plain snapshots only**: `hasStateChanged` receives primitives (`toPrimitives()`, `.value` or a snapshot), never value objects. `diffObjects` only sees own enumerable keys, so data held in a `Set` (`MonthSet`), a `Map` or a private field (`PlantLifecycle`) would read as unchanged and the change would be silently lost. It checks this at runtime and throws `createError.internal` (500) on any non-plain object (`Date` and arrays are allowed), including one whose prototype has no `constructor`, so a wrong call fails in the unit tests of the mutation method. A compile-time guard (a recursive plain-data parameter type that class instances cannot satisfy) was considered and not adopted: it would move the failure from unit tests to compilation, but requires every snapshot type to be a plain-data type (`RangePrimitives` and `IdentityPrimitives` are `interface`s, and the `Family`/`Plant` snapshots return `UnknownRecord`).
+- Methods stay atomic: if they throw, nothing changes, including metadata. Soft delete uses one timestamp for `deletedAt` and `updatedAt`.
+- `syncVersion(outcome: WriteOutcome)` applies what storage reported after `updateWithDiff`: `'written'` advances the version by one, `'unchanged'` keeps it (`versionAfter`, `src/Contexts/shared/domain/repositories/WriteOutcome.ts`). Storage never returns a version number, so an impossible version cannot reach the aggregate and there is nothing to validate at runtime. It is not a mutation method and never touches metadata.
+- This ensures that the mutated aggregate returned by the application layer directly from memory (without a read-after-write `findById`) has an accurate audit trail and version, equal to what a later `GET` returns.
 
 ---
 
