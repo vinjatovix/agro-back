@@ -37,9 +37,14 @@ Unit tests now explicitly include:
   - deepMerge (immutable merge utility)
 - `requireIfMatch` / `parseIfMatch` (every accepted and rejected `If-Match` shape) and `getExpectedVersion`
 - `ensureVersion`
-- use-case version checks (precedence `404 → 412 → 409`, no-op patches, call counts on the success path)
+- use-case version checks (precedence `404 → 412 → 409`, no-op patches, call counts on the success path: 1 read + 1 `updateWithDiff`, no read after the write)
+- in-memory audit metadata per mutation method: a real change sets `updatedAt`/`updatedBy` to the acting user and keeps `createdAt`/`createdBy`; a same-value call leaves the same `Metadata` instance; a failed call leaves metadata untouched; `syncVersion('written')` advances the version by one and `syncVersion('unchanged')` keeps it
+- `Metadata.update` and `hasStateChanged` (including rejecting value objects, nested or inside arrays, and objects whose prototype has no `constructor`, instead of silently reporting no change)
+- one timestamp per request: `UpdateBed` and `UpdatePlant` pass the same `at` to every mutation they call, and the returned aggregate carries it as `updatedAt`
+- `Bed` does not mutate the plant list it was built from
+- Auth writes: each `UserPatch` sent by `ValidateMail`, `UpdatePasswordLocal` and `AuthenticateWithGoogle` carries audit data by the acting user and keeps `createdAt`/`createdBy` (`AuthRepositoryMock.assertUpdateAuditedBy`); `MongoAuthRepository.update` stores that metadata as received and keeps any other field stored under `metadata`
 
-Use-case tests use the in-memory fake `BaseMongoCrudRepositoryMock`, which mirrors `updateWithDiff`: empty diff → no write; write only over an active entity at the expected version, bumping it; stale → `DomainStaleVersionException`, missing/inactive → `DomainNotFoundException`. It checks a persisted snapshot of version/active state, so mutating a read instance (e.g. `markAsDeleted()`) does not change what is "stored" until it is written.
+Use-case tests use the in-memory fake `BaseMongoCrudRepositoryMock`, which mirrors `updateWithDiff(current, updated)`: the write, or on an empty diff the no-op confirmation, only succeeds on an active entity at the expected version; a write stores `updated` exactly as received with the version bumped and never adds audit data; it returns `'written'` after a write and `'unchanged'` after a confirmed no-op; stale → `DomainStaleVersionException`, missing/inactive → `DomainNotFoundException` (on both paths). It checks a persisted snapshot of version/active state, so mutating a read instance (e.g. `markAsDeleted(user)`) does not change what is "stored" until it is written. `getStoredPrimitives(id)` lets tests compare the returned aggregate with what was stored.
 
 Rules:
 
@@ -121,11 +126,14 @@ Features:
 
 Rules:
 
-- Call the API only in the `When` step under test. Build prior state (created, updated to a given version, soft-deleted, bed with plants…) in `Given` steps with seeders or DB helpers (e.g. `the bed is stored at version 1`, `a soft-deleted plant exists`), never with setup `PATCH`/`DELETE` requests.
+- Call the API only in the `When` step under test. Build prior state (created, updated to a given version, soft-deleted, bed with plants…) in `Given` steps with seeders or DB helpers (e.g. `the bed is stored at version 1`, `the plant was last updated by another user`, `a soft-deleted plant exists`), never with setup `PATCH`/`DELETE` requests.
+- A read-only check after the `When` step (e.g. `a GET user request to "..." should return the same body`) is allowed in `Then`: it builds no state.
+- When asserting the acting user (e.g. audit data), read the username from the token the step actually sends: login steps can replace the scenario's user token.
 
 Added coverage:
 
 - version preconditions on every protected write: `428` / `400` / `412` / `404` precedence, `ETag` on single-resource responses, CORS exposure, and concurrent writers with the same version (exactly one winner)
+- in-memory audit metadata: a `PATCH` response equals a later `GET` (including `metadata` and `version`) with the acting user as `updatedBy`; a same-value `PATCH` keeps `ETag`, `version` and the stored document; a soft delete stores the deleting user with `updatedAt` equal to `deletedAt`
 - Beds feature scenarios (CRUD flows)
 - cross-entity ownership rules (user/bed isolation)
 - query-driven filtering scenarios (list endpoints with filters, sorting, pagination)

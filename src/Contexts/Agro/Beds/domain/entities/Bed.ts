@@ -1,10 +1,15 @@
+import { hasStateChanged } from '../../../../../shared/domain/diff/hasStateChanged.js';
 import type { UserId } from '../../../../Auth/domain/UserId.js';
 import { AggregateRoot } from '../../../../shared/domain/entities/AggregateRoot.js';
 import {
   DomainConflictException,
   InvalidArgumentException
 } from '../../../../shared/domain/errors/index.js';
-import type { Metadata } from '../../../../shared/domain/valueObject/Metadata.js';
+import {
+  type WriteOutcome,
+  versionAfter
+} from '../../../../shared/domain/repositories/WriteOutcome.js';
+import { Metadata } from '../../../../shared/domain/valueObject/Metadata.js';
 import { PositiveNumber } from '../../../../shared/domain/valueObject/PositiveNumber.js';
 import { StringValueObject } from '../../../../shared/domain/valueObject/StringValueObject.js';
 import type { PlantInstance } from '../../../PlantInstances/domain/entities/PlantInstance.js';
@@ -18,11 +23,10 @@ import type {
 import type { BedDimensionsChanges } from './types/BedDimensionsChanges.js';
 import type { BedProps } from './types/BedProps.js';
 
+type BedState = BedProps & { version: number };
+
 export class Bed extends AggregateRoot<BedId> {
-  private readonly props: BedProps & {
-    plantInstances: PlantInstance[];
-    version: number;
-  };
+  private props: Readonly<BedState>;
 
   constructor(
     props: BedProps,
@@ -30,11 +34,11 @@ export class Bed extends AggregateRoot<BedId> {
   ) {
     super(props.id);
 
-    this.props = {
+    this.props = Object.freeze({
       ...props,
-      plantInstances: props.plantInstances ?? [],
+      plantInstances: [...(props.plantInstances ?? [])],
       version: props.version ?? 0
-    };
+    });
   }
 
   get name(): StringValueObject {
@@ -77,10 +81,19 @@ export class Bed extends AggregateRoot<BedId> {
     return this.props.version;
   }
 
+  syncVersion(outcome: WriteOutcome): void {
+    this.props = Object.freeze({
+      ...this.props,
+      version: versionAfter(this.props.version, outcome)
+    });
+  }
+
   addPlant(
     plant: PlantInstance,
     newPlantSpatial: SpatialPlantModel,
-    existingSpatialPlants: SpatialPlantModel[]
+    existingSpatialPlants: SpatialPlantModel[],
+    user: string,
+    at: Date = new Date()
   ): void {
     if (this.isDeleted) {
       throw new DomainConflictException('Cannot add a plant to a deleted bed');
@@ -94,25 +107,44 @@ export class Bed extends AggregateRoot<BedId> {
       newPlantSpatial
     );
 
-    this.props.plantInstances.push(plant);
+    this.commit(
+      { plantInstances: [...this.props.plantInstances, plant] },
+      user,
+      at
+    );
   }
 
-  removePlant(plantId: PlantInstanceId): void {
-    const index = this.props.plantInstances.findIndex((p) => p.id === plantId);
+  removePlant(
+    plantId: PlantInstanceId,
+    user: string,
+    at: Date = new Date()
+  ): void {
+    const plantInstances = this.props.plantInstances.filter(
+      (p) => p.id !== plantId
+    );
 
-    if (index === -1) return;
+    if (plantInstances.length === this.props.plantInstances.length) return;
 
-    this.props.plantInstances.splice(index, 1);
+    this.commit({ plantInstances }, user, at);
   }
 
-  rename(name: string): void {
+  rename(name: string, user: string, at: Date = new Date()): void {
     if (this.isDeleted) {
       throw new DomainConflictException('Cannot rename a deleted bed');
     }
-    this.props.name = new StringValueObject(name);
+    const next = new StringValueObject(name);
+
+    if (!hasStateChanged({ name: this.props.name.value }, { name: next.value }))
+      return;
+
+    this.commit({ name: next }, user, at);
   }
 
-  resize(changes: BedDimensionsChanges): void {
+  resize(
+    changes: BedDimensionsChanges,
+    user: string,
+    at: Date = new Date()
+  ): void {
     if (this.isDeleted) {
       throw new DomainConflictException('Cannot resize a deleted bed');
     }
@@ -130,9 +162,29 @@ export class Bed extends AggregateRoot<BedId> {
         ? this.buildDimension(changes.depth, 'depth')
         : this.props.depth;
 
-    this.props.width = width;
-    this.props.height = height;
-    this.props.depth = depth;
+    const before = {
+      width: this.props.width.value,
+      height: this.props.height.value,
+      depth: this.props.depth.value
+    };
+    const after = {
+      width: width.value,
+      height: height.value,
+      depth: depth.value
+    };
+
+    if (!hasStateChanged(before, after)) return;
+
+    this.commit({ width, height, depth }, user, at);
+  }
+
+  /** Applies a real state change together with the acting user and time. */
+  private commit(changes: Partial<BedProps>, user: string, at: Date): void {
+    this.props = Object.freeze({
+      ...this.props,
+      ...changes,
+      metadata: Metadata.update(this.props.metadata, user, at)
+    });
   }
 
   private buildDimension(value: number, field: string): PositiveNumber {
@@ -152,7 +204,7 @@ export class Bed extends AggregateRoot<BedId> {
     });
   }
 
-  markAsDeleted(): void {
+  markAsDeleted(user: string, at: Date = new Date()): void {
     if (this.plantInstances.length > 0) {
       throw new DomainConflictException(
         'Cannot delete bed with plants. Remove plants or transplant them first.'
@@ -161,7 +213,7 @@ export class Bed extends AggregateRoot<BedId> {
     if (this.isDeleted) {
       throw new DomainConflictException('Bed is already deleted');
     }
-    this.props.deleted = true;
-    this.props.deletedAt = new Date();
+
+    this.commit({ deleted: true, deletedAt: at }, user, at);
   }
 }

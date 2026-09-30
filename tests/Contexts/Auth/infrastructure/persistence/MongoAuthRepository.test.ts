@@ -17,8 +17,6 @@ let repository: AuthRepository;
 let environmentArranger: Promise<EnvironmentArranger>;
 let client: MongoClient;
 
-const username = UserMother.random().username;
-
 describe('MongoAuthRepository', () => {
   beforeAll(async () => {
     client = await DBClientFactory.createClient(
@@ -64,9 +62,9 @@ describe('MongoAuthRepository', () => {
     it('should update an existing user', async () => {
       const user = UserMother.random();
       await repository.save(user);
-      const userPatch = UserMother.randomPatch(user.id);
+      const userPatch = UserMother.randomPatch(user);
 
-      await repository.update(userPatch, username);
+      await repository.update(userPatch);
 
       const updatedUser = await repository.search(user.email.value);
 
@@ -76,6 +74,8 @@ describe('MongoAuthRepository', () => {
         emailValidated: userPatch.emailValidated,
         roles: userPatch.roles
       });
+      // Stores the patch's audit data as received and adds none of its own.
+      expect(updatedUser?.metadata).toEqual(userPatch.metadata);
       expect(updatedUser?.authMethods).toBeDefined();
       expect(updatedUser?.authMethods[0]?.provider).toBe('local');
 
@@ -85,6 +85,28 @@ describe('MongoAuthRepository', () => {
         .findOne({ _id: toMongoId(user.id) });
 
       expect(rawDocument).not.toHaveProperty('id');
+    });
+  });
+
+  describe('update metadata', () => {
+    it('should keep stored metadata fields the patch does not carry', async () => {
+      const user = UserMother.random();
+      await repository.save(user);
+      const users = client.db().collection('users');
+      await users.updateOne(
+        { _id: toMongoId(user.id) },
+        { $set: { 'metadata.legacyField': 'kept' } }
+      );
+      const userPatch = UserMother.randomPatch(user);
+
+      await repository.update(userPatch);
+
+      const rawDocument = await users.findOne({ _id: toMongoId(user.id) });
+
+      expect(rawDocument?.metadata).toEqual({
+        ...userPatch.metadata.toPrimitives(),
+        legacyField: 'kept'
+      });
     });
   });
 

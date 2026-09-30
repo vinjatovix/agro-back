@@ -5,6 +5,7 @@ import {
   DomainNotFoundException,
   DomainStaleVersionException
 } from '../../../../src/Contexts/shared/domain/errors/index.js';
+import type { WriteOutcome } from '../../../../src/Contexts/shared/domain/repositories/WriteOutcome.js';
 import { diffObjects } from '../../../../src/shared/domain/diff/diffObjects.js';
 import type { PaginatedResult } from '../../../../src/shared/domain/query/interfaces/PaginatedResult.js';
 import type { QueryOptions } from '../../../../src/shared/domain/query/interfaces/QueryOptions.js';
@@ -105,10 +106,12 @@ export abstract class BaseMongoCrudRepositoryMock<
   }
 
   /**
-   * Mirrors MongoCrudRepository.updateWithDiff: an empty diff is a no-op,
-   * otherwise the write only lands on an active entity persisted with
-   * `current.version`, and bumps it by one. A failed conditional write runs
-   * one existence check to tell a stale version from a missing entity.
+   * Mirrors MongoCrudRepository.updateWithDiff: the write (or, on an empty
+   * diff, the no-op confirmation) only succeeds on an active entity persisted
+   * with `current.version`. A write stores `updated` exactly as received with
+   * the version bumped by one and never adds audit data. Returns `written` or
+   * `unchanged`, like storage. A failed write or confirmation runs one
+   * existence check to tell a stale version from a missing entity.
    *
    * The check uses the persisted snapshot, not the stored instance, because
    * use cases may mutate the instance they read (e.g. `markAsDeleted()`)
@@ -116,20 +119,20 @@ export abstract class BaseMongoCrudRepositoryMock<
    */
   async updateWithDiff(
     current: TPrimitives,
-    updated: TPrimitives,
-    username: string
-  ): Promise<void> {
-    this.updateMock(current, updated, username);
+    updated: TPrimitives
+  ): Promise<WriteOutcome> {
+    this.updateMock(current, updated);
 
     const id = current.id;
-
-    if (!this.hasChanges(current, updated)) return;
-
     const persisted = this.persisted.get(id);
+    const matches =
+      persisted?.active === true && persisted.version === current.version;
 
-    if (persisted?.active && persisted.version === current.version) {
+    if (matches && !this.hasChanges(current, updated)) return 'unchanged';
+
+    if (matches) {
       this.store(this.toDomain({ ...updated, version: current.version + 1 }));
-      return;
+      return 'written';
     }
 
     this.existenceCountMock(id);
@@ -209,27 +212,25 @@ export abstract class BaseMongoCrudRepositoryMock<
     expect(this.updateMock).toHaveBeenCalled();
   }
 
-  assertUpdateHasBeenCalledWith(
-    current: TPrimitives,
-    updated: unknown,
-    username: string
-  ): void {
-    expect(this.updateMock).toHaveBeenCalledWith(current, updated, username);
+  assertUpdateHasBeenCalledWith(current: TPrimitives, updated: unknown): void {
+    expect(this.updateMock).toHaveBeenCalledWith(current, updated);
   }
 
   assertUpdateNotCalled(): void {
     expect(this.updateMock).not.toHaveBeenCalled();
   }
 
-  getLastUpdateArgs(): [TPrimitives, TPrimitives, string] {
-    const calls = this.updateMock.mock.calls as [
-      TPrimitives,
-      TPrimitives,
-      string
-    ][];
+  getLastUpdateArgs(): [TPrimitives, TPrimitives] {
+    const calls = this.updateMock.mock.calls as [TPrimitives, TPrimitives][];
     expect(this.updateMock).toHaveBeenCalled();
 
-    return calls[calls.length - 1] as [TPrimitives, TPrimitives, string];
+    return calls[calls.length - 1] as [TPrimitives, TPrimitives];
+  }
+
+  getStoredPrimitives(id: string): TPrimitives | undefined {
+    const entity = this.storage.get(id);
+
+    return entity ? this.toPrimitives(entity) : undefined;
   }
 
   assertFindAllCalled(): void {

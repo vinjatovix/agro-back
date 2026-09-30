@@ -2,8 +2,6 @@ import type { Binary } from 'bson';
 import { Collection, Db, MongoServerError, type Document } from 'mongodb';
 
 import type { UnknownRecord } from '../../../../../shared/domain/types/UnknownRecord.js';
-import type { Username } from '../../../../Auth/domain/value-objects/Username.js';
-import { updateMetadata } from '../../../application/utils/updateMetadata.js';
 import { MongoErrorHandler } from './MongoErrorHandler.js';
 import { toMongoId } from './MongoId.js';
 
@@ -20,20 +18,14 @@ export abstract class MongoRepository {
   }
 
   protected async persist(
-    mongoDocument: Document & { _id: string | Binary },
-    username?: Username
+    mongoDocument: Document & { _id: string | Binary }
   ): Promise<void> {
     const collection = this.collection();
-
-    const finalDocument = {
-      ...mongoDocument,
-      ...(username && updateMetadata(username))
-    };
 
     await this.handleMongoError(() =>
       collection.updateOne(
         { _id: mongoDocument._id },
-        { $set: finalDocument },
+        { $set: mongoDocument },
         { upsert: true }
       )
     );

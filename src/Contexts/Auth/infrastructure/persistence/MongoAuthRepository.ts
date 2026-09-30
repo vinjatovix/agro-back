@@ -1,6 +1,5 @@
 import type { Binary, UUID } from 'bson';
 import type { Nullable } from '../../../../shared/domain/types/Nullable.js';
-import { updateMetadata } from '../../../shared/application/utils/updateMetadata.js';
 import type { MetadataPrimitives } from '../../../shared/domain/MetadataPrimitives.js';
 import {
   fromMongoId,
@@ -46,15 +45,22 @@ export class MongoAuthRepository
     await this.persist(mongoDocument);
   }
 
-  async update(user: UserPatch, username: Username): Promise<void> {
+  async update(user: UserPatch): Promise<void> {
     const collection = this.collection();
 
     const mongoId = toMongoId(user.id);
-    const { id: _, ...userPrimitives } = user.toPrimitives();
+    const { id: _, metadata, ...userPrimitives } = user.toPrimitives();
 
+    // Dotted paths: overwrite only the audit fields the patch carries, never
+    // the whole `metadata` subdocument.
     const document = {
       ...userPrimitives,
-      ...(username && updateMetadata(username))
+      ...Object.fromEntries(
+        Object.entries(metadata).map(([key, value]) => [
+          `metadata.${key}`,
+          value
+        ])
+      )
     };
 
     await this.handleMongoError(

@@ -140,6 +140,8 @@ type CucumberWorld = TestWorldImpl;
 
 const USER_ID = random.uuid();
 const ANOTHER_USER_ID = random.uuid();
+const PREVIOUS_EDITOR = 'previous-editor';
+const PREVIOUS_EDIT_DATE = new Date('2024-01-01T00:00:00.000Z');
 const ADMIN_ID = random.uuid();
 const COLLABORATOR_ID = random.uuid();
 
@@ -278,6 +280,36 @@ const assertDocumentUnchanged = async (
   });
 
   assert.deepEqual(current, world.storedDocument);
+};
+
+const recordedMetadata = (
+  world: CucumberWorld
+): { createdAt: Date | string; createdBy: string } => {
+  if (!world.storedDocument) {
+    assert.fail('No stored document recorded');
+  }
+
+  return world.storedDocument.metadata as {
+    createdAt: Date | string;
+    createdBy: string;
+  };
+};
+
+/** Username carried by the token a role currently sends (it can change on login). */
+const usernameFor = (role: 'user' | 'admin'): string => {
+  const payload = tokenFor(role)?.split('.')[1];
+  if (!payload) {
+    assert.fail(`No ${role} token available`);
+  }
+
+  const { username } = JSON.parse(
+    Buffer.from(payload, 'base64url').toString('utf8')
+  ) as { username?: unknown };
+  if (typeof username !== 'string') {
+    assert.fail(`The ${role} token carries no username`);
+  }
+
+  return username;
 };
 
 const parseBody = (
@@ -715,6 +747,30 @@ Given(
     const result = await rawCollection(collection).updateOne(
       { _id: toMongoId(id) },
       { $set: { version } }
+    );
+    assert.strictEqual(result.matchedCount, 1, `${resource} ${id} not found`);
+
+    await recordDocument(this, collection, id);
+  }
+);
+
+Given(
+  'the {resource} was last updated by another user',
+  async function (this: CucumberWorld, resource: Resource) {
+    const { collection, idKey } = RESOURCES[resource];
+    const id = this[idKey];
+    if (typeof id !== 'string') {
+      assert.fail(`${resource} id not set`);
+    }
+
+    const result = await rawCollection(collection).updateOne(
+      { _id: toMongoId(id) },
+      {
+        $set: {
+          'metadata.updatedBy': PREVIOUS_EDITOR,
+          'metadata.updatedAt': PREVIOUS_EDIT_DATE
+        }
+      }
     );
     assert.strictEqual(result.matchedCount, 1, `${resource} ${id} not found`);
 
@@ -1310,6 +1366,73 @@ Then(
       compareResponseObject(response.body, expected),
       `Expected ${JSON.stringify(response.body)} to contain ${JSON.stringify(expected)}`
     );
+  }
+);
+
+Then(
+  'a GET {role} request to {string} should return the same body',
+  async function (this: CucumberWorld, role: 'user' | 'admin', route: string) {
+    const response = await buildRequest({
+      method: 'get',
+      route: interpolateRoute(route, this),
+      ...withToken(tokenFor(role))
+    }).expect(200);
+
+    assert.deepEqual(response.body, this.responseRaw!.body);
+  }
+);
+
+Then(
+  'the response audit data should show the {role} as last editor',
+  function (this: CucumberWorld, role: 'user' | 'admin') {
+    const { metadata } = this.responseRaw!.body as {
+      metadata: Record<
+        'createdAt' | 'createdBy' | 'updatedAt' | 'updatedBy',
+        string
+      >;
+    };
+    const recorded = recordedMetadata(this);
+
+    assert.strictEqual(metadata.updatedBy, usernameFor(role));
+    assert.isAbove(
+      new Date(metadata.updatedAt).getTime(),
+      PREVIOUS_EDIT_DATE.getTime()
+    );
+    assert.strictEqual(metadata.createdBy, recorded.createdBy);
+    assert.strictEqual(
+      new Date(metadata.createdAt).toISOString(),
+      new Date(recorded.createdAt).toISOString()
+    );
+  }
+);
+
+Then(
+  'the stored {resource} should record the {role} as deleter at version {int}',
+  async function (
+    this: CucumberWorld,
+    resource: Resource,
+    role: 'user' | 'admin',
+    version: number
+  ) {
+    const { collection, idKey } = RESOURCES[resource];
+    const document = await rawCollection(collection).findOne({
+      _id: toMongoId(this[idKey] ?? '')
+    });
+    if (document === null) {
+      assert.fail(`${resource} not found`);
+    }
+
+    const metadata = document.metadata as {
+      updatedBy: string;
+      updatedAt: Date;
+    };
+
+    assert.strictEqual(metadata.updatedBy, usernameFor(role));
+    assert.strictEqual(
+      new Date(metadata.updatedAt).toISOString(),
+      new Date(document.deletedAt as string).toISOString()
+    );
+    assert.strictEqual(document.version, version);
   }
 );
 

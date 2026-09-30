@@ -186,4 +186,28 @@ describe('addPlantToBed', () => {
     expect(bedRepository.getStored(bed.id)?.plantInstances).toHaveLength(1);
     bedRepository.assertUpdateCalled();
   });
+
+  it('stores the acting user and a refreshed time as audit data', async () => {
+    const bed = BedFactory.fromUser(user);
+    bedRepository.addToStorage(bed);
+    const plantInstance = PlantInstanceMother.fromPlantAtPosition(
+      plant,
+      10,
+      20
+    );
+
+    await addPlantToBed({
+      bedId: bed.id,
+      plantInstance,
+      plantRepository,
+      bedRepository,
+      user: { ...user, username: 'planter' }
+    });
+
+    const stored = bedRepository.getStored(bed.id);
+    expect(stored?.metadata.updatedBy).toBe('planter');
+    expect(stored?.metadata.updatedAt.getTime()).toBeGreaterThanOrEqual(
+      bed.metadata.updatedAt.getTime()
+    );
+  });
 });

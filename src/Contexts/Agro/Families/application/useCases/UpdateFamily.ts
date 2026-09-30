@@ -23,23 +23,17 @@ export class UpdateFamily {
     ensureVersion(family.version, expectedVersion, 'Family', input.id);
 
     const changes = familyInputMapper.toChanges(input);
-
-    if (!Object.keys(changes).length) {
-      return family;
-    }
-
     const before = familyDomainMapper.toPrimitives(family);
 
-    family.updateInformation(changes);
+    family.updateInformation(changes, user);
 
     const after = familyDomainMapper.toPrimitives(family);
 
-    await this.familyRepository.updateWithDiff(before, after, user);
-
-    return ensureFound(
-      await this.familyRepository.findById(input.id),
-      'Family',
-      input.id
+    // Always called: an empty diff is still confirmed against storage.
+    family.syncVersion(
+      await this.familyRepository.updateWithDiff(before, after)
     );
+
+    return family;
   }
 }

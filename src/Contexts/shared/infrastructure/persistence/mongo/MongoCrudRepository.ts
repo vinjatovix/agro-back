@@ -5,13 +5,12 @@ import type { QueryOptions } from '../../../../../shared/domain/query/interfaces
 import type { SortOptions } from '../../../../../shared/domain/query/interfaces/SortOptions.js';
 import type { Nullable } from '../../../../../shared/domain/types/Nullable.js';
 import type { UnknownRecord } from '../../../../../shared/domain/types/UnknownRecord.js';
-import { Username } from '../../../../Auth/domain/value-objects/Username.js';
 import {
   DomainNotFoundException,
   DomainStaleVersionException
 } from '../../../../shared/domain/errors/index.js';
+import type { WriteOutcome } from '../../../../shared/domain/repositories/WriteOutcome.js';
 import { normalizePagination } from '../../../application/utils/normalizePagination.js';
-import { updateMetadata } from '../../../application/utils/updateMetadata.js';
 import { toMongoId } from './MongoId.js';
 import { MongoQueryTranslator } from './MongoQueryTranslator.js';
 import { MongoRepository } from './MongoRepository.js';
@@ -140,29 +139,41 @@ export abstract class MongoCrudRepository<
    * Receives two complete states of the same aggregate, both produced by the
    * same domain mapper (`toPrimitives` before and after the mutation method).
    * MUST NOT receive a partial object or patch: a field missing from `updated`
-   * is removed (`$unset`). An empty diff writes nothing and does not bump
-   * `version`.
+   * is removed (`$unset`).
+   *
+   * Writes exactly the diff plus `$inc: { version: 1 }`; audit metadata is
+   * owned by the aggregate and never added here. An empty diff writes nothing
+   * but is confirmed against storage with the same filter as a write.
+   *
+   * Returns `written` (version advanced by one) or `unchanged` (confirmed
+   * no-op), never a version number.
    */
   async updateWithDiff(
     current: TPrimitives,
-    updated: TPrimitives,
-    username: string
-  ): Promise<void> {
-    const collection = this.collection();
-
+    updated: TPrimitives
+  ): Promise<WriteOutcome> {
     const mongoId = toMongoId(current.id);
-
-    const diff = diffObjects(current, updated);
-    const patch = this.normalizePatch(diff);
+    const patch = this.normalizePatch(diffObjects(current, updated));
 
     const hasSet = Object.keys(patch.set).length > 0;
     const hasUnset = Object.keys(patch.unset).length > 0;
 
-    if (!hasSet && !hasUnset) return;
+    // `$and` keeps both conditions even if activeFilter() and versionFilter
+    // ever use the same top-level operator (e.g. both `$or`).
+    const writeFilter = {
+      _id: mongoId,
+      $and: [this.activeFilter(), this.versionFilter(current.version)]
+    };
 
-    const metadata = updateMetadata(
-      new Username(username)
-    ) as unknown as UnknownRecord;
+    if (!hasSet && !hasUnset) {
+      const matches = await this.collection().countDocuments(writeFilter, {
+        limit: 1
+      });
+
+      if (matches > 0) return 'unchanged';
+
+      return this.throwFailedWrite(current.id);
+    }
 
     const updateQuery: {
       $set?: UnknownRecord;
@@ -170,45 +181,45 @@ export abstract class MongoCrudRepository<
       $inc: Record<string, number>;
     } = { $inc: { version: 1 } };
 
-    updateQuery.$set = hasSet ? { ...patch.set, ...metadata } : metadata;
+    if (hasSet) updateQuery.$set = patch.set;
+    if (hasUnset) updateQuery.$unset = patch.unset;
 
-    if (hasUnset) {
-      updateQuery.$unset = patch.unset;
-    }
+    const result = await this.collection().updateOne(writeFilter, updateQuery);
 
-    const activeFilter = this.activeFilter();
+    if (result.matchedCount > 0) return 'written';
 
-    // Optimistic concurrency: only write over the version that was read.
-    // Documents without a stored version are read as version 0.
-    const versionFilter: UnknownRecord =
-      current.version === 0
-        ? { $or: [{ version: 0 }, { version: { $exists: false } }] }
-        : { version: current.version };
+    return this.throwFailedWrite(current.id);
+  }
 
-    // `$and` keeps both conditions even if activeFilter() and versionFilter
-    // ever use the same top-level operator (e.g. both `$or`).
-    const result = await collection.updateOne(
-      { _id: mongoId, $and: [activeFilter, versionFilter] },
-      updateQuery
-    );
+  /**
+   * Optimistic concurrency: only match the version that was read. Documents
+   * without a stored version are read as version 0.
+   */
+  private versionFilter(version: number): UnknownRecord {
+    return version === 0
+      ? { $or: [{ version: 0 }, { version: { $exists: false } }] }
+      : { version };
+  }
 
-    if (result.matchedCount > 0) return;
-
-    // Only runs after a failed conditional write, to tell a stale version
-    // (412) from a missing or inactive document (404). A concurrent delete
-    // landing between the failed update and this count yields 404 instead of
-    // 412; that is accepted because the resource is indeed gone.
+  /**
+   * Only runs after a failed conditional write or no-op confirmation, to tell
+   * a stale version (412) from a missing or inactive document (404). A
+   * concurrent delete landing between the failed check and this count yields
+   * 404 instead of 412; that is accepted because the resource is indeed gone.
+   */
+  private async throwFailedWrite(id: string): Promise<never> {
     const isStale =
-      (await collection.countDocuments({ _id: mongoId, ...activeFilter })) > 0;
+      (await this.collection().countDocuments({
+        _id: toMongoId(id),
+        ...this.activeFilter()
+      })) > 0;
 
     if (isStale) {
       throw new DomainStaleVersionException(
-        `${this.entityName()} was modified concurrently: ${current.id}`
+        `${this.entityName()} was modified concurrently: ${id}`
       );
     }
 
-    throw new DomainNotFoundException(
-      `${this.entityName()} not found: ${current.id}`
-    );
+    throw new DomainNotFoundException(`${this.entityName()} not found: ${id}`);
   }
 }

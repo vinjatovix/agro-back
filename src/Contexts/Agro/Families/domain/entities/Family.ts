@@ -1,6 +1,12 @@
+import { hasStateChanged } from '../../../../../shared/domain/diff/hasStateChanged.js';
+import type { UnknownRecord } from '../../../../../shared/domain/types/UnknownRecord.js';
 import { AggregateRoot } from '../../../../shared/domain/entities/AggregateRoot.js';
 import { InvalidArgumentException } from '../../../../shared/domain/errors/index.js';
-import type { Metadata } from '../../../../shared/domain/valueObject/Metadata.js';
+import {
+  type WriteOutcome,
+  versionAfter
+} from '../../../../shared/domain/repositories/WriteOutcome.js';
+import { Metadata } from '../../../../shared/domain/valueObject/Metadata.js';
 import type { FamilyId } from '../FamilyId.js';
 import type { FamilyExtraChanges } from '../types/FamilyExtraChanges.js';
 import type { FamilyExtraPrimitives } from '../types/FamilyExtraPrimitives.js';
@@ -123,7 +129,18 @@ export class Family extends AggregateRoot<FamilyId> {
     else delete candidate.extra;
   }
 
-  updateInformation(changes: FamilyInformationChanges): void {
+  syncVersion(outcome: WriteOutcome): void {
+    this.props = Object.freeze({
+      ...this.props,
+      version: versionAfter(this.props.version, outcome)
+    });
+  }
+
+  updateInformation(
+    changes: FamilyInformationChanges,
+    user: string,
+    at: Date = new Date()
+  ): void {
     const candidate: FamilyProps & { version: number } = { ...this.props };
 
     this.applyTextChange(candidate, 'slug', changes.slug);
@@ -147,7 +164,23 @@ export class Family extends AggregateRoot<FamilyId> {
     }
 
     Family.validate(candidate);
-    this.props = Object.freeze(candidate);
+
+    if (
+      !hasStateChanged(Family.snapshot(this.props), Family.snapshot(candidate))
+    )
+      return;
+
+    this.props = Object.freeze({
+      ...candidate,
+      metadata: Metadata.update(this.props.metadata, user, at)
+    });
+  }
+
+  /** Information fields only: audit data and version are not a change. */
+  private static snapshot(props: FamilyProps): UnknownRecord {
+    const { metadata: _metadata, version: _version, ...information } = props;
+
+    return information;
   }
 
   static create(props: FamilyProps): Family {

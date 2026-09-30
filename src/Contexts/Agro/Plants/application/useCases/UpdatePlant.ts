@@ -22,15 +22,35 @@ export class UpdatePlant {
     user: string,
     expectedVersion: number
   ): Promise<Plant> {
-    const plant = await this.findActivePlant(input.id);
+    const plant = ensureFound(
+      await this.plantRepository.findActiveById(input.id),
+      'Plant',
+      input.id
+    );
     ensureVersion(plant.version, expectedVersion, 'Plant', input.id);
 
     const changes = plantInputMapper.toChanges(input);
 
-    if (!this.hasAnyChanges(changes)) {
-      return plant;
-    }
+    await this.ensureFamilyExists(changes);
 
+    const before = plantDomainMapper.toPrimitives(plant);
+    // One timestamp for the whole request, whatever sections it touches.
+    const at = new Date();
+
+    if (changes.identity) plant.updateIdentity(changes.identity, user, at);
+    if (changes.traits) plant.updateTraits(changes.traits, user, at);
+    if (changes.phenology) plant.updatePhenology(changes.phenology, user, at);
+    if (changes.knowledge) plant.updateKnowledge(changes.knowledge, user, at);
+
+    const after = plantDomainMapper.toPrimitives(plant);
+
+    // Always called: an empty diff is still confirmed against storage.
+    plant.syncVersion(await this.plantRepository.updateWithDiff(before, after));
+
+    return plant;
+  }
+
+  private async ensureFamilyExists(changes: PlantChanges): Promise<void> {
     if (changes.identity?.family) {
       const familyExists = await this.familyRepository.exists(
         changes.identity.family
@@ -42,35 +62,5 @@ export class UpdatePlant {
         );
       }
     }
-
-    const before = plantDomainMapper.toPrimitives(plant);
-
-    if (changes.identity) plant.updateIdentity(changes.identity);
-    if (changes.traits) plant.updateTraits(changes.traits);
-    if (changes.phenology) plant.updatePhenology(changes.phenology);
-    if (changes.knowledge) plant.updateKnowledge(changes.knowledge);
-
-    const after = plantDomainMapper.toPrimitives(plant);
-
-    await this.plantRepository.updateWithDiff(before, after, user);
-
-    return this.findActivePlant(input.id);
-  }
-
-  private hasAnyChanges(changes: PlantChanges): boolean {
-    return !!(
-      changes.identity ||
-      changes.traits ||
-      changes.phenology ||
-      changes.knowledge
-    );
-  }
-
-  private async findActivePlant(id: string): Promise<Plant> {
-    return ensureFound(
-      await this.plantRepository.findActiveById(id),
-      'Plant',
-      id
-    );
   }
 }

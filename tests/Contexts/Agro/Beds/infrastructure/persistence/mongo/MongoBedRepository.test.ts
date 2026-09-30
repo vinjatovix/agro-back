@@ -191,7 +191,7 @@ describe('MongoBedRepository', () => {
         height: bed.height.value + 100
       };
 
-      await repository.updateWithDiff(current, updated, 'test-user');
+      await repository.updateWithDiff(current, updated);
 
       const found = await findExisting(bed.id);
 
@@ -221,7 +221,7 @@ describe('MongoBedRepository', () => {
         version: current.version
       } satisfies BedPrimitives;
 
-      await repository.updateWithDiff(current, updated, 'test-user');
+      await repository.updateWithDiff(current, updated);
 
       const found = await findExisting(updated.id);
 
@@ -237,10 +237,10 @@ describe('MongoBedRepository', () => {
 
       await repository.save(bed);
 
-      bed.markAsDeleted();
+      bed.markAsDeleted('test-user');
       const deleted = bedDomainMapper.toPrimitives(bed);
 
-      await repository.updateWithDiff(current, deleted, 'test-user');
+      await repository.updateWithDiff(current, deleted);
 
       const document = await client
         .db()
@@ -262,13 +262,13 @@ describe('MongoBedRepository', () => {
         name: 'Updated Name'
       } satisfies BedPrimitives;
 
-      await expect(
-        repository.updateWithDiff(current, updated, 'test-user')
-      ).rejects.toThrow(DomainNotFoundException);
+      await expect(repository.updateWithDiff(current, updated)).rejects.toThrow(
+        DomainNotFoundException
+      );
 
-      await expect(
-        repository.updateWithDiff(current, updated, 'test-user')
-      ).rejects.toThrow(`Bed not found: ${bed.id}`);
+      await expect(repository.updateWithDiff(current, updated)).rejects.toThrow(
+        `Bed not found: ${bed.id}`
+      );
 
       const storedBed = await repository.findById(bed.id);
       expect(storedBed?.name.value).toBe(bed.name.value);
@@ -281,7 +281,7 @@ describe('MongoBedRepository', () => {
 
       let thrownError: Error | undefined;
       try {
-        await repository.updateWithDiff(current, updated, 'test-user');
+        await repository.updateWithDiff(current, updated);
       } catch (e) {
         thrownError = e as Error;
       }
@@ -299,11 +299,10 @@ describe('MongoBedRepository', () => {
       await repository.save(bed);
 
       const current = bedDomainMapper.toPrimitives(bed);
-      await repository.updateWithDiff(
-        current,
-        { ...current, name: 'Updated Name' },
-        'test-user'
-      );
+      await repository.updateWithDiff(current, {
+        ...current,
+        name: 'Updated Name'
+      });
 
       const storedBed = await repository.findById(bed.id);
       expect(storedBed?.version).toBe(current.version + 1);
@@ -318,11 +317,10 @@ describe('MongoBedRepository', () => {
         .updateMany({}, { $unset: { version: '' } });
 
       const current = bedDomainMapper.toPrimitives(await findExisting(bed.id));
-      await repository.updateWithDiff(
-        current,
-        { ...current, name: 'Updated Name' },
-        'test-user'
-      );
+      await repository.updateWithDiff(current, {
+        ...current,
+        name: 'Updated Name'
+      });
 
       const storedBed = await findExisting(bed.id);
       expect(current.version).toBe(0);
@@ -335,18 +333,13 @@ describe('MongoBedRepository', () => {
       await repository.save(bed);
 
       const stale = bedDomainMapper.toPrimitives(bed);
-      await repository.updateWithDiff(
-        stale,
-        { ...stale, name: 'First writer' },
-        'test-user'
-      );
+      await repository.updateWithDiff(stale, {
+        ...stale,
+        name: 'First writer'
+      });
 
       await expect(
-        repository.updateWithDiff(
-          stale,
-          { ...stale, name: 'Second writer' },
-          'test-user'
-        )
+        repository.updateWithDiff(stale, { ...stale, name: 'Second writer' })
       ).rejects.toThrow(DomainStaleVersionException);
 
       const storedBed = await repository.findById(bed.id);
@@ -358,20 +351,16 @@ describe('MongoBedRepository', () => {
       await repository.save(bed);
 
       const readByDelete = bedDomainMapper.toPrimitives(bed);
-      await repository.updateWithDiff(
-        readByDelete,
-        {
-          ...readByDelete,
-          plantInstances: [PlantInstanceMother.create().toPrimitives()]
-        },
-        'test-user'
-      );
+      await repository.updateWithDiff(readByDelete, {
+        ...readByDelete,
+        plantInstances: [PlantInstanceMother.create().toPrimitives()]
+      });
 
-      bed.markAsDeleted();
+      bed.markAsDeleted('test-user');
       const deleted = bedDomainMapper.toPrimitives(bed);
 
       await expect(
-        repository.updateWithDiff(readByDelete, deleted, 'test-user')
+        repository.updateWithDiff(readByDelete, deleted)
       ).rejects.toThrow(DomainStaleVersionException);
 
       const storedBed = await repository.findById(bed.id);
@@ -384,24 +373,19 @@ describe('MongoBedRepository', () => {
       await repository.save(bed);
 
       const stale = bedDomainMapper.toPrimitives(bed);
-      await repository.updateWithDiff(
-        stale,
-        { ...stale, name: 'First writer' },
-        'test-user'
-      );
+      await repository.updateWithDiff(stale, {
+        ...stale,
+        name: 'First writer'
+      });
 
       await expect(
-        repository.updateWithDiff(
-          stale,
-          { ...stale, name: 'Second writer' },
-          'test-user'
-        )
+        repository.updateWithDiff(stale, { ...stale, name: 'Second writer' })
       ).rejects.not.toBeInstanceOf(DomainConflictException);
     });
 
     it('should throw DomainNotFoundException instead of a stale version for a soft-deleted bed', async () => {
       const bed = BedFactory.create();
-      bed.markAsDeleted();
+      bed.markAsDeleted('test-user');
       await repository.save(bed);
 
       const current = bedDomainMapper.toPrimitives(bed);
@@ -409,21 +393,73 @@ describe('MongoBedRepository', () => {
       await expect(
         repository.updateWithDiff(
           { ...current, version: current.version + 5 },
-          { ...current, version: current.version + 5, name: 'Other name' },
-          'test-user'
+          { ...current, version: current.version + 5, name: 'Other name' }
         )
       ).rejects.toThrow(DomainNotFoundException);
     });
 
-    it('should not bump the version when the diff is empty', async () => {
+    it('stores the audit metadata it receives, adds none of its own and reports it wrote', async () => {
       const bed = BedFactory.create();
       await repository.save(bed);
 
       const current = bedDomainMapper.toPrimitives(bed);
-      await repository.updateWithDiff(current, { ...current }, 'test-user');
+      const updated = { ...current, name: 'Updated Name' };
+
+      const outcome = await repository.updateWithDiff(current, updated);
 
       const storedBed = await findExisting(bed.id);
-      expect(storedBed.version).toBe(current.version);
+      expect(bedDomainMapper.toPrimitives(storedBed)).toEqual({
+        ...updated,
+        version: current.version + 1
+      });
+      expect(outcome).toBe('written');
+    });
+
+    describe('empty diff', () => {
+      it('reports unchanged and writes nothing when the bed is active at the expected version', async () => {
+        const bed = BedFactory.create();
+        await repository.save(bed);
+
+        const current = bedDomainMapper.toPrimitives(bed);
+        const outcome = await repository.updateWithDiff(current, {
+          ...current
+        });
+
+        const storedBed = await findExisting(bed.id);
+        expect(outcome).toBe('unchanged');
+        expect(bedDomainMapper.toPrimitives(storedBed)).toEqual(current);
+      });
+
+      it('throws DomainStaleVersionException when the stored version moved', async () => {
+        const bed = BedFactory.create();
+        await repository.save(bed);
+
+        const stale = bedDomainMapper.toPrimitives(bed);
+        await repository.updateWithDiff(stale, { ...stale, name: 'Moved' });
+
+        await expect(
+          repository.updateWithDiff(stale, { ...stale })
+        ).rejects.toThrow(DomainStaleVersionException);
+      });
+
+      it('throws DomainNotFoundException when the bed was soft-deleted', async () => {
+        const bed = BedFactory.create();
+        const current = bedDomainMapper.toPrimitives(bed);
+        bed.markAsDeleted('test-user');
+        await repository.save(bed);
+
+        await expect(
+          repository.updateWithDiff(current, { ...current })
+        ).rejects.toThrow(DomainNotFoundException);
+      });
+
+      it('throws DomainNotFoundException when the bed does not exist', async () => {
+        const current = bedDomainMapper.toPrimitives(BedFactory.create());
+
+        await expect(
+          repository.updateWithDiff(current, { ...current })
+        ).rejects.toThrow(DomainNotFoundException);
+      });
     });
 
     it('should not count documents after a successful conditional write', async () => {
@@ -433,11 +469,10 @@ describe('MongoBedRepository', () => {
 
       try {
         const current = bedDomainMapper.toPrimitives(bed);
-        await repository.updateWithDiff(
-          current,
-          { ...current, name: 'Updated Name' },
-          'test-user'
-        );
+        await repository.updateWithDiff(current, {
+          ...current,
+          name: 'Updated Name'
+        });
 
         expect(countSpy).not.toHaveBeenCalled();
       } finally {
@@ -450,20 +485,15 @@ describe('MongoBedRepository', () => {
       await repository.save(bed);
 
       const stale = bedDomainMapper.toPrimitives(bed);
-      await repository.updateWithDiff(
-        stale,
-        { ...stale, name: 'First writer' },
-        'test-user'
-      );
+      await repository.updateWithDiff(stale, {
+        ...stale,
+        name: 'First writer'
+      });
       const countSpy = jest.spyOn(Collection.prototype, 'countDocuments');
 
       try {
         await expect(
-          repository.updateWithDiff(
-            stale,
-            { ...stale, name: 'Second writer' },
-            'test-user'
-          )
+          repository.updateWithDiff(stale, { ...stale, name: 'Second writer' })
         ).rejects.toThrow(DomainStaleVersionException);
 
         expect(countSpy).toHaveBeenCalledTimes(1);

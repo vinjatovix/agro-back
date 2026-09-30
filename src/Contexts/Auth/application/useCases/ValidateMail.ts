@@ -1,5 +1,6 @@
 import type { UnknownRecord } from '../../../../shared/domain/types/UnknownRecord.js';
 import { DomainUnauthorizedException } from '../../../shared/domain/errors/index.js';
+import { Metadata } from '../../../shared/domain/valueObject/index.js';
 import type { EncrypterTool } from '../../../shared/plugins/EncrypterTool.js';
 import { buildLogger } from '../../../shared/plugins/logger.plugin.js';
 import { UserPatch } from '../../domain/entities/UserPatch.js';
@@ -34,12 +35,13 @@ export class ValidateMail {
       throw new DomainUnauthorizedException(INVALID_TOKEN_MESSAGE);
     }
 
-    const userToPatch = UserPatch.fromPrimitives({
+    const userToPatch = new UserPatch({
       id: storedUser.id,
+      metadata: Metadata.update(storedUser.metadata, storedUser.username.value),
       emailValidated: true
     });
 
-    await this.repository.update(userToPatch, storedUser.username);
+    await this.repository.update(userToPatch);
     logger.info(`User <${storedUser.username.value}> validated email`);
 
     const newToken = await this.encrypter.refreshToken(token);

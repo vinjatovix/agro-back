@@ -1,7 +1,8 @@
 import { ValidateMail } from '../../../../../src/Contexts/Auth/application/useCases/ValidateMail.js';
-import { UserPatch } from '../../../../../src/Contexts/Auth/domain/entities/UserPatch.js';
+import type { UserPatch } from '../../../../../src/Contexts/Auth/domain/entities/UserPatch.js';
 import { random } from '../../../shared/fixtures/index.js';
 import { AuthRepositoryMock, CryptAdapterMock } from '../../__mocks__/index.js';
+import { UserMother } from '../../domain/mothers/UserMother.js';
 
 describe('ValidateMail', () => {
   let encrypter: CryptAdapterMock;
@@ -16,13 +17,22 @@ describe('ValidateMail', () => {
 
   it('should validate the user', async () => {
     const token = random.word({ min: 6, max: 255 });
+    const storedUser = UserMother.create({ emailValidated: false });
+    repository.setSearchResult(storedUser);
 
     await service.run({ token });
 
     encrypter.assertVerifyTokenHasBeenCalledWith(token);
     repository.assertSearchHasBeenCalledWith(expect.any(String) as string);
     repository.assertUpdateHasBeenCalledWith(
-      expect.any(UserPatch) as UserPatch
+      expect.objectContaining({
+        id: storedUser.id,
+        emailValidated: true
+      }) as UserPatch
+    );
+    repository.assertUpdateAuditedBy(
+      storedUser.username.value,
+      storedUser.metadata
     );
     encrypter.assertRefreshTokenHasBeenCalledWith(token);
   });

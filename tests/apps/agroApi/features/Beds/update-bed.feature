@@ -408,3 +408,21 @@ Feature: Update a bed
         Then the response status code should be 400
         And the response errors should include "if-match"
         And response matches OpenAPI contract
+
+    Scenario: A successful update answers from memory with the acting user's audit data
+        Given a bed exists
+        And the bed is stored at version 2
+        And the bed was last updated by another user
+        And I use If-Match '"2"'
+        When I send a PATCH user request to "/api/v1/beds/<bedId>" with body
+            """
+            {
+                "name": "Audited Bed Name"
+            }
+            """
+        Then the response status code should be 200
+        And the response should have ETag '"3"'
+        And the response body matches "3" for field "version"
+        And the response audit data should show the user as last editor
+        And a GET user request to "/api/v1/beds/<bedId>" should return the same body
+        And response matches OpenAPI contract

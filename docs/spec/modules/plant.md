@@ -152,7 +152,7 @@ Rules:
 
 ### 4.4 Knowledge (ecological & propagation reference layer)
 
-The `knowledge` field contains rich agronomic and ecological information (optional, represented by `PlantKnowledge`). This layer does not enforce hard domain constraints, but serves as the reference database for companions, soil profiles, and care routines.
+The `knowledge` field contains rich agronomic and ecological information (represented by `PlantKnowledge`; optional in the type today, always present after `Plant.create`, which defaults it to `PlantKnowledge.empty()`). **`[TARGET STATE (Pending [Iteration 12](../../roadmap.md#iteration-12-migrate-plants-endpoints-to-zod))]`** `knowledge` becomes required in the domain state (defaulted in the constructor), so mutation methods and mappers no longer need an "absent knowledge" fallback. This layer does not enforce hard domain constraints, but serves as the reference database for companions, soil profiles, and care routines.
 
 #### 4.4.1 Propagation Knowledge `[TARGET STATE (Pending [Iteration 12](../../roadmap.md#iteration-12-migrate-plants-endpoints-to-zod))]`
 
@@ -222,14 +222,15 @@ Rules:
 Plant supports soft deletion:
 
 ```ts
-markAsDeleted();
+markAsDeleted(user);
 ```
 
 Rules:
 
-- idempotent at domain level
+- idempotent at domain level (an already deleted plant is a silent no-op, audit data untouched)
 - sets status = DELETED
 - sets deletedAt timestamp
+- records the deleting user as `metadata.updatedBy`, with `metadata.updatedAt` equal to `deletedAt`
 - at HTTP level `DELETE /plants/:id` requires `If-Match: "<version>"` (outdated → `412`, missing → `428`). A repeated `DELETE` returns `404` instead of `204` because the use case only loads active plants; it remains idempotent per RFC 9110 §9.2.2 because server state is identical
 
 ---
@@ -257,16 +258,16 @@ This is enforced in constructor.
 
 ---
 
-### 5.4 Aggregate mutation methods (Iteration 7)
+### 5.4 Aggregate mutation methods (Iterations 7 & 8)
 
-`Plant` exposes four explicit mutation methods:
+`Plant` exposes four explicit mutation methods, each receiving the acting user's username:
 
-- `updateIdentity(changes)` — updates `name.primary`, `name.aliases`, `scientificName`, `family`; text fields trimmed, empty after trim → `InvalidArgumentException` (`400`); `scientificName`/`family` cannot be `null`; aliases trimmed with empty entries dropped; ranges must be objects, aliases must be strings
-- `updateTraits(changes)` — updates trait fields
-- `updatePhenology(changes)` — updates phenology fields
-- `updateKnowledge(changes)` — updates knowledge fields; `rootSystem` cannot be cleared with `null` (`rootSystem: null` → `400`). Object sections (`soil`, `rootSystem`, `watering`, `light`, propagation methods) merge key by key and ranges merge by bound. A section or range created from scratch must carry its required fields (both range bounds, `rootSystem.type`, `watering.frequency`, `light.hoursMin` and `light.type`); no default values are filled in. `propagation` and `ecology` without any field to apply (e.g. `{}`) keep the current value, so they neither create an empty section nor bump `version`
+- `updateIdentity(changes, user)` — updates `name.primary`, `name.aliases`, `scientificName`, `family`; text fields trimmed, empty after trim → `InvalidArgumentException` (`400`); `scientificName`/`family` cannot be `null`; aliases trimmed with empty entries dropped; ranges must be objects, aliases must be strings
+- `updateTraits(changes, user)` — updates trait fields
+- `updatePhenology(changes, user)` — updates phenology fields
+- `updateKnowledge(changes, user)` — updates knowledge fields; `rootSystem` cannot be cleared with `null` (`rootSystem: null` → `400`). Object sections (`soil`, `rootSystem`, `watering`, `light`, propagation methods) merge key by key and ranges merge by bound. A section or range created from scratch must carry its required fields (both range bounds, `rootSystem.type`, `watering.frequency`, `light.hoursMin` and `light.type`); no default values are filled in. `propagation` and `ecology` without any field to apply (e.g. `{}`) keep the current value, so they neither create an empty section nor bump `version`
 
-All methods: throw `DomainConflictException` on a soft-deleted plant; validate before mutating (atomic); `identity.scientificName` is never `null`.
+All methods: throw `DomainConflictException` on a soft-deleted plant; validate before mutating (atomic); `identity.scientificName` is never `null`; refresh `updatedAt`/`updatedBy` only when their own section really changed (domain-core.md Sec. 5.2), so in a request touching several sections the last real change sets the audit data. `UpdatePlant` returns the in-memory plant after `syncVersion` (1 read + 1 write, plus the family `exists` check when `identity.family` is sent).
 
 ---
 
@@ -457,7 +458,7 @@ acceptable, but must remain isolated
 
 #### 3. Knowledge coupling is still loose
 
-- PlantKnowledge is embedded but optional
+- PlantKnowledge is embedded but optional (becomes required in the domain state in [Iteration 12](../../roadmap.md#iteration-12-migrate-plants-endpoints-to-zod))
 - risk of hidden coupling increasing over time
 
 ---
