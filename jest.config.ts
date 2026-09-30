@@ -17,8 +17,9 @@ const config: Config = {
         }
       }
     ],
-    // uuid >= 12 ships ESM only; transpile it to CommonJS for the Jest runtime.
-    '^.+/node_modules/uuid/.+\\.js$': [
+    // uuid >= 12 and @apidevtools/json-schema-ref-parser (used by
+    // pure-openapi-assert) ship ESM only; transpile them to CommonJS for Jest.
+    '^.+/node_modules/(uuid|@apidevtools/json-schema-ref-parser)/.+\\.js$': [
       'ts-jest',
       {
         tsconfig: {
@@ -31,7 +32,9 @@ const config: Config = {
     ]
   },
 
-  transformIgnorePatterns: ['/node_modules/(?!uuid/)'],
+  transformIgnorePatterns: [
+    '/node_modules/(?!(uuid|@apidevtools/json-schema-ref-parser)/)'
+  ],
 
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1'

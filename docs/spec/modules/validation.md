@@ -20,7 +20,7 @@ Validation is a **schema enforcement layer**, not a business logic layer.
 
 ## 3. RULES
 
-- Zod is the central tool used for all transport boundary validation and schema declarations. **`[TARGET STATE (Pending Iterations [9](../../roadmap.md#iteration-9-establish-zod-validation-middleware), [10](../../roadmap.md#iteration-10-migrate-health-and-auth-endpoints-to-zod), [12](../../roadmap.md#iteration-12-migrate-plants-endpoints-to-zod), [13](../../roadmap.md#iteration-13-migrate-families-endpoints-to-zod) & [14](../../roadmap.md#iteration-14-migrate-beds-and-query-dsl-to-zod))]`** (Currently, `express-validator` is used at the route boundary).
+- Zod is the central tool used for all transport boundary validation and schema declarations. The shared Zod step `validateRequest` (§3.2) exists since [Iteration 9](../../roadmap.md#iteration-9-establish-zod-validation-middleware); endpoints move to it in **`[TARGET STATE (Pending Iterations [10](../../roadmap.md#iteration-10-migrate-health-and-auth-endpoints-to-zod), [12](../../roadmap.md#iteration-12-migrate-plants-endpoints-to-zod), [13](../../roadmap.md#iteration-13-migrate-families-endpoints-to-zod) & [14](../../roadmap.md#iteration-14-migrate-beds-and-query-dsl-to-zod))]`** (Currently, `express-validator` is used at the route boundary).
 - MUST NOT contain domain logic
 - MUST NOT enforce business rules
 - MUST be aligned with OpenAPI schemas
@@ -39,6 +39,35 @@ Validation is a **schema enforcement layer**, not a business logic layer.
   - a comma-separated list of entity tags is accepted; the write proceeds if any tag equals the current version (strong comparison);
   - weak tags (`W/"3"`) and tags the API never emits (`"-1"`, `"abc"`) are well formed but cannot match: they yield no candidate version and the use case answers `412` after the existence check, so `404` still wins over `412`;
   - only a value that is not an entity-tag list (`3`, `"3`, `"3" "4"`) is `400`; missing, empty or `*` stay `428`.
+
+### 3.2 Zod request validation step (`validateRequest`)
+
+Routes declare one Zod schema per request part and read the cleaned values through a typed accessor (`src/apps/agroApi/middlewares/validateRequest.ts`):
+
+```ts
+// route
+const updateBedRequest = {
+  params: bedIdParams,
+  body: updateBedBody
+} satisfies RequestSchemas;
+router.patch(
+  '/beds/:id',
+  auth,
+  requireIfMatch,
+  validateRequest(updateBedRequest),
+  invoke(controller)
+);
+
+// controller
+const { params, body } = getValidatedRequest(res, updateBedRequest);
+```
+
+- `validateRequest({ params?, query?, body? })` requires at least one part (an empty object fails at start-up with a configuration error) and validates each declared part in the fixed order params → query → body with `safeParseAsync`; every declared part is parsed, so one `400` lists all failing fields. Parts without a schema are not read.
+- On failure it throws `createError.badRequest('Validation error', errors)` (keys and messages per §5); the global error handler renders the unchanged `ApiErrorResponse`. A non-Zod exception thrown inside a schema reaches the error handler unchanged (generic `500`).
+- On success the parsed outputs (defaults, coercions and transforms applied) of the declared parts only are kept in a store private to the middleware, keyed by the response, together with the schema that produced each one (not in `res.locals`, which any other code could overwrite); they are read only through `getValidatedRequest`; `req.params`, `req.query` and `req.body` are never modified (Express 5 makes `req.query` read-only). Chained steps (e.g. one on the router and one on the route) merge their outputs; if both declare the same part, the later one wins.
+- `getValidatedRequest(res, schemas)` takes the same schemas object given to `validateRequest` on the route, returns those outputs typed as `z.output` of each declared schema, and throws an internal error (generic `500`) if the step is not registered on the route or if a part declared in `schemas` was not validated with that same schema instance (so the returned type always matches the stored data, also across chained steps).
+- The step checks shape and types only: no DB access, no use cases, no business rules. Unknown-field rules and their limits are in §6.
+- Schema authors MUST NOT write custom messages that echo the submitted value.
 
 ---
 
@@ -59,8 +88,16 @@ Validation errors MUST:
 
 - use field path as key in dot-notation format
 - be deterministic across environments
-- **`[TARGET STATE (Pending Iterations [9](../../roadmap.md#iteration-9-establish-zod-validation-middleware), [10](../../roadmap.md#iteration-10-migrate-health-and-auth-endpoints-to-zod), [12](../../roadmap.md#iteration-12-migrate-plants-endpoints-to-zod), [13](../../roadmap.md#iteration-13-migrate-families-endpoints-to-zod) & [14](../../roadmap.md#iteration-14-migrate-beds-and-query-dsl-to-zod))]`** include a stable, clean, and idiomatic string message provided natively by Zod (e.g., `"Required"`, `"Invalid UUID"`). (Currently, `express-validator` custom errors are returned).
+- **`[TARGET STATE (Pending Iterations [10](../../roadmap.md#iteration-10-migrate-health-and-auth-endpoints-to-zod), [12](../../roadmap.md#iteration-12-migrate-plants-endpoints-to-zod), [13](../../roadmap.md#iteration-13-migrate-families-endpoints-to-zod) & [14](../../roadmap.md#iteration-14-migrate-beds-and-query-dsl-to-zod))]`** include a stable, clean, and idiomatic string message provided natively by Zod (Zod 4 defaults, e.g., `"Invalid input: expected string, received undefined"`, `"Invalid UUID"`). (Currently, `express-validator` custom errors are returned).
 - MUST NOT require full object presence for PATCH requests
+- follow these key and message rules on routes validated with the shared `validateRequest` middleware (§3.2); routes still on `express-validator` keep their current keys until they migrate:
+  - keys are the path inside the request part, without a part prefix (`id`, not `params.id`); array positions are numeric segments (`tags.1`); a problem on the root of a part uses the part name (`params`, `query`, `body`);
+  - one message per key; when several problems share a key, the first wins (parts in order params → query → body, then schema order);
+  - unknown fields get the fixed message `"Unknown field"`, one entry per field; the field name appears only as the key, never inside a message;
+  - at most 20 field errors; if there are more, one extra entry `_truncated` with a fixed generic message is added (at most 21 entries);
+  - keys longer than 64 characters (Unicode code points: an emoji counts as one and is never split) are cut to 64 ending with `…`;
+  - a failed `.regex()` check whose message contains the schema's pattern (Zod's native message always does) gets the fixed message `"Invalid format"`, so internal patterns never reach the client; a custom message that does not print the pattern is kept;
+  - messages never contain submitted values; custom schema messages MUST NOT echo input.
 
 Example:
 
@@ -68,7 +105,7 @@ Example:
 {
   "message": "Validation error",
   "errors": {
-    "identity.name.primary": "Required",
+    "identity.name.primary": "Invalid input: expected string, received undefined",
     "id": "Invalid UUID"
   }
 }
@@ -84,6 +121,19 @@ checkExact() MUST:
 - detect unknown fields at the top-level validation layer
 - NOT be considered a full deep schema enforcement mechanism for nested objects
 - be complemented with explicit strict validation for nested payloads when required
+
+Routes validated with `validateRequest` replace `checkExact()` with a stronger guarantee:
+
+- unknown fields are rejected at **any depth** of `body`, and unknown keys of `query` when the route declares a query schema, even if the schema is not written as strict (the middleware makes it strict once, when the route is registered); `params` schemas are not changed;
+- `body`/`query` schemas containing `.catch()` or an intersection (`z.intersection`/`.and()`) make the route fail at start-up with a configuration error: `.catch()` silently replaces any invalid input (unknown fields included) with a fallback, so it is rejected at any position, even on a single field, because request input must fail loudly; an intersection drops unknown fields silently, so use `.extend()`/spread shapes instead;
+- `body`/`query` schemas containing a loose or catchall object (`.passthrough()`, `.loose()`, `z.looseObject`, `.catchall()`) or a loose record (`z.looseRecord`) also fail at start-up, because they accept unknown fields on purpose; use `z.record` for dynamic keys;
+- `body`/`query` schemas containing `z.map`, `z.set`, `z.promise` or `z.function` also fail at start-up, because none of them can come from a JSON body or a query string; any schema type the strict pass does not know (a future Zod type or a third-party schema) fails the same way instead of being left non-strict;
+- the strict copies do not keep `.describe()`/`.meta()` metadata, so they MUST NOT be used to generate OpenAPI;
+- known limit: the output side of `.pipe()` is made strict too. If a transform adds keys that the piped object does not declare, the client gets `"Unknown field"` for keys it never sent. Declare every key the transform produces in the output schema;
+- known limit: a `.prefault()` value is parsed by its strict inner schema, so a prefault holding keys the object does not declare makes every request that omits the field fail with `"Unknown field"` for keys the client never sent. Keep prefault values inside the declared shape;
+- known limit: inside a non-discriminated `z.union`, unknown fields get per-field `"Unknown field"` entries only when a single option fails and only because of them; otherwise the client gets one `"Invalid input"` entry at the union's path. Prefer `z.discriminatedUnion`;
+- known limit: keys have no part prefix and use `.` as separator, so two problems can share a key (a field named `a.b` and a nested `a.b`; a field named like a part; the same field in two parts). The first wins; the other appears once the first is fixed. Schemas MUST NOT name fields `params`, `query`, `body` or `_truncated`; when errors are truncated, the `_truncated` entry replaces any field error with that key;
+- known limit: two keys longer than 64 characters that share their first 63 characters become equal after cutting, so only the first one is reported.
 
 ---
 

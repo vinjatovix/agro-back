@@ -154,11 +154,13 @@ Added coverage:
 - NO dependency on exact error strings beyond those defined by the Zod validation contract.
 - Use semantic matching and verify dot-notation path keys.
 - Avoid brittle snapshots unless stable contract (OpenAPI).
-- **`[TARGET STATE (Pending Iterations [9](../../roadmap.md#iteration-9-establish-zod-validation-middleware), [10](../../roadmap.md#iteration-10-migrate-health-and-auth-endpoints-to-zod), [12](../../roadmap.md#iteration-12-migrate-plants-endpoints-to-zod), [13](../../roadmap.md#iteration-13-migrate-families-endpoints-to-zod) & [14](../../roadmap.md#iteration-14-migrate-beds-and-query-dsl-to-zod))]`** Cucumber ATDD `.feature` tests will assert against clean, idiomatic Zod error messages (e.g., `"Required"`, `"Invalid UUID"`). Legacy express-validator error formats are fully retired.
+- **`[TARGET STATE (Pending Iterations [10](../../roadmap.md#iteration-10-migrate-health-and-auth-endpoints-to-zod), [12](../../roadmap.md#iteration-12-migrate-plants-endpoints-to-zod), [13](../../roadmap.md#iteration-13-migrate-families-endpoints-to-zod) & [14](../../roadmap.md#iteration-14-migrate-beds-and-query-dsl-to-zod))]`** Cucumber ATDD `.feature` tests will assert against clean, idiomatic Zod error messages (Zod 4 defaults, e.g., `"Invalid input: expected string, received undefined"`, `"Invalid UUID"`). Legacy express-validator error formats are fully retired.
 - PATCH responses MUST be treated as full aggregate snapshots (not partial fragments).
 - **Spatial Validation Testing Impact:** When migrating spatial calculations to a non-blocking advisory model, tests that previously asserted hard exceptions on collisions or borders MUST be refactored to verify warning lists in the response payload. Exact $0\text{cm}$ geometric collisions (impossible overlays) are the only physical exception that continues to assert hard HTTP 400 errors.
 
 Contract tests enforce full-response strict equality against OpenAPI. ATDD tests MAY use partial matching for readability.
+
+Shared HTTP middlewares that no route uses yet (e.g. `validateRequest`) are proven with a Jest integration test: a minimal `express()` app with the middleware, a sample route and the real `errorHandler` (mocked logger), called through `supertest`, with each error body checked by `assertResponseMatchesOpenApi` against a documented operation that uses the same shared response. No DB and no app container.
 
 ---
 
