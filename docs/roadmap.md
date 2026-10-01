@@ -189,8 +189,11 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [query-dsl-contract.md](spec/modules/query-dsl-contract.md), [query.md](spec/modules/query.md)
 
+- **Status**: Completed
 - **Value delivered**: Secures the database against Regular Expression Injection (ReDoS).
 - **Definition of Done**: `escapeRegex` utility is applied to all string filter inputs in the Query Translator.
+- **Implementation notes**: `MongoQueryTranslator.buildRegex` escapes `contains` / `startsWith` / `endsWith` values with the shared `escapeRegex` and adds the anchors afterwards, so `filter[name][contains]=.*` no longer matches everything, `(` answers `200` instead of `500`, and `(a+)+$` is a cheap literal search. Text operator results no longer go through identifier conversion (a UUID-shaped `contains` value used to become a binary id inside `$regex`); `eq`, set and range values still do. The unused `FamilyQueryMapper` (the only other path that built patterns from raw text) is removed; `PlantQueryMapper` already escaped and is unchanged. Tests: `escapeRegex` unit test, translator cases for the 14 special characters per operator, the slow pattern and UUID text, and literal-match scenarios in `get-all-families.feature`. No API contract change. See persistence.md Sec. 5.8.4.1 and query-dsl-contract.md (StringFilter).
+- **Proposal (from the Iteration 11 research, not yet decided)**: `GET /plants?filter[strategicBenefits][contains]=…` is accepted but `PlantQueryMapper` has no mapper for `strategicBenefits`, so the filter is silently ignored (and its scenario passes vacuously). Either map it or reject unknown plant filters with `400`. Not a security issue (it builds no pattern).
 - **Dependencies**: None.
 - **Risks**: None.
 - **Prompt for /speckit.specify**:
