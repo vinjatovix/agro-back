@@ -85,6 +85,9 @@ Operators:
 - startsWith
 - endsWith
 
+Semantics:
+`contains`, `startsWith` and `endsWith` match the value as literal text, case-insensitively (partial, prefix and suffix match). Every character is literal, including `. * + ? ^ $ { } ( ) | [ ] \`; a UUID-shaped value is matched as text too. A value that would be an invalid or slow pattern is just text that matches nothing (or its literal occurrences) and answers `200`, never `500`.
+
 ---
 
 #### ArrayFilter

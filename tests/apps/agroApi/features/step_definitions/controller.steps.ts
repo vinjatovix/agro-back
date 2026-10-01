@@ -611,6 +611,17 @@ Given('a family exists', async function () {
   this.familyName = family.name;
 });
 
+Given(
+  'a family exists with scientific name {string}',
+  async function (scientificName: string) {
+    const family = await familySeeder.create({ scientificName });
+
+    this.familyId = family.id;
+    this.familySlug = family.slug;
+    this.familyName = family.name;
+  }
+);
+
 Given('multiple families exist', async function () {
   const families = await familySeeder.seed();
 

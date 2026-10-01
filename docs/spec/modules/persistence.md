@@ -561,10 +561,13 @@ A `MongoQueryTranslator` is responsible for:
 
 ---
 
-##### 5.8.4.1 Query Regex Sanitization `[TARGET STATE (Pending [Iteration 11](../../roadmap.md#iteration-11-implement-query-regex-sanitization))]`
+##### 5.8.4.1 Query Regex Sanitization ([Iteration 11](../../roadmap.md#iteration-11-implement-query-regex-sanitization))
 
-To secure the database against Regular Expression Injection vulnerabilities (ReDoS) and malicious filter bypasses on public endpoints, user-provided search parameters (like `contains`, `startsWith`, `endsWith`) MUST be sanitized.
-The `MongoQueryTranslator` (and other query mappers like `FamilyQueryMapper`) MUST pass all raw string input used in regex operations through the `escapeRegex` utility prior to query compilation and execution.
+To secure the database against Regular Expression Injection (ReDoS) and filter bypasses on public endpoints, text search values are always matched as literal text.
+
+- `MongoQueryTranslator` passes every `contains`, `startsWith` and `endsWith` value (converted to text with `String(value)`) through the shared `escapeRegex` utility, then adds the anchor outside the escaped text: `contains` → `escaped`, `startsWith` → `^escaped`, `endsWith` → `escaped$`. The result keeps the `{ $regex, $options: 'i' }` shape (case-insensitive).
+- Text operator results skip identifier conversion: a UUID-shaped `contains` / `startsWith` / `endsWith` value is searched as text. Only `eq`, set (`in`, `has`, `hasAny`) and range values are converted with `toMongoId`.
+- Any other query mapper that builds a pattern from filter text MUST use `escapeRegex` too (today `PlantQueryMapper` for `identity.contains`). No other code path builds a pattern from client text.
 
 ---
 

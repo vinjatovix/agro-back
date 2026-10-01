@@ -1,4 +1,5 @@
 import type { Primitive } from '../../../../../shared/domain/types/Primitive.js';
+import { escapeRegex } from '../../../../../shared/utils/escapeRegex.js';
 import { UuidValidator } from '../../../domain/valueObject/UuidValidator.js';
 import { toMongoId } from './MongoId.js';
 import type { FilterOperators } from './types/FilterOperators.js';
@@ -23,8 +24,7 @@ export class MongoQueryTranslator {
 
       const mongoField = field === 'id' ? '_id' : field;
 
-      let translated = this.translateCondition(condition);
-      translated = this.mapUuidValues(translated);
+      const translated = this.translateCondition(condition);
 
       if (this.hasValue(translated)) {
         query[mongoField] = translated;
@@ -60,17 +60,18 @@ export class MongoQueryTranslator {
     condition: FilterOperators<Primitive>
   ): unknown {
     if ('eq' in condition && condition.eq !== undefined) {
-      return condition.eq;
+      return this.mapUuidValues(condition.eq);
     }
 
+    // Text is searched as text: it never goes through identifier conversion.
     const regex = this.buildRegex(condition);
     if (regex) return regex;
 
     const set = this.buildSetOperators(condition);
-    if (set) return set;
+    if (set) return this.mapUuidValues(set);
 
     const range = this.buildRangeOperators(condition);
-    if (range) return range;
+    if (range) return this.mapUuidValues(range);
 
     return undefined;
   }
@@ -78,21 +79,21 @@ export class MongoQueryTranslator {
   private static buildRegex(condition: FilterOperators<Primitive>): unknown {
     if ('contains' in condition && condition.contains !== undefined) {
       return {
-        $regex: String(condition.contains),
+        $regex: escapeRegex(String(condition.contains)),
         $options: 'i'
       };
     }
 
     if ('startsWith' in condition && condition.startsWith !== undefined) {
       return {
-        $regex: `^${String(condition.startsWith)}`,
+        $regex: `^${escapeRegex(String(condition.startsWith))}`,
         $options: 'i'
       };
     }
 
     if ('endsWith' in condition && condition.endsWith !== undefined) {
       return {
-        $regex: `${String(condition.endsWith)}$`,
+        $regex: `${escapeRegex(String(condition.endsWith))}$`,
         $options: 'i'
       };
     }
