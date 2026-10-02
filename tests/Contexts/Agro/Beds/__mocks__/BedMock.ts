@@ -6,7 +6,7 @@ import { PositiveNumber } from '../../../../../src/Contexts/shared/domain/valueO
 import { StringValueObject } from '../../../../../src/Contexts/shared/domain/valueObject/StringValueObject.js';
 import { random } from '../../../../Contexts/shared/fixtures/random.js';
 
-type AddPlantCall = [PlantInstance, SpatialPlantModel, SpatialPlantModel[]];
+type AddPlantCall = Parameters<Bed['addPlant']>;
 
 export class BedMock {
   private readonly addPlantMock = jest.fn<
@@ -41,7 +41,7 @@ export class BedMock {
   }
 
   private getLastCall(): AddPlantCall {
-    const calls = this.addPlantMock.mock.calls as AddPlantCall[];
+    const calls: AddPlantCall[] = this.addPlantMock.mock.calls;
 
     if (calls.length === 0) {
       throw new Error('addPlant was not called');

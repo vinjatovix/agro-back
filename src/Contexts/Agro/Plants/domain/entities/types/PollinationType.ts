@@ -2,6 +2,7 @@ export enum PollinationType {
   INSECT = 'insect',
   WIND = 'wind',
   SELF = 'self',
-  SPORE = 'spore',
-  NONE = 'none'
+  WATER = 'water',
+  BIRD = 'bird',
+  BAT = 'bat'
 }

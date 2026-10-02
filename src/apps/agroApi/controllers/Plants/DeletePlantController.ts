@@ -1,15 +1,12 @@
 import { type NextFunction, type Request, type Response } from 'express';
-
 import httpStatus from 'http-status';
+
 import type { DeletePlant } from '../../../../Contexts/Agro/Plants/application/useCases/DeletePlant.js';
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
-import { createError } from '../../../../shared/errors/index.js';
 import { getExpectedVersion } from '../../middlewares/requireIfMatch.js';
+import { getValidatedRequest } from '../../middlewares/validateRequest.js';
 import { HttpController } from '../../shared/HttpController.js';
-
-type DeletePlantParams = {
-  id: string;
-};
+import { deletePlantRequest } from './requestSchemas.js';
 
 export type DeletePlantControllerDependencies = {
   deletePlant: DeletePlant;
@@ -23,20 +20,15 @@ export class DeletePlantController extends HttpController {
   }
 
   run = async (
-    req: Request<DeletePlantParams>,
+    _req: Request,
     res: Response,
     next: NextFunction
-  ) => {
+  ): Promise<void> => {
     try {
-      const plantId = req.params.id;
-
-      if (!plantId) {
-        throw createError.badRequest('Plant ID is required');
-      }
-
+      const { params } = getValidatedRequest(res, deletePlantRequest);
       const user = res.locals.user as UserSessionInfo;
       await this.deletePlant.execute(
-        plantId,
+        params.id,
         user.username,
         getExpectedVersion(res)
       );

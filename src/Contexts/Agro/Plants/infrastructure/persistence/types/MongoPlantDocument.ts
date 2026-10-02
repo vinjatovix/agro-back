@@ -4,7 +4,6 @@ import type { IdentityPrimitives } from '../../../domain/entities/types/Identity
 import type { PlantKnowledgePrimitives } from '../../../domain/entities/types/PlantKnowledgePrimitives.js';
 import type { PlantLifecycleValue } from '../../../domain/entities/types/PlantLifecycleValue.js';
 import type { PlantPrimitives } from '../../../domain/entities/types/PlantPrimitives.js';
-import type { PlantSowingPrimitives } from '../../../domain/entities/types/PlantSowingPrimitives.js';
 
 export type MongoPlantDocument = {
   _id: string | Binary | UUID;
@@ -19,20 +18,7 @@ export type MongoPlantDocument = {
     spacingCm: RangePrimitives;
   };
 
-  phenology: {
-    sowing: PlantSowingPrimitives;
-    flowering: {
-      months: number[];
-      pollination?: {
-        type: string;
-        agents?: string[];
-      };
-    };
-    harvest: {
-      months: number[];
-      description?: string;
-    };
-  };
+  phenology: PlantPrimitives['phenology'];
 
   knowledge?: PlantKnowledgePrimitives;
 

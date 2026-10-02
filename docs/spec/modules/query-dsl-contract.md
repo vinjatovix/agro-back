@@ -73,6 +73,7 @@ filter: {
 Operators:
 
 - eq
+- in (matches any of the listed values; `$in` in Mongo)
 
 ---
 

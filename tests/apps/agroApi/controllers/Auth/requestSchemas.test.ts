@@ -15,17 +15,17 @@ import { HttpError } from '../../../../../src/shared/errors/index.js';
 import { UNKNOWN_FIELD_MESSAGE } from '../../middlewares/fixtures/validationErrorContract.js';
 
 import {
+  buildRequest,
+  buildResponse,
+  runWithValidation
+} from '../../shared/fixtures/httpFakes.js';
+import {
   buildGoogleAuthBody,
   buildLoginBody,
   buildRegisterBody,
   buildUpdatePasswordBody,
   STRONG_PASSWORD as STRONG
 } from './fixtures/authBodies.js';
-import {
-  buildRequest,
-  buildResponse,
-  runWithValidation
-} from './fixtures/httpFakes.js';
 
 type RequestParts = Parameters<typeof buildRequest>[0];
 

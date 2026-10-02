@@ -1,12 +1,13 @@
 import { type NextFunction, type Request, type Response } from 'express';
-
 import httpStatus from 'http-status';
+
 import type { CreatePlant } from '../../../../Contexts/Agro/Plants/application/useCases/CreatePlant.js';
-import type { CreatePlantDto } from '../../../../Contexts/Agro/Plants/application/useCases/interfaces/CreatePlantDto.js';
 import { plantDomainMapper } from '../../../../Contexts/Agro/Plants/mappers/plantDomainMapper.js';
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
+import { getValidatedRequest } from '../../middlewares/validateRequest.js';
 import { HttpController } from '../../shared/HttpController.js';
 import { setVersionETag } from '../../shared/setVersionETag.js';
+import { createPlantRequest } from './requestSchemas.js';
 
 export type CreatePlantControllerDependencies = {
   createPlant: CreatePlant;
@@ -19,9 +20,13 @@ export class CreatePlantController extends HttpController {
     this.createPlant = createPlant;
   }
 
-  run = async (req: Request, res: Response, next: NextFunction) => {
+  run = async (
+    _req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     try {
-      const dto = req.body as CreatePlantDto;
+      const { body: dto } = getValidatedRequest(res, createPlantRequest);
       const user = res.locals.user as UserSessionInfo;
 
       const plant = await this.createPlant.execute(dto, user.username);

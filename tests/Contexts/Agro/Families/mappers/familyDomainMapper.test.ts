@@ -15,7 +15,8 @@ describe('familyDomainMapper', () => {
       scientificName: random.word(),
       shortDescription: random.description(),
       highlights: [random.word(), random.word()],
-      metadata: Metadata.create('test-user').toPrimitives()
+      metadata: Metadata.create('test-user').toPrimitives(),
+      version: 0
     };
 
     it('should create a Family domain entity from primitives without optional fields', () => {

@@ -637,6 +637,28 @@ Given('a plant exists', async function (this: CucumberWorld) {
   this.plantId = plants[0]!.id;
 });
 
+Given(
+  'a plant with optional details exists',
+  async function (this: CucumberWorld) {
+    const plant = await plantSeeder.create({
+      'identity.family': this.familyId,
+      'phenology.flowering.pollination': {
+        types: ['self', 'insect'],
+        agents: ['bee']
+      },
+      'phenology.harvest.description': 'Pick when ripe',
+      'knowledge.watering': { frequency: 'weekly', conditions: ['dry soil'] },
+      'knowledge.ecology': { strategicBenefits: ['Attracts pollinators'] },
+      'knowledge.propagation.methods': {
+        seed: { seasons: ['spring'] },
+        division: { seasons: ['autumn'] }
+      }
+    });
+
+    this.plantId = plant.id;
+  }
+);
+
 Given('multiple plants exists', async function (this: CucumberWorld) {
   const plants = await plantSeeder.createMany(2, {
     'identity.family': this.familyId

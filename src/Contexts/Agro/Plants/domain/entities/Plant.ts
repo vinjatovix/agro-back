@@ -1,8 +1,6 @@
 import { hasStateChanged } from '../../../../../shared/domain/diff/hasStateChanged.js';
 import type { UnknownRecord } from '../../../../../shared/domain/types/UnknownRecord.js';
 import { deepFreeze } from '../../../../../shared/domain/utils/deepFreeze.js';
-import { MonthSet } from '../../../../../shared/domain/value-objects/MonthSet.js';
-import { Range } from '../../../../../shared/domain/value-objects/Range.js';
 import { AggregateRoot } from '../../../../shared/domain/entities/AggregateRoot.js';
 import {
   DomainConflictException,
@@ -13,18 +11,12 @@ import {
   versionAfter
 } from '../../../../shared/domain/repositories/WriteOutcome.js';
 import { Metadata } from '../../../../shared/domain/valueObject/index.js';
-import { createFamilyId } from '../../../Families/domain/FamilyId.js';
 import type { PlantId } from '../PlantId.js';
-import { PlantKnowledge } from '../value-objects/index.js';
 import { PlantLifecycle } from '../value-objects/PlantLifecycle.js';
-import { PlantSowing } from '../value-objects/PlantSowing.js';
 import { type PlantProps, PlantStatus } from './types/index.js';
 import type { PlantIdentityChanges } from './types/PlantIdentityChanges.js';
 import type { PlantKnowledgeChanges } from './types/PlantKnowledgeChanges.js';
-import type {
-  PlantPhenologyChanges,
-  PlantSowingChanges
-} from './types/PlantPhenologyChanges.js';
+import type { PlantPhenologyChanges } from './types/PlantPhenologyChanges.js';
 import type { PlantTraitsChanges } from './types/PlantTraitsChanges.js';
 
 export class Plant extends AggregateRoot<PlantId> {
@@ -113,40 +105,6 @@ export class Plant extends AggregateRoot<PlantId> {
     });
   }
 
-  private resolveIdentityPrimary(
-    changes: PlantIdentityChanges
-  ): string | undefined {
-    if (changes.name?.primary === undefined) return undefined;
-    const trimmed = changes.name.primary.trim();
-    if (!trimmed)
-      throw new InvalidArgumentException(
-        'identity.name.primary cannot be empty'
-      );
-    return trimmed;
-  }
-
-  private resolveIdentityScientificName(
-    changes: PlantIdentityChanges
-  ): string | undefined {
-    if (changes.scientificName === undefined) return undefined;
-    const trimmed = changes.scientificName.trim();
-    if (!trimmed)
-      throw new InvalidArgumentException(
-        'identity.scientificName cannot be empty'
-      );
-    return trimmed;
-  }
-
-  private resolveIdentityFamily(
-    changes: PlantIdentityChanges
-  ): PlantProps['identity']['family'] {
-    if (changes.family === undefined) return this.props.identity.family;
-    const trimmed = changes.family.trim();
-    if (!trimmed)
-      throw new InvalidArgumentException('identity.family cannot be empty');
-    return createFamilyId(trimmed);
-  }
-
   updateIdentity(
     changes: PlantIdentityChanges,
     user: string,
@@ -154,23 +112,14 @@ export class Plant extends AggregateRoot<PlantId> {
   ): void {
     this.assertActive();
 
-    const primary = this.resolveIdentityPrimary(changes);
-    const scientificName = this.resolveIdentityScientificName(changes);
-    const aliases = changes.name?.aliases?.map((a) => a.trim()).filter(Boolean);
-    const family = this.resolveIdentityFamily(changes);
+    const identity = this.props.identity.update(changes);
 
-    const identity = {
-      ...this.props.identity,
-      name: {
-        ...this.props.identity.name,
-        ...(primary !== undefined && { primary }),
-        ...(aliases !== undefined && { aliases })
-      },
-      ...(scientificName !== undefined && { scientificName }),
-      family
-    };
-
-    if (!hasStateChanged({ identity: this.props.identity }, { identity }))
+    if (
+      !hasStateChanged(
+        this.props.identity.toPrimitives(),
+        identity.toPrimitives()
+      )
+    )
       return;
 
     this.commit({ identity }, user, at);
@@ -221,46 +170,6 @@ export class Plant extends AggregateRoot<PlantId> {
     };
   }
 
-  private resolveStarterDepth(
-    sc: PlantSowingChanges,
-    cur: PlantSowing
-  ): Range | undefined {
-    if (!sc.methods?.starter?.depthCm) return cur.methods.starter?.depthCm;
-    if (cur.methods.starter?.depthCm) {
-      return cur.methods.starter.depthCm.with(sc.methods.starter.depthCm);
-    }
-    return Range.fromPartial(
-      sc.methods.starter.depthCm,
-      'phenology.sowing.methods.starter.depthCm'
-    );
-  }
-
-  private buildSowing(sc: PlantSowingChanges, cur: PlantSowing): PlantSowing {
-    const months = sc.months ? MonthSet.fromArray(sc.months) : cur.months;
-    const seedsPerHole = sc.seedsPerHole
-      ? cur.seedsPerHole.with(sc.seedsPerHole)
-      : cur.seedsPerHole;
-    const germinationDays = sc.germinationDays
-      ? cur.germinationDays.with(sc.germinationDays)
-      : cur.germinationDays;
-    const directDepth = sc.methods?.direct?.depthCm
-      ? cur.methods.direct.depthCm.with(sc.methods.direct.depthCm)
-      : cur.methods.direct.depthCm;
-    const starterDepth = this.resolveStarterDepth(sc, cur);
-
-    return new PlantSowing({
-      months,
-      seedsPerHole,
-      germinationDays,
-      methods: {
-        direct: { depthCm: directDepth },
-        ...(starterDepth !== undefined && {
-          starter: { depthCm: starterDepth }
-        })
-      }
-    });
-  }
-
   updatePhenology(
     changes: PlantPhenologyChanges,
     user: string,
@@ -268,14 +177,17 @@ export class Plant extends AggregateRoot<PlantId> {
   ): void {
     this.assertActive();
 
-    if (!changes.sowing) return;
+    const phenology = this.props.phenology.update(changes);
 
-    const cur = this.props.phenology.sowing;
-    const sowing = this.buildSowing(changes.sowing, cur);
+    if (
+      !hasStateChanged(
+        this.props.phenology.toPrimitives(),
+        phenology.toPrimitives()
+      )
+    )
+      return;
 
-    if (!hasStateChanged(cur.toPrimitives(), sowing.toPrimitives())) return;
-
-    this.commit({ phenology: { ...this.props.phenology, sowing } }, user, at);
+    this.commit({ phenology }, user, at);
   }
 
   updateKnowledge(
@@ -285,25 +197,16 @@ export class Plant extends AggregateRoot<PlantId> {
   ): void {
     this.assertActive();
 
-    const knowledge = (this.props.knowledge ?? PlantKnowledge.empty()).update(
-      changes
-    );
+    const knowledge = this.props.knowledge.update(changes);
 
     if (
       !hasStateChanged(
-        { knowledge: this.props.knowledge?.toPrimitives() },
-        { knowledge: knowledge.toPrimitives() }
+        this.props.knowledge.toPrimitives(),
+        knowledge.toPrimitives()
       )
     )
       return;
 
     this.commit({ knowledge }, user, at);
-  }
-
-  static create(props: PlantProps): Plant {
-    return new Plant({
-      ...props,
-      knowledge: props.knowledge ?? PlantKnowledge.empty()
-    });
   }
 }

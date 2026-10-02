@@ -1,4 +1,3 @@
-import { MonthSet } from '../../../../shared/domain/value-objects/MonthSet.js';
 import { Range } from '../../../../shared/domain/value-objects/Range.js';
 import { Metadata } from '../../../shared/domain/valueObject/Metadata.js';
 import {
@@ -10,49 +9,24 @@ import type {
   PlantKnowledgePrimitives,
   PlantProps
 } from '../domain/entities/types/index.js';
-import type { PollinationType } from '../domain/entities/types/PollinationType.js';
 import { createPlantId } from '../domain/PlantId.js';
 import {
+  PlantIdentity,
   PlantKnowledge,
   PlantLifecycle,
-  PlantSowing
+  PlantPhenology
 } from '../domain/value-objects/index.js';
 import type { MongoPlantDocument } from '../infrastructure/persistence/types/MongoPlantDocument.js';
 import type { PlantPersistenceMapper } from './interfaces/PlantPersistenceMapper.js';
-import { plantIdentityMapper } from './plantIdentityMapper.js';
 import { plantKnowledgeMapper } from './plantKnowledgeMapper.js';
 
 export const plantPersistenceMapper: PlantPersistenceMapper = {
   fromMongoDocument: function (document: MongoPlantDocument): Plant {
-    const flowering = {
-      months: MonthSet.fromArray(document.phenology.flowering.months),
-      ...(document.phenology.flowering.pollination && {
-        pollination: {
-          type: document.phenology.flowering.pollination
-            .type as PollinationType,
-          ...(document.phenology.flowering.pollination.agents && {
-            agents: document.phenology.flowering.pollination.agents
-          })
-        }
-      })
-    };
-
-    const harvest = {
-      months: MonthSet.fromArray(document.phenology.harvest.months),
-      ...(document.phenology.harvest.description && {
-        description: document.phenology.harvest.description
-      })
-    };
-
-    const phenology = {
-      sowing: PlantSowing.fromPrimitives(document.phenology.sowing),
-      flowering,
-      harvest
-    };
+    const phenology = PlantPhenology.fromPrimitives(document.phenology);
 
     const props: PlantProps = {
       id: createPlantId(fromMongoId(document._id)),
-      identity: plantIdentityMapper.fromPrimitives(document.identity),
+      identity: PlantIdentity.fromPrimitives(document.identity),
       traits: {
         lifecycle: PlantLifecycle.from(document.traits.lifecycle),
         size: {
@@ -72,7 +46,7 @@ export const plantPersistenceMapper: PlantPersistenceMapper = {
       props.deletedAt = new Date(document.deletedAt);
     }
 
-    return Plant.create(props);
+    return new Plant(props);
   },
   mapKnowledge(knowledge?: PlantKnowledgePrimitives | null): PlantKnowledge {
     if (!knowledge || Object.keys(knowledge).length === 0) {
@@ -82,33 +56,11 @@ export const plantPersistenceMapper: PlantPersistenceMapper = {
     return plantKnowledgeMapper.fromPrimitives(knowledge);
   },
   toMongoDocument: function (plant: Plant): MongoPlantDocument {
-    const flowering = {
-      months: plant.phenology.flowering.months.toArray(),
-      ...(plant.phenology.flowering.pollination && {
-        pollination: plant.phenology.flowering.pollination
-      })
-    };
-
-    const harvest = {
-      months: plant.phenology.harvest.months.toArray(),
-      ...(plant.phenology.harvest.description && {
-        description: plant.phenology.harvest.description
-      })
-    };
-
-    const phenology = {
-      sowing: plant.phenology.sowing.toPrimitives(),
-      flowering,
-      harvest
-    };
-
-    const knowledge = plant.knowledge
-      ? plantKnowledgeMapper.toPrimitives(plant.knowledge)
-      : undefined;
+    const phenology = plant.phenology.toPrimitives();
 
     return {
       _id: toMongoId(plant.id),
-      identity: plantIdentityMapper.toPrimitives(plant.identity),
+      identity: plant.identity.toPrimitives(),
       traits: {
         lifecycle: plant.traits.lifecycle.getValue(),
         size: {
@@ -118,7 +70,7 @@ export const plantPersistenceMapper: PlantPersistenceMapper = {
         spacingCm: plant.traits.spacingCm.toPrimitives()
       },
       phenology,
-      ...(knowledge && { knowledge }),
+      knowledge: plantKnowledgeMapper.toPrimitives(plant.knowledge),
       metadata: plant.metadata.toPrimitives(),
       status: plant.status,
       deletedAt: plant.deletedAt ? plant.deletedAt.toISOString() : null,

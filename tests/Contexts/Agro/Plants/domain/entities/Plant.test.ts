@@ -1,10 +1,17 @@
 import { randomFamilyId } from '../../../../../../src/Contexts/Agro/Families/domain/FamilyId.js';
 import { Plant } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/Plant.js';
+import type { PlantPhenologyChanges } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantPhenologyChanges.js';
 import { PlantStatus } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantStatus.js';
+import { PollinationType } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PollinationType.js';
 import { randomPlantId } from '../../../../../../src/Contexts/Agro/Plants/domain/PlantId.js';
+import {
+  PlantFlowering,
+  PlantHarvest,
+  PlantPhenology,
+  PlantSowing
+} from '../../../../../../src/Contexts/Agro/Plants/domain/value-objects/index.js';
 import { PlantKnowledge } from '../../../../../../src/Contexts/Agro/Plants/domain/value-objects/PlantKnowledge.js';
 import { PlantLifecycle } from '../../../../../../src/Contexts/Agro/Plants/domain/value-objects/PlantLifecycle.js';
-import { PlantSowing } from '../../../../../../src/Contexts/Agro/Plants/domain/value-objects/PlantSowing.js';
 import { plantDomainMapper } from '../../../../../../src/Contexts/Agro/Plants/mappers/plantDomainMapper.js';
 import {
   DomainConflictException,
@@ -14,18 +21,17 @@ import { Metadata } from '../../../../../../src/Contexts/shared/domain/valueObje
 import { MonthSet } from '../../../../../../src/shared/domain/value-objects/MonthSet.js';
 import { Range } from '../../../../../../src/shared/domain/value-objects/Range.js';
 import { PlantFactory } from '../mothers/PlantFactory.js';
+import {
+  PlantIdentityBuilder,
+  SOLANACEAE_FAMILY_ID
+} from '../mothers/PlantIdentityBuilder.js';
 import { PlantKnowledgeBuilder } from '../mothers/PlantKnowledgeBuilder.js';
-
-const randomFamilyIdValue = randomFamilyId();
 
 const buildPlant = (version?: number) => {
   return new Plant({
     ...(version !== undefined && { version }),
     id: randomPlantId(),
-    identity: {
-      name: { primary: 'Tomato' },
-      family: randomFamilyIdValue
-    },
+    identity: PlantIdentityBuilder.tomato(),
     traits: {
       lifecycle: PlantLifecycle.from('annual'),
       size: {
@@ -34,7 +40,7 @@ const buildPlant = (version?: number) => {
       },
       spacingCm: Range.single(15)
     },
-    phenology: {
+    phenology: new PlantPhenology({
       sowing: new PlantSowing({
         seedsPerHole: Range.single(2),
         germinationDays: Range.single(10),
@@ -45,13 +51,9 @@ const buildPlant = (version?: number) => {
           }
         }
       }),
-      flowering: {
-        months: new MonthSet([6, 7])
-      },
-      harvest: {
-        months: new MonthSet([8, 9])
-      }
-    },
+      flowering: new PlantFlowering({ months: new MonthSet([6, 7]) }),
+      harvest: new PlantHarvest({ months: new MonthSet([8, 9]) })
+    }),
     knowledge: PlantKnowledge.empty(),
     metadata: Metadata.create('system'),
     status: PlantStatus.ACTIVE
@@ -75,7 +77,7 @@ describe('Plant (aggregate root)', () => {
     const plant = buildPlant();
 
     expect(plant.identity.name.primary).toBe('Tomato');
-    expect(plant.identity.family).toBe(randomFamilyIdValue);
+    expect(plant.identity.family).toBe(SOLANACEAE_FAMILY_ID);
   });
 
   it('should expose traits correctly', () => {
@@ -90,29 +92,6 @@ describe('Plant (aggregate root)', () => {
 
     expect(plant.phenology.sowing.methods.direct.depthCm.min).toBe(2);
     expect(plant.phenology.sowing.months.toArray()).toEqual([3, 4]);
-  });
-
-  it('should default knowledge to empty when not provided via create()', () => {
-    const plant = Plant.create({
-      id: randomPlantId(),
-      identity: {
-        name: { primary: 'Tomato' },
-        family: randomFamilyIdValue
-      },
-      traits: {
-        lifecycle: PlantLifecycle.from('annual'),
-        size: {
-          height: Range.single(10),
-          spread: Range.single(20)
-        },
-        spacingCm: Range.single(15)
-      },
-      phenology: buildPlant().phenology,
-      metadata: Metadata.create('system'),
-      status: PlantStatus.ACTIVE
-    });
-
-    expect(plant.knowledge).toEqual(PlantKnowledge.empty());
   });
 
   it('should mark plant as deleted', () => {
@@ -145,12 +124,9 @@ describe('Plant (aggregate root)', () => {
   });
 
   it('should default status to ACTIVE when not provided', () => {
-    const plant = Plant.create({
+    const plant = new Plant({
       id: randomPlantId(),
-      identity: {
-        name: { primary: 'Tomato' },
-        family: randomFamilyIdValue
-      },
+      identity: PlantIdentityBuilder.tomato(),
       traits: {
         lifecycle: PlantLifecycle.from('annual'),
         size: {
@@ -160,6 +136,7 @@ describe('Plant (aggregate root)', () => {
         spacingCm: Range.single(15)
       },
       phenology: buildPlant().phenology,
+      knowledge: PlantKnowledge.empty(),
       metadata: Metadata.create('system')
     });
 
@@ -186,10 +163,7 @@ describe('Plant (aggregate root)', () => {
       () =>
         new Plant({
           id: randomPlantId(),
-          identity: {
-            name: { primary: 'Tomato' },
-            family: randomFamilyIdValue
-          },
+          identity: PlantIdentityBuilder.tomato(),
           traits: {
             lifecycle: PlantLifecycle.from('annual'),
             size: {
@@ -216,14 +190,11 @@ describe('Plant (aggregate root)', () => {
     expect(plant.deletedAt).toBeInstanceOf(Date);
   });
 
-  it('should not allow Plant.create with DELETED status and no deletedAt', () => {
+  it('should not allow a DELETED plant without deletedAt', () => {
     expect(() => {
-      Plant.create({
+      new Plant({
         id: randomPlantId(),
-        identity: {
-          name: { primary: 'Tomato' },
-          family: randomFamilyIdValue
-        },
+        identity: PlantIdentityBuilder.tomato(),
         traits: {
           lifecycle: PlantLifecycle.from('annual'),
           size: {
@@ -233,6 +204,7 @@ describe('Plant (aggregate root)', () => {
           spacingCm: Range.single(15)
         },
         phenology: buildPlant().phenology,
+        knowledge: PlantKnowledge.empty(),
         metadata: Metadata.create('system'),
         status: PlantStatus.DELETED
       });
@@ -255,6 +227,15 @@ describe('Plant mutation methods', () => {
       plant.updateIdentity({ name: { primary: '  Tomate  ' } }, 'test-user');
 
       expect(plant.identity.name.primary).toBe('Tomate');
+    });
+
+    it('should remove aliases on null', () => {
+      const plant = PlantFactory.create();
+      plant.updateIdentity({ name: { aliases: ['tomatera'] } }, 'test-user');
+
+      plant.updateIdentity({ name: { aliases: null } }, 'test-user');
+
+      expect(plant.identity.name).not.toHaveProperty('aliases');
     });
 
     it('should trim aliases and drop empty ones', () => {
@@ -517,6 +498,222 @@ describe('Plant mutation methods', () => {
       const after = plantDomainMapper.toPrimitives(plant);
       expect(after.phenology.flowering).toEqual(before.phenology.flowering);
       expect(after.phenology.harvest).toEqual(before.phenology.harvest);
+    });
+
+    it('should update flowering months and keep other flowering fields', () => {
+      const plant = PlantFactory.tomato();
+      const originalPollination = plant.phenology.flowering.pollination;
+
+      plant.updatePhenology({ flowering: { months: [7, 8] } }, 'test-user');
+
+      expect(plant.phenology.flowering.months.toArray()).toEqual([7, 8]);
+      expect(plant.phenology.flowering.pollination).toEqual(
+        originalPollination
+      );
+    });
+
+    it('should update flowering pollination types and agents', () => {
+      const plant = PlantFactory.tomato();
+
+      plant.updatePhenology(
+        {
+          flowering: {
+            pollination: {
+              types: [PollinationType.BIRD],
+              agents: ['Hummingbird']
+            }
+          }
+        },
+        'test-user'
+      );
+
+      expect(plant.phenology.flowering.pollination).toEqual({
+        types: [PollinationType.BIRD],
+        agents: ['Hummingbird']
+      });
+    });
+
+    it('should keep the pollination types when only agents are updated', () => {
+      const plant = PlantFactory.tomato();
+      const { types } = plant.phenology.flowering.pollination ?? {};
+
+      plant.updatePhenology(
+        { flowering: { pollination: { agents: ['Bumblebee'] } } },
+        'test-user'
+      );
+
+      expect(plant.phenology.flowering.pollination).toEqual({
+        types,
+        agents: ['Bumblebee']
+      });
+    });
+
+    it('should reject agents alone on a plant without pollination', () => {
+      const plant = buildPlant();
+      const before = plantDomainMapper.toPrimitives(plant);
+
+      expect(() =>
+        plant.updatePhenology(
+          { flowering: { pollination: { agents: ['Bee'] } } },
+          'test-user'
+        )
+      ).toThrow(InvalidArgumentException);
+      assertUnchanged(plant, before);
+    });
+
+    it.each([
+      [
+        'the pollination',
+        { flowering: { pollination: null } },
+        (p: Plant) => p.phenology.flowering.pollination
+      ],
+      [
+        'the pollination agents',
+        { flowering: { pollination: { agents: null } } },
+        (p: Plant) => p.phenology.flowering.pollination?.agents
+      ],
+      [
+        'the harvest description',
+        { harvest: { description: null } },
+        (p: Plant) => p.phenology.harvest.description
+      ],
+      [
+        'the starter sowing method',
+        { sowing: { methods: { starter: null } } },
+        (p: Plant) => p.phenology.sowing.methods.starter
+      ]
+    ] satisfies Array<
+      [string, PlantPhenologyChanges, (plant: Plant) => unknown]
+    >)('should remove %s on null', (_, changes, read) => {
+      const plant = PlantFactory.tomato();
+      expect(read(plant)).toBeDefined();
+
+      plant.updatePhenology(changes, 'test-user');
+
+      expect(read(plant)).toBeUndefined();
+    });
+
+    it('should keep the pollination types when its agents are removed', () => {
+      const plant = PlantFactory.tomato();
+      const types = plant.phenology.flowering.pollination?.types;
+
+      plant.updatePhenology(
+        { flowering: { pollination: { agents: null } } },
+        'test-user'
+      );
+
+      expect(plant.phenology.flowering.pollination).toEqual({ types });
+    });
+
+    it('should reject repeated pollination types', () => {
+      const plant = PlantFactory.tomato();
+      const before = plantDomainMapper.toPrimitives(plant);
+
+      expect(() =>
+        plant.updatePhenology(
+          {
+            flowering: {
+              pollination: {
+                types: [PollinationType.INSECT, PollinationType.INSECT]
+              }
+            }
+          },
+          'test-user'
+        )
+      ).toThrow(InvalidArgumentException);
+      assertUnchanged(plant, before);
+    });
+
+    it('should trim the harvest description', () => {
+      const plant = PlantFactory.tomato();
+
+      plant.updatePhenology(
+        { harvest: { description: '  Pick when red  ' } },
+        'test-user'
+      );
+
+      expect(plant.phenology.harvest.description).toBe('Pick when red');
+    });
+
+    it('should reject a blank harvest description', () => {
+      const plant = PlantFactory.tomato();
+      const before = plantDomainMapper.toPrimitives(plant);
+
+      expect(() =>
+        plant.updatePhenology({ harvest: { description: '   ' } }, 'test-user')
+      ).toThrow(InvalidArgumentException);
+      assertUnchanged(plant, before);
+    });
+
+    it('should update harvest months and keep harvest description', () => {
+      const plant = PlantFactory.tomato();
+      const originalDescription = plant.phenology.harvest.description;
+
+      plant.updatePhenology({ harvest: { months: [9, 10] } }, 'test-user');
+
+      expect(plant.phenology.harvest.months.toArray()).toEqual([9, 10]);
+      expect(plant.phenology.harvest.description).toBe(originalDescription);
+    });
+
+    it('should update harvest description and keep harvest months', () => {
+      const plant = PlantFactory.tomato();
+      const originalMonths = plant.phenology.harvest.months.toArray();
+
+      plant.updatePhenology(
+        { harvest: { description: 'Harvest when deep red' } },
+        'test-user'
+      );
+
+      expect(plant.phenology.harvest.description).toBe('Harvest when deep red');
+      expect(plant.phenology.harvest.months.toArray()).toEqual(originalMonths);
+    });
+
+    it('should not update metadata when flowering is unchanged', () => {
+      const plant = PlantFactory.tomato();
+      const currentMonths = plant.phenology.flowering.months.toArray();
+      const before = plantDomainMapper.toPrimitives(plant);
+
+      plant.updatePhenology(
+        { flowering: { months: currentMonths } },
+        'test-user'
+      );
+
+      const after = plantDomainMapper.toPrimitives(plant);
+      expect(after.metadata.updatedAt).toEqual(before.metadata.updatedAt);
+    });
+
+    it('should not update metadata when harvest is unchanged', () => {
+      const plant = PlantFactory.tomato();
+      const currentMonths = plant.phenology.harvest.months.toArray();
+      const before = plantDomainMapper.toPrimitives(plant);
+
+      plant.updatePhenology(
+        { harvest: { months: currentMonths } },
+        'test-user'
+      );
+
+      const after = plantDomainMapper.toPrimitives(plant);
+      expect(after.metadata.updatedAt).toEqual(before.metadata.updatedAt);
+    });
+
+    it('should throw for invalid month in flowering', () => {
+      const plant = PlantFactory.create();
+      const before = plantDomainMapper.toPrimitives(plant);
+
+      expect(() =>
+        plant.updatePhenology({ flowering: { months: [0] } }, 'test-user')
+      ).toThrow(/0/);
+      assertUnchanged(plant, before);
+    });
+
+    it('should throw for invalid month in harvest', () => {
+      const plant = PlantFactory.create();
+      const before = plantDomainMapper.toPrimitives(plant);
+
+      expect(() =>
+        plant.updatePhenology({ harvest: { months: [13] } }, 'test-user')
+      ).toThrow(/13/);
+      assertUnchanged(plant, before);
     });
   });
 

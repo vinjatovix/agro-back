@@ -1,5 +1,6 @@
 import type { RootSystemPrimitives } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/RootSystemPrimitives.js';
 import { RootSystem } from '../../../../../../src/Contexts/Agro/Plants/domain/value-objects/RootSystem.js';
+import { InvalidArgumentException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 
 describe('RootSystem', () => {
   const primitives: RootSystemPrimitives = {
@@ -14,6 +15,21 @@ describe('RootSystem', () => {
     expect(root.type).toBe('taproot');
     expect(root.depthCm.toPrimitives()).toEqual(primitives.depthCm);
     expect(root.spreadCm.toPrimitives()).toEqual(primitives.spreadCm);
+  });
+
+  it.each([[''], ['   ']])('should reject the blank type %j', (type) => {
+    expect(() => RootSystem.fromPrimitives({ ...primitives, type })).toThrow(
+      InvalidArgumentException
+    );
+  });
+
+  it('should trim the type', () => {
+    const root = RootSystem.fromPrimitives({
+      ...primitives,
+      type: ' taproot '
+    });
+
+    expect(root.type).toBe('taproot');
   });
 
   it('should convert to primitives correctly', () => {

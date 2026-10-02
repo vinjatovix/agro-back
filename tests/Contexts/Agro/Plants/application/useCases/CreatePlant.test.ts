@@ -1,4 +1,5 @@
 import { CreatePlant } from '../../../../../../src/Contexts/Agro/Plants/application/useCases/CreatePlant.js';
+import { ensureFound } from '../../../../../../src/Contexts/shared/application/utils/ensureFound.js';
 import { FamilyRepositoryMock } from '../../../Families/__mocks__/FamilyRepositoryMock.js';
 import { FamilyScenarios } from '../../../Families/domain/mothers/FamilyScenarios.js';
 import { PlantRepositoryMock } from '../../__mocks__/PlantRepositoryMock.js';
@@ -53,7 +54,11 @@ describe('CreatePlant (use case)', () => {
     expect(plant.id).toBe(dto.id);
     expect(plant.identity.name.primary).toBe(dto.identity.name.primary);
 
-    const stored = await repository.findById(dto.id);
+    const stored = ensureFound(
+      await repository.findById(dto.id),
+      'Plant',
+      dto.id
+    );
 
     expect(stored.id).toBe(plant.id);
     repository.assertSaveHasBeenCalledWith(plant);
@@ -75,19 +80,6 @@ describe('CreatePlant (use case)', () => {
     const { data } = await repository.findAll();
 
     expect(data).toHaveLength(2);
-  });
-
-  it('should NOT include scientificName when not provided', async () => {
-    const family = FamilyScenarios.domainBase();
-    familyRepository.addToStorage(family);
-    const dto = CreatePlantDtoMother.custom({
-      'identity.family': family.id
-    });
-    delete dto.identity.scientificName;
-
-    const plant = await useCase.execute(dto);
-
-    expect(plant.identity.scientificName).toBeUndefined();
   });
 
   it('should include optional fields when provided', async () => {

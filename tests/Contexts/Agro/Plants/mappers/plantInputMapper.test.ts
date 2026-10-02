@@ -30,34 +30,41 @@ describe('PlantInputMapper', () => {
       );
 
       expect(plant.phenology.flowering.months.toArray()).toEqual(
-        dto.phenology.flowering.months
+        dto.phenology.flowering?.months
       );
     });
 
     it('should include pollination when present', () => {
-      const dto = CreatePlantDtoMother.tomato();
-
-      dto.phenology.flowering.pollination = {
-        type: PollinationType.INSECT,
-        agents: ['bee']
-      };
+      const dto = CreatePlantDtoMother.custom({
+        'phenology.flowering.pollination': {
+          types: [PollinationType.INSECT],
+          agents: ['bee']
+        }
+      });
 
       const plant = plantInputMapper.fromCreateDto(dto, USER);
 
       expect(plant.phenology.flowering.pollination).toBeDefined();
-      expect(plant.phenology.flowering.pollination?.type).toBe(
+      expect(plant.phenology.flowering.pollination?.types).toEqual([
         PollinationType.INSECT
-      );
+      ]);
     });
 
     it('should omit pollination when not present', () => {
       const dto = CreatePlantDtoMother.tomato();
 
-      delete dto.phenology.flowering.pollination;
-
       const plant = plantInputMapper.fromCreateDto(dto, USER);
 
       expect(plant.phenology.flowering.pollination).toBeUndefined();
+    });
+
+    it('should give a plant without flowering nor harvest no months', () => {
+      const dto = CreatePlantDtoMother.withoutFloweringNorHarvest();
+
+      const plant = plantInputMapper.fromCreateDto(dto, USER);
+
+      expect(plant.phenology.flowering.toPrimitives()).toEqual({ months: [] });
+      expect(plant.phenology.harvest.toPrimitives()).toEqual({ months: [] });
     });
 
     it('should map optional identity fields', () => {
@@ -65,16 +72,16 @@ describe('PlantInputMapper', () => {
 
       const plant = plantInputMapper.fromCreateDto(dto, USER);
 
-      expect(plant.identity.scientificName).toBe(dto.identity.scientificName);
+      expect(plant.identity.name.aliases).toEqual(dto.identity.name.aliases);
     });
 
-    it('should fallback to empty knowledge when not provided', () => {
+    it('should map the required identity and knowledge fields', () => {
       const dto = CreatePlantDtoMother.tomato();
-      delete dto.knowledge;
 
       const plant = plantInputMapper.fromCreateDto(dto, USER);
 
-      expect(plant.knowledge).toBeDefined();
+      expect(plant.identity.scientificName).toBe(dto.identity.scientificName);
+      expect(plant.knowledge?.toPrimitives()).toEqual(dto.knowledge);
     });
 
     it('should set metadata with user', () => {
@@ -87,55 +94,28 @@ describe('PlantInputMapper', () => {
   });
 
   describe('toChanges', () => {
-    it('should carry only given name.primary trimmed', () => {
+    it('should carry only the given identity fields', () => {
       const changes = plantInputMapper.toChanges({
-        identity: { name: { primary: '  Tomate  ' } }
+        identity: { name: { primary: 'Tomate' } }
       });
 
       expect(changes.identity?.name?.primary).toBe('Tomate');
       expect(changes.identity?.family).toBeUndefined();
     });
 
-    it('should keep name.primary empty after trim so the domain can reject it', () => {
-      const changes = plantInputMapper.toChanges({
-        identity: { name: { primary: '   ' } }
-      });
+    it.each([
+      ['name.primary', { name: { primary: '  Tomate  ' } }],
+      ['name.aliases', { name: { aliases: [' tomatera ', '  ', 'cherry'] } }],
+      ['scientificName', { scientificName: '   ' }],
+      ['family', { family: '  abc-123  ' }]
+    ])(
+      'should pass %s as sent (PlantIdentity trims and validates it)',
+      (_, identity) => {
+        const changes = plantInputMapper.toChanges({ identity });
 
-      expect(changes.identity?.name?.primary).toBe('');
-    });
-
-    it('should pass aliases through untouched (the domain trims them)', () => {
-      const aliases = [' tomatera ', '  ', 'cherry'];
-      const changes = plantInputMapper.toChanges({
-        identity: { name: { aliases } }
-      });
-
-      expect(changes.identity?.name?.aliases).toEqual(aliases);
-    });
-
-    it('should keep scientificName empty after trim so the domain can reject it', () => {
-      const changes = plantInputMapper.toChanges({
-        identity: { scientificName: '   ' }
-      });
-
-      expect(changes.identity?.scientificName).toBe('');
-    });
-
-    it('should keep family empty after trim so the domain can reject it', () => {
-      const changes = plantInputMapper.toChanges({
-        identity: { family: '   ' }
-      });
-
-      expect(changes.identity?.family).toBe('');
-    });
-
-    it('should pass a valid family id trimmed', () => {
-      const changes = plantInputMapper.toChanges({
-        identity: { family: '  abc-123  ' }
-      });
-
-      expect(changes.identity?.family).toBe('abc-123');
-    });
+        expect(changes.identity).toEqual(identity);
+      }
+    );
 
     it('should pass a zero width when present (no validation)', () => {
       const changes = plantInputMapper.toChanges({
@@ -161,10 +141,104 @@ describe('PlantInputMapper', () => {
       expect(changes.phenology?.sowing?.months).toEqual([3, 4]);
     });
 
-    it('should drop flowering and harvest sections', () => {
-      const changes = plantInputMapper.toChanges({
-        phenology: { flowering: { months: [5] }, harvest: { months: [8] } }
+    it('should map phenology.flowering months', () => {
+      const dto = { phenology: { flowering: { months: [5, 6] } } };
+
+      const changes = plantInputMapper.toChanges(dto);
+
+      expect(changes.phenology?.flowering?.months).toEqual([5, 6]);
+    });
+
+    it('should map phenology.flowering pollination types and agents', () => {
+      const dto = {
+        phenology: {
+          flowering: {
+            pollination: {
+              types: [PollinationType.INSECT],
+              agents: ['bee']
+            }
+          }
+        }
+      };
+
+      const changes = plantInputMapper.toChanges(dto);
+
+      expect(changes.phenology?.flowering?.pollination).toEqual({
+        types: [PollinationType.INSECT],
+        agents: ['bee']
       });
+    });
+
+    it('should map phenology.harvest months', () => {
+      const dto = { phenology: { harvest: { months: [8, 9] } } };
+
+      const changes = plantInputMapper.toChanges(dto);
+
+      expect(changes.phenology?.harvest?.months).toEqual([8, 9]);
+    });
+
+    it('should map phenology.harvest description', () => {
+      const dto = {
+        phenology: { harvest: { description: 'Harvest when ripe' } }
+      };
+
+      const changes = plantInputMapper.toChanges(dto);
+
+      expect(changes.phenology?.harvest?.description).toBe('Harvest when ripe');
+    });
+
+    it('should pass null removals through to the domain', () => {
+      const dto = {
+        identity: { name: { aliases: null } },
+        phenology: {
+          sowing: { methods: { starter: null } },
+          flowering: { pollination: null },
+          harvest: { description: null }
+        }
+      };
+
+      const changes = plantInputMapper.toChanges(dto);
+
+      expect(changes.identity?.name?.aliases).toBeNull();
+      expect(changes.phenology?.sowing?.methods?.starter).toBeNull();
+      expect(changes.phenology?.flowering?.pollination).toBeNull();
+      expect(changes.phenology?.harvest?.description).toBeNull();
+    });
+
+    it('should pass null pollination agents through to the domain', () => {
+      const dto = {
+        phenology: { flowering: { pollination: { agents: null } } }
+      };
+
+      const changes = plantInputMapper.toChanges(dto);
+
+      expect(changes.phenology?.flowering?.pollination).toEqual({
+        agents: null
+      });
+    });
+
+    it('should map sowing, flowering, and harvest together in phenology', () => {
+      const dto = {
+        phenology: {
+          sowing: { months: [3, 4] },
+          flowering: { months: [5, 6] },
+          harvest: { months: [7, 8] }
+        }
+      };
+
+      const changes = plantInputMapper.toChanges(dto);
+
+      expect(changes.phenology).toEqual({
+        sowing: { months: [3, 4] },
+        flowering: { months: [5, 6] },
+        harvest: { months: [7, 8] }
+      });
+    });
+
+    it('should omit phenology when empty phenology object is provided', () => {
+      const dto = { phenology: {} };
+
+      const changes = plantInputMapper.toChanges(dto);
 
       expect(changes.phenology).toBeUndefined();
     });

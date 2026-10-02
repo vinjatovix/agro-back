@@ -1,4 +1,3 @@
-import { MonthSet } from '../../../../shared/domain/value-objects/MonthSet.js';
 import { Range } from '../../../../shared/domain/value-objects/Range.js';
 import { Metadata } from '../../../shared/domain/valueObject/Metadata.js';
 import type { CreatePlantDto } from '../application/useCases/interfaces/CreatePlantDto.js';
@@ -6,24 +5,31 @@ import type { UpdatePlantDto } from '../application/useCases/interfaces/UpdatePl
 import { Plant } from '../domain/entities/Plant.js';
 import type {
   PlantChanges,
+  PlantFloweringChanges,
+  PlantHarvestChanges,
   PlantIdentityChanges,
+  PlantPhenologyChanges,
+  PlantProps,
   PlantSowingChanges,
   PlantTraitsChanges
 } from '../domain/entities/types/index.js';
-import type { PlantProps } from '../domain/entities/types/PlantProps.js';
 import { createPlantId } from '../domain/PlantId.js';
-import { PlantKnowledge } from '../domain/value-objects/PlantKnowledge.js';
-import { PlantLifecycle } from '../domain/value-objects/PlantLifecycle.js';
-import { PlantSowing } from '../domain/value-objects/PlantSowing.js';
+import {
+  PlantFlowering,
+  PlantHarvest,
+  PlantIdentity,
+  PlantLifecycle,
+  PlantPhenology,
+  PlantSowing
+} from '../domain/value-objects/index.js';
 import type { PlantInputMapper } from './interfaces/PlantInputMapper.js';
-import { plantIdentityMapper } from './plantIdentityMapper.js';
 import { plantKnowledgeMapper } from './plantKnowledgeMapper.js';
 
 function buildNameChanges(
   name: NonNullable<NonNullable<UpdatePlantDto['identity']>['name']>
-): { primary?: string; aliases?: string[] } {
-  const result: { primary?: string; aliases?: string[] } = {};
-  if (name.primary !== undefined) result.primary = name.primary.trim();
+): NonNullable<PlantIdentityChanges['name']> {
+  const result: NonNullable<PlantIdentityChanges['name']> = {};
+  if (name.primary !== undefined) result.primary = name.primary;
   if (name.aliases !== undefined) {
     result.aliases = name.aliases;
   }
@@ -38,10 +44,10 @@ function buildIdentityChanges(dto: UpdatePlantDto): PlantIdentityChanges {
     const name = buildNameChanges(src.name);
     if (Object.keys(name).length) identity.name = name;
   }
-  // Trimmed but never dropped: an empty value reaches the domain, which rejects it.
+  // Passed as sent: `PlantIdentity` trims them and rejects a blank one.
   if (src.scientificName !== undefined)
-    identity.scientificName = src.scientificName.trim();
-  if (src.family !== undefined) identity.family = src.family.trim();
+    identity.scientificName = src.scientificName;
+  if (src.family !== undefined) identity.family = src.family;
   return identity;
 }
 
@@ -65,11 +71,11 @@ function buildSowingMethods(
 ): NonNullable<PlantSowingChanges['methods']> {
   const methods: NonNullable<PlantSowingChanges['methods']> = {};
   if (s.methods?.direct) methods.direct = s.methods.direct;
-  if (s.methods?.starter) methods.starter = s.methods.starter;
+  if (s.methods?.starter !== undefined) methods.starter = s.methods.starter;
   return methods;
 }
 
-function buildPhenologyChanges(
+function buildSowingChanges(
   dto: UpdatePlantDto
 ): PlantSowingChanges | undefined {
   if (!dto.phenology?.sowing) return undefined;
@@ -85,31 +91,67 @@ function buildPhenologyChanges(
   return Object.keys(sowing).length ? sowing : undefined;
 }
 
+function buildFloweringChanges(
+  dto: UpdatePlantDto
+): PlantFloweringChanges | undefined {
+  if (!dto.phenology?.flowering) return undefined;
+  const f = dto.phenology.flowering;
+  const flowering: PlantFloweringChanges = {};
+  if (f.months) flowering.months = f.months;
+  if (f.pollination === null) flowering.pollination = null;
+  else if (f.pollination) {
+    const pollination: NonNullable<PlantFloweringChanges['pollination']> = {};
+    if (f.pollination.types) pollination.types = f.pollination.types;
+    if (f.pollination.agents !== undefined)
+      pollination.agents = f.pollination.agents;
+    if (Object.keys(pollination).length) flowering.pollination = pollination;
+  }
+  return Object.keys(flowering).length ? flowering : undefined;
+}
+
+function buildHarvestChanges(
+  dto: UpdatePlantDto
+): PlantHarvestChanges | undefined {
+  if (!dto.phenology?.harvest) return undefined;
+  const h = dto.phenology.harvest;
+  const harvest: PlantHarvestChanges = {};
+  if (h.months) harvest.months = h.months;
+  if (h.description !== undefined) harvest.description = h.description;
+  return Object.keys(harvest).length ? harvest : undefined;
+}
+
+function buildPhenologyChanges(
+  dto: UpdatePlantDto
+): PlantPhenologyChanges | undefined {
+  if (!dto.phenology) return undefined;
+  const phenology: PlantPhenologyChanges = {};
+  const sowing = buildSowingChanges(dto);
+  if (sowing) phenology.sowing = sowing;
+  const flowering = buildFloweringChanges(dto);
+  if (flowering) phenology.flowering = flowering;
+  const harvest = buildHarvestChanges(dto);
+  if (harvest) phenology.harvest = harvest;
+  return Object.keys(phenology).length ? phenology : undefined;
+}
+
 export const plantInputMapper: PlantInputMapper = {
   fromCreateDto(dto: CreatePlantDto, user = 'system'): Plant {
-    const phenology = {
-      sowing: PlantSowing.fromPrimitives(dto.phenology.sowing),
-      flowering: {
-        months: MonthSet.fromArray(dto.phenology.flowering.months),
-        ...(dto.phenology.flowering.pollination && {
-          pollination: dto.phenology.flowering.pollination
-        })
-      },
-      harvest: {
-        months: MonthSet.fromArray(dto.phenology.harvest.months),
-        ...(dto.phenology.harvest.description && {
-          description: dto.phenology.harvest.description
-        })
-      }
-    };
+    const { sowing, flowering, harvest } = dto.phenology;
+    const phenology = new PlantPhenology({
+      sowing: PlantSowing.fromPrimitives(sowing),
+      flowering: flowering
+        ? PlantFlowering.fromPrimitives(flowering)
+        : PlantFlowering.never(),
+      harvest: harvest
+        ? PlantHarvest.fromPrimitives(harvest)
+        : PlantHarvest.never()
+    });
 
-    const knowledge = dto.knowledge
-      ? plantKnowledgeMapper.fromPrimitives(dto.knowledge)
-      : PlantKnowledge.empty();
+    const knowledge = plantKnowledgeMapper.fromPrimitives(dto.knowledge);
 
     const props: PlantProps = {
       id: createPlantId(dto.id),
-      identity: plantIdentityMapper.fromPrimitives(dto.identity),
+      identity: PlantIdentity.fromPrimitives(dto.identity),
       traits: {
         lifecycle: PlantLifecycle.from(dto.traits.lifecycle),
         size: {
@@ -123,7 +165,7 @@ export const plantInputMapper: PlantInputMapper = {
       metadata: Metadata.create(user)
     };
 
-    return Plant.create(props);
+    return new Plant(props);
   },
 
   toChanges(dto: UpdatePlantDto): PlantChanges {
@@ -139,8 +181,8 @@ export const plantInputMapper: PlantInputMapper = {
       if (Object.keys(traits).length) result.traits = traits;
     }
 
-    const sowing = buildPhenologyChanges(dto);
-    if (sowing) result.phenology = { sowing };
+    const phenology = buildPhenologyChanges(dto);
+    if (phenology) result.phenology = phenology;
 
     if (dto.knowledge) result.knowledge = dto.knowledge;
 

@@ -1,17 +1,13 @@
 import { type NextFunction, type Request, type Response } from 'express';
 
-import type { UpdatePlantDto } from '../../../../Contexts/Agro/Plants/application/useCases/interfaces/UpdatePlantDto.js';
 import type { UpdatePlant } from '../../../../Contexts/Agro/Plants/application/useCases/UpdatePlant.js';
 import { plantDomainMapper } from '../../../../Contexts/Agro/Plants/mappers/plantDomainMapper.js';
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
-import { createError } from '../../../../shared/errors/index.js';
 import { getExpectedVersion } from '../../middlewares/requireIfMatch.js';
+import { getValidatedRequest } from '../../middlewares/validateRequest.js';
 import { HttpController } from '../../shared/HttpController.js';
 import { setVersionETag } from '../../shared/setVersionETag.js';
-
-type UpdatePlantParams = {
-  id: string;
-};
+import { updatePlantRequest } from './requestSchemas.js';
 
 export type UpdatePlantControllerDependencies = {
   updatePlant: UpdatePlant;
@@ -25,21 +21,20 @@ export class UpdatePlantController extends HttpController {
   }
 
   run = async (
-    req: Request<UpdatePlantParams>,
+    _req: Request,
     res: Response,
     next: NextFunction
-  ) => {
+  ): Promise<void> => {
     try {
-      const { id } = req.params;
-      if (!id) {
-        throw createError.badRequest('Plant ID is required');
-      }
-      const dto = req.body as UpdatePlantDto;
+      const { params, body: dto } = getValidatedRequest(
+        res,
+        updatePlantRequest
+      );
 
       const user = res.locals.user as UserSessionInfo;
 
       const result = await this.updatePlant.execute(
-        { ...dto, id },
+        { ...dto, id: params.id },
         user.username,
         getExpectedVersion(res)
       );

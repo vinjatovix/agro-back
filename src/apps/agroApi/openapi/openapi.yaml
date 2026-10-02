@@ -1014,6 +1014,8 @@ components:
                 type: string
           additionalProperties: false
     # ================= PLANT =================
+    # Shared pieces are published once and reused by the response, create and
+    # update schemas. Size limits mirror the request validation.
 
     Plant:
       type: object
@@ -1028,113 +1030,65 @@ components:
           readOnly: true
 
         identity:
-          type: object
-          required: [name, family]
-          properties:
-            name:
-              type: object
-              required: [primary]
-              properties:
-                primary:
-                  type: string
-                aliases:
-                  type: array
-                  items:
-                    type: string
-            scientificName:
-              type: string
-              nullable: true
-            family:
-              type: string
+          $ref: '#/components/schemas/PlantIdentity'
 
         traits:
-          type: object
-          required: [lifecycle, size, spacingCm]
-          properties:
-            lifecycle:
-              type: string
-              enum: [annual, biennial, perennial]
-
-            size:
-              type: object
-              properties:
-                height:
-                  $ref: '#/components/schemas/Range'
-                spread:
-                  $ref: '#/components/schemas/Range'
-
-            spacingCm:
-              $ref: '#/components/schemas/Range'
+          $ref: '#/components/schemas/PlantTraits'
 
         phenology:
           type: object
+          required: [sowing, flowering, harvest]
           properties:
             sowing:
-              type: object
-              required: [months, seedsPerHole, germinationDays, methods]
-              properties:
-                months:
-                  type: array
-                  items:
-                    type: number
-
-                seedsPerHole:
-                  $ref: '#/components/schemas/Range'
-
-                germinationDays:
-                  $ref: '#/components/schemas/Range'
-
-                methods:
-                  type: object
-                  required: [direct]
-                  properties:
-                    direct:
-                      type: object
-                      required: [depthCm]
-                      properties:
-                        depthCm:
-                          $ref: '#/components/schemas/Range'
-                    starter:
-                      type: object
-                      properties:
-                        depthCm:
-                          $ref: '#/components/schemas/Range'
-
+              $ref: '#/components/schemas/PlantSowing'
             flowering:
-              type: object
-              properties:
-                months:
-                  type: array
-                  items:
-                    type: number
-                pollination:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    agents:
-                      type: array
-                      items:
-                        type: string
-
+              $ref: '#/components/schemas/PlantFlowering'
             harvest:
-              type: object
-              properties:
-                months:
-                  type: array
-                  items:
-                    type: number
-                description:
-                  type: string
+              $ref: '#/components/schemas/PlantHarvest'
 
         knowledge:
           $ref: '#/components/schemas/PlantKnowledge'
 
     CreatePlant:
-      $ref: '#/components/schemas/Plant'
+      type: object
+      required: [id, identity, traits, phenology, knowledge]
+      properties:
+        id:
+          type: string
+          format: uuid
+        identity:
+          $ref: '#/components/schemas/PlantIdentity'
+        traits:
+          $ref: '#/components/schemas/PlantTraits'
+        phenology:
+          type: object
+          description: >-
+            Every plant is sown. `flowering` and `harvest` may be left out for
+            plants that never flower or are not harvested.
+          required: [sowing]
+          properties:
+            sowing:
+              $ref: '#/components/schemas/PlantSowing'
+            flowering:
+              $ref: '#/components/schemas/PlantFlowering'
+            harvest:
+              $ref: '#/components/schemas/PlantHarvest'
+        knowledge:
+          allOf:
+            - $ref: '#/components/schemas/PlantKnowledge'
+            - type: object
+              required: [rootSystem, soil, light, propagation]
 
+    # Nullable fields declare their own `type` instead of reusing a shared
+    # schema: OpenAPI 3.0.3 ignores `nullable` without `type` in the same
+    # object, so `allOf` + `nullable` would not accept `null`.
     UpdatePlant:
       type: object
+      description: >-
+        Partial update. An absent field is kept; `null` removes an optional
+        field (JSON Merge Patch, RFC 7396). Required fields reject `null`.
+        Ranges may carry a single bound, merged into the stored one. An
+        empty body `{}` changes nothing; `If-Match` is still checked.
       properties:
         identity:
           type: object
@@ -1143,31 +1097,32 @@ components:
               type: object
               properties:
                 primary:
-                  type: string
+                  $ref: '#/components/schemas/RequiredShortText'
                 aliases:
                   type: array
+                  nullable: true
+                  maxItems: 50
                   items:
-                    type: string
+                    $ref: '#/components/schemas/ShortText'
             scientificName:
-              type: string
+              $ref: '#/components/schemas/RequiredShortText'
             family:
-              type: string
+              $ref: '#/components/schemas/RequiredShortText'
 
         traits:
           type: object
           properties:
             lifecycle:
-              type: string
-              enum: [annual, biennial, perennial]
+              $ref: '#/components/schemas/PlantLifecycle'
             size:
               type: object
               properties:
                 height:
-                  $ref: '#/components/schemas/Range'
+                  $ref: '#/components/schemas/PartialRange'
                 spread:
-                  $ref: '#/components/schemas/Range'
+                  $ref: '#/components/schemas/PartialRange'
             spacingCm:
-              $ref: '#/components/schemas/Range'
+              $ref: '#/components/schemas/PartialRange'
 
         phenology:
           type: object
@@ -1176,57 +1131,284 @@ components:
               type: object
               properties:
                 months:
-                  type: array
-                  items:
-                    type: number
+                  allOf:
+                    - $ref: '#/components/schemas/Months'
+                  minItems: 1
                 seedsPerHole:
-                  $ref: '#/components/schemas/Range'
+                  $ref: '#/components/schemas/PartialRange'
                 germinationDays:
-                  $ref: '#/components/schemas/Range'
+                  $ref: '#/components/schemas/PartialRange'
                 methods:
                   type: object
                   properties:
                     direct:
                       type: object
-                      required: [depthCm]
                       properties:
                         depthCm:
-                          $ref: '#/components/schemas/Range'
+                          $ref: '#/components/schemas/PartialRange'
                     starter:
                       type: object
+                      nullable: true
                       properties:
                         depthCm:
-                          $ref: '#/components/schemas/Range'
+                          $ref: '#/components/schemas/PartialRange'
 
             flowering:
               type: object
               properties:
                 months:
-                  type: array
-                  items:
-                    type: number
+                  $ref: '#/components/schemas/Months'
                 pollination:
                   type: object
+                  nullable: true
+                  description: >-
+                    Merged into the stored pollination: `types` replaces the
+                    list, and a new pollination without `types` is rejected.
+                    The agents are kept while an insect, bird or bat type
+                    remains: `types` without any of them drops the stored
+                    agents, and sending `agents` with it is rejected.
+                    `pollination: null` removes the whole pollination;
+                    `agents: null` removes only the agents.
                   properties:
-                    type:
-                      type: string
+                    types:
+                      $ref: '#/components/schemas/PollinationTypes'
                     agents:
                       type: array
+                      nullable: true
+                      maxItems: 50
                       items:
-                        type: string
+                        $ref: '#/components/schemas/ShortText'
 
             harvest:
               type: object
               properties:
                 months:
-                  type: array
-                  items:
-                    type: number
+                  $ref: '#/components/schemas/Months'
                 description:
                   type: string
+                  nullable: true
+                  description: Optional, but never blank when given.
+                  minLength: 1
+                  maxLength: 2000
+                  pattern: '\S'
 
         knowledge:
-          $ref: '#/components/schemas/PlantKnowledge'
+          $ref: '#/components/schemas/UpdatePlantKnowledge'
+
+    UpdatePlantKnowledge:
+      type: object
+      properties:
+        soil:
+          type: object
+          properties:
+            ph:
+              $ref: '#/components/schemas/PartialRange'
+            availableDepthCm:
+              $ref: '#/components/schemas/PartialRange'
+        rootSystem:
+          type: object
+          properties:
+            type:
+              $ref: '#/components/schemas/RequiredShortText'
+            depthCm:
+              $ref: '#/components/schemas/PartialRange'
+            spreadCm:
+              $ref: '#/components/schemas/PartialRange'
+        watering:
+          type: object
+          nullable: true
+          properties:
+            frequency:
+              $ref: '#/components/schemas/RequiredShortText'
+            conditions:
+              type: array
+              nullable: true
+              maxItems: 50
+              items:
+                type: string
+                maxLength: 2000
+        light:
+          type: object
+          properties:
+            hoursMin:
+              type: number
+              minimum: 0
+              maximum: 24
+              description: Hours of light a day.
+            type:
+              $ref: '#/components/schemas/RequiredShortText'
+            preference:
+              type: string
+              nullable: true
+              maxLength: 200
+        pruning:
+          type: array
+          nullable: true
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/PruningEntry'
+        propagation:
+          type: object
+          properties:
+            methods:
+              type: object
+              description: >-
+                Methods keyed by camelCase name; `null` removes that method.
+              maxProperties: 20
+              additionalProperties:
+                type: object
+                nullable: true
+                properties:
+                  seasons:
+                    type: array
+                    nullable: true
+                    minItems: 1
+                    maxItems: 4
+                    uniqueItems: true
+                    items:
+                      $ref: '#/components/schemas/Season'
+                  estimatedTimeWeeks:
+                    type: object
+                    nullable: true
+                    properties:
+                      min:
+                        type: number
+                      max:
+                        type: number
+                  bestPractices:
+                    type: array
+                    nullable: true
+                    maxItems: 50
+                    items:
+                      type: string
+                      maxLength: 2000
+        ecology:
+          type: object
+          nullable: true
+          properties:
+            strategicBenefits:
+              type: array
+              nullable: true
+              maxItems: 50
+              items:
+                type: string
+                maxLength: 2000
+        resources:
+          type: array
+          nullable: true
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/PlantResource'
+        notes:
+          type: array
+          nullable: true
+          maxItems: 50
+          items:
+            type: string
+            maxLength: 2000
+
+    PlantIdentity:
+      type: object
+      required: [name, scientificName, family]
+      properties:
+        name:
+          type: object
+          required: [primary]
+          properties:
+            primary:
+              $ref: '#/components/schemas/RequiredShortText'
+            aliases:
+              $ref: '#/components/schemas/ShortTextList'
+        scientificName:
+          $ref: '#/components/schemas/RequiredShortText'
+        family:
+          $ref: '#/components/schemas/RequiredShortText'
+
+    PlantLifecycle:
+      type: string
+      enum: [annual, biennial, perennial]
+
+    PlantTraits:
+      type: object
+      required: [lifecycle, size, spacingCm]
+      properties:
+        lifecycle:
+          $ref: '#/components/schemas/PlantLifecycle'
+        size:
+          type: object
+          required: [height, spread]
+          properties:
+            height:
+              $ref: '#/components/schemas/Range'
+            spread:
+              $ref: '#/components/schemas/Range'
+        spacingCm:
+          $ref: '#/components/schemas/Range'
+
+    PlantSowing:
+      type: object
+      required: [months, seedsPerHole, germinationDays, methods]
+      properties:
+        months:
+          allOf:
+            - $ref: '#/components/schemas/Months'
+          minItems: 1
+        seedsPerHole:
+          $ref: '#/components/schemas/Range'
+        germinationDays:
+          $ref: '#/components/schemas/Range'
+        methods:
+          type: object
+          required: [direct]
+          properties:
+            direct:
+              $ref: '#/components/schemas/SowingMethod'
+            starter:
+              $ref: '#/components/schemas/SowingMethod'
+
+    SowingMethod:
+      type: object
+      required: [depthCm]
+      properties:
+        depthCm:
+          $ref: '#/components/schemas/Range'
+
+    PlantFlowering:
+      type: object
+      description: No months for a plant that never flowers.
+      required: [months]
+      properties:
+        months:
+          $ref: '#/components/schemas/Months'
+        pollination:
+          type: object
+          description: >-
+            Types do not repeat. Agents need an insect, bird or bat type; an
+            empty list is no agents. A plant that is not pollinated (spores,
+            sterile…) has no pollination.
+          required: [types]
+          properties:
+            types:
+              $ref: '#/components/schemas/PollinationTypes'
+            agents:
+              $ref: '#/components/schemas/ShortTextList'
+
+    PlantHarvest:
+      type: object
+      description: No months for a plant that is not harvested.
+      required: [months]
+      properties:
+        months:
+          $ref: '#/components/schemas/Months'
+        description:
+          $ref: '#/components/schemas/HarvestDescription'
+
+    HarvestDescription:
+      type: string
+      description: Optional, but never blank when given.
+      minLength: 1
+      maxLength: 2000
+      pattern: '\S'
 
     # ================= KNOWLEDGE =================
 
@@ -1236,6 +1418,7 @@ components:
       properties:
         soil:
           type: object
+          required: [ph, availableDepthCm]
           properties:
             ph:
               $ref: '#/components/schemas/Range'
@@ -1244,9 +1427,10 @@ components:
 
         rootSystem:
           type: object
+          required: [type, depthCm, spreadCm]
           properties:
             type:
-              type: string
+              $ref: '#/components/schemas/RequiredShortText'
             depthCm:
               $ref: '#/components/schemas/Range'
             spreadCm:
@@ -1254,72 +1438,172 @@ components:
 
         watering:
           type: object
+          required: [frequency]
           properties:
             frequency:
-              type: string
+              $ref: '#/components/schemas/RequiredShortText'
             conditions:
-              type: array
-              items:
-                type: string
+              $ref: '#/components/schemas/LongTextList'
 
         light:
           type: object
+          required: [hoursMin, type]
           properties:
             hoursMin:
               type: number
+              minimum: 0
+              maximum: 24
+              description: Hours of light a day.
             type:
-              type: string
+              $ref: '#/components/schemas/RequiredShortText'
             preference:
-              type: string
+              $ref: '#/components/schemas/ShortText'
 
         pruning:
           type: array
+          maxItems: 50
           items:
-            type: object
-            properties:
-              type:
-                type: string
-              intensity:
-                type: string
-              season:
-                type: string
-              frequencyPerYear:
-                type: number
+            $ref: '#/components/schemas/PruningEntry'
 
         propagation:
-          type: object
-          additionalProperties: true
+          $ref: '#/components/schemas/PlantPropagation'
 
         ecology:
           type: object
           properties:
             strategicBenefits:
-              type: array
-              items:
-                type: string
+              $ref: '#/components/schemas/LongTextList'
 
         resources:
           type: array
+          maxItems: 50
           items:
-            type: object
-            properties:
-              type:
-                type: string
-              url:
-                type: string
-              title:
-                type: string
-              source:
-                type: string
-              tags:
-                type: array
-                items:
-                  type: string
+            $ref: '#/components/schemas/PlantResource'
 
         notes:
-          type: array
-          items:
-            type: string
+          $ref: '#/components/schemas/LongTextList'
+
+    PartialRange:
+      type: object
+      description: Either bound may be sent alone; it is merged by the domain.
+      properties:
+        min:
+          type: number
+        max:
+          type: number
+
+    Month:
+      type: integer
+      minimum: 1
+      maximum: 12
+
+    Months:
+      type: array
+      maxItems: 12
+      items:
+        $ref: '#/components/schemas/Month'
+
+    PollinationType:
+      type: string
+      enum: [insect, wind, self, water, bird, bat]
+
+    PollinationTypes:
+      type: array
+      minItems: 1
+      maxItems: 6
+      uniqueItems: true
+      items:
+        $ref: '#/components/schemas/PollinationType'
+
+    Season:
+      type: string
+      enum: [spring, summer, autumn, winter]
+
+    Seasons:
+      type: array
+      minItems: 1
+      maxItems: 4
+      uniqueItems: true
+      items:
+        $ref: '#/components/schemas/Season'
+
+    ShortText:
+      type: string
+      maxLength: 200
+
+    RequiredShortText:
+      type: string
+      minLength: 1
+      maxLength: 200
+      pattern: '\S'
+
+    ShortTextList:
+      type: array
+      maxItems: 50
+      items:
+        $ref: '#/components/schemas/ShortText'
+
+    LongTextList:
+      type: array
+      maxItems: 50
+      items:
+        type: string
+        maxLength: 2000
+
+    PruningEntry:
+      type: object
+      required: [type, intensity, seasons, frequencyPerYear]
+      properties:
+        type:
+          $ref: '#/components/schemas/RequiredShortText'
+        intensity:
+          $ref: '#/components/schemas/RequiredShortText'
+        seasons:
+          $ref: '#/components/schemas/Seasons'
+        frequencyPerYear:
+          type: number
+          minimum: 0
+          exclusiveMinimum: true
+          description: Prunings per year; 0.5 is once every two years.
+        bestPractices:
+          $ref: '#/components/schemas/LongTextList'
+
+    PlantPropagation:
+      type: object
+      required: [methods]
+      properties:
+        methods:
+          type: object
+          description: Propagation methods keyed by camelCase method name.
+          maxProperties: 20
+          additionalProperties:
+            type: object
+            properties:
+              seasons:
+                $ref: '#/components/schemas/Seasons'
+              estimatedTimeWeeks:
+                $ref: '#/components/schemas/Range'
+              bestPractices:
+                $ref: '#/components/schemas/LongTextList'
+
+    PlantResource:
+      type: object
+      required: [type, url]
+      properties:
+        type:
+          $ref: '#/components/schemas/RequiredShortText'
+        url:
+          type: string
+          format: uri
+          description: Absolute `http` or `https` URL.
+          pattern: '^https?://'
+          maxLength: 2048
+        title:
+          $ref: '#/components/schemas/ShortText'
+        source:
+          $ref: '#/components/schemas/ShortText'
+        tags:
+          $ref: '#/components/schemas/ShortTextList'
 
     # ================= BEDS =================
 

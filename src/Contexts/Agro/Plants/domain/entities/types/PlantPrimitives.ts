@@ -26,7 +26,7 @@ export type PlantPrimitives = {
     flowering: {
       months: number[];
       pollination?: {
-        type: PollinationType;
+        types: PollinationType[];
         agents?: string[];
       };
     };

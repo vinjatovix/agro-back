@@ -4,6 +4,7 @@ import type { PlantRepository } from '../../../../../src/Contexts/Agro/Plants/do
 import { plantDomainMapper } from '../../../../../src/Contexts/Agro/Plants/mappers/plantDomainMapper.js';
 import { DomainNotFoundException } from '../../../../../src/Contexts/shared/domain/errors/index.js';
 import type { WriteOutcome } from '../../../../../src/Contexts/shared/domain/repositories/WriteOutcome.js';
+import type { PaginatedResult } from '../../../../../src/shared/domain/query/interfaces/PaginatedResult.js';
 import type { Nullable } from '../../../../../src/shared/domain/types/Nullable.js';
 import { PlantFactory } from '../../Plants/domain/mothers/PlantFactory.js';
 
@@ -28,11 +29,17 @@ export class InMemoryPlantRepository implements PlantRepository {
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
-  async findAll(): Promise<{ data: Plant[]; total: number }> {
+  async findAll(): Promise<PaginatedResult<Plant>> {
     const plantsArray = Array.from(this.plants.values());
+    // A single page holding every plant.
     return {
       data: plantsArray,
-      total: plantsArray.length
+      pagination: {
+        page: 1,
+        limit: plantsArray.length,
+        totalPages: plantsArray.length > 0 ? 1 : 0,
+        totalItems: plantsArray.length
+      }
     };
   }
 

@@ -1,10 +1,19 @@
 import type { PartialRange } from '../../../../../../shared/domain/value-objects/interfaces/PartialRange.js';
+import type { PlantKnowledgePrimitives } from './PlantKnowledgePrimitives.js';
 import type { PlantLightPrimitives } from './PlantLightPrimitives.js';
 import type { PruningTypePrimitives } from './PruningPrimitves.js';
 import type { RootSystemType } from './RootSystemType.js';
 import type { Seasons } from './Seasons.js';
 import type { WateringFrequency } from './WateringFrequency.js';
 
+export type PropagationMethodChanges = {
+  seasons?: Seasons[] | null;
+  estimatedTimeWeeks?: PartialRange | null;
+  bestPractices?: string[] | null;
+};
+
+// PATCH semantics: an absent field is kept, `null` removes an optional one.
+// `rootSystem`, `soil`, `light` and `propagation` are required: never `null`.
 export type PlantKnowledgeChanges = {
   soil?: {
     ph?: PartialRange;
@@ -17,29 +26,21 @@ export type PlantKnowledgeChanges = {
   };
   watering?: {
     frequency?: WateringFrequency;
-    conditions?: string[];
+    conditions?: string[] | null;
+  } | null;
+  light?: {
+    hoursMin?: number;
+    type?: PlantLightPrimitives['type'];
+    preference?: NonNullable<PlantLightPrimitives['preference']> | null;
   };
-  light?: Partial<PlantLightPrimitives>;
-  pruning?: PruningTypePrimitives[];
+  pruning?: PruningTypePrimitives[] | null;
   propagation?: {
-    methods?: Record<
-      string,
-      {
-        season?: Seasons;
-        estimatedTimeWeeks?: PartialRange;
-        bestPractices?: string[];
-      }
-    >;
+    // `null` for a method removes that method.
+    methods?: Record<string, PropagationMethodChanges | null>;
   };
   ecology?: {
-    strategicBenefits?: string[];
-  };
-  resources?: Array<{
-    type: 'image' | 'article' | 'video' | (string & {});
-    url: string;
-    title?: string;
-    source?: string;
-    tags?: string[];
-  }>;
-  notes?: string[];
+    strategicBenefits?: string[] | null;
+  } | null;
+  resources?: NonNullable<PlantKnowledgePrimitives['resources']> | null;
+  notes?: string[] | null;
 };

@@ -11,6 +11,7 @@ import {
   TreatmentTargetValues
 } from '../../../../../../src/Contexts/Agro/Events/domain/types/EventData.js';
 import type {
+  BaseEventDocument,
   FertilizationEventDocument,
   HarvestEventDocument,
   PruningEventDocument,
@@ -40,7 +41,7 @@ const DomainEventFactoryBase = {
 
 const toEventDocumentPrimitives = (
   base: ReturnType<typeof DomainEventFactoryBase.base>
-) => ({
+): BaseEventDocument => ({
   _id: base.id,
   plantInstanceId: base.plantInstanceId,
   bedId: base.bedId,
@@ -77,7 +78,7 @@ function createEventDocument<T extends keyof DocumentByType>(
   const base = toEventDocumentPrimitives(DomainEventFactoryBase.base());
 
   return {
-    ...(base as Omit<DocumentByType[T], 'type' | 'data'>),
+    ...base,
     type,
     data,
     ...(overrides as object)

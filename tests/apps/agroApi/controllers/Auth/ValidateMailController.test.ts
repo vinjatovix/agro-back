@@ -16,7 +16,7 @@ import {
   buildResponse,
   expectInternalErrorPassedTo,
   runWithValidation
-} from './fixtures/httpFakes.js';
+} from '../../shared/fixtures/httpFakes.js';
 
 const TOKEN = 'email-validation-token';
 

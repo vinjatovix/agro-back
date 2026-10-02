@@ -1,7 +1,4 @@
-import {
-  MonthSet,
-  Range
-} from '../../../../shared/domain/value-objects/index.js';
+import { Range } from '../../../../shared/domain/value-objects/index.js';
 import { Metadata } from '../../../shared/domain/valueObject/index.js';
 import type { CreatePlantDto } from '../application/useCases/interfaces/CreatePlantDto.js';
 import { Plant } from '../domain/entities/Plant.js';
@@ -12,11 +9,11 @@ import type {
 } from '../domain/entities/types/index.js';
 import { createPlantId } from '../domain/PlantId.js';
 import {
+  PlantIdentity,
   PlantKnowledge,
   PlantLifecycle,
-  PlantSowing
+  PlantPhenology
 } from '../domain/value-objects/index.js';
-import { plantIdentityMapper } from './plantIdentityMapper.js';
 import { plantKnowledgeMapper } from './plantKnowledgeMapper.js';
 
 export interface PlantMapper {
@@ -27,31 +24,13 @@ export interface PlantMapper {
 
 export const plantDomainMapper = {
   toPrimitives(plant: Plant): PlantPrimitives {
-    const phenology: PlantPrimitives['phenology'] = {
-      sowing: plant.phenology.sowing.toPrimitives(),
-      flowering: {
-        months: plant.phenology.flowering.months.toArray()
-      },
-      harvest: {
-        months: plant.phenology.harvest.months.toArray()
-      }
-    };
+    const phenology = plant.phenology.toPrimitives();
 
-    if (plant.phenology.flowering.pollination) {
-      phenology.flowering.pollination = plant.phenology.flowering.pollination;
-    }
-
-    if (plant.phenology.harvest.description) {
-      phenology.harvest.description = plant.phenology.harvest.description;
-    }
-
-    const knowledge = plantKnowledgeMapper.toPrimitives(
-      plant.knowledge ?? PlantKnowledge.empty()
-    );
+    const knowledge = plantKnowledgeMapper.toPrimitives(plant.knowledge);
 
     return {
       id: plant.id,
-      identity: plantIdentityMapper.toPrimitives(plant.identity),
+      identity: plant.identity.toPrimitives(),
       traits: {
         lifecycle: plant.traits.lifecycle.getValue(),
         size: {
@@ -70,29 +49,11 @@ export const plantDomainMapper = {
   },
 
   fromPrimitives(primitives: PlantPrimitives): Plant {
-    const flowering = {
-      months: MonthSet.fromArray(primitives.phenology.flowering.months),
-      ...(primitives.phenology.flowering.pollination && {
-        pollination: primitives.phenology.flowering.pollination
-      })
-    };
-
-    const harvest = {
-      months: MonthSet.fromArray(primitives.phenology.harvest.months),
-      ...(primitives.phenology.harvest.description && {
-        description: primitives.phenology.harvest.description
-      })
-    };
-
-    const phenology = {
-      sowing: PlantSowing.fromPrimitives(primitives.phenology.sowing),
-      flowering,
-      harvest
-    };
+    const phenology = PlantPhenology.fromPrimitives(primitives.phenology);
 
     const props: PlantProps = {
       id: createPlantId(primitives.id),
-      identity: plantIdentityMapper.fromPrimitives(primitives.identity),
+      identity: PlantIdentity.fromPrimitives(primitives.identity),
       traits: {
         lifecycle: PlantLifecycle.from(primitives.traits.lifecycle),
         size: {

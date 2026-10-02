@@ -84,7 +84,8 @@ export const FamilyScenarios = {
     return {
       _id: toMongoId(random.uuid()),
       ...FAMILY_BASE_VALUES,
-      metadata: Metadata.create(USER).toPrimitives()
+      metadata: Metadata.create(USER).toPrimitives(),
+      version: 0
     };
   },
 
@@ -101,6 +102,7 @@ export const FamilyScenarios = {
     return {
       _id: toMongoId(random.uuid()),
       metadata: Metadata.create(USER).toPrimitives(),
+      version: 0,
       ...buildRandomPrimitives(),
       ...overrides
     };

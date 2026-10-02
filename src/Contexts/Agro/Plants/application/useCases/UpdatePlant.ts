@@ -31,7 +31,7 @@ export class UpdatePlant {
 
     const changes = plantInputMapper.toChanges(input);
 
-    await this.ensureFamilyExists(changes);
+    await this.ensureFamilyExists(plant, changes);
 
     const before = plantDomainMapper.toPrimitives(plant);
     // One timestamp for the whole request, whatever sections it touches.
@@ -50,17 +50,25 @@ export class UpdatePlant {
     return plant;
   }
 
-  private async ensureFamilyExists(changes: PlantChanges): Promise<void> {
-    if (changes.identity?.family) {
-      const familyExists = await this.familyRepository.exists(
-        changes.identity.family
-      );
+  /**
+   * A new family the changes point to must exist. `PlantIdentity` trims and
+   * validates it first, without touching the plant, so a blank or malformed
+   * id is rejected before the lookup. The current family is not looked up
+   * again.
+   */
+  private async ensureFamilyExists(
+    plant: Plant,
+    changes: PlantChanges
+  ): Promise<void> {
+    if (changes.identity?.family === undefined) return;
 
-      if (!familyExists) {
-        throw new InvalidArgumentException(
-          `Family with id ${changes.identity.family} does not exist`
-        );
-      }
+    const { family } = plant.identity.update(changes.identity);
+    if (family === plant.identity.family) return;
+
+    if (!(await this.familyRepository.exists(family))) {
+      throw new InvalidArgumentException(
+        `Family with id ${family} does not exist`
+      );
     }
   }
 }

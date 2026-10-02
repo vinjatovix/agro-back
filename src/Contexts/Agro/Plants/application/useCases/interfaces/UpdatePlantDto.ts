@@ -1,13 +1,15 @@
 import type { PartialRange } from '../../../../../../shared/domain/value-objects/interfaces/PartialRange.js';
 import type { PlantKnowledgeChanges } from '../../../domain/entities/types/PlantKnowledgeChanges.js';
 import type { PlantLifecycleValue } from '../../../domain/entities/types/PlantLifecycleValue.js';
+import type { PollinationType } from '../../../domain/entities/types/PollinationType.js';
 
 // Ranges are partial: PATCH may send a single bound, merged by the domain.
+// `null` removes an optional field; an absent one is kept.
 export interface UpdatePlantDto {
   identity?: {
     name?: {
       primary?: string;
-      aliases?: string[];
+      aliases?: string[] | null;
     };
     scientificName?: string;
     family?: string;
@@ -30,19 +32,19 @@ export interface UpdatePlantDto {
       germinationDays?: PartialRange;
       methods?: {
         direct?: { depthCm?: PartialRange };
-        starter?: { depthCm?: PartialRange };
+        starter?: { depthCm?: PartialRange } | null;
       };
     };
     flowering?: {
       months?: number[];
       pollination?: {
-        type: string;
-        agents?: string[];
-      };
+        types?: PollinationType[];
+        agents?: string[] | null;
+      } | null;
     };
     harvest?: {
       months?: number[];
-      description?: string;
+      description?: string | null;
     };
   };
 

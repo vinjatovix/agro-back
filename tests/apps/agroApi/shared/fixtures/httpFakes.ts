@@ -4,7 +4,7 @@ import httpStatus from 'http-status';
 import {
   validateRequest,
   type RequestSchemas
-} from '../../../../../../src/apps/agroApi/middlewares/validateRequest.js';
+} from '../../../../../src/apps/agroApi/middlewares/validateRequest.js';
 
 type RequestParts = {
   params?: unknown;

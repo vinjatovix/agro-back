@@ -175,6 +175,20 @@ describe('UpdatePlant use case', () => {
     repository.assertUpdateNotCalled();
   });
 
+  it('should not look up the family again when it is the current one', async () => {
+    const plant = PlantFactory.random();
+    repository.addToStorage(plant);
+    const existsSpy = jest.spyOn(familyRepository, 'exists');
+
+    await useCase.execute(
+      { id: plant.id, identity: { family: ` ${plant.identity.family} ` } },
+      'user-1',
+      CURRENT_VERSION
+    );
+
+    expect(existsSpy).not.toHaveBeenCalled();
+  });
+
   it('should throw InvalidArgumentException for unknown family before mutation', async () => {
     const plant = PlantFactory.random();
     repository.addToStorage(plant);
