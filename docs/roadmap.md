@@ -266,11 +266,26 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [family.md](spec/modules/family.md), [validation.md](spec/modules/validation.md)
 
+- **Status**: Done (2026-10-02)
 - **Value delivered**: Secures taxonomy catalog endpoints with strict typing.
 - **Definition of Done**: `express-validator` is retired for Families routes. Zod schemas are implemented.
-- **Pending here**:
-  - move the schemas from `routes/Family/reqSchemas.ts` to `controllers/Family/requestSchemas.ts` (pattern set in Iteration 10).
-  - move the update text rules applied in Iteration 7 by `Family.updateInformation` (`slug`, `name`, `scientificName`, `shortDescription` trimmed; empty or whitespace-only → `400`; `null` → `400`; aliases trimmed with empty entries dropped, as plant aliases are) into the Zod schema, and decide whether `highlights` follow the same alias rule.
+- **Implementation notes**: `POST`, `GET /:idOrSlug` and `PATCH /:idOrSlug` validate with Zod schemas in `controllers/Families/requestSchemas.ts` through `validateRequest`; controllers read `getValidatedRequest`, and `UpdateFamilyController` no longer checks `idOrSlug` by hand. `routes/Family/reqSchemas.ts` is removed and the Families routes no longer use `validateBody` (`PATCH` order unchanged: `auth → isAdmin → requireIfMatch → validateRequest`). The listing keeps its query parser (Iteration 14). The schemas check shape (trimmed required text with the shared limits, new shared `requiredLongTextSchema`/`trimmedLongTextSchema`, bounded typed lists, strict `extra`); the rules live in the domain: the `Family` constructor trims and rejects blank required text, normalises `aliases`, `highlights` and `extra.subfamilies` with the new shared `uniqueTextList` (`shared/domain/utils`) and `extra` with `familyExtra`, so create, load and update apply the same rules. OpenAPI `Family`, `CreateFamily`, `UpdateFamily` (+ `UpdateFamilyExtra`, `FamilyTextList`, `FamilyHighlights`, `FamilyExtra`, `RequiredLongText`) and the `idOrSlug` parameter (`pattern: '\S'`) match. Pre-release check: no stored family fails the stricter rules (0 of 69 local families).
+- **Behavior changes**:
+  - creation trims required text and rejects whitespace-only values (`400`), as update already did.
+  - validation messages no longer echo the submitted value; unknown fields are reported per path (`extra.<key>`, query keys) as `"Unknown field"`.
+  - `extra: {}` on create is stored and returned as absent.
+  - blank and repeated list entries (ignoring letter case) are dropped from `aliases`, `highlights` and `extra.subfamilies`, keeping the first occurrence.
+  - `aliases` may be omitted on create (defaults to `[]`); it used to answer `400 "Family.aliases must be an array"`.
+  - `PATCH {}` is a no-op (`200`, version unchanged) instead of `"Empty body is not allowed"`.
+  - `GET /:idOrSlug` rejects query keys and body fields; a blank `idOrSlug` is a `400`.
+  - contract: `aliases` and `extra` are no longer nullable (`aliases` is always returned).
+- **Decision (2026-10-02)**: `highlights` and `extra.subfamilies` follow the alias rule (trim, drop blanks, drop case-insensitive repeats); duplicates are dropped silently, never rejected.
+- **Proposal (from the Iteration 13 review, not yet decided; own PR)**: apply the family text-list rule to plant aliases. Today `PlantIdentity` only trims aliases and drops blank ones, so a plant can keep `"Tomate"` and `"tomate"` while a family cannot. To do it:
+  - decide the proposal first: repeated aliases (ignoring letter case) are dropped silently, keeping the first occurrence, as in Families.
+  - pre-release check: count stored plants whose `identity.name.aliases` repeat ignoring letter case. `PlantIdentity` also runs on load, so those repeats would disappear on the next write of the plant without any request asking for it; if any exist, add a data-fix migration (`migrate-mongo`) instead of relying on that.
+  - domain: use `uniqueTextList(aliases, 'identity.name.aliases')` in the `PlantIdentity` constructor and in `update`; a non-string alias then fails with an `InvalidArgumentException` naming its index instead of a `TypeError`.
+  - tests: unit tests for `PlantIdentity`, and a create and an update scenario in the Plants features with repeated aliases.
+  - docs: `plant.md` (identity invariants and `updateIdentity`); in the OpenAPI, plant aliases point to the shared `ShortTextList`, so give them their own schema that states the rule, as `FamilyTextList` does.
 - **Dependencies**: Iteration 9.
 - **Risks**: None.
 - **Prompt for /speckit.specify**:

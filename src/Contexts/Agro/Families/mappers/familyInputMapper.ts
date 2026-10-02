@@ -10,11 +10,12 @@ export const familyInputMapper: FamilyInputMapper = {
       id: createFamilyId(dto.id),
       slug: dto.slug,
       name: dto.name,
-      aliases: dto.aliases,
+      aliases: dto.aliases ?? [],
       scientificName: dto.scientificName,
       shortDescription: dto.shortDescription,
       highlights: dto.highlights,
-      ...(dto.extra ? { extra: dto.extra } : {}),
+      // An empty `extra` is dropped by the domain.
+      ...(dto.extra !== undefined ? { extra: dto.extra } : {}),
       metadata: Metadata.create(user)
     });
   },
@@ -22,7 +23,8 @@ export const familyInputMapper: FamilyInputMapper = {
   toChanges(input): FamilyInformationChanges {
     const changes: FamilyInformationChanges = {};
 
-    // Passed through untouched: the domain trims and rejects empty values.
+    // Passed through untouched: the domain trims, drops blank and repeated list
+    // entries and rejects empty values.
     if (input.slug !== undefined) changes.slug = input.slug;
     if (input.name !== undefined) changes.name = input.name;
     if (input.scientificName !== undefined)

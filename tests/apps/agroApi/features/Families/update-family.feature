@@ -66,6 +66,8 @@ Feature: Update Family
       """
 
     Then the response status code should be 400
+    And the response errors should include "extra.speciesCount"
+    And the response body should not echo "not-a-number"
     And response matches OpenAPI contract
 
   Scenario: Unauthenticated request fails
@@ -138,6 +140,14 @@ Feature: Update Family
       }
       """
     Then the response status code should be 400
+    And the response body should contain
+      """
+      {
+        "errors": {
+          "extra.hack": "Unknown field"
+        }
+      }
+      """
     And response matches OpenAPI contract
 
   Scenario: Setting extra to null deletes it
@@ -322,7 +332,7 @@ Feature: Update Family
       }
       """
     Then the response status code should be 400
-    And the response errors should include "aliases[1]"
+    And the response errors should include "aliases.1"
     And response matches OpenAPI contract
 
   Scenario: Whitespace-only scientificName is rejected
@@ -373,4 +383,202 @@ Feature: Update Family
     And the response should have ETag '"1"'
     And the response audit data should show the admin as last editor
     And a GET admin request to "/api/v1/families/<familyId>" should return the same body
+    And response matches OpenAPI contract
+
+  Scenario Outline: A null <field> is rejected and the family is unchanged
+    Given I record the current family
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/families/<familyId>" with body
+      """
+      {
+        "<field>": null
+      }
+      """
+    Then the response status code should be 400
+    And the response errors should include "<field>"
+    And the family should be unchanged
+    And response matches OpenAPI contract
+
+    Examples:
+      | field            |
+      | slug             |
+      | name             |
+      | scientificName   |
+      | shortDescription |
+      | aliases          |
+      | highlights       |
+
+  Scenario: Blank aliases are dropped
+    Given I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/families/<familyId>" with body
+      """
+      {
+        "aliases": ["  Rose family ", "", "   "]
+      }
+      """
+    Then the response status code should be 200
+    And the response body matches "Rose family" for field "aliases"
+    And response matches OpenAPI contract
+
+  Scenario: Repeated aliases are dropped ignoring letter case
+    Given I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/families/<familyId>" with body
+      """
+      {
+        "aliases": ["Rose family", " rose family ", "Roses"]
+      }
+      """
+    Then the response status code should be 200
+    And the response body matches "Rose family,Roses" for field "aliases"
+    And response matches OpenAPI contract
+
+  Scenario: Blank highlights are dropped
+    Given I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/families/<familyId>" with body
+      """
+      {
+        "highlights": ["  Five petals ", "", "  "]
+      }
+      """
+    Then the response status code should be 200
+    And the response body matches "Five petals" for field "highlights"
+    And response matches OpenAPI contract
+
+  Scenario: Blank subfamilies are dropped
+    Given I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/families/<familyId>" with body
+      """
+      {
+        "extra": {
+          "subfamilies": ["  Rosoideae ", ""]
+        }
+      }
+      """
+    Then the response status code should be 200
+    And the response body matches "Rosoideae" for field "extra.subfamilies"
+    And response matches OpenAPI contract
+
+  Scenario: Subfamilies must be strings
+    Given I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/families/<familyId>" with body
+      """
+      {
+        "extra": {
+          "subfamilies": [1]
+        }
+      }
+      """
+    Then the response status code should be 400
+    And the response errors should include "extra.subfamilies.0"
+    And response matches OpenAPI contract
+
+  Scenario: A null extra key removes only that key
+    Given a family with extra exists
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/families/<familyId>" with body
+      """
+      {
+        "extra": {
+          "order": null
+        }
+      }
+      """
+    Then the response status code should be 200
+    And the response body should contain
+      """
+      {
+        "extra": {
+          "distribution": "Worldwide",
+          "speciesCount": 3000,
+          "subfamilies": ["Rosoideae"]
+        }
+      }
+      """
+    And the response body should not contain
+      """
+      {
+        "extra": {
+          "order": "Rosales"
+        }
+      }
+      """
+    And response matches OpenAPI contract
+
+  Scenario: An empty extra changes nothing
+    Given a family with extra exists
+    And I record the current family
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/families/<familyId>" with body
+      """
+      {
+        "extra": {}
+      }
+      """
+    Then the response status code should be 200
+    And the response should have ETag '"0"'
+    And the family should be unchanged
+    And response matches OpenAPI contract
+
+  Scenario: An empty body changes nothing
+    Given I record the current family
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/families/<familyId>" with body
+      """
+      {}
+      """
+    Then the response status code should be 200
+    And the response should have ETag '"0"'
+    And the family should be unchanged
+    And response matches OpenAPI contract
+
+  Scenario: An empty body with an outdated version is rejected
+    Given the family is stored at version 1
+    And I record the current family
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/families/<familyId>" with body
+      """
+      {}
+      """
+    Then the response status code should be 412
+    And the family should be unchanged
+    And response matches OpenAPI contract
+
+  Scenario: The id cannot be set through the body
+    Given I record the current family
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/families/<familyId>" with body
+      """
+      {
+        "id": "015b52e1-477c-4e3f-a47b-97ff220f7cfc"
+      }
+      """
+    Then the response status code should be 400
+    And the response body should contain
+      """
+      {
+        "errors": {
+          "id": "Unknown field"
+        }
+      }
+      """
+    And the family should be unchanged
+    And response matches OpenAPI contract
+
+  Scenario: An unknown query parameter is rejected on update
+    Given I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/families/<familyId>" with query "foo=bar" and body
+      """
+      {
+        "name": "Queried family"
+      }
+      """
+    Then the response status code should be 400
+    And the response body should contain
+      """
+      {
+        "errors": {
+          "foo": "Unknown field"
+        }
+      }
+      """
     And response matches OpenAPI contract

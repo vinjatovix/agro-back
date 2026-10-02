@@ -32,6 +32,27 @@ describe('familyInputMapper', () => {
 
       expect(family.extra).toEqual(dto.extra);
     });
+    it('should create Family with no aliases when they are omitted', () => {
+      // Arrange
+      const { aliases: _aliases, ...dto } = FamilyScenarios.createDtoBase();
+
+      // Act
+      const family = familyInputMapper.fromCreateDto(dto, USER);
+
+      // Assert
+      expect(family.aliases).toEqual([]);
+    });
+
+    it('should create Family without extra when extra is empty', () => {
+      // Arrange
+      const dto = FamilyScenarios.createDtoBaseWithExtra({});
+
+      // Act
+      const family = familyInputMapper.fromCreateDto(dto, USER);
+
+      // Assert
+      expect(family.extra).toBeUndefined();
+    });
   });
 
   describe('toChanges', () => {

@@ -9,7 +9,9 @@ export const FamilySeeder = (httpServer: Server, token: string) => {
     async create(
       overrides: Partial<CreateFamilyDto> = {}
     ): Promise<FamilyPrimitives> {
-      const name = overrides.name || random.word();
+      // Long enough to keep slugs unique, short enough for the 200-character
+      // request limit once suffixed.
+      const name = overrides.name || random.word({ min: 8, max: 30 });
       const body: CreateFamilyDto = {
         id: random.uuid(),
         slug: name,

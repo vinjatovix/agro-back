@@ -1,17 +1,19 @@
 import type { Router } from 'express';
-import { auth } from '../../middlewares/auth.js';
-import { isAdmin } from '../../middlewares/isAdmin.js';
-import { requireIfMatch } from '../../middlewares/requireIfMatch.js';
-import { validateBody } from '../../middlewares/validateBody.js';
-import { validateReqSchema } from '../../middlewares/validateReqSchema.js';
+
+import {
+  createFamilyRequest,
+  getFamilyByIdOrSlugRequest,
+  updateFamilyRequest
+} from '../../controllers/Families/requestSchemas.js';
+import {
+  auth,
+  isAdmin,
+  requireIfMatch,
+  validateRequest
+} from '../../middlewares/index.js';
 import type { RegisterRoutes } from '../route.types.js';
 import { API_PREFIXES } from '../shared/apiPrefixes.js';
 import { familyApiInvoker } from './familyApiInvoker.js';
-import {
-  createFamilyReqSchema,
-  getFamilyBySlugReqSchema,
-  updateFamilyReqSchema
-} from './reqSchemas.js';
 
 const prefix = API_PREFIXES.families;
 
@@ -20,16 +22,13 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
     `${prefix}/`,
     auth,
     isAdmin,
-    validateBody,
-    createFamilyReqSchema,
-    validateReqSchema,
+    validateRequest(createFamilyRequest),
     familyApiInvoker('createFamily')
   );
 
   router.get(
     `${prefix}/:idOrSlug`,
-    getFamilyBySlugReqSchema,
-    validateReqSchema,
+    validateRequest(getFamilyByIdOrSlugRequest),
     familyApiInvoker('getFamilyBySlug')
   );
 
@@ -40,9 +39,7 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
     auth,
     isAdmin,
     requireIfMatch,
-    validateBody,
-    updateFamilyReqSchema,
-    validateReqSchema,
+    validateRequest(updateFamilyRequest),
     familyApiInvoker('updateFamily')
   );
 };

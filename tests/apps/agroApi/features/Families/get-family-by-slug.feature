@@ -61,3 +61,35 @@ Feature: Get Family By Slug
       }
       """
     And response matches OpenAPI contract
+
+  Scenario: A blank identifier is rejected
+    When I send a GET request to "/api/v1/families/%20%20"
+    Then the response status code should be 400
+    And the response errors should include "idOrSlug"
+    And response matches OpenAPI contract
+
+  Scenario: An unknown query parameter is rejected
+    Given a family exists
+    When I send a GET request to "/api/v1/families/<familySlug>" with query string "x=1"
+    Then the response status code should be 400
+    And the response body should contain
+      """
+      {
+        "errors": {
+          "x": "Unknown field"
+        }
+      }
+      """
+    And response matches OpenAPI contract
+
+  Scenario: A body field is rejected
+    Given a family exists
+    When I send a GET request to "/api/v1/families/<familySlug>" with body:
+      """
+      {
+        "name": "Rosaceae"
+      }
+      """
+    Then the response status code should be 400
+    And the response errors should include "name"
+    And response matches OpenAPI contract

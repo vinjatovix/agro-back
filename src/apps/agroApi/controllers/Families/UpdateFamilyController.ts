@@ -1,22 +1,16 @@
 import { type NextFunction, type Request, type Response } from 'express';
 import type { GetFamilyById } from '../../../../Contexts/Agro/Families/application/useCases/GetFamilyById.js';
 import type { GetFamilyBySlug } from '../../../../Contexts/Agro/Families/application/useCases/GetFamilyBySlug.js';
-import type {
-  UpdateFamilyDto,
-  UpdateFamilyInput
-} from '../../../../Contexts/Agro/Families/application/useCases/interfaces/index.js';
+import type { UpdateFamilyInput } from '../../../../Contexts/Agro/Families/application/useCases/interfaces/index.js';
 import type { UpdateFamily } from '../../../../Contexts/Agro/Families/application/useCases/UpdateFamily.js';
 import { familyDomainMapper } from '../../../../Contexts/Agro/Families/mappers/familyDomainMapper.js';
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
 import { UuidValidator } from '../../../../Contexts/shared/domain/valueObject/index.js';
-import { createError } from '../../../../shared/errors/index.js';
 import { getExpectedVersion } from '../../middlewares/requireIfMatch.js';
+import { getValidatedRequest } from '../../middlewares/validateRequest.js';
 import { HttpController } from '../../shared/HttpController.js';
 import { setVersionETag } from '../../shared/setVersionETag.js';
-
-type UpdateFamilyParams = {
-  idOrSlug: string;
-};
+import { updateFamilyRequest } from './requestSchemas.js';
 
 export type UpdateFamilyControllerDependencies = {
   updateFamily: UpdateFamily;
@@ -40,15 +34,15 @@ export class UpdateFamilyController extends HttpController {
     this.getFamilyBySlug = getFamilyBySlug;
   }
   run = async (
-    req: Request<UpdateFamilyParams>,
+    _req: Request,
     res: Response,
     next: NextFunction
-  ) => {
+  ): Promise<void> => {
     try {
-      const { idOrSlug } = req.params;
-      if (!idOrSlug) {
-        throw createError.badRequest('Family ID or slug is required');
-      }
+      const {
+        params: { idOrSlug },
+        body: dto
+      } = getValidatedRequest(res, updateFamilyRequest);
 
       const family = UuidValidator.isValid(idOrSlug)
         ? await this.getFamilyById.execute(idOrSlug)
@@ -56,7 +50,6 @@ export class UpdateFamilyController extends HttpController {
 
       const id = family.idValue;
 
-      const dto = req.body as UpdateFamilyDto;
       const user = res.locals.user as UserSessionInfo;
 
       const input: UpdateFamilyInput = { ...dto, id };
