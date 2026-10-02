@@ -12,36 +12,17 @@ Feature: Create a new plant
       }
       """
     Then the response status code should be 400
-    Then the response body should be
-      """
-      {
-        "message": "Validation error",
-        "errors": {
-          "identity.family": "Invalid value at body. Value: undefined",
-          "identity.name.primary": "Invalid value at body. Value: undefined",
-          "phenology.flowering.months": "Invalid value at body. Value: undefined",
-          "phenology.harvest.months": "Invalid value at body. Value: undefined",
-          "phenology.sowing.germinationDays.max": "Invalid value at body. Value: undefined",
-          "phenology.sowing.germinationDays.min": "Invalid value at body. Value: undefined",
-          "phenology.sowing.methods.direct.depthCm.max": "Invalid value at body. Value: undefined",
-          "phenology.sowing.methods.direct.depthCm.min": "Invalid value at body. Value: undefined",
-          "phenology.sowing.months": "Invalid value at body. Value: undefined",
-          "phenology.sowing.seedsPerHole.max": "Invalid value at body. Value: undefined",
-          "phenology.sowing.seedsPerHole.min": "Invalid value at body. Value: undefined",
-          "traits.lifecycle": "Invalid value at body. Value: undefined",
-          "traits.size.height": "Invalid value at body. Value: undefined",
-          "traits.size.spread": "Invalid value at body. Value: undefined",
-          "traits.spacingCm": "Invalid value at body. Value: undefined"
-        }
-      }
-      """
+    And the response errors should include "identity"
+    And the response errors should include "traits"
+    And the response errors should include "phenology"
+    And the response errors should include "knowledge"
     And response matches OpenAPI contract
 
-  Scenario: Fail to create a plant with an invalid Uuid
+  Scenario: Fail to create a plant with missing required identity and knowledge fields
     Given a POST admin request to "/api/v1/plants" with body
       """
       {
-        "id": "invalid-uuid",
+        "id": "f4529c3f-c474-4386-ac48-ce769f1c86ea",
         "identity": {
           "name": {
             "primary": "Tomato"
@@ -103,19 +84,227 @@ Feature: Create a new plant
               3
             ]
           }
+        },
+        "knowledge": {
+          "soil": {
+            "ph": {
+              "min": 6,
+              "max": 7
+            },
+            "availableDepthCm": {
+              "min": 10,
+              "max": 20
+            }
+          },
+          "light": {
+            "hoursMin": 6,
+            "type": "full_sun"
+          },
+          "propagation": {
+            "methods": {
+              "seeds": {}
+            }
+          }
         }
       }
       """
     Then the response status code should be 400
-    Then the response body should be
+    And the response errors should include "identity.scientificName"
+    And the response errors should include "knowledge.rootSystem"
+    And response matches OpenAPI contract
+
+  Scenario: Fail to create a plant with an invalid Uuid
+    Given a POST admin request to "/api/v1/plants" with body
       """
       {
-        "message": "Validation error",
-        "errors": {
-          "id": "Invalid value at body. Value: invalid-uuid"
+        "id": "invalid-uuid",
+        "identity": {
+          "name": {
+            "primary": "Tomato"
+          },
+          "scientificName": "Solanum lycopersicum",
+          "family": "f4529c3f-c474-4386-ac48-ce769f1c86ea"
+        },
+        "traits": {
+          "lifecycle": "annual",
+          "size": {
+            "height": {
+              "min": 30,
+              "max": 300
+            },
+            "spread": {
+              "min": 30,
+              "max": 300
+            }
+          },
+          "spacingCm": {
+            "min": 30,
+            "max": 300
+          }
+        },
+        "phenology": {
+          "sowing": {
+            "months": [
+              1,
+              2,
+              3
+            ],
+            "seedsPerHole": {
+              "min": 1,
+              "max": 3
+            },
+            "germinationDays": {
+              "min": 5,
+              "max": 10
+            },
+            "methods": {
+              "direct": {
+                "depthCm": {
+                  "min": 1,
+                  "max": 2
+                }
+              }
+            }
+          },
+          "flowering": {
+            "months": [
+              1,
+              2,
+              3
+            ]
+          },
+          "harvest": {
+            "months": [
+              1,
+              2,
+              3
+            ]
+          }
+        },
+        "knowledge": {
+          "rootSystem": { "type": "fibrous", "depthCm": { "min": 10, "max": 30 }, "spreadCm": { "min": 10, "max": 20 } },
+          "soil": {
+            "ph": {
+              "min": 6,
+              "max": 7
+            },
+            "availableDepthCm": {
+              "min": 10,
+              "max": 20
+            }
+          },
+          "light": {
+            "hoursMin": 6,
+            "type": "full_sun"
+          },
+          "propagation": {
+            "methods": {
+              "seeds": {}
+            }
+          }
         }
       }
       """
+    Then the response status code should be 400
+    And the response errors should include "id"
+    And the response body should not echo "invalid-uuid"
+    And response matches OpenAPI contract
+
+  Scenario: Fail to create a plant with unknown request body properties
+    Given a POST admin request to "/api/v1/plants" with body
+      """
+      {
+        "id": "f4529c3f-c474-4386-ac48-ce769f1c86ea",
+        "unknownProperty": "notAllowed",
+        "identity": {
+          "name": {
+            "primary": "Tomato"
+          },
+          "scientificName": "Solanum lycopersicum",
+          "family": "f4529c3f-c474-4386-ac48-ce769f1c86ea"
+        },
+        "traits": {
+          "lifecycle": "annual",
+          "size": {
+            "height": {
+              "min": 30,
+              "max": 300
+            },
+            "spread": {
+              "min": 30,
+              "max": 300
+            }
+          },
+          "spacingCm": {
+            "min": 30,
+            "max": 300
+          }
+        },
+        "phenology": {
+          "sowing": {
+            "months": [
+              1,
+              2,
+              3
+            ],
+            "seedsPerHole": {
+              "min": 1,
+              "max": 3
+            },
+            "germinationDays": {
+              "min": 5,
+              "max": 10
+            },
+            "methods": {
+              "direct": {
+                "depthCm": {
+                  "min": 1,
+                  "max": 2
+                }
+              }
+            }
+          },
+          "flowering": {
+            "months": [
+              1,
+              2,
+              3
+            ]
+          },
+          "harvest": {
+            "months": [
+              1,
+              2,
+              3
+            ]
+          }
+        },
+        "knowledge": {
+          "rootSystem": { "type": "fibrous", "depthCm": { "min": 10, "max": 30 }, "spreadCm": { "min": 10, "max": 20 } },
+          "soil": {
+            "ph": {
+              "min": 6,
+              "max": 7
+            },
+            "availableDepthCm": {
+              "min": 10,
+              "max": 20
+            }
+          },
+          "light": {
+            "hoursMin": 6,
+            "type": "full_sun"
+          },
+          "propagation": {
+            "methods": {
+              "seeds": {}
+            }
+          }
+        }
+      }
+      """
+    Then the response status code should be 400
+    And the response errors should include "unknownProperty"
     And response matches OpenAPI contract
 
   Scenario: Create a minimal new plant with valid data
@@ -128,6 +317,7 @@ Feature: Create a new plant
           "name": {
             "primary": "Tomato"
           },
+          "scientificName": "Solanum lycopersicum",
           "family": "<familyId>"
         },
         "traits": {
@@ -185,11 +375,83 @@ Feature: Create a new plant
               3
             ]
           }
+        },
+        "knowledge": {
+          "rootSystem": { "type": "fibrous", "depthCm": { "min": 10, "max": 30 }, "spreadCm": { "min": 10, "max": 20 } },
+          "soil": {
+            "ph": {
+              "min": 6,
+              "max": 7
+            },
+            "availableDepthCm": {
+              "min": 20,
+              "max": 40
+            }
+          },
+          "light": {
+            "hoursMin": 6,
+            "type": "full_sun"
+          },
+          "propagation": {
+            "methods": {
+              "seeds": {}
+            }
+          }
         }
       }
       """
     Then the response status code should be 201
     And the response should have ETag '"0"'
+    And response matches OpenAPI contract
+
+  Scenario: Create a plant that never flowers nor is harvested
+    Given a family exists
+    And a POST admin request to "/api/v1/plants" with body
+      """
+      {
+        "id": "0b6f2a43-41e2-4d27-9a4e-6c1f5a8f3d10",
+        "identity": {
+          "name": { "primary": "Horsetail" },
+          "scientificName": "Equisetum arvense",
+          "family": "<familyId>"
+        },
+        "traits": {
+          "lifecycle": "perennial",
+          "size": {
+            "height": { "min": 10, "max": 50 },
+            "spread": { "min": 10, "max": 30 }
+          },
+          "spacingCm": { "min": 20, "max": 40 }
+        },
+        "phenology": {
+          "sowing": {
+            "months": [3, 4],
+            "seedsPerHole": { "min": 1, "max": 2 },
+            "germinationDays": { "min": 10, "max": 20 },
+            "methods": { "direct": { "depthCm": { "min": 1, "max": 2 } } }
+          }
+        },
+        "knowledge": {
+          "rootSystem": { "type": "rhizome", "depthCm": { "min": 10, "max": 60 }, "spreadCm": { "min": 10, "max": 80 } },
+          "soil": {
+            "ph": { "min": 5, "max": 7 },
+            "availableDepthCm": { "min": 20, "max": 40 }
+          },
+          "light": { "hoursMin": 4, "type": "partial_shade" },
+          "propagation": { "methods": { "division": { "seasons": ["spring"] } } }
+        }
+      }
+      """
+    Then the response status code should be 201
+    And the response body should contain
+      """
+      {
+        "phenology": {
+          "flowering": { "months": [] },
+          "harvest": { "months": [] }
+        }
+      }
+      """
     And response matches OpenAPI contract
 
   Scenario: Create a new plant with all fields filled
@@ -267,7 +529,10 @@ Feature: Create a new plant
               10
             ],
             "pollination": {
-              "type": "insect",
+              "types": [
+                "self",
+                "insect"
+              ],
               "agents": [
                 "bees",
                 "butterflies"
@@ -323,7 +588,7 @@ Feature: Create a new plant
             {
               "type": "maintenance",
               "intensity": "light",
-              "season": "spring",
+              "seasons": ["spring"],
               "frequencyPerYear": 2,
               "bestPractices": [
                 "Remove wilted flowers",
@@ -334,7 +599,7 @@ Feature: Create a new plant
           "propagation": {
             "methods": {
               "seeds": {
-                "season": "spring",
+                "seasons": ["spring"],
                 "estimatedTimeWeeks": {
                   "min": 1,
                   "max": 2
@@ -345,7 +610,7 @@ Feature: Create a new plant
                 ]
               },
               "cuttings": {
-                "season": "spring",
+                "seasons": ["spring"],
                 "estimatedTimeWeeks": {
                   "min": 3,
                   "max": 5
@@ -415,6 +680,7 @@ Feature: Create a new plant
           "name": {
             "primary": "Tomato"
           },
+          "scientificName": "Solanum lycopersicum",
           "family": "ff8e78aa-8410-40bb-ad9f-c48110ffe59a"
         },
         "traits": {
@@ -472,6 +738,28 @@ Feature: Create a new plant
               3
             ]
           }
+        },
+        "knowledge": {
+          "rootSystem": { "type": "fibrous", "depthCm": { "min": 10, "max": 30 }, "spreadCm": { "min": 10, "max": 20 } },
+          "soil": {
+            "ph": {
+              "min": 6,
+              "max": 7
+            },
+            "availableDepthCm": {
+              "min": 20,
+              "max": 40
+            }
+          },
+          "light": {
+            "hoursMin": 6,
+            "type": "full_sun"
+          },
+          "propagation": {
+            "methods": {
+              "seeds": {}
+            }
+          }
         }
       }
       """
@@ -516,6 +804,7 @@ Feature: Create a new plant
           "name": {
             "primary": "Tomato"
           },
+          "scientificName": "Solanum lycopersicum",
           "family": "<familyId>"
         },
         "traits": {
@@ -573,12 +862,35 @@ Feature: Create a new plant
               3
             ]
           }
+        },
+        "knowledge": {
+          "rootSystem": { "type": "fibrous", "depthCm": { "min": 10, "max": 30 }, "spreadCm": { "min": 10, "max": 20 } },
+          "soil": {
+            "ph": {
+              "min": 6,
+              "max": 7
+            },
+            "availableDepthCm": {
+              "min": 20,
+              "max": 40
+            }
+          },
+          "light": {
+            "hoursMin": 6,
+            "type": "full_sun"
+          },
+          "propagation": {
+            "methods": {
+              "seeds": {}
+            }
+          }
         }
       }
       """
     Then the response status code should be 409
     And response matches OpenAPI contract
 
+  # The bounds order is a domain rule (`Range`), not a request-shape one.
   Scenario: Fail to create a plant with invalid range values
     Given a family exists
     And a POST admin request to "/api/v1/plants" with body
@@ -589,6 +901,7 @@ Feature: Create a new plant
           "name": {
             "primary": "Test"
           },
+          "scientificName": "Test scientific",
           "family": "<familyId>"
         },
         "traits": {
@@ -640,16 +953,32 @@ Feature: Create a new plant
               1
             ]
           }
+        },
+        "knowledge": {
+          "rootSystem": { "type": "fibrous", "depthCm": { "min": 10, "max": 30 }, "spreadCm": { "min": 10, "max": 20 } },
+          "soil": {
+            "ph": {
+              "min": 6,
+              "max": 7
+            },
+            "availableDepthCm": {
+              "min": 10,
+              "max": 20
+            }
+          },
+          "light": {
+            "hoursMin": 6,
+            "type": "full_sun"
+          },
+          "propagation": {
+            "methods": {
+              "seeds": {}
+            }
+          }
         }
       }
       """
     Then the response status code should be 400
-    Then the response body should be
-      """
-      {
-        "message": "Range min cannot be greater than max"
-      }
-      """
     And response matches OpenAPI contract
 
   Scenario: Fail to create a plant with invalid months
@@ -662,6 +991,7 @@ Feature: Create a new plant
           "name": {
             "primary": "Test"
           },
+          "scientificName": "Test scientific",
           "family": "<familyId>"
         },
         "traits": {
@@ -714,16 +1044,33 @@ Feature: Create a new plant
               1
             ]
           }
+        },
+        "knowledge": {
+          "rootSystem": { "type": "fibrous", "depthCm": { "min": 10, "max": 30 }, "spreadCm": { "min": 10, "max": 20 } },
+          "soil": {
+            "ph": {
+              "min": 6,
+              "max": 7
+            },
+            "availableDepthCm": {
+              "min": 10,
+              "max": 20
+            }
+          },
+          "light": {
+            "hoursMin": 6,
+            "type": "full_sun"
+          },
+          "propagation": {
+            "methods": {
+              "seeds": {}
+            }
+          }
         }
       }
       """
     Then the response status code should be 400
-    Then the response body should be
-      """
-      {
-        "message": "Invalid month: 0"
-      }
-      """
+    And the response errors should include "phenology.sowing.months.0"
     And response matches OpenAPI contract
 
   Scenario Outline: Fail to create a plant with an unsafe knowledge shape
@@ -736,6 +1083,7 @@ Feature: Create a new plant
           "name": {
             "primary": "Test"
           },
+          "scientificName": "Test scientific",
           "family": "<familyId>"
         },
         "traits": {
@@ -796,6 +1144,6 @@ Feature: Create a new plant
     And response matches OpenAPI contract
 
     Examples:
-      | knowledge                                                                   | errorPath                     |
-      | { "watering": { "frequency": "weekly", "amountMm": 25 } }                   | knowledge.watering            |
-      | { "propagation": { "methods": { "seed.season": { "season": "spring" } } } } | knowledge.propagation.methods |
+      | knowledge                                                                                                                                                                                                            | errorPath                                 |
+      | { "rootSystem": { "type": "fibrous", "depthCm": { "min": 10, "max": 30 }, "spreadCm": { "min": 10, "max": 20 } }, "soil": { "ph": { "min": 6, "max": 7 }, "availableDepthCm": { "min": 10, "max": 20 } }, "light": { "hoursMin": 6, "type": "full_sun" }, "propagation": { "methods": { "seed": {} } }, "watering": { "frequency": "weekly", "amountMm": 25 } } | knowledge.watering.amountMm               |
+      | { "rootSystem": { "type": "fibrous", "depthCm": { "min": 10, "max": 30 }, "spreadCm": { "min": 10, "max": 20 } }, "soil": { "ph": { "min": 6, "max": 7 }, "availableDepthCm": { "min": 10, "max": 20 } }, "light": { "hoursMin": 6, "type": "full_sun" }, "propagation": { "methods": { "seed.season": { "seasons": ["spring"] } } } }                                 | knowledge.propagation.methods.seed.season |

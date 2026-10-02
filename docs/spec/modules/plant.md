@@ -59,7 +59,7 @@ Plant is composed of 4 core subdomains:
     primary: string;
     aliases?: string[];
   };
-  scientificName?: string;
+  scientificName: string;
   family: string;
 }
 ```
@@ -67,7 +67,9 @@ Plant is composed of 4 core subdomains:
 Rules:
 
 - primary name is required semantic identifier
+- `scientificName` is required on every plant (decided 2026-10-02): the contract publishes it, so the `normalize-plant-knowledge` migration stops on a stored plant without one instead of inventing it
 - aliases are optional semantic enrichments
+- enforced by the `PlantIdentity` value object (decided 2026-10-02): its constructor trims `name.primary`, `scientificName` and `family`, rejects them blank (`InvalidArgumentException`, `400`) and drops empty aliases, on create, load and update alike
 - family links to taxonomy layer (external bounded context)
 
 ---
@@ -136,37 +138,48 @@ Rules:
 
 #### Flowering
 
-- `months`: MonthSet
-- `pollination` (optional):
-  - `type`: PollinationType
-  - `agents`: string[] (optional list of animal/insect vectors)
+Value object `PlantFlowering`.
+
+- `months`: MonthSet (empty for a plant that does not flower in a yearly cycle). An empty `months` may still carry a `pollination`: bamboos (`Fargesia`) flower once every few decades and are wind-pollinated (decided 2026-10-02).
+- `pollination` (optional), value object `Pollination`:
+  - `types`: PollinationType[] (`insect`, `wind`, `self`, `water`, `bird`, `bat`), at least one and no repeats; a plant may be pollinated in several ways (tomato: `self` helped by bumblebees, `insect`). Decided 2026-10-02 (it was a single `type`).
+  - `agents`: string[] (optional list of animal vectors); only with an `insect`, `bird` or `bat` type; an empty list is no agents
+  - A plant that is not pollinated has no `pollination`: plants that reproduce by spores (horsetails, with a `spores` propagation method; their `months` are those of the spore-bearing stems), sterile hybrids, or plants that do not flower in cultivation. `spore` and `none` were removed from `PollinationType` (decided 2026-10-02): they are not ways of pollinating.
 
 ---
 
 #### Harvest
 
-- `months`: MonthSet
-- `description` (optional)
+Value object `PlantHarvest`.
+
+- `months`: MonthSet (empty for a plant that is not harvested)
+- `description` (optional; trimmed and never blank when given, decided 2026-10-02)
+
+Every plant is sown, but not every plant flowers or is harvested: on create, `phenology.flowering` and `phenology.harvest` may be left out and are stored with no months (decided 2026-10-02). The three sections form the `PlantPhenology` value object, whose `update(changes)` applies a `PATCH`.
 
 ---
 
 ### 4.4 Knowledge (ecological & propagation reference layer)
 
-The `knowledge` field contains rich agronomic and ecological information (represented by `PlantKnowledge`; optional in the type today, always present after `Plant.create`, which defaults it to `PlantKnowledge.empty()`). **`[TARGET STATE (Pending [Iteration 12](../../roadmap.md#iteration-12-migrate-plants-endpoints-to-zod))]`** `knowledge` becomes required in the domain state (defaulted in the constructor), so mutation methods and mappers no longer need an "absent knowledge" fallback. This layer does not enforce hard domain constraints, but serves as the reference database for companions, soil profiles, and care routines.
+The `knowledge` field contains rich agronomic and ecological information (represented by `PlantKnowledge`, required in the domain state since 2026-10-02; a plant stored without `knowledge` is loaded as `PlantKnowledge.empty()`), so mutation methods and mappers need no "absent knowledge" fallback. This layer does not enforce hard domain constraints, but serves as the reference database for companions, soil profiles, and care routines.
 
 #### 4.4.1 Propagation Knowledge `[TARGET STATE (Pending [Iteration 12](../../roadmap.md#iteration-12-migrate-plants-endpoints-to-zod))]`
 
 Instead of a flat array of keywords, propagation methods are defined as a rich structured object under `knowledge.propagation.methods` where each active propagation technique is mapped by name (e.g., `'division'`, `'cutting'`, `'layering'`, `'seed'`, `'sucker'`, `'grafting'`) to its own biological requirements.
 
-**Current state (Iteration 7):** on `PATCH`, method names must be camelCase letters (`^[a-z][a-zA-Z]*$`), because they become storage paths; any other name returns `400`. Restricting them to a closed list of known techniques is left to Iteration 12.
+**Current state (Iteration 12):** on `POST` and `PATCH`, method names must be camelCase letters (`^[a-z][a-zA-Z]*$`), because they become storage paths; any other name returns `400`. Stored names that were not camelCase (`leaf_cutting`, `root cutting`, `air_layering`) were renamed by the `normalize-plant-knowledge` migration. Restricting them to a closed list of known techniques is still pending.
 
 ```ts
+type Season = 'spring' | 'summer' | 'autumn' | 'winter';
+
 type PropagationMethodDetails = {
-  season: 'spring' | 'summer' | 'autumn' | 'winter';
-  bestPractices: string[];
+  seasons?: Season[]; // non-empty, no repeats
+  bestPractices?: string[];
   estimatedTimeWeeks?: Range;
 };
 ```
+
+A period that spans several seasons is listed season by season (e.g. "autumn to early spring" is `['autumn', 'winter', 'spring']`, "year round" is all four). Pruning entries use the same `seasons` list (`knowledge.pruning[].seasons`). A season cannot be repeated in a list: `PlantKnowledge` rejects it (`400`) and the contract publishes `uniqueItems` (decided 2026-10-02). Both replaced a single `season` value, which could not express those periods (decided 2026-10-02). A pruning entry's `frequencyPerYear` must be above zero (`0.5` is once every two years): `PlantKnowledge` rejects `0` or a negative value (`400`) and the contract publishes it (`minimum: 0`, `exclusiveMinimum`) (decided 2026-10-02).
 
 This structured object allows the system to support diverse, multi-method cultivation strategies simultaneously, perfectly mirroring physical gardening reality (e.g., a single shrub variety like Blackberry or Raspberry being propagated via both stem cuttings and root division, while Russian Comfrey is listed with only crown division).
 
@@ -183,11 +196,13 @@ This structured object allows the system to support diverse, multi-method cultiv
   - `frequency`: string (e.g., `'weekly'`)
   - `conditions`: string[]
 - `light`:
-  - `hoursMin`: number (minimum sun hours needed)
+  - `hoursMin`: number (minimum sun hours needed), from 0 to 24: `PlantKnowledge` rejects any other value (`400`) and the contract publishes it (`minimum`, `maximum`) (decided 2026-10-02)
   - `type`: full_sun | partial_shade | full_shade
   - `preference`: string (e.g. `'all_day'`)
+- Required labels are all treated as `rootSystem.type` (decided 2026-10-02): `rootSystem.type`, `watering.frequency`, `light.type`, `pruning[].type`, `pruning[].intensity` and `resources[].type` are trimmed and never blank, in the Zod schema (create and `PATCH`), in `PlantKnowledge`/`RootSystem` (`400`) and in the contract (`RequiredShortText`).
 - `ecology`:
   - `strategicBenefits`: string[] (list of ecological advantages like "attracts pollinators")
+  - An `ecology` left without fields (e.g. after `strategicBenefits: null`) is removed, not stored as `{}` (decided 2026-10-02).
 - `resources`: PlantResource[] (rich media and article attachments):
   ```ts
   type PlantResource = {
@@ -204,7 +219,7 @@ This structured object allows the system to support diverse, multi-method cultiv
 
 To prevent RAM saturation on the Node.js API and manage operational costs, binary file uploads (`multipart/form-data`) through the API are strictly prohibited. The system handles media attachments in two phases:
 
-- **Phase 1 (Current State):** The `url` field inside `PlantResource` only accepts external links (e.g., Wikimedia Commons, YouTube, or external blogs). Admins "Bring Your Own URL".
+- **Phase 1 (Current State):** The `url` field inside `PlantResource` only accepts external links (e.g., Wikimedia Commons, YouTube, or external blogs). Admins "Bring Your Own URL". Only absolute `http(s)` URLs are accepted (decided 2026-10-02): other schemes such as `javascript:` or `data:` would become a stored XSS wherever the frontend renders the link.
 - **Phase 2 `[TARGET STATE]`:** To support native file uploads securely, the system will implement **Presigned URLs via Google Cloud Storage (GCS)**. The frontend will request a temporary signed URL from the API, and upload the binary file directly to the GCP bucket, completely bypassing the Node.js backend.
 
 Rules:
@@ -262,12 +277,14 @@ This is enforced in constructor.
 
 `Plant` exposes four explicit mutation methods, each receiving the acting user's username:
 
-- `updateIdentity(changes, user)` — updates `name.primary`, `name.aliases`, `scientificName`, `family`; text fields trimmed, empty after trim → `InvalidArgumentException` (`400`); `scientificName`/`family` cannot be `null`; aliases trimmed with empty entries dropped; ranges must be objects, aliases must be strings
+- `updateIdentity(changes, user)` — updates `name.primary`, `name.aliases`, `scientificName`, `family` through `PlantIdentity.update`; text fields trimmed, empty after trim → `InvalidArgumentException` (`400`); `scientificName`/`family` cannot be `null`; aliases trimmed with empty entries dropped, `aliases: null` removes them; ranges must be objects, aliases must be strings
 - `updateTraits(changes, user)` — updates trait fields
-- `updatePhenology(changes, user)` — updates phenology fields
-- `updateKnowledge(changes, user)` — updates knowledge fields; `rootSystem` cannot be cleared with `null` (`rootSystem: null` → `400`). Object sections (`soil`, `rootSystem`, `watering`, `light`, propagation methods) merge key by key and ranges merge by bound. A section or range created from scratch must carry its required fields (both range bounds, `rootSystem.type`, `watering.frequency`, `light.hoursMin` and `light.type`); no default values are filled in. `propagation` and `ecology` without any field to apply (e.g. `{}`) keep the current value, so they neither create an empty section nor bump `version`
+- `updatePhenology(changes, user)` — updates phenology fields through `PlantPhenology.update`; `null` removes `sowing.methods.starter`, `flowering.pollination`, `flowering.pollination.agents` and `harvest.description`. Pollination agents alone keep the stored types; on a plant without pollination they are rejected (`pollination.types` is required). `pollination.types` replaces the stored list; the agents are kept while an `insect`, `bird` or `bat` type remains and dropped otherwise. Repeated types or agents without an animal type → `400`. A blank `harvest.description` → `400`
+- `updateKnowledge(changes, user)` — updates knowledge fields; `rootSystem` cannot be cleared with `null` (`rootSystem: null` → `400`). Object sections (`soil`, `rootSystem`, `watering`, `light`, propagation methods) merge key by key and ranges merge by bound. A section or range created from scratch must carry its required fields (both range bounds, `rootSystem.type`, `watering.frequency`, `light.hoursMin` and `light.type`); no default values are filled in. `propagation` and `ecology` without any field to apply (e.g. `{}`) keep the current value, so they neither create an empty section nor bump `version`. `null` removes `watering`, `watering.conditions`, `light.preference`, `pruning`, `ecology`, `ecology.strategicBenefits`, `resources`, `notes`, one propagation method (`methods.<name>: null`) or its `seasons`, `estimatedTimeWeeks` and `bestPractices`; `soil`, `rootSystem`, `light`, `propagation` and their required fields reject `null` (`400`)
 
-All methods: throw `DomainConflictException` on a soft-deleted plant; validate before mutating (atomic); `identity.scientificName` is never `null`; refresh `updatedAt`/`updatedBy` only when their own section really changed (domain-core.md Sec. 5.2), so in a request touching several sections the last real change sets the audit data. `UpdatePlant` returns the in-memory plant after `syncVersion` (1 read + 1 write, plus the family `exists` check when `identity.family` is sent).
+**PATCH semantics (decided 2026-10-02):** JSON Merge Patch (RFC 7396): an absent field is kept, `null` removes an optional field, and required fields reject `null`. Only the clearable fields are `nullable` in the Zod schema and in the OpenAPI `UpdatePlant`/`UpdatePlantKnowledge`; the removal reaches Mongo as a `$unset` through the repository diff. An empty body `{}` is a valid patch that changes nothing (decided 2026-10-02, as for Families): `If-Match` is still checked, so an outdated version answers `412`, and the version is not bumped; a missing body answers `400` at `body`.
+
+All methods: throw `DomainConflictException` on a soft-deleted plant; validate before mutating (atomic); `identity.scientificName` is never `null`; refresh `updatedAt`/`updatedBy` only when their own section really changed (domain-core.md Sec. 5.2), so in a request touching several sections the last real change sets the audit data. `UpdatePlant` returns the in-memory plant after `syncVersion` (1 read + 1 write, plus the family `exists` check when `identity.family` is sent and differs from the current one).
 
 ---
 
@@ -495,11 +512,11 @@ If Plant grows beyond:
 
 → it should be split into:
 
-- PlantIdentity
+- PlantIdentity (done 2026-10-02)
 - PlantBiology
-- PlantPhenology
+- PlantPhenology (done 2026-10-02)
 
-(But NOT yet needed)
+(`PlantBiology` NOT yet needed)
 
 ---
 

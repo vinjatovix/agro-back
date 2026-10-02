@@ -12,6 +12,11 @@ class Random {
     return this.chance.pickone(array);
   }
 
+  /** `count` distinct elements of `array`, in random order. */
+  public arrayElements<T>(array: readonly T[], count: number): T[] {
+    return this.chance.pickset([...array], count);
+  }
+
   public boolean(): boolean {
     return this.chance.bool();
   }

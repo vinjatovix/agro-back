@@ -11,7 +11,6 @@ Feature: Update a plant
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "identity": {
           "name": {
             "primary": "Updated Tomato"
@@ -39,7 +38,6 @@ Feature: Update a plant
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "traits": {
           "spacingCm": {
             "min": 20,
@@ -67,7 +65,6 @@ Feature: Update a plant
     When I send a PATCH admin request to "/api/v1/plants/invalid-uuid" with body
       """
       {
-        "id": "invalid-uuid",
         "identity": {
           "name": {
             "primary": "Test"
@@ -84,11 +81,330 @@ Feature: Update a plant
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "unknownField": "boom"
       }
       """
     Then the response status code should be 400
+    And response matches OpenAPI contract
+
+  Scenario: Fail to update with an id in the body
+    Given a family exists
+    And a plant exists
+    And I record the current plant
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "id": "<plantId>",
+        "identity": {
+          "name": {
+            "primary": "Test"
+          }
+        }
+      }
+      """
+    Then the response status code should be 400
+    And the response errors should include "id"
+    And the plant should be unchanged
+    And response matches OpenAPI contract
+
+  Scenario: Fail to update with an unknown query parameter
+    Given a family exists
+    And a plant exists
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>?foo=bar" with body
+      """
+      {
+        "identity": {
+          "name": {
+            "primary": "Test"
+          }
+        }
+      }
+      """
+    Then the response status code should be 400
+    And the response errors should include "foo"
+    And response matches OpenAPI contract
+
+  Scenario: Update flowering and harvest phenology
+    Given a family exists
+    And a plant exists
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "phenology": {
+          "flowering": {
+            "months": [5, 6],
+            "pollination": {
+              "types": ["bird"],
+              "agents": ["hummingbird"]
+            }
+          },
+          "harvest": {
+            "months": [9, 10],
+            "description": "Pick when fully coloured"
+          }
+        }
+      }
+      """
+    Then the response status code should be 200
+    And the response body should contain
+      """
+      {
+        "phenology": {
+          "flowering": {
+            "months": [5, 6],
+            "pollination": {
+              "types": ["bird"],
+              "agents": ["hummingbird"]
+            }
+          },
+          "harvest": {
+            "months": [9, 10],
+            "description": "Pick when fully coloured"
+          }
+        }
+      }
+      """
+    And the response should have ETag '"1"'
+    And response matches OpenAPI contract
+
+  Scenario: Fail to add pollination agents without pollination types
+    Given a family exists
+    And a plant exists
+    And I record the current plant
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "phenology": {
+          "flowering": {
+            "pollination": {
+              "agents": ["bee"]
+            }
+          }
+        }
+      }
+      """
+    Then the response status code should be 400
+    And the plant should be unchanged
+    And response matches OpenAPI contract
+
+  Scenario: Remove optional details with null
+    Given a family exists
+    And a plant with optional details exists
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "phenology": {
+          "flowering": { "pollination": null },
+          "harvest": { "description": null }
+        },
+        "knowledge": {
+          "watering": null,
+          "propagation": { "methods": { "seed": null } }
+        }
+      }
+      """
+    Then the response status code should be 200
+    And the response body should contain
+      """
+      {
+        "knowledge": {
+          "propagation": { "methods": { "division": { "seasons": ["autumn"] } } }
+        }
+      }
+      """
+    And the response body should not contain
+      """
+      { "phenology": { "flowering": { "pollination": { "agents": ["bee"] } } } }
+      """
+    And the response body should not contain
+      """
+      { "phenology": { "harvest": { "description": "Pick when ripe" } } }
+      """
+    And the response body should not contain
+      """
+      { "knowledge": { "watering": { "frequency": "weekly" } } }
+      """
+    And the response body should not contain
+      """
+      { "knowledge": { "propagation": { "methods": { "seed": { "seasons": ["spring"] } } } } }
+      """
+    And the response should have ETag '"1"'
+    And response matches OpenAPI contract
+
+  Scenario: New pollination types keep the agents while an animal type remains
+    Given a family exists
+    And a plant with optional details exists
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "phenology": { "flowering": { "pollination": { "types": ["wind", "insect"] } } }
+      }
+      """
+    Then the response status code should be 200
+    And the response body should contain
+      """
+      {
+        "phenology": {
+          "flowering": {
+            "pollination": { "types": ["wind", "insect"], "agents": ["bee"] }
+          }
+        }
+      }
+      """
+    And response matches OpenAPI contract
+
+  Scenario: Pollination types without an animal type drop the agents
+    Given a family exists
+    And a plant with optional details exists
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "phenology": { "flowering": { "pollination": { "types": ["wind"] } } }
+      }
+      """
+    Then the response status code should be 200
+    And the response body should contain
+      """
+      { "phenology": { "flowering": { "pollination": { "types": ["wind"] } } } }
+      """
+    And the response body should not contain
+      """
+      { "phenology": { "flowering": { "pollination": { "agents": ["bee"] } } } }
+      """
+    And response matches OpenAPI contract
+
+  Scenario Outline: Fail to update with pollination types the plant cannot store
+    Given a family exists
+    And a plant with optional details exists
+    And I record the current plant
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "phenology": { "flowering": { "pollination": { "types": <types> } } }
+      }
+      """
+    Then the response status code should be 400
+    And the plant should be unchanged
+    And response matches OpenAPI contract
+
+    Examples:
+      | types                |
+      | ["insect", "insect"] |
+      | ["none"]             |
+      | ["spore"]            |
+
+  Scenario Outline: Fail to update with a season repeated in a list
+    Given a family exists
+    And a plant with optional details exists
+    And I record the current plant
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      { "knowledge": <knowledge> }
+      """
+    Then the response status code should be 400
+    And the plant should be unchanged
+    And response matches OpenAPI contract
+
+    Examples:
+      | knowledge                                                                                                              |
+      | { "pruning": [{ "type": "maintenance", "intensity": "light", "seasons": ["spring", "spring"], "frequencyPerYear": 1 }] } |
+      | { "propagation": { "methods": { "seed": { "seasons": ["autumn", "autumn"] } } } }                                     |
+
+  Scenario Outline: Fail to update a pruning entry with frequencyPerYear <frequency>
+    Given a family exists
+    And a plant with optional details exists
+    And I record the current plant
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      { "knowledge": { "pruning": [{ "type": "maintenance", "intensity": "light", "seasons": ["spring"], "frequencyPerYear": <frequency> }] } }
+      """
+    Then the response status code should be 400
+    And the plant should be unchanged
+    And response matches OpenAPI contract
+
+    Examples:
+      | frequency |
+      | 0         |
+      | -1        |
+
+  Scenario Outline: Fail to update the light hours to <hours>, outside 0 to 24
+    Given a family exists
+    And a plant with optional details exists
+    And I record the current plant
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      { "knowledge": { "light": { "hoursMin": <hours> } } }
+      """
+    Then the response status code should be 400
+    And the plant should be unchanged
+    And response matches OpenAPI contract
+
+    Examples:
+      | hours |
+      | -1    |
+      | 25    |
+
+  Scenario: Removing the last ecology field removes the ecology
+    Given a family exists
+    And a plant with optional details exists
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      { "knowledge": { "ecology": { "strategicBenefits": null } } }
+      """
+    Then the response status code should be 200
+    And the response body matches "undefined" for field "knowledge.ecology"
+    And the response should have ETag '"1"'
+    And response matches OpenAPI contract
+
+  Scenario Outline: Fail to update with a value the plant cannot store
+    Given a family exists
+    And a plant exists
+    And I record the current plant
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      <body>
+      """
+    Then the response status code should be 400
+    And the response errors should include "<errorPath>"
+    And the plant should be unchanged
+    And response matches OpenAPI contract
+
+    Examples:
+      | body                                                                             | errorPath                     |
+      | { "knowledge": { "rootSystem": { "type": "   " } } }                             | knowledge.rootSystem.type     |
+      | { "knowledge": { "light": { "type": "   " } } }                                  | knowledge.light.type          |
+      | { "knowledge": { "watering": { "frequency": "   " } } }                          | knowledge.watering.frequency  |
+      | { "knowledge": { "pruning": [{ "type": "   ", "intensity": "light", "seasons": ["spring"], "frequencyPerYear": 1 }] } } | knowledge.pruning.0.type |
+      | { "phenology": { "harvest": { "description": "   " } } }                         | phenology.harvest.description |
+      | { "knowledge": { "resources": [{ "type": "link", "url": "javascript:alert(1)" }] } } | knowledge.resources.0.url     |
+
+  Scenario: Fail to remove a required knowledge section with null
+    Given a family exists
+    And a plant exists
+    And I record the current plant
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "knowledge": { "light": null }
+      }
+      """
+    Then the response status code should be 400
+    And the response errors should include "knowledge.light"
+    And the plant should be unchanged
     And response matches OpenAPI contract
 
   Scenario: Fail to update a non-existing plant
@@ -96,7 +412,6 @@ Feature: Update a plant
     When I send a PATCH admin request to "/api/v1/plants/0ccd23ae-4ac5-4dbe-84b1-fc0e8dac26e3" with body
       """
       {
-        "id": "0ccd23ae-4ac5-4dbe-84b1-fc0e8dac26e3",
         "identity": {
           "name": {
             "primary": "Test"
@@ -114,7 +429,6 @@ Feature: Update a plant
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "identity": {
           "name": {
             "primary": "Test"
@@ -132,14 +446,15 @@ Feature: Update a plant
     And the plant should be unchanged
     And response matches OpenAPI contract
 
+  # The bounds order is a domain rule (`Range`), not a request-shape one.
   Scenario: Fail to update with invalid range values
     Given a family exists
     Given a plant exists
+    And I record the current plant
     And I use If-Match '"0"'
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "traits": {
           "size": {
             "height": {
@@ -151,12 +466,7 @@ Feature: Update a plant
       }
       """
     Then the response status code should be 400
-    Then the response body should be
-      """
-      {
-        "message": "Range min cannot be greater than max"
-      }
-      """
+    And the plant should be unchanged
     And response matches OpenAPI contract
 
   Scenario: Fail to update with invalid months
@@ -166,7 +476,6 @@ Feature: Update a plant
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "phenology": {
           "sowing": {
             "months": [
@@ -178,12 +487,8 @@ Feature: Update a plant
       }
       """
     Then the response status code should be 400
-    Then the response body should be
-      """
-      {
-        "message": "Invalid month: 0"
-      }
-      """
+    And the response errors should include "phenology.sowing.months.0"
+    And the response errors should include "phenology.sowing.months.1"
     And response matches OpenAPI contract
 
   Scenario: Fail to update a plant without authentication
@@ -193,7 +498,6 @@ Feature: Update a plant
     When I send a PATCH request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "identity": {
           "name": {
             "primary": "Test"
@@ -211,7 +515,6 @@ Feature: Update a plant
     When I send a PATCH user request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "identity": {
           "name": {
             "primary": "Test"
@@ -222,15 +525,30 @@ Feature: Update a plant
     Then the response status code should be 403
     And response matches OpenAPI contract
 
-  Scenario: Fail to update with empty body
+  Scenario: An empty body is a no-op
     Given a family exists
-    Given a plant exists
+    And a plant exists
+    And I record the current plant
     And I use If-Match '"0"'
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {}
       """
-    Then the response status code should be 400
+    Then the response status code should be 200
+    And the response should have ETag '"0"'
+    And the plant should be unchanged
+    And response matches OpenAPI contract
+
+  Scenario: An empty body with an outdated version is rejected
+    Given a family exists
+    And a plant exists
+    And the plant is stored at version 1
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {}
+      """
+    Then the response status code should be 412
     And response matches OpenAPI contract
 
   Scenario: Fail to update with an unexistent family
@@ -240,7 +558,6 @@ Feature: Update a plant
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "family": "0ccd23ae-4ac5-4dbe-84b1-fc0e8dac26e3"
       }
       """
@@ -254,7 +571,6 @@ Feature: Update a plant
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "identity": {
           "name": {
             "primary": "Versioned plant"
@@ -281,7 +597,6 @@ Feature: Update a plant
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "identity": {
           "name": {
             "primary": "Round-tripped plant"
@@ -301,7 +616,6 @@ Feature: Update a plant
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "identity": {
           "name": {
             "primary": "Lost update"
@@ -334,7 +648,6 @@ Feature: Update a plant
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "identity": {
           "name": {
             "primary": "Test plant"
@@ -351,7 +664,6 @@ Feature: Update a plant
     When I send a PATCH admin request to "/api/v1/plants/0ccd23ae-4ac5-4dbe-84b1-fc0e8dac26e3" with body
       """
       {
-        "id": "0ccd23ae-4ac5-4dbe-84b1-fc0e8dac26e3",
         "identity": {
           "name": {
             "primary": "Ghost"
@@ -369,7 +681,6 @@ Feature: Update a plant
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "identity": {
           "name": {
             "primary": "Ghost"
@@ -389,7 +700,6 @@ Feature: Update a plant
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "version": 99
       }
       """
@@ -404,7 +714,6 @@ Feature: Update a plant
     When I send 5 concurrent PATCH admin requests to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "identity": {
           "name": {
             "primary": "Concurrent plant"
@@ -422,7 +731,6 @@ Feature: Update a plant
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "identity": {
           "name": {
             "primary": "No precondition"
@@ -441,7 +749,6 @@ Feature: Update a plant
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "identity": {
           "name": {
             "primary": "Wildcard"
@@ -459,7 +766,6 @@ Feature: Update a plant
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "identity": {
           "name": {
             "primary": "Negative"
@@ -477,7 +783,6 @@ Feature: Update a plant
     When I send a PATCH user request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "identity": {
           "name": {
             "primary": "Forbidden"
@@ -495,7 +800,6 @@ Feature: Update a plant
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "identity": {
           "scientificName": "   "
         }
@@ -511,7 +815,6 @@ Feature: Update a plant
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "identity": {
           "name": {
             "primary": ""
@@ -529,7 +832,6 @@ Feature: Update a plant
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "identity": {
           "name": {
             "aliases": [1]
@@ -538,7 +840,7 @@ Feature: Update a plant
       }
       """
     Then the response status code should be 400
-    And the response errors should include "identity.name.aliases[0]"
+    And the response errors should include "identity.name.aliases.0"
     And response matches OpenAPI contract
 
   Scenario: spacingCm must be an object
@@ -548,7 +850,6 @@ Feature: Update a plant
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "traits": {
           "spacingCm": null
         }
@@ -565,7 +866,6 @@ Feature: Update a plant
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "knowledge": {
           "rootSystem": null
         }
@@ -582,7 +882,6 @@ Feature: Update a plant
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "knowledge": {
           "rootSystem": {
             "depthCm": null
@@ -601,7 +900,6 @@ Feature: Update a plant
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "knowledge": {
           "rootSystem": {
             "type": 5
@@ -620,7 +918,6 @@ Feature: Update a plant
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "identity": {
           "name": {
             "primary": "  Tomate  ",
@@ -651,7 +948,6 @@ Feature: Update a plant
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "identity": {
           "scientificName": null
         }
@@ -668,7 +964,6 @@ Feature: Update a plant
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "knowledge": {
           "watering": {
             "frequency": "weekly",
@@ -678,7 +973,7 @@ Feature: Update a plant
       }
       """
     Then the response status code should be 400
-    And the response errors should include "knowledge.watering"
+    And the response errors should include "knowledge.watering.amountMm"
     And response matches OpenAPI contract
 
   Scenario: A propagation method name that is not camelCase is rejected
@@ -688,12 +983,11 @@ Feature: Update a plant
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "knowledge": {
           "propagation": {
             "methods": {
               "seed.season": {
-                "season": "spring"
+                "seasons": ["spring"]
               }
             }
           }
@@ -701,7 +995,7 @@ Feature: Update a plant
       }
       """
     Then the response status code should be 400
-    And the response errors should include "knowledge.propagation.methods"
+    And the response errors should include "knowledge.propagation.methods.seed.season"
     And response matches OpenAPI contract
 
   Scenario: Empty propagation and ecology leave the plant unchanged
@@ -711,7 +1005,6 @@ Feature: Update a plant
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "knowledge": {
           "propagation": {},
           "ecology": {}
@@ -731,7 +1024,6 @@ Feature: Update a plant
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "identity": {
           "name": {
             "primary": "Audited plant"
@@ -764,7 +1056,6 @@ Feature: Update a plant
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
-        "id": "<plantId>",
         "identity": {
           "name": {
             "primary": "Test plant"

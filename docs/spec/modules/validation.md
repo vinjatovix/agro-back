@@ -164,6 +164,7 @@ PATCH endpoints MUST:
 - allow partial nested object validation
 - NOT invalidate missing sibling fields
 - preserve OpenAPI PATCH semantics consistency
+- accept an empty body `{}` as a no-op patch (JSON Merge Patch, RFC 7396; decided 2026-10-02 for Plants and Families): the `If-Match` precondition still applies and the version is not bumped. A missing body is still a `400` at `body`
 
 ---
 
@@ -188,9 +189,10 @@ To support rich catalog data, Zod validation schemas for `Plant` creation/update
       - `germinationDays`: positive integer Range.
       - `months`: a non-empty array of valid months (`1` to `12`).
       - `methods`: an object mapping `direct` (mandatory, with `depthCm` Range) and `nursery` (optional, with `depthCm` Range). Refer strictly to **Module: Plant (plant.md) Section 4.3** for the complete schema and the technical naming transition details from `'starter'` to `'nursery'`.
-    - **Propagation Methods (`knowledge.propagation.methods`):** Structured as a record mapping known propagation types (e.g., `seed`, `cutting`, `division`) to detail sub-objects containing `season` (enum), `bestPractices` (non-empty string array), and optional `estimatedTimeWeeks` Range.
-  - **Resources (`knowledge.resources`):** Validated as an array of typed attachments (`image` | `video` | `article`) with valid URLs and optional metadata (title, source, tags).
-- **Range Schema Invariant Helper:** Any numeric/integer interval range (`RangeSchema`) used across schemas must be validated at the boundary using a refine check to guarantee that `min <= max` holds true.
+    - **Propagation Methods (`knowledge.propagation.methods`):** Structured as a record mapping known propagation types (e.g., `seed`, `cutting`, `division`) to detail sub-objects whose fields are all optional: `seasons` (non-empty list of `spring` | `summer` | `autumn` | `winter`, each at most once), `bestPractices` (list of texts) and `estimatedTimeWeeks` Range. Method names are camelCase (`leafCutting`).
+  - **Resources (`knowledge.resources`):** Validated as an array of attachments, each with a `type` (a required label, e.g. `image`, `video` or `article`; the list is open) and an absolute `http(s)` URL, plus optional metadata (title, source, tags).
+- **Range shape only (changed 2026-10-02):** the shared `rangeSchema`/`partialRangeSchema` only check that the bounds are numbers. The range rules (`min <= max`, no negative bounds) belong to the domain `Range`, which reports them as a `400`. Before, the schema also checked `min <= max` with a refine, which duplicated half of the domain rule (it accepted negative bounds the domain then rejected) and broke the "no business rules in validation" principle.
+- **Size limits (decided 2026-10-02):** transport limits, not business rules, published in the OpenAPI contract: short text (names, types, labels) up to 200 characters, long text (notes, descriptions, best practices) up to 2000, URLs up to 2048, lists up to 50 items, records (propagation methods) up to 20 keys of up to 50 characters. Trimmed texts (required labels, aliases, harvest description) are measured after trimming, so padding does not count. They live in `REQUEST_LIMITS` (`apps/agroApi/shared/requestSchemas.ts`).
 
 ---
 

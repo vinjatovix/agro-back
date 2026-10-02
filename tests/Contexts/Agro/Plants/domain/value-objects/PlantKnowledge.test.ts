@@ -25,14 +25,14 @@ describe('PlantKnowledge', () => {
       {
         type: 'maintenance',
         intensity: 'light',
-        season: 'spring',
+        seasons: ['spring'],
         frequencyPerYear: 2
       }
     ],
     propagation: {
       methods: {
         cuttings: {
-          season: 'spring',
+          seasons: ['spring'],
           estimatedTimeWeeks: { min: 2, max: 4 }
         }
       }
@@ -61,12 +61,13 @@ describe('PlantKnowledge', () => {
     );
 
     expect(knowledge.soil).toBe(mockProps.soil);
-    expect(knowledge.watering).toBe(mockProps.watering);
-    expect(knowledge.light).toBe(mockProps.light);
-    expect(knowledge.pruning).toBe(mockProps.pruning);
+    // Sections with required labels are rebuilt with those labels trimmed.
+    expect(knowledge.watering).toEqual(mockProps.watering);
+    expect(knowledge.light).toEqual(mockProps.light);
+    expect(knowledge.pruning).toEqual(mockProps.pruning);
     expect(knowledge.propagation).toBe(mockProps.propagation);
     expect(knowledge.ecology).toBe(mockProps.ecology);
-    expect(knowledge.resources).toBe(mockProps.resources);
+    expect(knowledge.resources).toEqual(mockProps.resources);
     expect(knowledge.notes).toBe(mockProps.notes);
     expect(knowledge.rootSystem).toBe(mockProps.rootSystem);
   });
@@ -128,6 +129,134 @@ describe('PlantKnowledge', () => {
       expect(reconstructed.rootSystem).toBeDefined();
       expect(reconstructed.watering?.frequency).toBe('weekly');
       expect(reconstructed.light).toBeDefined();
+    });
+  });
+
+  describe('seasons', () => {
+    it('should reject a season repeated in a pruning entry', () => {
+      const primitives: PlantKnowledgePrimitives = {
+        pruning: [
+          {
+            type: 'maintenance',
+            intensity: 'light',
+            seasons: ['spring', 'spring'],
+            frequencyPerYear: 1
+          }
+        ]
+      };
+
+      expect(() => PlantKnowledge.fromPrimitives(primitives)).toThrow(
+        /knowledge\.pruning\.0\.seasons/
+      );
+    });
+
+    it('should reject a season repeated in a propagation method', () => {
+      const knowledge = PlantKnowledgeBuilder.full();
+      const update = (): PlantKnowledge =>
+        knowledge.update({
+          propagation: { methods: { seed: { seasons: ['autumn', 'autumn'] } } }
+        });
+
+      expect(update).toThrow(InvalidArgumentException);
+      expect(update).toThrow(/knowledge\.propagation\.methods\.seed\.seasons/);
+    });
+  });
+
+  describe('pruning frequency', () => {
+    it.each([0, -1])(
+      'should reject a pruning entry with frequencyPerYear %p',
+      (frequencyPerYear) => {
+        const knowledge = PlantKnowledgeBuilder.full();
+        const [entry] = knowledge.toPrimitives().pruning ?? [];
+        const update = (): PlantKnowledge =>
+          knowledge.update({ pruning: [{ ...entry!, frequencyPerYear }] });
+
+        expect(update).toThrow(InvalidArgumentException);
+        expect(update).toThrow(/knowledge\.pruning\.0\.frequencyPerYear/);
+      }
+    );
+
+    it('should accept a pruning every few years', () => {
+      const knowledge = PlantKnowledgeBuilder.full();
+      const [entry] = knowledge.toPrimitives().pruning ?? [];
+
+      const updated = knowledge.update({
+        pruning: [{ ...entry!, frequencyPerYear: 0.5 }]
+      });
+
+      expect(updated.toPrimitives().pruning?.[0]?.frequencyPerYear).toBe(0.5);
+    });
+  });
+
+  describe('required labels', () => {
+    const withLabel = (path: string, label: string): PlantKnowledgeChanges => {
+      const [entry] = PlantKnowledgeBuilder.full().toPrimitives().pruning ?? [];
+      const [resource] =
+        PlantKnowledgeBuilder.full().toPrimitives().resources ?? [];
+      const changes: Record<string, PlantKnowledgeChanges> = {
+        'watering.frequency': { watering: { frequency: label } },
+        'light.type': { light: { type: label } },
+        'pruning.0.type': { pruning: [{ ...entry!, type: label }] },
+        'pruning.0.intensity': { pruning: [{ ...entry!, intensity: label }] },
+        'resources.0.type': { resources: [{ ...resource!, type: label }] }
+      };
+      return changes[path]!;
+    };
+
+    const paths = [
+      'watering.frequency',
+      'light.type',
+      'pruning.0.type',
+      'pruning.0.intensity',
+      'resources.0.type'
+    ];
+
+    it.each(paths)('should reject a blank knowledge.%s', (path) => {
+      const knowledge = PlantKnowledgeBuilder.full();
+      const update = (): PlantKnowledge =>
+        knowledge.update(withLabel(path, '   '));
+
+      expect(update).toThrow(InvalidArgumentException);
+      expect(update).toThrow(`knowledge.${path}`);
+    });
+
+    it.each(paths)('should trim knowledge.%s', (path) => {
+      const knowledge = PlantKnowledgeBuilder.full();
+
+      const updated = knowledge.update(withLabel(path, '  label  '));
+
+      expect(updated.toPrimitives()).toHaveProperty(path.split('.'), 'label');
+    });
+  });
+
+  describe('light hours', () => {
+    it.each([-1, 24.5, 25])(
+      'should reject hoursMin %p, outside 0 to 24',
+      (hoursMin) => {
+        const knowledge = PlantKnowledgeBuilder.full();
+        const update = (): PlantKnowledge =>
+          knowledge.update({ light: { hoursMin } });
+
+        expect(update).toThrow(InvalidArgumentException);
+        expect(update).toThrow(/knowledge\.light\.hoursMin/);
+      }
+    );
+
+    it.each([0, 24])('should accept hoursMin %p', (hoursMin) => {
+      const knowledge = PlantKnowledgeBuilder.full();
+
+      const updated = knowledge.update({ light: { hoursMin } });
+
+      expect(updated.light?.hoursMin).toBe(hoursMin);
+    });
+  });
+
+  describe('ecology', () => {
+    it('should leave out a stored ecology without fields', () => {
+      const knowledge = PlantKnowledge.fromPrimitives({ ecology: {} });
+
+      expect(knowledge.ecology).toBeUndefined();
+      expect(knowledge.toPrimitives()).not.toHaveProperty('ecology');
     });
   });
 
@@ -335,7 +464,7 @@ describe('PlantKnowledge', () => {
           propagation: {
             methods: {
               cutting: {
-                season: 'spring',
+                seasons: ['spring'],
                 bestPractices: ['keep moist']
               }
             }
@@ -414,7 +543,7 @@ describe('PlantKnowledge', () => {
           {
             type: 'rejuvenation' as const,
             intensity: 'hard' as const,
-            season: 'spring' as const,
+            seasons: ['spring' as const],
             frequencyPerYear: 1
           }
         ];
@@ -430,6 +559,86 @@ describe('PlantKnowledge', () => {
         const result = knowledge.update({ notes: ['new note'] });
 
         expect(result.toPrimitives().notes).toEqual(['new note']);
+      });
+    });
+
+    describe('null removals', () => {
+      it.each([
+        ['watering', { watering: null }],
+        ['pruning', { pruning: null }],
+        ['ecology', { ecology: null }],
+        ['resources', { resources: null }],
+        ['notes', { notes: null }]
+      ] satisfies Array<
+        [keyof PlantKnowledgePrimitives, PlantKnowledgeChanges]
+      >)('should remove %s on null', (section, changes) => {
+        const knowledge = PlantKnowledgeBuilder.full();
+
+        const result = knowledge.update(changes).toPrimitives();
+
+        expect(result).not.toHaveProperty(section);
+        expect(result.soil).toEqual(knowledge.toPrimitives().soil);
+      });
+
+      it('should remove optional fields inside a section on null', () => {
+        const knowledge = PlantKnowledgeBuilder.full();
+
+        const result = knowledge
+          .update({
+            watering: { conditions: null },
+            light: { preference: null },
+            ecology: { strategicBenefits: null }
+          })
+          .toPrimitives();
+
+        expect(result.watering).not.toHaveProperty('conditions');
+        expect(result.watering?.frequency).toBe(
+          knowledge.toPrimitives().watering?.frequency
+        );
+        expect(result.light).not.toHaveProperty('preference');
+      });
+
+      it('should remove the ecology when its last field is removed', () => {
+        const knowledge = PlantKnowledgeBuilder.full();
+
+        const result = knowledge
+          .update({ ecology: { strategicBenefits: null } })
+          .toPrimitives();
+
+        expect(result).not.toHaveProperty('ecology');
+      });
+
+      it('should remove a propagation method on null and keep the others', () => {
+        const knowledge = PlantKnowledgeBuilder.full().update({
+          propagation: { methods: { division: { seasons: ['autumn'] } } }
+        });
+
+        const result = knowledge
+          .update({ propagation: { methods: { seed: null } } })
+          .toPrimitives();
+
+        expect(result.propagation?.methods).not.toHaveProperty('seed');
+        expect(result.propagation?.methods).toHaveProperty('division');
+      });
+
+      it('should remove optional fields of a propagation method on null', () => {
+        const knowledge = PlantKnowledgeBuilder.full();
+
+        const result = knowledge
+          .update({
+            propagation: {
+              methods: {
+                seed: { seasons: null, bestPractices: null }
+              }
+            }
+          })
+          .toPrimitives();
+
+        expect(result.propagation?.methods.seed).toBeDefined();
+        expect(result.propagation?.methods.seed).not.toHaveProperty('seasons');
+        expect(result.propagation?.methods.seed).not.toHaveProperty(
+          'bestPractices'
+        );
       });
     });
   });

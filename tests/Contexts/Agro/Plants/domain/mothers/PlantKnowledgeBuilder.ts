@@ -1,6 +1,9 @@
 import type { PlantLightPrimitives } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantLightPrimitives.js';
 import type { PruningTypePrimitives } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PruningPrimitves.js';
-import type { Seasons } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/Seasons.js';
+import {
+  SEASONS,
+  type Seasons
+} from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/Seasons.js';
 import type { WateringFrequency } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/WateringFrequency.js';
 import { PlantKnowledge } from '../../../../../../src/Contexts/Agro/Plants/domain/value-objects/PlantKnowledge.js';
 import { RootSystem } from '../../../../../../src/Contexts/Agro/Plants/domain/value-objects/RootSystem.js';
@@ -51,7 +54,7 @@ const baseTomatoLikeKnowledge = () => ({
     {
       type: 'maintenance' as const,
       intensity: 'light' as const,
-      season: 'spring' as Seasons,
+      seasons: ['spring'] as Seasons[],
       frequencyPerYear: 2,
       bestPractices: ['clean cuts']
     }
@@ -60,7 +63,7 @@ const baseTomatoLikeKnowledge = () => ({
   propagation: {
     methods: {
       seed: {
-        season: 'spring' as Seasons,
+        seasons: ['spring'] as Seasons[],
         bestPractices: ['keep moist soil']
       }
     }
@@ -161,7 +164,10 @@ export const PlantKnowledgeBuilder = {
       {
         type: random.arrayElement(['maintenance', 'rejuvenation', 'shaping']),
         intensity: random.arrayElement(['light', 'moderate', 'hard']),
-        season: random.arrayElement(['spring', 'summer', 'autumn', 'winter']),
+        seasons: random.arrayElements(
+          SEASONS,
+          random.integer({ min: 1, max: 4 })
+        ),
         frequencyPerYear: random.integer({ min: 1, max: 4 }),
         ...(random.boolean()
           ? { bestPractices: [random.word({ min: 3, max: 8 })] }
@@ -171,7 +177,7 @@ export const PlantKnowledgeBuilder = {
 
     const propagation = maybe(() => {
       const seed: {
-        season?: Seasons;
+        seasons?: Seasons[];
         estimatedTimeWeeks?: { min: number; max: number };
         bestPractices?: string[];
       } = {};
@@ -182,12 +188,10 @@ export const PlantKnowledgeBuilder = {
       };
 
       if (random.boolean()) {
-        seed.season = random.arrayElement([
-          'spring',
-          'summer',
-          'autumn',
-          'winter'
-        ]);
+        seed.seasons = random.arrayElements(
+          SEASONS,
+          random.integer({ min: 1, max: 4 })
+        );
       }
 
       if (random.boolean()) {
@@ -249,7 +253,7 @@ export const PlantKnowledgeBuilder = {
       propagation: {
         methods: {
           seed: {
-            season: 'spring',
+            seasons: ['spring'],
             bestPractices: ['keep soil moist']
           }
         }

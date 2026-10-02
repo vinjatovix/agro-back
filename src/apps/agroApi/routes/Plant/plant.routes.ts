@@ -1,20 +1,21 @@
 import type { Router } from 'express';
+
+import {
+  createPlantRequest,
+  deletePlantRequest,
+  getPlantByIdRequest,
+  updatePlantRequest
+} from '../../controllers/Plants/requestSchemas.js';
 import {
   auth,
   isAdmin,
   optionalAuth,
   requireIfMatch,
-  validateBody,
-  validateReqSchema
+  validateRequest
 } from '../../middlewares/index.js';
 import type { RegisterRoutes } from '../route.types.js';
 import { API_PREFIXES } from '../shared/apiPrefixes.js';
 import { plantApiInvoker } from './plantApiInvoker.js';
-import {
-  createPlantReqSchema,
-  getPlantByIdReqSchema,
-  updatePlantReqSchema
-} from './reqSchemas.js';
 
 const prefix = API_PREFIXES.plants;
 
@@ -23,9 +24,7 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
     `${prefix}/`,
     auth,
     isAdmin,
-    validateBody,
-    createPlantReqSchema,
-    validateReqSchema,
+    validateRequest(createPlantRequest),
     plantApiInvoker('createPlant')
   );
 
@@ -34,8 +33,7 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
   router.get(
     `${prefix}/:id`,
     optionalAuth,
-    getPlantByIdReqSchema,
-    validateReqSchema,
+    validateRequest(getPlantByIdRequest),
     plantApiInvoker('getPlantById')
   );
   router.patch(
@@ -43,9 +41,7 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
     auth,
     isAdmin,
     requireIfMatch,
-    validateBody,
-    updatePlantReqSchema,
-    validateReqSchema,
+    validateRequest(updatePlantRequest),
     plantApiInvoker('updatePlant')
   );
   router.delete(
@@ -53,8 +49,7 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
     auth,
     isAdmin,
     requireIfMatch,
-    getPlantByIdReqSchema,
-    validateReqSchema,
+    validateRequest(deletePlantRequest),
     plantApiInvoker('deletePlant')
   );
 };

@@ -34,15 +34,16 @@ Feature: Get Plant
   Scenario: Get a plant with invalid ID
     Given a GET request to "/api/v1/plants/invalid-id"
     Then the response status code should be 400
-    Then the response body should be
-      """
-      {
-        "errors": {
-          "id": "Invalid value at params. Value: invalid-id"
-        },
-        "message": "Validation error"
-      }
-      """
+    And the response errors should include "id"
+    And the response body should not echo "invalid-id"
+    And response matches OpenAPI contract
+
+  Scenario: Get a plant with an unknown query parameter
+    Given a family exists
+    And a plant exists
+    When I send a GET request to "/api/v1/plants/<plantId>?foo=bar"
+    Then the response status code should be 400
+    And the response errors should include "foo"
     And response matches OpenAPI contract
 
   Scenario: Get a plant with malformed UUID (symbols)

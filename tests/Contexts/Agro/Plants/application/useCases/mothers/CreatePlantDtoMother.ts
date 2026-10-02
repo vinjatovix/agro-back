@@ -23,6 +23,7 @@ const base = (): CreatePlantDto => ({
     name: {
       primary: 'Tomato'
     },
+    scientificName: 'Solanum lycopersicum',
     family: SOLANACEAE_FAMILY_ID
   },
 
@@ -59,6 +60,20 @@ const base = (): CreatePlantDto => ({
     harvest: {
       months: [8, 9]
     }
+  },
+
+  knowledge: {
+    rootSystem: {
+      type: 'fibrous',
+      depthCm: range(20, 60),
+      spreadCm: range(30, 80)
+    },
+    soil: {
+      ph: range(6, 7),
+      availableDepthCm: range(30, 80)
+    },
+    light: { hoursMin: 6, type: 'full_sun' },
+    propagation: { methods: {} }
   }
 });
 
@@ -77,6 +92,7 @@ export class CreatePlantDtoMother {
 
       identity: {
         name: { primary: 'Lettuce' },
+        scientificName: 'Lactuca sativa',
         family: ASTERACEAE_FAMILY_ID
       },
 
@@ -116,9 +132,21 @@ export class CreatePlantDtoMother {
 
       identity: {
         ...dto.identity,
-        scientificName: 'Solanum lycopersicum'
+        name: { ...dto.identity.name, aliases: ['Tomatera'] }
       }
     };
+  }
+
+  /** A plant that never flowers and is not harvested. */
+  static withoutFloweringNorHarvest(): CreatePlantDto {
+    const dto = base();
+    const {
+      flowering: _flowering,
+      harvest: _harvest,
+      ...phenology
+    } = dto.phenology;
+
+    return { ...dto, phenology };
   }
 
   static custom(overrides: Record<string, unknown>): CreatePlantDto {

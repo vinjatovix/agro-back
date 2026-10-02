@@ -35,7 +35,7 @@ Contract-driven REST API for agricultural asset management.
 
 ## Before Closing / Preparing a PR
 
-1. Run `npm run format` and `npm run lint`.
+1. Run `npm run format`, `npm run lint` and `npm run typecheck` (type-checks `src/` and `tests/`; `build` only covers `src/`).
 2. Run `npm run build` (validates routes and compiles TypeScript).
 3. Run `npm run check-circular` to verify there are no circular dependencies.
 4. Run all tests with `npm test`.

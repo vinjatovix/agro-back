@@ -35,9 +35,9 @@ describe('PlantPersistenceMapper', () => {
       const doc = plantPersistenceMapper.toMongoDocument(plant);
 
       expect(doc.phenology.flowering.pollination).toBeDefined();
-      expect(doc.phenology.flowering.pollination?.type).toBe(
+      expect(doc.phenology.flowering.pollination?.types).toEqual([
         PollinationType.INSECT
-      );
+      ]);
     });
 
     it('should omit pollination when not present', () => {
@@ -101,9 +101,9 @@ describe('PlantPersistenceMapper', () => {
       const restored = plantPersistenceMapper.fromMongoDocument(doc);
 
       expect(restored.phenology.flowering.pollination).toBeDefined();
-      expect(restored.phenology.flowering.pollination?.type).toBe(
+      expect(restored.phenology.flowering.pollination?.types).toEqual([
         PollinationType.INSECT
-      );
+      ]);
     });
 
     it('should handle missing pollination', () => {

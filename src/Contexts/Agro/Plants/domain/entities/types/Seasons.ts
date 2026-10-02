@@ -1,1 +1,3 @@
-export type Seasons = 'spring' | 'summer' | 'autumn' | 'winter';
+export const SEASONS = ['spring', 'summer', 'autumn', 'winter'] as const;
+
+export type Seasons = (typeof SEASONS)[number];

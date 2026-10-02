@@ -1,4 +1,4 @@
-import type { MongoClient } from 'mongodb';
+import type { Binary, Collection, MongoClient } from 'mongodb';
 import {
   type AppContainer,
   createAppContainer
@@ -16,6 +16,12 @@ let container: AppContainer;
 let repository: AuthRepository;
 let environmentArranger: Promise<EnvironmentArranger>;
 let client: MongoClient;
+
+// Stored users read raw, keyed by the `toMongoId` form of their id.
+type RawUserDocument = { _id: Binary | string } & Record<string, unknown>;
+
+const usersCollection = (): Collection<RawUserDocument> =>
+  client.db().collection<RawUserDocument>('users');
 
 describe('MongoAuthRepository', () => {
   beforeAll(async () => {
@@ -49,10 +55,9 @@ describe('MongoAuthRepository', () => {
 
       await repository.save(user);
 
-      const rawDocument = await client
-        .db()
-        .collection('users')
-        .findOne({ _id: toMongoId(user.id) });
+      const rawDocument = await usersCollection().findOne({
+        _id: toMongoId(user.id)
+      });
 
       expect(rawDocument).not.toHaveProperty('id');
     });
@@ -79,10 +84,9 @@ describe('MongoAuthRepository', () => {
       expect(updatedUser?.authMethods).toBeDefined();
       expect(updatedUser?.authMethods[0]?.provider).toBe('local');
 
-      const rawDocument = await client
-        .db()
-        .collection('users')
-        .findOne({ _id: toMongoId(user.id) });
+      const rawDocument = await usersCollection().findOne({
+        _id: toMongoId(user.id)
+      });
 
       expect(rawDocument).not.toHaveProperty('id');
     });
@@ -92,7 +96,7 @@ describe('MongoAuthRepository', () => {
     it('should keep stored metadata fields the patch does not carry', async () => {
       const user = UserMother.random();
       await repository.save(user);
-      const users = client.db().collection('users');
+      const users = usersCollection();
       await users.updateOne(
         { _id: toMongoId(user.id) },
         { $set: { 'metadata.legacyField': 'kept' } }

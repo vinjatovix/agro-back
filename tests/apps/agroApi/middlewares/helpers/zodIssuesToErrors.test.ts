@@ -28,9 +28,10 @@ import {
 
 const issuesOf = (
   schema: z.ZodType,
-  input: unknown
+  input: unknown,
+  { reportInput = false }: { reportInput?: boolean } = {}
 ): ReadonlyArray<z.core.$ZodIssue> => {
-  const result = schema.safeParse(input);
+  const result = schema.safeParse(input, { reportInput });
 
   expect(result.success).toBe(false);
 
@@ -279,14 +280,13 @@ describe('zodIssuesToErrors', () => {
     });
 
     it('should give the same output whether issue.input is present or not', () => {
-      const issues = issuesOf(sampleBodySchema(), {
-        ...sampleValidBody(),
-        tags: ['ok', 12345]
+      const body = { ...sampleValidBody(), tags: ['ok', 12345] };
+      const issues = issuesOf(sampleBodySchema(), body);
+      const withInput = issuesOf(sampleBodySchema(), body, {
+        reportInput: true
       });
-      const withInput = issues.map((issue) => ({
-        ...issue,
-        input: 'input-sentinel'
-      }));
+
+      expect(withInput.some((issue) => issue.input !== undefined)).toBe(true);
 
       expect(zodIssuesToErrors([{ part: 'body', issues: withInput }])).toEqual(
         zodIssuesToErrors([{ part: 'body', issues }])
