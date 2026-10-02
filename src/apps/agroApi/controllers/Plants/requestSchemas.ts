@@ -4,7 +4,18 @@ import {
   PollinationType,
   SEASONS
 } from '../../../../Contexts/Agro/Plants/domain/entities/types/index.js';
+import type { PlantFilter } from '../../../../Contexts/Agro/Plants/domain/entities/types/PlantFilter.js';
+import type { QueryOptions } from '../../../../shared/domain/query/interfaces/QueryOptions.js';
 import type { RequestSchemas } from '../../middlewares/validateRequest.js';
+import {
+  enumField,
+  identifierField,
+  listField,
+  listQuerySchema,
+  monthItem,
+  rangeField,
+  textField
+} from '../../shared/listQuerySchema.js';
 import {
   boundedRecordSchema,
   emptyBody,
@@ -35,7 +46,9 @@ const pollinationTypesSchema = z
   .min(1)
   .max(Object.keys(PollinationType).length);
 
-const lifecycleSchema = z.enum(['annual', 'biennial', 'perennial']);
+const LIFECYCLES = ['annual', 'biennial', 'perennial'] as const;
+
+const lifecycleSchema = z.enum(LIFECYCLES);
 
 const seasonsSchema = z.array(z.enum(SEASONS)).min(1).max(SEASONS.length);
 
@@ -313,5 +326,29 @@ export const getPlantByIdRequest = {
 export const deletePlantRequest = {
   params: plantIdParams,
   query: emptyQuery,
+  body: emptyBody
+} satisfies RequestSchemas;
+
+// Public sort keys; the repository maps them to the stored paths. The output
+// type is checked against what `ListPlants` takes.
+const listPlantsQuery = listQuerySchema({
+  filter: {
+    identity: textField(),
+    family: identifierField(),
+    lifeCycle: enumField(LIFECYCLES),
+    sowingMethod: enumField(['direct', 'starter']),
+    lightType: textField(),
+    rootSystem: textField(),
+    spacingCm: rangeField(),
+    soilPh: rangeField(),
+    soilAvailableDepthCm: rangeField(),
+    lightHoursMin: rangeField(),
+    sowingMonths: listField(monthItem)
+  },
+  sortableKeys: ['name', 'scientificName']
+}) satisfies z.ZodType<QueryOptions<PlantFilter>>;
+
+export const listPlantsRequest = {
+  query: listPlantsQuery,
   body: emptyBody
 } satisfies RequestSchemas;

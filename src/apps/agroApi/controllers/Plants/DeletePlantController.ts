@@ -3,9 +3,9 @@ import httpStatus from 'http-status';
 
 import type { DeletePlant } from '../../../../Contexts/Agro/Plants/application/useCases/DeletePlant.js';
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
-import { getExpectedVersion } from '../../middlewares/requireIfMatch.js';
 import { getValidatedRequest } from '../../middlewares/validateRequest.js';
 import { HttpController } from '../../shared/HttpController.js';
+import { getExpectedVersions } from '../../shared/versionTags.js';
 import { deletePlantRequest } from './requestSchemas.js';
 
 export type DeletePlantControllerDependencies = {
@@ -30,7 +30,7 @@ export class DeletePlantController extends HttpController {
       await this.deletePlant.execute(
         params.id,
         user.username,
-        getExpectedVersion(res)
+        getExpectedVersions(res)
       );
 
       res.status(httpStatus.NO_CONTENT).end();

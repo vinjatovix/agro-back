@@ -759,16 +759,75 @@ Feature: Update a plant
     Then the response status code should be 428
     And response matches OpenAPI contract
 
-  Scenario: Update with a negative If-Match is rejected
+  Scenario Outline: Update with an If-Match that names no current version fails the precondition (<header>)
     Given a family exists
     And a plant exists
-    And I use If-Match '"-1"'
+    And the plant is stored at version 3
+    And I use If-Match '<header>'
     When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
       """
       {
         "identity": {
           "name": {
-            "primary": "Negative"
+            "primary": "Listed"
+          }
+        }
+      }
+      """
+    Then the response status code should be 412
+    And the plant should be unchanged
+    And response matches OpenAPI contract
+
+    Examples:
+      | header |
+      | W/"3"  |
+      | "abc"  |
+      | "-1"   |
+
+  Scenario: Update with a list of entity tags that includes the current version
+    Given a family exists
+    And a plant exists
+    And the plant is stored at version 3
+    And I use If-Match '"2", "3"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "identity": {
+          "name": {
+            "primary": "Listed"
+          }
+        }
+      }
+      """
+    Then the response status code should be 200
+    And the response should have ETag '"4"'
+    And response matches OpenAPI contract
+
+  Scenario: A weak If-Match on a missing plant answers not found
+    Given I use If-Match 'W/"3"'
+    When I send a PATCH admin request to "/api/v1/plants/12384ea3-e55d-4f69-8b0c-b54cccb9f443" with body
+      """
+      {
+        "identity": {
+          "name": {
+            "primary": "Listed"
+          }
+        }
+      }
+      """
+    Then the response status code should be 404
+    And response matches OpenAPI contract
+
+  Scenario Outline: Update with a malformed If-Match is rejected (<header>)
+    Given a family exists
+    And a plant exists
+    And I use If-Match '<header>'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "identity": {
+          "name": {
+            "primary": "Listed"
           }
         }
       }
@@ -776,6 +835,12 @@ Feature: Update a plant
     Then the response status code should be 400
     And the response errors should include "if-match"
     And response matches OpenAPI contract
+
+    Examples:
+      | header  |
+      | 3       |
+      | "3      |
+      | "3" "4" |
 
   Scenario: The role check runs before the If-Match check
     Given a family exists

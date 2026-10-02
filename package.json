@@ -99,7 +99,6 @@
     "env-var": "^7.5.0",
     "express": "^5.2.1",
     "express-rate-limit": "^8.3.2",
-    "express-validator": "^7.3.2",
     "glob": "^13.0.6",
     "google-auth-library": "^11.1.0",
     "helmet": "^8.1.0",

@@ -2,32 +2,31 @@ import { type NextFunction, type Request, type Response } from 'express';
 
 import { ListFamilies } from '../../../../Contexts/Agro/Families/application/useCases/ListFamilies.js';
 import { familyDomainMapper } from '../../../../Contexts/Agro/Families/mappers/familyDomainMapper.js';
-import { FamilyQueryParser } from '../../query/index.js';
+import { getValidatedRequest } from '../../middlewares/validateRequest.js';
 import { HttpController } from '../../shared/HttpController.js';
+import { listFamiliesRequest } from './requestSchemas.js';
 
 export type GetAllFamiliesControllerDependencies = {
   listFamilies: ListFamilies;
-  familyQueryParser: FamilyQueryParser;
 };
 
 export class GetAllFamiliesController extends HttpController {
   protected readonly listFamilies: ListFamilies;
-  private readonly parser: FamilyQueryParser;
 
-  constructor({
-    listFamilies,
-    familyQueryParser
-  }: GetAllFamiliesControllerDependencies) {
+  constructor({ listFamilies }: GetAllFamiliesControllerDependencies) {
     super();
     this.listFamilies = listFamilies;
-    this.parser = familyQueryParser;
   }
 
-  run = async (req: Request, res: Response, next: NextFunction) => {
+  run = async (
+    _req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     try {
-      const dto = this.parser.parse(req.query);
+      const { query } = getValidatedRequest(res, listFamiliesRequest);
 
-      const result = await this.listFamilies.execute(dto);
+      const result = await this.listFamilies.execute({ query });
       const data = result.data.map((family) =>
         familyDomainMapper.toPrimitives(family)
       );

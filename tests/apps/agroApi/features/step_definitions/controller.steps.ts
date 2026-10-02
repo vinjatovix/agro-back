@@ -593,6 +593,23 @@ Given(
 );
 
 Given(
+  'a POST user request to {string} with query {string} and body',
+  async function (route: string, query: string, body: string) {
+    const normalizedRoute = interpolateRoute(route, this);
+
+    // The OpenAPI check looks the path up without the query string.
+    setRequestContext(this, 'POST', normalizedRoute);
+
+    this.request = buildRequest({
+      method: 'post',
+      route: `${normalizedRoute}?${query}`,
+      ...withToken(getAuthToken(this, validUserBearerToken!)),
+      body: parseBody(body, this)
+    });
+  }
+);
+
+Given(
   'an authentication with body',
   async function (this: CucumberWorld, docString: string) {
     const payload = parseJsonObject(docString);
@@ -702,6 +719,58 @@ Given('multiple plants exists', async function (this: CucumberWorld) {
 Given('no plants exist', async function () {
   await (await environmentArranger).arrange();
 });
+
+Given('another family exists', async function (this: CucumberWorld) {
+  const family = await familySeeder.create();
+
+  this.otherFamilyId = family.id;
+});
+
+// Columns `name`, `scientificName` and `family` (`first` → <familyId>, `other`
+// → <otherFamilyId>); any other column is a dot path of the plant, its cell
+// parsed as JSON when it can be. An empty cell keeps the seeder default.
+const PLANT_FAMILIES: Record<string, 'familyId' | 'otherFamilyId'> = {
+  first: 'familyId',
+  other: 'otherFamilyId'
+};
+
+const parseCell = (cell: string): unknown => {
+  try {
+    return JSON.parse(cell) as unknown;
+  } catch {
+    return cell;
+  }
+};
+
+const plantOverrides = (
+  world: CucumberWorld,
+  { name, scientificName, family = 'first', ...paths }: Record<string, string>
+): Record<string, unknown> => {
+  const familyKey = PLANT_FAMILIES[family];
+  assert.exists(familyKey, `Unknown family "${family}"`);
+
+  return {
+    'identity.name.primary': name,
+    'identity.scientificName': scientificName,
+    'identity.family': world[familyKey],
+    ...Object.fromEntries(
+      Object.entries(paths)
+        .filter(([, cell]) => cell !== '')
+        .map(([path, cell]) => [path, parseCell(cell)])
+    )
+  };
+};
+
+Given(
+  'the following plants exist:',
+  async function (this: CucumberWorld, dataTable: DataTable) {
+    for (const row of dataTable.hashes()) {
+      const plant = await plantSeeder.create(plantOverrides(this, row));
+
+      assert.exists(plant.id, `PlantSeeder failed for "${row.name}"`);
+    }
+  }
+);
 
 Given('a bed exists', async function () {
   const token = getAuthToken(this, validUserBearerToken!);
@@ -901,6 +970,24 @@ When(
 );
 
 When(
+  'I send a GET user request to {string} with body:',
+  async function (this: CucumberWorld, route: string, body: string) {
+    const normalizedRoute = interpolateRoute(route, this);
+
+    setRequestContext(this, 'GET', normalizedRoute);
+
+    const token = getAuthToken(this, validUserBearerToken!);
+
+    this.request = buildRequest({
+      method: 'get',
+      route: normalizedRoute,
+      ...withToken(token),
+      body: parseBody(body, this)
+    });
+  }
+);
+
+When(
   'I send a GET collaborator request to {string}',
   async function (this: CucumberWorld, route: string) {
     const normalizedRoute = interpolateRoute(route, this);
@@ -1045,6 +1132,29 @@ When(
       route: `${normalizedRoute}?${query}`,
       ifMatch: this.ifMatch,
       ...withToken(getAuthToken(this, validAdminBearerToken!)),
+      body: parseBody(body, this)
+    });
+  }
+);
+
+When(
+  'I send a PATCH user request to {string} with query {string} and body',
+  async function (
+    this: CucumberWorld,
+    route: string,
+    query: string,
+    body: string
+  ) {
+    const normalizedRoute = interpolateRoute(route, this);
+
+    // The OpenAPI check looks the path up without the query string.
+    setRequestContext(this, 'PATCH', normalizedRoute);
+
+    this.request = buildRequest({
+      method: 'patch',
+      route: `${normalizedRoute}?${query}`,
+      ifMatch: this.ifMatch,
+      ...withToken(getAuthToken(this, validUserBearerToken!)),
       body: parseBody(body, this)
     });
   }
@@ -1362,6 +1472,26 @@ Then(
   }
 );
 
+const listedValues = (world: CucumberWorld, field: string): string[] =>
+  getResponseData(world).map((item) => String(get(item, field)));
+
+const csvValues = (csv: string): string[] =>
+  csv === '' ? [] : csv.split(',').map((value) => value.trim());
+
+Then(
+  'the listed {string} should be {string}',
+  function (this: CucumberWorld, field: string, expected: string) {
+    assert.deepEqual(listedValues(this, field), csvValues(expected));
+  }
+);
+
+Then(
+  'the listed {string} should be exactly {string} in any order',
+  function (this: CucumberWorld, field: string, expected: string) {
+    assert.sameMembers(listedValues(this, field), csvValues(expected));
+  }
+);
+
 Then(
   'the response body should contain',
   async function (this: CucumberWorld, docString: string) {
@@ -1584,6 +1714,16 @@ Then(
 
     assert.isObject(body.errors, 'Response body has no errors object');
     assert.property(body.errors, key);
+  }
+);
+
+Then(
+  'the response errors should not include {string}',
+  function (this: CucumberWorld, key: string) {
+    const body = this.responseRaw!.body as { errors?: unknown };
+
+    assert.isObject(body.errors, 'Response body has no errors object');
+    assert.notProperty(body.errors, key);
   }
 );
 

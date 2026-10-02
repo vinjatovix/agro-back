@@ -43,14 +43,16 @@ describe('UpdateBed', () => {
           height: 250
         },
         USER,
-        CURRENT_VERSION
+        [CURRENT_VERSION]
       )
     ).rejects.toBeInstanceOf(DomainNotFoundException);
     repository.assertUpdateNotCalled();
   });
 
   it('should confirm a no-op against storage when input has only id', async () => {
-    const result = await useCase.execute({ id: bed.id }, USER, CURRENT_VERSION);
+    const result = await useCase.execute({ id: bed.id }, USER, [
+      CURRENT_VERSION
+    ]);
 
     repository.assertUpdateCalledTimes(1);
     expect(result.version).toBe(bed.version);
@@ -72,7 +74,7 @@ describe('UpdateBed', () => {
         height: bed.height.value + 50
       },
       USER,
-      CURRENT_VERSION
+      [CURRENT_VERSION]
     );
 
     expect(result.width.value).toBe(bed.width.value + 50);
@@ -94,7 +96,7 @@ describe('UpdateBed', () => {
           height: 250
         },
         otherUser,
-        CURRENT_VERSION
+        [CURRENT_VERSION]
       )
     ).rejects.toBeInstanceOf(DomainNotFoundException);
     repository.assertUpdateNotCalled();
@@ -116,7 +118,7 @@ describe('UpdateBed', () => {
           height: 250
         },
         USER,
-        CURRENT_VERSION
+        [CURRENT_VERSION]
       )
     ).rejects.toBeInstanceOf(DomainNotFoundException);
     repository.assertUpdateNotCalled();
@@ -137,7 +139,7 @@ describe('UpdateBed', () => {
           height: bed.height.value + 50
         },
         USER,
-        CURRENT_VERSION
+        [CURRENT_VERSION]
       )
     ).rejects.toBeInstanceOf(DomainNotFoundException);
   });
@@ -151,7 +153,7 @@ describe('UpdateBed', () => {
         depth: bed.depth.value
       },
       USER,
-      CURRENT_VERSION
+      [CURRENT_VERSION]
     );
 
     repository.assertUpdateHasBeenCalledWith(
@@ -184,7 +186,7 @@ describe('UpdateBed', () => {
       repository.getStored(bed.id)?.version;
 
     it('should update and bump the stored version when expectedVersion matches', async () => {
-      const updated = await useCase.execute(resize(), USER, bed.version);
+      const updated = await useCase.execute(resize(), USER, [bed.version]);
 
       expect(updated.width.value).toBe(bed.width.value + 10);
       expect(storedVersion()).toBe(bed.version + 1);
@@ -192,7 +194,7 @@ describe('UpdateBed', () => {
 
     it('should throw DomainStaleVersionException without writing when expectedVersion is outdated', async () => {
       await expect(
-        useCase.execute(resize(), USER, bed.version + 1)
+        useCase.execute(resize(), USER, [bed.version + 1])
       ).rejects.toBeInstanceOf(DomainStaleVersionException);
 
       repository.assertUpdateNotCalled();
@@ -200,23 +202,23 @@ describe('UpdateBed', () => {
     });
 
     it('should reject a second writer that read the same version', async () => {
-      await useCase.execute(resize(), USER, bed.version);
+      await useCase.execute(resize(), USER, [bed.version]);
 
       await expect(
-        useCase.execute({ id: bed.id, height: 999 }, USER, bed.version)
+        useCase.execute({ id: bed.id, height: 999 }, USER, [bed.version])
       ).rejects.toBeInstanceOf(DomainStaleVersionException);
       expect(repository.getStored(bed.id)?.height.value).toBe(bed.height.value);
     });
 
     it('should throw DomainNotFoundException (not stale) for an absent bed with a wrong version', async () => {
       await expect(
-        useCase.execute({ id: randomBedId(), width: 150 }, USER, 999)
+        useCase.execute({ id: randomBedId(), width: 150 }, USER, [999])
       ).rejects.toBeInstanceOf(DomainNotFoundException);
     });
 
     it('should throw DomainNotFoundException (not stale) for a foreign bed with a wrong version', async () => {
       await expect(
-        useCase.execute(resize(), otherUser, 999)
+        useCase.execute(resize(), otherUser, [999])
       ).rejects.toBeInstanceOf(DomainNotFoundException);
     });
 
@@ -229,26 +231,22 @@ describe('UpdateBed', () => {
       repository.addToStorage(deletedBed);
 
       await expect(
-        useCase.execute({ id: deletedBed.id, width: 150 }, USER, 999)
+        useCase.execute({ id: deletedBed.id, width: 150 }, USER, [999])
       ).rejects.toBeInstanceOf(DomainNotFoundException);
     });
 
     it('should throw DomainStaleVersionException for a no-op patch with an outdated version', async () => {
       await expect(
-        useCase.execute(
-          { id: bed.id, width: bed.width.value },
-          USER,
+        useCase.execute({ id: bed.id, width: bed.width.value }, USER, [
           bed.version + 1
-        )
+        ])
       ).rejects.toBeInstanceOf(DomainStaleVersionException);
     });
 
     it('should accept a no-op patch with the current version without bumping it', async () => {
-      await useCase.execute(
-        { id: bed.id, width: bed.width.value },
-        USER,
+      await useCase.execute({ id: bed.id, width: bed.width.value }, USER, [
         bed.version
-      );
+      ]);
 
       expect(storedVersion()).toBe(bed.version);
     });
@@ -268,7 +266,7 @@ describe('UpdateBed', () => {
         .mockResolvedValueOnce(readCopy);
 
       await expect(
-        useCase.execute({ id: bed.id }, USER, bed.version)
+        useCase.execute({ id: bed.id }, USER, [bed.version])
       ).rejects.toBeInstanceOf(DomainStaleVersionException);
     });
 
@@ -282,16 +280,14 @@ describe('UpdateBed', () => {
         .mockResolvedValueOnce(readCopy);
 
       await expect(
-        useCase.execute(
-          { id: bed.id, width: bed.width.value },
-          USER,
+        useCase.execute({ id: bed.id, width: bed.width.value }, USER, [
           bed.version
-        )
+        ])
       ).rejects.toBeInstanceOf(DomainNotFoundException);
     });
 
     it('should read once, write once and never run the existence check on success', async () => {
-      await useCase.execute(resize(), USER, bed.version);
+      await useCase.execute(resize(), USER, [bed.version]);
 
       repository.assertReadCalledTimes('findOwnedActiveById', 1);
       repository.assertUpdateCalledTimes(1);
@@ -303,7 +299,7 @@ describe('UpdateBed', () => {
     const before = bedDomainMapper.toPrimitives(bed);
 
     await expect(
-      useCase.execute({ id: bed.id, width: 0 }, USER, CURRENT_VERSION)
+      useCase.execute({ id: bed.id, width: 0 }, USER, [CURRENT_VERSION])
     ).rejects.toBeInstanceOf(InvalidArgumentException);
 
     repository.assertUpdateNotCalled();
@@ -320,7 +316,7 @@ describe('UpdateBed', () => {
         height: bed.height.value + 50
       },
       USER,
-      CURRENT_VERSION
+      [CURRENT_VERSION]
     );
 
     expect(updated.width.value).toBe(bed.width.value + 50);
@@ -347,7 +343,7 @@ describe('UpdateBed', () => {
     const updated = await useCase.execute(
       { id: stored.id, name: 'Renamed' },
       editor,
-      stored.version
+      [stored.version]
     );
 
     expect(updated.version).toBe(stored.version + 1);
@@ -375,7 +371,7 @@ describe('UpdateBed', () => {
     const updated = await useCase.execute(
       { id: bed.id, name: 'Renamed', width: bed.width.value + 10 },
       USER,
-      CURRENT_VERSION
+      [CURRENT_VERSION]
     );
 
     const at = rename.mock.calls[0]?.[2];
@@ -392,7 +388,96 @@ describe('UpdateBed', () => {
       );
 
     await expect(
-      useCase.execute({ id: bed.id, name: 'Renamed' }, USER, CURRENT_VERSION)
+      useCase.execute({ id: bed.id, name: 'Renamed' }, USER, [CURRENT_VERSION])
     ).rejects.toBeInstanceOf(DomainStaleVersionException);
+  });
+
+  describe('partial updates', () => {
+    const storedBed = () => repository.getStored(bed.id);
+
+    it('should rename only, trimming the name, and bump the version', async () => {
+      // Act
+      const updated = await useCase.execute(
+        { id: bed.id, name: '  Raised bed  ' },
+        USER,
+        [bed.version]
+      );
+
+      // Assert
+      expect(updated.name.value).toBe('Raised bed');
+      expect(updated.width.value).toBe(bed.width.value);
+      expect(storedBed()?.version).toBe(bed.version + 1);
+    });
+
+    it('should change only the depth', async () => {
+      // Act
+      const updated = await useCase.execute(
+        { id: bed.id, depth: bed.depth.value + 5 },
+        USER,
+        [bed.version]
+      );
+
+      // Assert
+      expect(updated.depth.value).toBe(bed.depth.value + 5);
+      expect(updated.name.value).toBe(bed.name.value);
+      expect(updated.width.value).toBe(bed.width.value);
+    });
+
+    it('should neither rename nor resize for an empty update', async () => {
+      // Arrange
+      const loaded = bedDomainMapper.fromPrimitives(
+        bedDomainMapper.toPrimitives(bed)
+      );
+      jest
+        .spyOn(repository, 'findOwnedActiveById')
+        .mockResolvedValueOnce(loaded);
+      const rename = jest.spyOn(loaded, 'rename');
+      const resize = jest.spyOn(loaded, 'resize');
+
+      // Act
+      const result = await useCase.execute({ id: bed.id }, USER, [bed.version]);
+
+      // Assert
+      expect(rename).not.toHaveBeenCalled();
+      expect(resize).not.toHaveBeenCalled();
+      repository.assertUpdateCalledTimes(1);
+      expect(result.version).toBe(bed.version);
+      expect(result.metadata).toEqual(bed.metadata);
+    });
+  });
+
+  describe('expected version lists', () => {
+    it('should proceed when the list contains the current version', async () => {
+      // Act
+      const updated = await useCase.execute(
+        { id: bed.id, name: 'Listed' },
+        USER,
+        [bed.version + 5, bed.version]
+      );
+
+      // Assert
+      expect(updated.name.value).toBe('Listed');
+    });
+
+    it('should answer stale for an empty list without writing', async () => {
+      // Act
+      const update = useCase.execute({ id: bed.id, name: 'Listed' }, USER, []);
+
+      // Assert
+      await expect(update).rejects.toBeInstanceOf(DomainStaleVersionException);
+      repository.assertUpdateNotCalled();
+    });
+
+    it('should answer not found before checking an empty list', async () => {
+      // Act
+      const update = useCase.execute(
+        { id: randomBedId(), name: 'Listed' },
+        USER,
+        []
+      );
+
+      // Assert
+      await expect(update).rejects.toBeInstanceOf(DomainNotFoundException);
+    });
   });
 });

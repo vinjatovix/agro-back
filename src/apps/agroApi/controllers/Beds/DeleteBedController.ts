@@ -1,14 +1,12 @@
 import { type NextFunction, type Request, type Response } from 'express';
 import httpStatus from 'http-status';
+
 import type { DeleteBed } from '../../../../Contexts/Agro/Beds/application/useCases/DeleteBed.js';
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
-import { createError } from '../../../../shared/errors/index.js';
-import { getExpectedVersion } from '../../middlewares/requireIfMatch.js';
+import { getValidatedRequest } from '../../middlewares/validateRequest.js';
 import { HttpController } from '../../shared/HttpController.js';
-
-type DeleteBedParams = {
-  id: string;
-};
+import { getExpectedVersions } from '../../shared/versionTags.js';
+import { deleteBedRequest } from './requestSchemas.js';
 
 export type DeleteBedControllerDependencies = {
   deleteBed: DeleteBed;
@@ -22,19 +20,15 @@ export class DeleteBedController extends HttpController {
   }
 
   run = async (
-    req: Request<DeleteBedParams>,
+    _req: Request,
     res: Response,
     next: NextFunction
-  ) => {
+  ): Promise<void> => {
     try {
-      const { id } = req.params;
+      const { params } = getValidatedRequest(res, deleteBedRequest);
       const user = res.locals.user as UserSessionInfo;
 
-      if (!id) {
-        throw createError.badRequest('Bed ID is required');
-      }
-
-      await this.deleteBed.execute(id, user, getExpectedVersion(res));
+      await this.deleteBed.execute(params.id, user, getExpectedVersions(res));
 
       res.status(httpStatus.NO_CONTENT).end();
     } catch (error) {

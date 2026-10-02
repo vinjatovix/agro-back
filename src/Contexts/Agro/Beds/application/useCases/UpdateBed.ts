@@ -13,24 +13,28 @@ export class UpdateBed {
   async execute(
     input: UpdateBedInput,
     user: UserSessionInfo,
-    expectedVersion: number
+    expectedVersions: readonly number[]
   ): Promise<Bed> {
     const bed = ensureFound(
       await this.bedRepository.findOwnedActiveById(input.id, user.id),
       'Bed',
       input.id
     );
-    ensureVersion(bed.version, expectedVersion, 'Bed', input.id);
+    ensureVersion(bed.version, expectedVersions, 'Bed', input.id);
 
     const changes = bedInputMapper.toChanges(input);
     const before = bedDomainMapper.toPrimitives(bed);
     // One timestamp for the whole request, whatever fields it touches.
     const at = new Date();
 
+    // Only the fields sent are touched: `{}` leaves the bed and its audit data
+    // as they are.
     if (changes.name !== undefined) {
       bed.rename(changes.name, user.username, at);
     }
-    bed.resize(changes.dimensions, user.username, at);
+    if (Object.keys(changes.dimensions).length > 0) {
+      bed.resize(changes.dimensions, user.username, at);
+    }
 
     const after = bedDomainMapper.toPrimitives(bed);
 

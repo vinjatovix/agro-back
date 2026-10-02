@@ -1,4 +1,5 @@
 import { bedPersistenceMapper } from '../../../../../src/Contexts/Agro/Beds/mappers/bedPersistenceMapper.js';
+import { InvalidArgumentException } from '../../../../../src/Contexts/shared/domain/errors/index.js';
 import { BedFactory } from '../domain/mothers/BedFactory.js';
 
 describe('bedPersistenceMapper', () => {
@@ -131,6 +132,22 @@ describe('bedPersistenceMapper', () => {
       const restoredDocument = bedPersistenceMapper.toMongoDocument(restored);
 
       expect(restoredDocument).toMatchObject(document);
+    });
+  });
+
+  describe('bed name', () => {
+    it('should reject a stored blank name', () => {
+      // Arrange
+      const document = {
+        ...bedPersistenceMapper.toMongoDocument(BedFactory.create()),
+        name: ''
+      };
+
+      // Act
+      const load = () => bedPersistenceMapper.fromMongoDocument(document);
+
+      // Assert
+      expect(load).toThrow(InvalidArgumentException);
     });
   });
 });

@@ -3,6 +3,7 @@ import type { Router } from 'express';
 import {
   createFamilyRequest,
   getFamilyByIdOrSlugRequest,
+  listFamiliesRequest,
   updateFamilyRequest
 } from '../../controllers/Families/requestSchemas.js';
 import {
@@ -32,7 +33,11 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
     familyApiInvoker('getFamilyBySlug')
   );
 
-  router.get(`${prefix}/`, familyApiInvoker('getAllFamilies'));
+  router.get(
+    `${prefix}/`,
+    validateRequest(listFamiliesRequest),
+    familyApiInvoker('getAllFamilies')
+  );
 
   router.patch(
     `${prefix}/:idOrSlug`,

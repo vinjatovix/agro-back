@@ -4,6 +4,7 @@ import {
   createPlantRequest,
   deletePlantRequest,
   getPlantByIdRequest,
+  listPlantsRequest,
   updatePlantRequest
 } from '../../controllers/Plants/requestSchemas.js';
 import {
@@ -28,7 +29,12 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
     plantApiInvoker('createPlant')
   );
 
-  router.get(`${prefix}/`, optionalAuth, plantApiInvoker('getAllPlants'));
+  router.get(
+    `${prefix}/`,
+    optionalAuth,
+    validateRequest(listPlantsRequest),
+    plantApiInvoker('getAllPlants')
+  );
 
   router.get(
     `${prefix}/:id`,

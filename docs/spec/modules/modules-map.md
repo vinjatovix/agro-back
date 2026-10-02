@@ -271,12 +271,10 @@ Rules:
 /modules/query.md
 ```
 
-- GenericQueryParser
-- QueryParserUtils
-- pagination parsing
-- CSV parsing utilities
+- `listQuerySchema` and its field helpers (Zod listing schemas)
+- pagination bounds and defaults (`LIST_LIMITS`)
 - HTTP → QueryOptions transformation
-- type coercion utilities
+- value decoding by field type
 
 Rules:
 
