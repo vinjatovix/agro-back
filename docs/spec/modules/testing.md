@@ -30,13 +30,15 @@ Scope:
 
 Unit tests now explicitly include:
 
-- GenericQueryParser (filter DSL parsing)
-- QueryParserUtils (CSV parsing, numeric coercion, sort/include parsing)
+- `listQuerySchema` (operators by field type, value decoding, hints, one operator per field, sort, pagination, no echoed values) and the per-resource listing requests (`listPlantsRequest`, `listFamiliesRequest`)
+- request schemas per module (`controllers/<Module>/requestSchemas.test.ts`, Beds included)
+- `PlantQueryMapper` (every declared operator, `$or` clauses combined under `$and`) and the plant sort keys in `MongoPlantRepository`
+- migrations with a fake `db` (`tests/migrations/`)
 - DTO helpers:
   - buildPatch (path-based patch construction)
   - deepMerge (immutable merge utility)
-- `requireIfMatch` / `parseIfMatch` (every accepted and rejected `If-Match` shape) and `getExpectedVersion`
-- `ensureVersion`
+- `versionTags` (`ifMatchSchema` grammar table: lists, weak and never-emitted tags, `"a,b"`, empty elements, overflow, malformed; `setVersionETag`; `getExpectedVersions`) and `requireIfMatch` (`428`/`400` split)
+- `ensureVersion` with version lists (an empty list never passes)
 - use-case version checks (precedence `404 → 412 → 409`, no-op patches, call counts on the success path: 1 read + 1 `updateWithDiff`, no read after the write)
 - in-memory audit metadata per mutation method: a real change sets `updatedAt`/`updatedBy` to the acting user and keeps `createdAt`/`createdBy`; a same-value call leaves the same `Metadata` instance; a failed call leaves metadata untouched; `syncVersion('written')` advances the version by one and `syncVersion('unchanged')` keeps it
 - `Metadata.update` and `hasStateChanged` (including rejecting value objects, nested or inside arrays, and objects whose prototype has no `constructor`, instead of silently reporting no change)
@@ -154,7 +156,8 @@ Added coverage:
 - NO dependency on exact error strings beyond those defined by the Zod validation contract.
 - Use semantic matching and verify dot-notation path keys.
 - Avoid brittle snapshots unless stable contract (OpenAPI).
-- **`[TARGET STATE (Pending Iterations [10](../../roadmap.md#iteration-10-migrate-health-and-auth-endpoints-to-zod), [12](../../roadmap.md#iteration-12-migrate-plants-endpoints-to-zod), [13](../../roadmap.md#iteration-13-migrate-families-endpoints-to-zod) & [14](../../roadmap.md#iteration-14-migrate-beds-and-query-dsl-to-zod))]`** Cucumber ATDD `.feature` tests will assert against clean, idiomatic Zod error messages (Zod 4 defaults, e.g., `"Invalid input: expected string, received undefined"`, `"Invalid UUID"`). Legacy express-validator error formats are fully retired.
+- Cucumber ATDD `.feature` tests assert against the Zod validation contract (error keys by path, `"Unknown field"`, project hints) and check that the submitted value is not echoed. The legacy `express-validator` error formats were retired in Iterations 10–14.
+- Listing scenarios seed at least one matching and one non-matching resource in `Given`, so a filter cannot pass on an empty list (`the following plants exist:` table step, `the listed "<path>" should be …` assertions).
 - PATCH responses MUST be treated as full aggregate snapshots (not partial fragments).
 - **Spatial Validation Testing Impact:** When migrating spatial calculations to a non-blocking advisory model, tests that previously asserted hard exceptions on collisions or borders MUST be refactored to verify warning lists in the response payload. Exact $0\text{cm}$ geometric collisions (impossible overlays) are the only physical exception that continues to assert hard HTTP 400 errors.
 

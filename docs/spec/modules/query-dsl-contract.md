@@ -1,7 +1,7 @@
 # MODULE: QUERY DSL CONTRACT
 
-version: 1.4.0
-source-spec: v1.4.0
+version: 1.5.0
+source-spec: v1.5.0
 status: formalized (derived from feature tests + QueryOptions implementation)
 
 ---
@@ -82,6 +82,7 @@ Operators:
 Operators:
 
 - eq
+- in (matches any of the listed values)
 - contains
 - startsWith
 - endsWith
@@ -97,8 +98,8 @@ Operators:
 
 - has
 
-Semantics;
-matches exact value
+Semantics:
+takes one value; matches when the list contains it (membership). A comma in the value answers `400` with the hint to use `hasAny`.
 
 - hasAny
 
@@ -118,7 +119,25 @@ Semantics:
 - eq: Represents the exact available environmental or physical value (e.g., soil pH, sunlight hours, available spacing). The domain-specific query mappers translate this single value under the hood to find plants whose biological optimal range covers it (exact-match-to-interval queries).
 
 Note on traditional comparison operators (gt, gte, lt, lte):
-These traditional range operators are fully supported at the infrastructure layer (GenericQueryParser and MongoQueryTranslator) as generic technical features for future modules (e.g., metric logging or telemetry). However, they are not active or exposed at the domain level (e.g., in `PlantFilter`) nor mapped by plant query mappers, since biological catalog queries adhere strictly to suitability-interval rules.
+These traditional range operators are supported by `MongoQueryTranslator` as generic technical features for future modules (e.g., metric logging or telemetry). No resource declares them today, so a request using them answers `400`; biological catalog queries adhere strictly to suitability-interval rules.
+
+---
+
+### 4.4 Operators by field type
+
+Each resource declares its filter fields and their type; a field accepts the operators of its type and nothing else (see the per-resource capabilities in `specs/018-migrate-beds-query-zod/data-model.md` §2.4 and the OpenAPI `PlantListFilter` / `FamilyListFilter`).
+
+| Type       | Operators                                        | Value                          |
+| :--------- | :----------------------------------------------- | :----------------------------- |
+| text       | `eq`, `in`, `contains`, `startsWith`, `endsWith` | trimmed text, 1–200 characters |
+| identifier | `eq`, `in`                                       | UUID                           |
+| enumerated | `eq`, `in`                                       | one of the declared values     |
+| list       | `has`, `hasAny`                                  | the item type of the list      |
+| range      | `eq`                                             | finite decimal number          |
+
+- **One operator per field**: a field with no operator or with more than one operator answers `400` (`"Use one operator per field"` at `filter.<field>`).
+- **Hints**: `has`/`hasAny` on a text, identifier or enumerated field answers `"Use 'in' to match any of several values"`; `in` on a list field answers `"Use 'hasAny' to match any of several values"`; a comma in `eq` or `has` gives the same hints.
+- **List values** (`in`, `hasAny`): a comma-separated string or a repeated key; entries trimmed, blanks dropped, 1–50 entries left; an invalid entry is reported at its index (`filter.lifeCycle.in.1`).
 
 ---
 
@@ -148,7 +167,8 @@ SortOptions = Record<string, 'asc' | 'desc'>;
 
 - multiple fields allowed
 - deterministic ordering MUST be enforced by backend
-- unknown fields MUST be ignored or rejected (implementation-specific, default: ignore)
+- each resource declares its sortable keys; any other key, any direction other than `asc`/`desc`, and the JSON-string form (`sort={"name":"asc"}`) are rejected with `400`
+- sort keys are public names: a repository maps them to stored paths (plants: `name` → `identity.name.primary`, `scientificName` → `identity.scientificName`)
 
 ---
 
@@ -170,8 +190,9 @@ PaginationParams {
 #### Rules (Offset)
 
 - `page` starts at 1.
-- `limit` MUST be > 0.
-- Implementations MAY enforce a maximum limit.
+- `limit` MUST be > 0 and at most 100 (`LIST_LIMITS.maxPageSize`); above → `400`.
+- `page` and `limit` are whole numbers written as digits (`1.5`, `1e3`, `0x10` → `400`); defaults `page: 1`, `limit: 25` are always applied.
+- Unknown pagination keys (`pagination[size]`) → `400`.
 - Susceptible to skipped or duplicated records if concurrent inserts/deletions occur during navigation.
 
 ---
@@ -241,10 +262,14 @@ IMPORTANT:
 
 ## 9. VALIDATION RULES
 
-- invalid operators MUST be rejected at parsing layer
-- type coercion MUST be deterministic
-- pagination must enforce numeric constraints
-- empty filters MUST be treated as undefined
+Enforced by the Zod listing schema (`listQuerySchema`) through `validateRequest`, with every error reported at its path in the shared `{ message, errors }` shape and without echoing the submitted value:
+
+- only `filter`, `sort` and `pagination` are accepted at the top level; any other key (`include`, `foo`) → `400 "Unknown field"`
+- undeclared fields and operators → `400 "Unknown field"` at their path
+- values are decoded by the field's type, never guessed from the text; a value outside the type → `400`
+- blank values (`filter[name][contains]=`) → `400`; nested objects (`eq[$ne]=x`) and repeated keys on single-value operators → `400`
+- one operator per field
+- pagination enforces the numeric constraints of §6.1
 
 ---
 

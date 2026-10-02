@@ -12,7 +12,7 @@ export class UpdateFamily {
   async execute(
     input: UpdateFamilyInput,
     user: string,
-    expectedVersion: number
+    expectedVersions: readonly number[]
   ): Promise<Family> {
     const family = ensureFound(
       await this.familyRepository.findById(input.id),
@@ -20,7 +20,7 @@ export class UpdateFamily {
       input.id
     );
 
-    ensureVersion(family.version, expectedVersion, 'Family', input.id);
+    ensureVersion(family.version, expectedVersions, 'Family', input.id);
 
     const changes = familyInputMapper.toChanges(input);
     const before = familyDomainMapper.toPrimitives(family);

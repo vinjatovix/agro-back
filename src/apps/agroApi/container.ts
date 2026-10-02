@@ -115,7 +115,6 @@ import {
   type GetPlantByIdControllerDependencies,
   type UpdatePlantControllerDependencies
 } from './controllers/Plants/index.js';
-import { FamilyQueryParser, PlantQueryParser } from './query/index.js';
 
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 
@@ -156,9 +155,6 @@ type ContainerCradle = {
   // Family Repository
   familyRepository: MongoFamilyRepository;
 
-  // Family query parsers
-  familyQueryParser: FamilyQueryParser;
-
   // Family UseCases
   createFamily: CreateFamily;
   getFamilyById: GetFamilyById;
@@ -175,8 +171,7 @@ type ContainerCradle = {
   // Plant Repository
   plantRepository: MongoPlantRepository;
 
-  // Plant query parsers
-  plantQueryParser: PlantQueryParser;
+  // Plant query mapper
   plantQueryMapper: PlantQueryMapper;
 
   // Plant UseCases
@@ -276,10 +271,8 @@ const registerInfrastructureDependencies = (
   });
 };
 
-const registerEntityQueryParsers = (container: AppContainer): void => {
+const registerEntityQueryMappers = (container: AppContainer): void => {
   container.register({
-    familyQueryParser: asClass(FamilyQueryParser).scoped(),
-    plantQueryParser: asClass(PlantQueryParser).scoped(),
     plantQueryMapper: asClass(PlantQueryMapper).scoped()
   });
 };
@@ -389,11 +382,8 @@ const registerFamilyControllers = (container: AppContainer): void => {
         new GetFamilyBySlugController({ getFamilyBySlug, getFamilyById })
     ).scoped(),
     getAllFamiliesController: asFunction(
-      ({
-        listFamilies,
-        familyQueryParser
-      }: GetAllFamiliesControllerDependencies) =>
-        new GetAllFamiliesController({ listFamilies, familyQueryParser })
+      ({ listFamilies }: GetAllFamiliesControllerDependencies) =>
+        new GetAllFamiliesController({ listFamilies })
     ).scoped(),
     updateFamilyController: asFunction(
       ({
@@ -440,8 +430,8 @@ const registerPlantControllers = (container: AppContainer): void => {
     ).scoped(),
 
     getAllPlantsController: asFunction(
-      ({ listPlants, plantQueryParser }: GetAllPlantsControllerDependencies) =>
-        new GetAllPlantsController({ listPlants, plantQueryParser })
+      ({ listPlants }: GetAllPlantsControllerDependencies) =>
+        new GetAllPlantsController({ listPlants })
     ).scoped(),
 
     getPlantController: asFunction(
@@ -533,7 +523,7 @@ export const createAppContainer = (deps: containerDeps): AppContainer => {
   registerInfrastructureDependencies(container, deps.db, deps.client);
   registerHealthController(container);
   registerHealthUseCase(container);
-  registerEntityQueryParsers(container);
+  registerEntityQueryMappers(container);
   registerAuthControllers(container);
   registerAuthUseCases(container);
   registerFamilyControllers(container);

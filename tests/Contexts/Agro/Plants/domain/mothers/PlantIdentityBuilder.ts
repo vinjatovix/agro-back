@@ -39,6 +39,14 @@ export const PlantIdentityBuilder = {
     });
   },
 
+  named(primary: string, scientificName: string): PlantIdentity {
+    return new PlantIdentity({
+      name: { primary },
+      scientificName,
+      family: GENERIC_FAMILY_ID
+    });
+  },
+
   withScientificName(
     scientificName = random.word({ min: 5, max: 15 })
   ): PlantIdentity {

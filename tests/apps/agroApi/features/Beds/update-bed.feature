@@ -67,35 +67,87 @@ Feature: Update a bed
             }
             """
         Then the response status code should be 400
-        Then the response body should be
-            """
-            {
-                "errors": {
-                    "id": "Invalid value at params. Value: invalid-uuid"
-                },
-                "message": "Validation error"
-            }
-            """
+        And the response errors should include "id"
+        And the response body should not echo "invalid-uuid"
         And response matches OpenAPI contract
 
-    Scenario: Update a bed with missing fields
+    Scenario: An empty update is a no-op that keeps the version
         Given a bed exists
+        And I record the current bed
         And I use If-Match '"0"'
         When I send a PATCH user request to "/api/v1/beds/<bedId>" with body
             """
             {}
             """
-        Then the response status code should be 400
-        Then the response body should be
+        Then the response status code should be 200
+        And the response should have ETag '"0"'
+        And the response body should contain
             """
             {
-                "message": "Empty body is not allowed"
+                "name": "Test bed",
+                "version": 0
+            }
+            """
+        And the bed should be unchanged
+        And response matches OpenAPI contract
+
+    Scenario: An empty update with an outdated version is rejected
+        Given a bed exists
+        And the bed is stored at version 1
+        And I use If-Match '"0"'
+        When I send a PATCH user request to "/api/v1/beds/<bedId>" with body
+            """
+            {}
+            """
+        Then the response status code should be 412
+        And the bed should be unchanged
+        And response matches OpenAPI contract
+
+    Scenario: Update only the depth
+        Given a bed exists
+        And I use If-Match '"0"'
+        When I send a PATCH user request to "/api/v1/beds/<bedId>" with body
+            """
+            {
+                "depth": 40
+            }
+            """
+        Then the response status code should be 200
+        And the response should have ETag '"1"'
+        And a GET user request to "/api/v1/beds/<bedId>" should return a body containing
+            """
+            {
+                "name": "Test bed",
+                "width": 100,
+                "height": 100,
+                "depth": 40,
+                "version": 1
+            }
+            """
+        And response matches OpenAPI contract
+
+    Scenario: Update stores the name trimmed
+        Given a bed exists
+        And I use If-Match '"0"'
+        When I send a PATCH user request to "/api/v1/beds/<bedId>" with body
+            """
+            {
+                "name": "  Raised bed  "
+            }
+            """
+        Then the response status code should be 200
+        And a GET user request to "/api/v1/beds/<bedId>" should return a body containing
+            """
+            {
+                "name": "Raised bed",
+                "version": 1
             }
             """
         And response matches OpenAPI contract
 
     Scenario: Update a bed with invalid data
         Given a bed exists
+        And I record the current bed
         And I use If-Match '"0"'
         When I send a PATCH user request to "/api/v1/beds/<bedId>" with body
             """
@@ -103,20 +155,80 @@ Feature: Update a bed
                 "name": "",
                 "width": -100,
                 "height": 0,
-                "depth": 0
+                "depth": "1.5"
             }
             """
         Then the response status code should be 400
-        Then the response body should be
+        And the response errors should include "name"
+        And the response errors should include "width"
+        And the response errors should include "height"
+        And the response errors should include "depth"
+        And the response body should not echo "-100"
+        And the bed should be unchanged
+        And response matches OpenAPI contract
+
+    Scenario Outline: Update a bed with a null <field> is rejected
+        Given a bed exists
+        And I record the current bed
+        And I use If-Match '"0"'
+        When I send a PATCH user request to "/api/v1/beds/<bedId>" with body
             """
             {
-                "errors": {
-                    "name": "Invalid value at body. Value: ",
-                    "width": "Invalid value at body. Value: -100",
-                    "height": "Invalid value at body. Value: 0",
-                    "depth": "Invalid value at body. Value: 0"
-                },
-                "message": "Validation error"
+                "<field>": null
+            }
+            """
+        Then the response status code should be 400
+        And the response errors should include "<field>"
+        And the bed should be unchanged
+        And response matches OpenAPI contract
+
+        Examples:
+            | field  |
+            | name   |
+            | width  |
+            | height |
+            | depth  |
+
+    Scenario Outline: Update a bed with a field it does not accept (<field>)
+        Given a bed exists
+        And I record the current bed
+        And I use If-Match '"0"'
+        When I send a PATCH user request to "/api/v1/beds/<bedId>" with body
+            """
+            {
+                "<field>": <value>
+            }
+            """
+        Then the response status code should be 400
+        And the response body should contain
+            """
+            {
+                "errors": { "<field>": "Unknown field" }
+            }
+            """
+        And the bed should be unchanged
+        And response matches OpenAPI contract
+
+        Examples:
+            | field          | value                                  |
+            | plantInstances | []                                     |
+            | userId         | "3d3fae8e-cd70-4190-a8c3-e144e6482403" |
+            | id             | "3d3fae8e-cd70-4190-a8c3-e144e6482403" |
+
+    Scenario: Update a bed with a query parameter is rejected
+        Given a bed exists
+        And I use If-Match '"0"'
+        When I send a PATCH user request to "/api/v1/beds/<bedId>" with query "x=1" and body
+            """
+            {
+                "name": "Updated Bed Name"
+            }
+            """
+        Then the response status code should be 400
+        And the response body should contain
+            """
+            {
+                "errors": { "x": "Unknown field" }
             }
             """
         And response matches OpenAPI contract
@@ -134,27 +246,6 @@ Feature: Update a bed
             """
             {
                 "message": "Bed not found: 12384ea3-e55d-4f69-8b0c-b54cccb9f443"
-            }
-            """
-        And response matches OpenAPI contract
-
-    Scenario: Update UserId should be ignored
-        Given a bed exists
-        And I use If-Match '"0"'
-        When I send a PATCH user request to "/api/v1/beds/<bedId>" with body
-            """
-            {
-                "userId": "another-user-id"
-            }
-            """
-        Then the response status code should be 400
-        Then the response body should be
-            """
-            {
-                "errors": {
-                    "userId": "User ID cannot be updated at body. Value: another-user-id"
-                },
-                "message": "Validation error"
             }
             """
         And response matches OpenAPI contract
@@ -351,22 +442,62 @@ Feature: Update a bed
         Then the response status code should be 428
         And response matches OpenAPI contract
 
-    Scenario: Update with a weak If-Match is rejected
+    Scenario Outline: Update with an If-Match that names no current version fails the precondition (<header>)
         Given a bed exists
-        And I use If-Match 'W/"0"'
+        And the bed is stored at version 3
+        And I use If-Match '<header>'
         When I send a PATCH user request to "/api/v1/beds/<bedId>" with body
             """
             {
                 "name": "Updated Bed Name"
             }
             """
-        Then the response status code should be 400
-        And the response errors should include "if-match"
+        Then the response status code should be 412
+        And the bed should be unchanged
         And response matches OpenAPI contract
 
-    Scenario: Update with a list of entity tags is rejected
+        Examples:
+            | header       |
+            | W/"3"        |
+            | "abc"        |
+            | "a,b"        |
+            | "2", W/"3"   |
+
+    Scenario Outline: Update with a list of entity tags that includes the current version (<header>)
         Given a bed exists
-        And I use If-Match '"0", "1"'
+        And the bed is stored at version 3
+        And I use If-Match '<header>'
+        When I send a PATCH user request to "/api/v1/beds/<bedId>" with body
+            """
+            {
+                "name": "Updated Bed Name"
+            }
+            """
+        Then the response status code should be 200
+        And the response should have ETag '"4"'
+        And response matches OpenAPI contract
+
+        Examples:
+            | header      |
+            | "2", "3"    |
+            | "2","3"     |
+            | , "3",      |
+
+    Scenario: A weak If-Match on a missing bed answers not found
+        Given I use If-Match 'W/"3"'
+        When I send a PATCH user request to "/api/v1/beds/12384ea3-e55d-4f69-8b0c-b54cccb9f443" with body
+            """
+            {
+                "name": "Updated Bed Name"
+            }
+            """
+        Then the response status code should be 404
+        And response matches OpenAPI contract
+
+    Scenario Outline: Update with a malformed If-Match is rejected (<header>)
+        Given a bed exists
+        And I record the current bed
+        And I use If-Match '<header>'
         When I send a PATCH user request to "/api/v1/beds/<bedId>" with body
             """
             {
@@ -375,7 +506,15 @@ Feature: Update a bed
             """
         Then the response status code should be 400
         And the response errors should include "if-match"
+        And the bed should be unchanged
         And response matches OpenAPI contract
+
+        Examples:
+            | header    |
+            | 3         |
+            | "3        |
+            | "3" "4"   |
+            | *, "3"    |
 
     Scenario: A missing If-Match is reported before looking up the bed
         When I send a PATCH user request to "/api/v1/beds/12384ea3-e55d-4f69-8b0c-b54cccb9f443" with body
@@ -398,7 +537,7 @@ Feature: Update a bed
 
     Scenario: A malformed If-Match is reported before validating the body
         Given a bed exists
-        And I use If-Match 'W/"0"'
+        And I use If-Match '3'
         When I send a PATCH user request to "/api/v1/beds/<bedId>" with body
             """
             {
@@ -406,7 +545,14 @@ Feature: Update a bed
             }
             """
         Then the response status code should be 400
+        And the response body should contain
+            """
+            {
+                "message": "Validation error"
+            }
+            """
         And the response errors should include "if-match"
+        And the response errors should not include "width"
         And response matches OpenAPI contract
 
     Scenario: A successful update answers from memory with the acting user's audit data

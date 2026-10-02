@@ -3,32 +3,31 @@ import { type NextFunction, type Request, type Response } from 'express';
 import type { ListPlants } from '../../../../Contexts/Agro/Plants/application/useCases/ListPlants.js';
 import { plantDomainMapper } from '../../../../Contexts/Agro/Plants/mappers/plantDomainMapper.js';
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
-import { type PlantQueryParser } from '../../query/index.js';
+import { getValidatedRequest } from '../../middlewares/validateRequest.js';
 import { HttpController } from '../../shared/HttpController.js';
+import { listPlantsRequest } from './requestSchemas.js';
 
 export type GetAllPlantsControllerDependencies = {
   listPlants: ListPlants;
-  plantQueryParser: PlantQueryParser;
 };
 
 export class GetAllPlantsController extends HttpController {
   protected readonly listPlants: ListPlants;
-  protected readonly parser: PlantQueryParser;
 
-  constructor({
-    listPlants,
-    plantQueryParser
-  }: GetAllPlantsControllerDependencies) {
+  constructor({ listPlants }: GetAllPlantsControllerDependencies) {
     super();
     this.listPlants = listPlants;
-    this.parser = plantQueryParser;
   }
 
-  run = async (req: Request, res: Response, next: NextFunction) => {
+  run = async (
+    _req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     try {
       const user = res.locals.user as UserSessionInfo | null;
-      const dto = this.parser.parse(req.query);
-      const result = await this.listPlants.execute(user, dto);
+      const { query } = getValidatedRequest(res, listPlantsRequest);
+      const result = await this.listPlants.execute(user, { query });
       const data = result.data.map((plant) =>
         plantDomainMapper.toPrimitives(plant)
       );

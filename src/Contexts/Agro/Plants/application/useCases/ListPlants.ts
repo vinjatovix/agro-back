@@ -1,8 +1,10 @@
 import type { PaginatedResult } from '../../../../../shared/domain/query/interfaces/PaginatedResult.js';
 import type { UserSessionInfo } from '../../../../Auth/application/index.js';
 import type { Plant } from '../../domain/entities/Plant.js';
+import type { PlantFilter } from '../../domain/entities/types/PlantFilter.js';
 import { PlantStatus } from '../../domain/entities/types/PlantStatus.js';
 import type { PlantRepository } from '../../domain/repositories/interfaces/PlantRepository.js';
+import { canSeeDeletedPlants } from './canSeeDeletedPlants.js';
 import type { ListPlantsDto } from './interfaces/ListPlantsDto.js';
 
 export class ListPlants {
@@ -12,15 +14,11 @@ export class ListPlants {
     user: UserSessionInfo | null,
     dto?: ListPlantsDto
   ): Promise<PaginatedResult<Plant>> {
-    const isAdmin = user?.roles.includes('admin');
     const userFilters = dto?.query?.filter ?? {};
 
-    const filters = isAdmin
+    const filters: PlantFilter = canSeeDeletedPlants(user)
       ? userFilters
-      : {
-          ...userFilters,
-          status: PlantStatus.ACTIVE
-        };
+      : { ...userFilters, status: { eq: PlantStatus.ACTIVE } };
 
     return this.plantRepository.findAll({
       ...dto?.query,

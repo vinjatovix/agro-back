@@ -9,14 +9,14 @@ export class DeletePlant {
   async execute(
     id: string,
     username: string,
-    expectedVersion: number
+    expectedVersions: readonly number[]
   ): Promise<void> {
     const plant = ensureFound(
       await this.plantRepository.findActiveById(id),
       'Plant',
       id
     );
-    ensureVersion(plant.version, expectedVersion, 'Plant', id);
+    ensureVersion(plant.version, expectedVersions, 'Plant', id);
 
     const current = plantDomainMapper.toPrimitives(plant);
     plant.markAsDeleted(username);

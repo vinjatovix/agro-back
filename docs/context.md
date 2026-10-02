@@ -21,7 +21,7 @@ The technical stack is strictly versioned and configured for high-performance, t
 
 - **Runtime Engine:** Node.js v22.23.2 (running with native ES Modules, `"type": "module"`).
 - **Language Specification:** TypeScript v6.0.3 in strict mode (no `any` types allowed).
-- **Web Framework:** Express v5.2.1. Rejected promises from async handlers and middlewares reach the global `errorHandler` natively (no `asyncHandler` wrapper). `req.body` is `undefined` when no body parser ran; `validateBody` treats it as an empty body (`400`).
+- **Web Framework:** Express v5.2.1. Rejected promises from async handlers and middlewares reach the global `errorHandler` natively (no `asyncHandler` wrapper). `req.body` is `undefined` when no body parser ran; `validateRequest` reports it as a `body` error (`400`).
 - **Dependency Injection (DI):** Awilix v13.0.5 and Awilix-Express v11.0.1 (scoped container-per-request).
 - **Database / Persistence:** MongoDB native driver v7.5.0 (binary UUID keys), pinned to `~7.5.0`: from v7.6.0 the driver loads `os` via dynamic `import()`, which fails inside Jest and breaks the connection handshake (upstream bug NODE-7832). Remove the pin once a release ships the fix.
 - **Logging & Diagnostics:** Winston v3.19.0.
@@ -31,7 +31,7 @@ The technical stack is strictly versioned and configured for high-performance, t
 
 ### Tooling Transitions (Phase 0 Targets)
 
-- **Request Validation:** Currently implemented using `express-validator` at the route boundary. The target state is migrating completely to **Zod**, utilizing a single source of schema truth to auto-generate the OpenAPI contract (`openapi.yaml`) and ensure zero contract drift.
+- **Request Validation:** Every route validates with **Zod** through the shared `validateRequest` step (listings through `listQuerySchema`); `express-validator` was retired in Iteration 14. Still pending: using the schemas as the single source to generate the OpenAPI contract (`openapi.yaml`).
 - **Database Migrations:** Currently, schema indexes are declared programmatically on repository startup. The target state is transitioning to formal database migrations versioned under the `migrations/` folder and executed via `migrate-mongo` v14.0.7 during bootstrap.
 
 ---
@@ -161,8 +161,8 @@ The immediate focus to stabilize the codebase covers the following refactoring b
     - _Symptom:_ Database-specific types (like `MetadataPrimitives.ts`) live in infrastructure types folders.
     - _Remedy:_ Relocate database-independent primitives to the shared domain space.
 3.  **Transition to Zod Schemas:**
-    - _Symptom:_ Route verification uses `express-validator` with manual schemas, leading to potential OpenAPI contract drift.
-    - _Remedy:_ Transition route boundaries to Zod, using schemas to drive runtime validation, TypeScript DTO compilation, and auto-generated Swagger documentation.
+    - _Symptom (resolved in Iterations 9–14):_ Route verification used `express-validator` with manual schemas, leading to potential OpenAPI contract drift.
+    - _Remedy:_ Route boundaries now validate with Zod (runtime validation and typed DTOs); auto-generating the Swagger documentation from the schemas is still pending.
 4.  **Awilix DI Auto-Wiring:**
     - _Symptom:_ `container.ts` contains verbose, manual registrations of every controller and use case.
     - _Remedy:_ Automate registration through directory scanning (`container.loadModules`).

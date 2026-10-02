@@ -1,11 +1,11 @@
 import { createUserId } from '../../../Auth/domain/UserId.js';
 import {
   Metadata,
-  PositiveNumber,
-  StringValueObject
+  PositiveNumber
 } from '../../../shared/domain/valueObject/index.js';
 import { PlantInstance } from '../../PlantInstances/domain/entities/PlantInstance.js';
 import { createBedId } from '../domain/BedId.js';
+import { BedName } from '../domain/BedName.js';
 import { Bed } from '../domain/entities/Bed.js';
 import type { BedPrimitives } from '../domain/entities/types/BedPrimitives.js';
 import type { BedDomainMapper } from './interfaces/BedDomainMapper.js';
@@ -31,7 +31,7 @@ export const bedDomainMapper: BedDomainMapper = {
     return Bed.create({
       id: createBedId(primitives.id),
       userId: createUserId(primitives.userId),
-      name: new StringValueObject(primitives.name),
+      name: new BedName(primitives.name),
       width: PositiveNumber.create(primitives.width),
       height: PositiveNumber.create(primitives.height),
       depth: PositiveNumber.create(primitives.depth),

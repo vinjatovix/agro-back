@@ -5,6 +5,9 @@ import { bedDomainMapper } from '../../../../Contexts/Agro/Beds/mappers/bedDomai
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
 import { HttpController } from '../../shared/HttpController.js';
 
+// The request carries no input: `validateRequest(listBedsRequest)` only
+// rejects query keys and a body.
+
 export type GetUserBedsControllerDependencies = {
   listUserBeds: ListUserBeds;
 };
@@ -17,7 +20,7 @@ export class GetUserBedsController extends HttpController {
   }
 
   run = async (
-    req: Request,
+    _req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> => {

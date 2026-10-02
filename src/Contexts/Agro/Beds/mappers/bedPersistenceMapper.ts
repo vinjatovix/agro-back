@@ -1,8 +1,7 @@
 import { createUserId } from '../../../Auth/domain/UserId.js';
 import {
   Metadata,
-  PositiveNumber,
-  StringValueObject
+  PositiveNumber
 } from '../../../shared/domain/valueObject/index.js';
 import {
   fromMongoId,
@@ -10,6 +9,7 @@ import {
 } from '../../../shared/infrastructure/persistence/mongo/MongoId.js';
 import { PlantInstance } from '../../PlantInstances/domain/entities/PlantInstance.js';
 import { createBedId } from '../domain/BedId.js';
+import { BedName } from '../domain/BedName.js';
 import { Bed } from '../domain/entities/Bed.js';
 import type { BedPersistenceMapper } from './interfaces/BedPersistenceMapper.js';
 
@@ -18,7 +18,7 @@ export const bedPersistenceMapper: BedPersistenceMapper = {
     return Bed.create({
       id: createBedId(fromMongoId(document._id)),
       userId: createUserId(fromMongoId(document.userId)),
-      name: new StringValueObject(document.name),
+      name: new BedName(document.name),
       width: PositiveNumber.create(document.width),
       height: PositiveNumber.create(document.height),
       depth: PositiveNumber.create(document.depth),

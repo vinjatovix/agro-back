@@ -1,6 +1,7 @@
 import type { UpdateBedInput } from '../../../../../src/Contexts/Agro/Beds/application/useCases/interfaces/UpdateBedInput.js';
 import { Bed } from '../../../../../src/Contexts/Agro/Beds/domain/entities/Bed.js';
 import { bedInputMapper } from '../../../../../src/Contexts/Agro/Beds/mappers/bedInputMapper.js';
+import { InvalidArgumentException } from '../../../../../src/Contexts/shared/domain/errors/index.js';
 import { random } from '../../../../Contexts/shared/fixtures/random.js';
 import { CreateBedInputMother } from '../application/mothers/CreateBedInputMother.js';
 import { UpdateBedInputMother } from '../application/mothers/UpdateBedInputMother.js';
@@ -79,6 +80,31 @@ describe('bedInputMapper', () => {
       expect(changes).not.toHaveProperty('id');
       expect(changes).not.toHaveProperty('userId');
       expect(changes).not.toHaveProperty('plantInstances');
+    });
+  });
+
+  describe('bed name on create', () => {
+    it('should store a padded name trimmed', () => {
+      // Arrange
+      const input = CreateBedInputMother.random({ name: '  Raised bed  ' });
+
+      // Act
+      const bed = bedInputMapper.fromCreateInputToDomain(input, 'tester');
+
+      // Assert
+      expect(bed.name.value).toBe('Raised bed');
+    });
+
+    it('should reject a blank name', () => {
+      // Arrange
+      const input = CreateBedInputMother.random({ name: '   ' });
+
+      // Act
+      const create = () =>
+        bedInputMapper.fromCreateInputToDomain(input, 'tester');
+
+      // Assert
+      expect(create).toThrow(InvalidArgumentException);
     });
   });
 });

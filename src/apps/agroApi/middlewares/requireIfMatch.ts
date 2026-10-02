@@ -1,71 +1,36 @@
 import type { NextFunction, Request, Response } from 'express';
-import { createError } from '../../../shared/errors/index.js';
 
-export type IfMatchParseResult =
-  | { kind: 'missing' }
-  | { kind: 'malformed'; reason: string }
-  | { kind: 'ok'; version: number };
+import { createError } from '../../../shared/errors/index.js';
+import { ifMatchSchema, storeExpectedVersions } from '../shared/versionTags.js';
 
 const IF_MATCH_ERROR_KEY = 'if-match';
-const STRONG_VERSION_TAG = /^"(0|[1-9]\d*)"$/;
+const VALIDATION_ERROR_MESSAGE = 'Validation error';
+const INVALID_IF_MATCH_MESSAGE = 'Invalid If-Match header';
 
-export const parseIfMatch = (
-  header: string | undefined
-): IfMatchParseResult => {
-  const value = header?.trim() ?? '';
-
-  if (value === '' || value === '*') {
-    return { kind: 'missing' };
-  }
-
-  const match = STRONG_VERSION_TAG.exec(value);
-  if (match === null) {
-    return {
-      kind: 'malformed',
-      reason:
-        'If-Match must be exactly one strong entity tag holding a non-negative integer version, e.g. "3"'
-    };
-  }
-
-  const version = Number(match[1]);
-  if (!Number.isSafeInteger(version)) {
-    return {
-      kind: 'malformed',
-      reason: 'If-Match version exceeds the maximum supported integer'
-    };
-  }
-
-  return { kind: 'ok', version };
-};
-
+/**
+ * Versioned writes need `If-Match`: missing, empty or `*` → `428`; a value
+ * outside the entity-tag list grammar → `400`. The versions it names are kept
+ * for `getExpectedVersions`; whether they match is decided by the use case.
+ */
 export const requireIfMatch = (
   req: Request,
   res: Response,
   next: NextFunction
 ): void => {
-  const result = parseIfMatch(req.get('If-Match'));
+  const header = req.get('If-Match')?.trim() ?? '';
 
-  switch (result.kind) {
-    case 'missing':
-      throw createError.preconditionRequired('If-Match header is required');
-    case 'malformed':
-      throw createError.badRequest('Validation error', {
-        [IF_MATCH_ERROR_KEY]: result.reason
-      });
-    case 'ok':
-      res.locals.expectedVersion = result.version;
-      next();
-  }
-};
-
-export const getExpectedVersion = (res: Response): number => {
-  const value: unknown = res.locals.expectedVersion;
-
-  if (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0) {
-    return value;
+  if (header === '' || header === '*') {
+    throw createError.preconditionRequired('If-Match header is required');
   }
 
-  throw createError.internal(
-    'expectedVersion missing: requireIfMatch is not registered on this route'
-  );
+  const parsed = ifMatchSchema.safeParse(header);
+  if (!parsed.success) {
+    throw createError.badRequest(VALIDATION_ERROR_MESSAGE, {
+      [IF_MATCH_ERROR_KEY]:
+        parsed.error.issues[0]?.message ?? INVALID_IF_MATCH_MESSAGE
+    });
+  }
+
+  storeExpectedVersions(res, parsed.data);
+  next();
 };

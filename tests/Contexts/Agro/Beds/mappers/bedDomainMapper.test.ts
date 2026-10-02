@@ -1,4 +1,5 @@
 import { bedDomainMapper } from '../../../../../src/Contexts/Agro/Beds/mappers/bedDomainMapper.js';
+import { InvalidArgumentException } from '../../../../../src/Contexts/shared/domain/errors/index.js';
 import { BedFactory } from '../domain/mothers/BedFactory.js';
 
 describe('bedDomainMapper', () => {
@@ -110,6 +111,36 @@ describe('bedDomainMapper', () => {
       const restoredPrimitives = bedDomainMapper.toPrimitives(restored);
 
       expect(restoredPrimitives).toMatchObject(primitives);
+    });
+  });
+
+  describe('bed name', () => {
+    it('should trim a padded name on load', () => {
+      // Arrange
+      const primitives = {
+        ...bedDomainMapper.toPrimitives(BedFactory.create()),
+        name: '  Raised bed  '
+      };
+
+      // Act
+      const bed = bedDomainMapper.fromPrimitives(primitives);
+
+      // Assert
+      expect(bed.name.value).toBe('Raised bed');
+    });
+
+    it('should reject a blank name on load', () => {
+      // Arrange
+      const primitives = {
+        ...bedDomainMapper.toPrimitives(BedFactory.create()),
+        name: '   '
+      };
+
+      // Act
+      const load = () => bedDomainMapper.fromPrimitives(primitives);
+
+      // Assert
+      expect(load).toThrow(InvalidArgumentException);
     });
   });
 });

@@ -6,10 +6,12 @@ import type { UpdateFamily } from '../../../../Contexts/Agro/Families/applicatio
 import { familyDomainMapper } from '../../../../Contexts/Agro/Families/mappers/familyDomainMapper.js';
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
 import { UuidValidator } from '../../../../Contexts/shared/domain/valueObject/index.js';
-import { getExpectedVersion } from '../../middlewares/requireIfMatch.js';
 import { getValidatedRequest } from '../../middlewares/validateRequest.js';
 import { HttpController } from '../../shared/HttpController.js';
-import { setVersionETag } from '../../shared/setVersionETag.js';
+import {
+  getExpectedVersions,
+  setVersionETag
+} from '../../shared/versionTags.js';
 import { updateFamilyRequest } from './requestSchemas.js';
 
 export type UpdateFamilyControllerDependencies = {
@@ -56,7 +58,7 @@ export class UpdateFamilyController extends HttpController {
       const updatedFamily = await this.updateFamily.execute(
         input,
         user.username,
-        getExpectedVersion(res)
+        getExpectedVersions(res)
       );
       const result = familyDomainMapper.toPrimitives(updatedFamily);
 

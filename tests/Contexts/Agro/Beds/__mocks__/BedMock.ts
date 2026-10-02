@@ -1,9 +1,9 @@
+import { BedName } from '../../../../../src/Contexts/Agro/Beds/domain/BedName.js';
 import type { Bed } from '../../../../../src/Contexts/Agro/Beds/domain/entities/Bed.js';
 import type { SpatialPlantModel } from '../../../../../src/Contexts/Agro/Beds/domain/services/spatial/interfaces/SpatialPlantModel.js';
 import type { PlantInstance } from '../../../../../src/Contexts/Agro/PlantInstances/domain/entities/PlantInstance.js';
 import { Metadata } from '../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
 import { PositiveNumber } from '../../../../../src/Contexts/shared/domain/valueObject/PositiveNumber.js';
-import { StringValueObject } from '../../../../../src/Contexts/shared/domain/valueObject/StringValueObject.js';
 import { random } from '../../../../Contexts/shared/fixtures/random.js';
 
 type AddPlantCall = Parameters<Bed['addPlant']>;
@@ -18,7 +18,7 @@ export class BedMock {
     return {
       id: random.uuid(),
       userId: random.uuid(),
-      name: new StringValueObject('Test Bed'),
+      name: new BedName('Test Bed'),
       width: PositiveNumber.create(100),
       height: PositiveNumber.create(100),
       depth: PositiveNumber.create(30),

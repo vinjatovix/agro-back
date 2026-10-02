@@ -30,13 +30,18 @@ export abstract class MongoCrudRepository<
     return {};
   }
 
+  /** Maps a public sort key to its stored path; the same by default. */
+  protected toMongoSortField(key: string): string {
+    return key;
+  }
+
   protected applySort(cursor: FindCursor, sort?: SortOptions): void {
     if (!sort) return;
 
     const mongoSort: Record<string, 1 | -1> = {};
 
     for (const field in sort) {
-      mongoSort[field] = sort[field] === 'asc' ? 1 : -1;
+      mongoSort[this.toMongoSortField(field)] = sort[field] === 'asc' ? 1 : -1;
     }
 
     cursor.sort(mongoSort);

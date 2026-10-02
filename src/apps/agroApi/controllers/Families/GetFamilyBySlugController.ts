@@ -5,7 +5,7 @@ import { familyDomainMapper } from '../../../../Contexts/Agro/Families/mappers/f
 import { UuidValidator } from '../../../../Contexts/shared/domain/valueObject/index.js';
 import { getValidatedRequest } from '../../middlewares/validateRequest.js';
 import { HttpController } from '../../shared/HttpController.js';
-import { setVersionETag } from '../../shared/setVersionETag.js';
+import { setVersionETag } from '../../shared/versionTags.js';
 import { getFamilyByIdOrSlugRequest } from './requestSchemas.js';
 
 export type GetFamilyBySlugControllerDependencies = {

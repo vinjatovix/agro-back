@@ -3,6 +3,7 @@ import httpStatus from 'http-status';
 import {
   createFamilyRequest,
   getFamilyByIdOrSlugRequest,
+  listFamiliesRequest,
   updateFamilyRequest
 } from '../../../../../src/apps/agroApi/controllers/Families/requestSchemas.js';
 import {
@@ -391,6 +392,88 @@ describe('Family requestSchemas', () => {
 
       // Assert
       expect(errors.name).toBe(UNKNOWN_FIELD);
+    });
+  });
+
+  describe('listFamiliesRequest', () => {
+    const listErrorsOf = (query: Record<string, unknown>) =>
+      errorsOf(listFamiliesRequest, { query });
+
+    const listQueryOf = async (query: Record<string, unknown>) =>
+      (await parsedOf(listFamiliesRequest, { query })).query;
+
+    it.each<[string, string, string]>([
+      ['id', 'eq', random.uuid()],
+      ['id', 'in', `${random.uuid()},${random.uuid()}`],
+      ...['slug', 'name', 'scientificName'].flatMap((field) =>
+        ['eq', 'in', 'contains', 'startsWith', 'endsWith'].map(
+          (operator): [string, string, string] => [field, operator, 'Aster']
+        )
+      ),
+      ['aliases', 'has', 'rose'],
+      ['aliases', 'hasAny', 'rose,flower']
+    ])('should accept %s with %s', async (field, operator, value) => {
+      // Act
+      const query = await listQueryOf({
+        filter: { [field]: { [operator]: value } }
+      });
+
+      // Assert
+      expect(query.filter).toHaveProperty([field, operator]);
+    });
+
+    it.each(['name', 'scientificName', 'slug'])(
+      'should sort by %s',
+      async (key) => {
+        // Act
+        const query = await listQueryOf({ sort: { [key]: 'desc' } });
+
+        // Assert
+        expect(query.sort).toEqual({ [key]: 'desc' });
+      }
+    );
+
+    it('should reject an undeclared field', async () => {
+      // Act
+      const errors = await listErrorsOf({ filter: { password: { eq: 'x' } } });
+
+      // Assert
+      expect(errors).toEqual({ 'filter.password': UNKNOWN_FIELD });
+    });
+
+    it.each(['has', 'hasAny'])(
+      'should hint at in for name with %s',
+      async (operator) => {
+        // Act
+        const errors = await listErrorsOf({
+          filter: { name: { [operator]: 'Asteraceae' } }
+        });
+
+        // Assert
+        expect(errors).toEqual({
+          [`filter.name.${operator}`]: "Use 'in' to match any of several values"
+        });
+      }
+    );
+
+    it('should decode several names in in', async () => {
+      // Act
+      const query = await listQueryOf({
+        filter: { name: { in: 'Asteraceae,Solanaceae' } }
+      });
+
+      // Assert
+      expect(query.filter).toEqual({
+        name: { in: ['Asteraceae', 'Solanaceae'] }
+      });
+    });
+
+    it('should page with the defaults when the query is empty', async () => {
+      // Act
+      const query = await listQueryOf({});
+
+      // Assert
+      expect(query).toEqual({ pagination: { page: 1, limit: 25 } });
     });
   });
 });

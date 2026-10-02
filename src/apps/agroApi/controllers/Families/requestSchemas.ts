@@ -1,6 +1,15 @@
 import { z } from 'zod';
 
+import type { FamilyFilter } from '../../../../Contexts/Agro/Families/domain/types/FamilyFilter.js';
+import type { QueryOptions } from '../../../../shared/domain/query/interfaces/QueryOptions.js';
 import type { RequestSchemas } from '../../middlewares/validateRequest.js';
+import {
+  identifierField,
+  listField,
+  listQuerySchema,
+  textField,
+  textItem
+} from '../../shared/listQuerySchema.js';
 import {
   emptyBody,
   emptyQuery,
@@ -93,5 +102,22 @@ export const updateFamilyRequest = {
 export const getFamilyByIdOrSlugRequest = {
   params: familyIdOrSlugParams,
   query: emptyQuery,
+  body: emptyBody
+} satisfies RequestSchemas;
+
+// The output type is checked against what `ListFamilies` takes.
+const listFamiliesQuery = listQuerySchema({
+  filter: {
+    id: identifierField(),
+    slug: textField(),
+    name: textField(),
+    scientificName: textField(),
+    aliases: listField(textItem)
+  },
+  sortableKeys: ['name', 'scientificName', 'slug']
+}) satisfies z.ZodType<QueryOptions<FamilyFilter>>;
+
+export const listFamiliesRequest = {
+  query: listFamiliesQuery,
   body: emptyBody
 } satisfies RequestSchemas;

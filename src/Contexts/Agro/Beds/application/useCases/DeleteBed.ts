@@ -10,14 +10,14 @@ export class DeleteBed {
   async execute(
     id: string,
     user: UserSessionInfo,
-    expectedVersion: number
+    expectedVersions: readonly number[]
   ): Promise<void> {
     const bed = ensureFound(
       await this.bedRepository.findOwnedActiveById(id, user.id),
       'Bed',
       id
     );
-    ensureVersion(bed.version, expectedVersion, 'Bed', id);
+    ensureVersion(bed.version, expectedVersions, 'Bed', id);
 
     const current = bedDomainMapper.toPrimitives(bed);
     bed.markAsDeleted(user.username);

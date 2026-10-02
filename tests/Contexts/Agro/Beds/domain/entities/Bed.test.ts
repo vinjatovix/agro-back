@@ -1,4 +1,5 @@
 import { randomBedId } from '../../../../../../src/Contexts/Agro/Beds/domain/BedId.js';
+import { BedName } from '../../../../../../src/Contexts/Agro/Beds/domain/BedName.js';
 import { Bed } from '../../../../../../src/Contexts/Agro/Beds/domain/entities/Bed.js';
 import type {
   SpatialPlantModel,
@@ -13,7 +14,6 @@ import {
 } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { Metadata } from '../../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
 import { PositiveNumber } from '../../../../../../src/Contexts/shared/domain/valueObject/PositiveNumber.js';
-import { StringValueObject } from '../../../../../../src/Contexts/shared/domain/valueObject/StringValueObject.js';
 import { PlantInstanceMother } from '../../../PlantInstances/domain/mothers/PlantInstanceMother.js';
 import { BedFactory } from '../mothers/BedFactory.js';
 
@@ -59,7 +59,7 @@ describe('Bed (unit)', () => {
       {
         id: randomBedId(),
         userId: randomUserId(),
-        name: new StringValueObject(BED_NAME),
+        name: new BedName(BED_NAME),
         width: PositiveNumber.create(BED_DIMENSION),
         height: PositiveNumber.create(BED_DIMENSION),
         depth: PositiveNumber.create(BED_DEPTH),
@@ -141,7 +141,7 @@ describe('Bed (unit)', () => {
       {
         id: bed.id,
         userId: randomUserId(),
-        name: new StringValueObject(BED_NAME),
+        name: new BedName(BED_NAME),
         width: PositiveNumber.create(BED_DIMENSION),
         height: PositiveNumber.create(BED_DIMENSION),
         depth: PositiveNumber.create(BED_DEPTH),
@@ -170,7 +170,7 @@ describe('Bed (unit)', () => {
       {
         id: bed.id,
         userId: randomUserId(),
-        name: new StringValueObject(BED_NAME),
+        name: new BedName(BED_NAME),
         width: PositiveNumber.create(BED_DIMENSION),
         height: PositiveNumber.create(BED_DIMENSION),
         depth: PositiveNumber.create(BED_DEPTH),
@@ -253,7 +253,7 @@ describe('Bed (unit)', () => {
       {
         id: bed.id,
         userId: randomUserId(),
-        name: new StringValueObject(BED_NAME),
+        name: new BedName(BED_NAME),
         width: PositiveNumber.create(BED_DIMENSION),
         height: PositiveNumber.create(BED_DIMENSION),
         depth: PositiveNumber.create(BED_DEPTH),
@@ -312,6 +312,32 @@ describe('Bed (unit)', () => {
         DomainConflictException
       );
     });
+
+    it('stores a padded name trimmed', () => {
+      bed.rename('  New Name  ', 'test-user');
+
+      expect(bed.name.value).toBe('New Name');
+    });
+
+    it.each([[''], ['   ']])(
+      'throws InvalidArgumentException for the blank name %j',
+      (name) => {
+        expect(() => bed.rename(name, 'test-user')).toThrow(
+          InvalidArgumentException
+        );
+      }
+    );
+
+    it.each([[''], ['   ']])(
+      'leaves the bed unchanged when renaming to the blank name %j fails',
+      (name) => {
+        const original = bedDomainMapper.toPrimitives(bed);
+
+        expect(() => bed.rename(name, 'test-user')).toThrow();
+
+        expect(bedDomainMapper.toPrimitives(bed)).toEqual(original);
+      }
+    );
   });
 
   describe('resize', () => {
@@ -394,7 +420,7 @@ describe('Bed (unit)', () => {
         {
           id: randomBedId(),
           userId: randomUserId(),
-          name: new StringValueObject(BED_NAME),
+          name: new BedName(BED_NAME),
           width: PositiveNumber.create(BED_DIMENSION),
           height: PositiveNumber.create(BED_DIMENSION),
           depth: PositiveNumber.create(BED_DEPTH),

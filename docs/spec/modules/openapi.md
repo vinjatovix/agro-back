@@ -1,7 +1,7 @@
 # MODULE: OPENAPI CONTRACT
 
-version: 1.4.0
-source-spec: v1.4.0
+version: 1.5.0
+source-spec: v1.5.0
 status: active
 
 ---
@@ -45,13 +45,13 @@ OpenAPI **does NOT define query semantics**.
 
 The filtering, sorting, and pagination system is defined in:
 
-> **Query DSL Contract v1.4.0**
+> **Query DSL Contract v1.5.0**
 
 Rules:
 
-- filter operators (eq, contains, has, hasAny, etc.) are defined in Query DSL Contract v1.4.0
-- sort semantics are defined in Query DSL Contract v1.4.0
-- pagination semantics are defined in Query DSL Contract v1.4.0
+- filter operators (eq, contains, has, hasAny, etc.) are defined in Query DSL Contract v1.5.0
+- sort semantics are defined in Query DSL Contract v1.5.0
+- pagination semantics are defined in Query DSL Contract v1.5.0
 - OpenAPI ONLY describes the transport shape (how queries are passed via HTTP)
 
 OpenAPI is an **external mapping of the Query DSL**, not its definition.
@@ -103,8 +103,7 @@ Future:
 ### 5.3 Version preconditions
 
 - `components.headers.ETag`: strong tag `"<version>"`, declared (required) on the success responses of single-resource `GET`, `POST` and `PATCH` for beds, plants and families.
-- `components.parameters.IfMatch`: required header on `PATCH /beds/{id}`, `PATCH /plants/{id}`, `PATCH /families/{idOrSlug}`, `DELETE /beds/{id}` and `DELETE /plants/{id}`; same pattern as `ETag`.
-  - **`[TARGET STATE (Pending [Iteration 14](../../roadmap.md#iteration-14-migrate-beds-and-query-dsl-to-zod))]`** the single-tag pattern is dropped and the description documents the RFC 9110 entity-tag list grammar (validation.md §3.1).
+- `components.parameters.IfMatch`: required header on `PATCH /beds/{id}`, `PATCH /plants/{id}`, `PATCH /families/{idOrSlug}`, `DELETE /beds/{id}` and `DELETE /plants/{id}`. Its description and documentation pattern follow the RFC 9110 entity-tag list grammar (validation.md §3.1): lists accepted; weak or never-emitted tags → `412`; not a list → `400`; missing, empty or `*` → `428`.
 - `components.responses.PreconditionFailedError` (`412`) and `PreconditionRequiredError` (`428`) on those writes; `NotModified` (`304`) on single-resource `GET`s (accepted framework behavior).
 - `ConflictError` (`409`) documents business-rule conflicts only.
 - **`[TARGET STATE (Pending [Iteration 67](../../roadmap.md#iteration-67-implement-transactional-batch-save-layout-endpoint))]`** `PUT /api/v1/beds/:id/layout` MUST declare `IfMatch`, `412`, `428` and the `ETag` response header.
@@ -143,38 +142,12 @@ _(Note: In Phase 2 - Social Catalog, we introduce the collaborator role)_
 
 #### Query parameters (transport layer only)
 
+`filter`, `sort` and `pagination` are `deepObject` parameters referencing per-resource components (since [Iteration 14](../../roadmap.md#iteration-14-migrate-beds-and-query-dsl-to-zod)): `PlantListFilter` (every plant field with the operators of its type, one operator per field), `PlantListSort` (`name`, `scientificName`) and the shared `ListPagination` (`page` ≥ 1, `1 ≤ limit ≤ 100`, defaults 1 / 25). Shared operator shapes: `TextFieldFilter`, `TextListFieldFilter`, `RangeFieldFilter`, `FilterText`, `FilterTextList`. Any other query key → `400`. Semantic rules are defined in Query DSL Contract v1.5.0.
+
+Not yet accepted:
+
 ```yaml
 parameters:
-  - name: filter
-    in: query
-    required: false
-    schema:
-      type: object
-      additionalProperties: true
-    description: |
-      Transport representation of Query DSL filter object.
-      Semantic rules are defined in Query DSL Contract v1.4.0
-
-  - name: sort
-    in: query
-    required: false
-    schema:
-      type: object
-      additionalProperties: true
-    description: |
-      Transport representation of Query DSL sort object.
-      Semantic rules are defined in Query DSL Contract v1.4.0
-
-  - name: pagination
-    in: query
-    required: false
-    schema:
-      type: object
-      additionalProperties: true
-    description: |
-      Transport representation of Query DSL pagination object (Supports Offset `page`/`limit` or Keyset Cursor `cursor`/`limit` `[TARGET STATE]`).
-      Semantic rules are defined in Query DSL Contract v1.4.0
-
   - name: include
     in: query
     required: false
@@ -184,7 +157,7 @@ parameters:
         type: string
     description: |
       `[TARGET STATE (Pending [Iteration 19](../../roadmap.md#iteration-19-support-jsonapi-sparse-fields-in-query-parser))]` Transport representation of JSON:API include parameter.
-      Semantic rules are defined in Query DSL Contract v1.4.0.
+      Semantic rules are defined in Query DSL Contract v1.5.0.
 
   - name: fields
     in: query
@@ -194,7 +167,7 @@ parameters:
       additionalProperties: true
     description: |
       `[TARGET STATE (Pending [Iteration 19](../../roadmap.md#iteration-19-support-jsonapi-sparse-fields-in-query-parser))]` Transport representation of JSON:API sparse fields parameter.
-      Semantic rules are defined in Query DSL Contract v1.4.0.
+      Semantic rules are defined in Query DSL Contract v1.5.0.
 
   - name: Idempotency-Key
     in: header
@@ -229,32 +202,7 @@ When implementing **[Iteration 35](../../roadmap.md#iteration-35-make-plant-sowi
 
 #### Query parameters (transport layer only)
 
-```yaml
-parameters:
-  - name: filter
-    in: query
-    required: false
-    schema:
-      type: object
-      additionalProperties: true
-    description: Query DSL filter (see Query DSL Contract v1.4.0)
-
-  - name: sort
-    in: query
-    required: false
-    schema:
-      type: object
-      additionalProperties: true
-    description: Query DSL sort (see Query DSL Contract v1.4.0)
-
-  - name: pagination
-    in: query
-    required: false
-    schema:
-      type: object
-      additionalProperties: true
-    description: Query DSL pagination (see Query DSL Contract v1.4.0)
-```
+`FamilyListFilter` (`id` identifier; `slug`, `name`, `scientificName` text; `aliases` list of text), `FamilyListSort` (`name`, `scientificName`, `slug`) and `ListPagination`, as for plants (see Query DSL Contract v1.5.0).
 
 ---
 
@@ -272,10 +220,10 @@ parameters:
 
 #### Schemas
 
-- Bed
-- CreateBedRequest
-- UpdateBedRequest
-- BedResponse
+- `Bed` (response; `name` and `depth` always present)
+- `CreateBed`: `id` (UUID), `name` (`RequiredShortText`), `width`/`height`/`depth` (`BedDimension`: JSON number > 0); `additionalProperties: false`
+- `UpdateBed`: any of `name`, `width`, `height`, `depth`, none nullable; `{}` is a no-op; no `plantInstances`; `additionalProperties: false`
+- `BedId` path parameter (`format: uuid`); `GET /beds` and `GET /beds/{id}` declare `400`
 
 ---
 
@@ -449,4 +397,4 @@ For endpoints returning **204 No Content**:
 
 ## 10. FINAL NOTE
 
-OpenAPI becomes the **external transport contract layer of AgroApp**, while Query DSL Contract v1.4.0 defines the actual semantics of querying.
+OpenAPI becomes the **external transport contract layer of AgroApp**, while Query DSL Contract v1.5.0 defines the actual semantics of querying.

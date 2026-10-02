@@ -1,17 +1,20 @@
 import type { Router } from 'express';
-import { auth } from '../../middlewares/auth.js';
-import { requireIfMatch } from '../../middlewares/requireIfMatch.js';
-import { validateBody } from '../../middlewares/validateBody.js';
-import { validateReqSchema } from '../../middlewares/validateReqSchema.js';
+
+import {
+  createBedRequest,
+  deleteBedRequest,
+  getBedByIdRequest,
+  listBedsRequest,
+  updateBedRequest
+} from '../../controllers/Beds/requestSchemas.js';
+import {
+  auth,
+  requireIfMatch,
+  validateRequest
+} from '../../middlewares/index.js';
 import type { RegisterRoutes } from '../route.types.js';
 import { API_PREFIXES } from '../shared/apiPrefixes.js';
 import { bedApiInvoker } from './bedApiInvoker.js';
-import {
-  createBedReqSchema,
-  deleteBedReqSchema,
-  getBedByIdReqSchema,
-  updateBedReqSchema
-} from './reqSchemas.js';
 
 const prefix = API_PREFIXES.beds;
 
@@ -19,19 +22,21 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
   router.post(
     `${prefix}/`,
     auth,
-    validateBody,
-    createBedReqSchema,
-    validateReqSchema,
+    validateRequest(createBedRequest),
     bedApiInvoker('createBed')
   );
 
-  router.get(`${prefix}`, auth, bedApiInvoker('listUserBeds'));
+  router.get(
+    `${prefix}`,
+    auth,
+    validateRequest(listBedsRequest),
+    bedApiInvoker('listUserBeds')
+  );
 
   router.get(
     `${prefix}/:id`,
     auth,
-    getBedByIdReqSchema,
-    validateReqSchema,
+    validateRequest(getBedByIdRequest),
     bedApiInvoker('getBedById')
   );
 
@@ -39,9 +44,7 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
     `${prefix}/:id`,
     auth,
     requireIfMatch,
-    validateBody,
-    updateBedReqSchema,
-    validateReqSchema,
+    validateRequest(updateBedRequest),
     bedApiInvoker('updateBed')
   );
 
@@ -49,8 +52,7 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
     `${prefix}/:id`,
     auth,
     requireIfMatch,
-    deleteBedReqSchema,
-    validateReqSchema,
+    validateRequest(deleteBedRequest),
     bedApiInvoker('deleteBed')
   );
 };

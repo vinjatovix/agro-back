@@ -11,10 +11,10 @@ import {
 } from '../../../../shared/domain/repositories/WriteOutcome.js';
 import { Metadata } from '../../../../shared/domain/valueObject/Metadata.js';
 import { PositiveNumber } from '../../../../shared/domain/valueObject/PositiveNumber.js';
-import { StringValueObject } from '../../../../shared/domain/valueObject/StringValueObject.js';
 import type { PlantInstance } from '../../../PlantInstances/domain/entities/PlantInstance.js';
 import type { PlantInstanceId } from '../../../PlantInstances/domain/PlantInstanceId.js';
 import type { BedId } from '../BedId.js';
+import { BedName } from '../BedName.js';
 import { BasicSpatialService } from '../services/index.js';
 import type {
   SpatialPlantModel,
@@ -41,7 +41,7 @@ export class Bed extends AggregateRoot<BedId> {
     });
   }
 
-  get name(): StringValueObject {
+  get name(): BedName {
     return this.props.name;
   }
 
@@ -132,7 +132,7 @@ export class Bed extends AggregateRoot<BedId> {
     if (this.isDeleted) {
       throw new DomainConflictException('Cannot rename a deleted bed');
     }
-    const next = new StringValueObject(name);
+    const next = new BedName(name);
 
     if (!hasStateChanged({ name: this.props.name.value }, { name: next.value }))
       return;

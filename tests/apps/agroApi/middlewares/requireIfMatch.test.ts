@@ -1,10 +1,8 @@
 import type { NextFunction, Request, Response } from 'express';
 import httpStatus from 'http-status';
 
-import {
-  getExpectedVersion,
-  requireIfMatch
-} from '../../../../src/apps/agroApi/middlewares/requireIfMatch.js';
+import { requireIfMatch } from '../../../../src/apps/agroApi/middlewares/requireIfMatch.js';
+import { getExpectedVersions } from '../../../../src/apps/agroApi/shared/versionTags.js';
 import { HttpError } from '../../../../src/shared/errors/index.js';
 
 const buildReq = (ifMatch: string | undefined): Request =>
@@ -30,85 +28,69 @@ describe('requireIfMatch middleware', () => {
   it.each([[undefined], [''], ['   '], ['*'], [' * ']])(
     'should reject %p with 428 Precondition Required',
     (header) => {
+      // Arrange
       const next = jest.fn() as NextFunction;
       const res = buildRes();
 
+      // Act
       const error = captureError(() =>
         requireIfMatch(buildReq(header), res, next)
       );
 
+      // Assert
       expect(error).toBeInstanceOf(HttpError);
       expect((error as HttpError).statusCode).toBe(
         httpStatus.PRECONDITION_REQUIRED
       );
       expect(next).not.toHaveBeenCalled();
-      expect(res.locals.expectedVersion).toBeUndefined();
+      expect(res.locals.expectedVersions).toBeUndefined();
     }
   );
 
-  it.each([
-    ['W/"3"'],
-    ['"3", "4"'],
-    ['3'],
-    ['"-1"'],
-    ['"03"'],
-    ['"abc"'],
-    ['"1.5"'],
-    ['"9007199254740992"']
-  ])('should reject %p with 400 and an if-match error key', (header) => {
-    const next = jest.fn() as NextFunction;
-    const res = buildRes();
-
-    const error = captureError(() =>
-      requireIfMatch(buildReq(header), res, next)
-    );
-
-    expect(error).toBeInstanceOf(HttpError);
-    expect((error as HttpError).statusCode).toBe(httpStatus.BAD_REQUEST);
-    expect((error as HttpError).errors).toHaveProperty('if-match');
-    expect(next).not.toHaveBeenCalled();
-    expect(res.locals.expectedVersion).toBeUndefined();
-  });
-
-  it.each([
-    ['"0"', 0],
-    ['"3"', 3],
-    [' "3" ', 3],
-    ['"9007199254740991"', Number.MAX_SAFE_INTEGER]
-  ])(
-    'should accept %p and store expectedVersion %p',
-    (header, expectedVersion) => {
+  it.each([['3'], ['"3'], ['"3" "4"'], ['*, "3"'], ['W/3']])(
+    'should reject the malformed %p with 400 and an if-match error key',
+    (header) => {
+      // Arrange
       const next = jest.fn() as NextFunction;
       const res = buildRes();
 
-      requireIfMatch(buildReq(header), res, next);
+      // Act
+      const error = captureError(() =>
+        requireIfMatch(buildReq(header), res, next)
+      );
 
-      expect(res.locals.expectedVersion).toBe(expectedVersion);
-      expect(next).toHaveBeenCalledTimes(1);
-      expect(next).toHaveBeenCalledWith();
+      // Assert
+      expect(error).toBeInstanceOf(HttpError);
+      expect((error as HttpError).statusCode).toBe(httpStatus.BAD_REQUEST);
+      expect(Object.keys((error as HttpError).errors ?? {})).toEqual([
+        'if-match'
+      ]);
+      expect(next).not.toHaveBeenCalled();
+      expect(res.locals.expectedVersions).toBeUndefined();
     }
   );
-});
 
-describe('getExpectedVersion', () => {
-  it('should return the version stored by requireIfMatch', () => {
-    const res = buildRes();
-    requireIfMatch(buildReq('"7"'), res, jest.fn() as NextFunction);
+  it.each([
+    ['"0"', [0]],
+    [' "3" ', [3]],
+    ['"2", "3"', [2, 3]],
+    ['W/"3"', []],
+    ['"abc"', []],
+    ['"9007199254740991"', [Number.MAX_SAFE_INTEGER]]
+  ])(
+    'should accept %p and keep the expected versions %j',
+    (header, expectedVersions) => {
+      // Arrange
+      const next = jest.fn() as NextFunction;
+      const res = buildRes();
 
-    expect(getExpectedVersion(res)).toBe(7);
-  });
+      // Act
+      requireIfMatch(buildReq(header), res, next);
 
-  it.each([[undefined], ['3'], [-1], [1.5], [Number.NaN]])(
-    'should throw a 500 error when expectedVersion is %p',
-    (value) => {
-      const res = buildRes({ expectedVersion: value });
-
-      const error = captureError(() => getExpectedVersion(res));
-
-      expect(error).toBeInstanceOf(HttpError);
-      expect((error as HttpError).statusCode).toBe(
-        httpStatus.INTERNAL_SERVER_ERROR
-      );
+      // Assert
+      expect(getExpectedVersions(res)).toEqual(expectedVersions);
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(next).toHaveBeenCalledWith();
     }
   );
 });

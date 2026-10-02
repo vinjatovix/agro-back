@@ -1,12 +1,12 @@
 import { createUserId } from '../../../Auth/domain/UserId.js';
 import {
   Metadata,
-  PositiveNumber,
-  StringValueObject
+  PositiveNumber
 } from '../../../shared/domain/valueObject/index.js';
 import type { CreateBedInput } from '../application/useCases/interfaces/CreateBedInput.js';
 import type { UpdateBedInput } from '../application/useCases/interfaces/UpdateBedInput.js';
 import { createBedId } from '../domain/BedId.js';
+import { BedName } from '../domain/BedName.js';
 import { Bed } from '../domain/entities/Bed.js';
 import type { BedChanges } from '../domain/entities/types/BedChanges.js';
 import type { BedDimensionsChanges } from '../domain/entities/types/BedDimensionsChanges.js';
@@ -17,7 +17,7 @@ export const bedInputMapper: BedInputMapper = {
     return Bed.create({
       id: createBedId(input.id),
       userId: createUserId(input.userId),
-      name: new StringValueObject(input.name),
+      name: new BedName(input.name),
       width: PositiveNumber.create(input.width),
       height: PositiveNumber.create(input.height),
       depth: PositiveNumber.create(input.depth),

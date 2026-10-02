@@ -1,10 +1,10 @@
 import { randomBedId } from '../../../../../../src/Contexts/Agro/Beds/domain/BedId.js';
+import { BedName } from '../../../../../../src/Contexts/Agro/Beds/domain/BedName.js';
 import { Bed } from '../../../../../../src/Contexts/Agro/Beds/domain/entities/Bed.js';
 import type { SpatialPlantModel } from '../../../../../../src/Contexts/Agro/Beds/domain/services/spatial/interfaces/SpatialPlantModel.js';
 import { randomUserId } from '../../../../../../src/Contexts/Auth/domain/UserId.js';
 import { Metadata } from '../../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
 import { PositiveNumber } from '../../../../../../src/Contexts/shared/domain/valueObject/PositiveNumber.js';
-import { StringValueObject } from '../../../../../../src/Contexts/shared/domain/valueObject/StringValueObject.js';
 import { PlantInstanceMother } from '../../../PlantInstances/domain/mothers/PlantInstanceMother.js';
 import { createPlantCatalog } from '../../helpers/InMemoryPlantRepository.js';
 import { SpatialTestScenarioBuilder } from '../mothers/index.js';
@@ -16,7 +16,7 @@ describe('Bed + SpatialService (integration)', () => {
     new Bed({
       id: randomBedId(),
       userId: randomUserId(),
-      name: new StringValueObject('Test Bed'),
+      name: new BedName('Test Bed'),
       width: PositiveNumber.create(200),
       height: PositiveNumber.create(200),
       depth: PositiveNumber.create(40),

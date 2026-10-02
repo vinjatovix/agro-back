@@ -78,3 +78,41 @@ Feature: GetBed
         Then the response status code should be 404
         And the response should not have an ETag
         And response matches OpenAPI contract
+
+    Scenario: Get a bed with an id that is not a UUID
+        When I send a GET user request to "/api/v1/beds/not-a-uuid"
+        Then the response status code should be 400
+        And the response errors should include "id"
+        And response matches OpenAPI contract
+
+    Scenario: Get a bed with a query parameter is rejected
+        Given a bed exists
+        When I send a GET user request to "/api/v1/beds/<bedId>" with query:
+            """
+            x
+            """
+        Then the response status code should be 400
+        And the response body should contain
+            """
+            {
+                "errors": { "query": "Unknown field" }
+            }
+            """
+        And response matches OpenAPI contract
+
+    Scenario: Get a bed with a body is rejected
+        Given a bed exists
+        When I send a GET user request to "/api/v1/beds/<bedId>" with body:
+            """
+            {
+                "name": "Bed"
+            }
+            """
+        Then the response status code should be 400
+        And the response body should contain
+            """
+            {
+                "errors": { "name": "Unknown field" }
+            }
+            """
+        And response matches OpenAPI contract

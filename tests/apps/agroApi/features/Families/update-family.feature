@@ -292,17 +292,65 @@ Feature: Update Family
     Then the response status code should be 428
     And response matches OpenAPI contract
 
-  Scenario: Update with a non-numeric If-Match is rejected
-    Given I use If-Match '"abc"'
+  Scenario Outline: Update with an If-Match that names no current version fails the precondition (<header>)
+    Given the family is stored at version 3
+    And I use If-Match '<header>'
     When I send a PATCH admin request to "/api/v1/families/<familyId>" with body
       """
       {
-        "name": "Not a number"
+        "name": "Listed"
+      }
+      """
+    Then the response status code should be 412
+    And the family should be unchanged
+    And response matches OpenAPI contract
+
+    Examples:
+      | header |
+      | W/"3"  |
+      | "abc"  |
+
+  Scenario: Update with a list of entity tags that includes the current version
+    Given the family is stored at version 3
+    And I use If-Match '"2", "3"'
+    When I send a PATCH admin request to "/api/v1/families/<familyId>" with body
+      """
+      {
+        "name": "Listed"
+      }
+      """
+    Then the response status code should be 200
+    And the response should have ETag '"4"'
+    And response matches OpenAPI contract
+
+  Scenario: A weak If-Match on a missing family answers not found
+    Given I use If-Match 'W/"3"'
+    When I send a PATCH admin request to "/api/v1/families/12384ea3-e55d-4f69-8b0c-b54cccb9f443" with body
+      """
+      {
+        "name": "Listed"
+      }
+      """
+    Then the response status code should be 404
+    And response matches OpenAPI contract
+
+  Scenario Outline: Update with a malformed If-Match is rejected (<header>)
+    Given I use If-Match '<header>'
+    When I send a PATCH admin request to "/api/v1/families/<familyId>" with body
+      """
+      {
+        "name": "Listed"
       }
       """
     Then the response status code should be 400
     And the response errors should include "if-match"
     And response matches OpenAPI contract
+
+    Examples:
+      | header  |
+      | 3       |
+      | "3      |
+      | "3" "4" |
 
   Scenario: A missing If-Match is reported before validating the body
     When I send a PATCH admin request to "/api/v1/families/<familyId>" with body

@@ -199,26 +199,26 @@ paths:
       parameters:
         - in: query
           name: filter
+          description: >
+            Declared fields only, one operator per field. Unknown fields,
+            operators or values of the wrong type → 400.
           style: deepObject
           explode: true
           schema:
-            type: object
-            example:
-              name: 'Rosaceae'
-              aliases:
-                hasAny: ['Rose family', 'Rosids']
+            $ref: '#/components/schemas/FamilyListFilter'
         - in: query
           name: sort
+          description: Declared sort keys only, `asc` or `desc`.
           style: deepObject
           explode: true
           schema:
-            $ref: '#/components/schemas/SortOptions'
+            $ref: '#/components/schemas/FamilyListSort'
         - in: query
           name: pagination
           style: deepObject
           explode: true
           schema:
-            $ref: '#/components/schemas/PaginationParams'
+            $ref: '#/components/schemas/ListPagination'
 
       responses:
         '200':
@@ -342,27 +342,26 @@ paths:
       parameters:
         - in: query
           name: filter
+          description: >
+            Declared fields only, one operator per field. Unknown fields,
+            operators or values of the wrong type → 400.
           style: deepObject
           explode: true
           schema:
-            type: object
-            example:
-              family:
-                eq: ca4fc5c8-3c52-4922-80c4-ea8ecda1f545
-              sowingMonths:
-                hasAny: [3, 4, 5]
+            $ref: '#/components/schemas/PlantListFilter'
         - in: query
           name: sort
+          description: Declared sort keys only, `asc` or `desc`.
           style: deepObject
           explode: true
           schema:
-            $ref: '#/components/schemas/SortOptions'
+            $ref: '#/components/schemas/PlantListSort'
         - in: query
           name: pagination
           style: deepObject
           explode: true
           schema:
-            $ref: '#/components/schemas/PaginationParams'
+            $ref: '#/components/schemas/ListPagination'
 
       responses:
         '200':
@@ -516,6 +515,7 @@ paths:
     get:
       tags: [Beds]
       summary: Get user beds
+      description: No query parameters and no body are accepted.
       security:
         - bearerAuth: []
       responses:
@@ -527,12 +527,17 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Bed'
+        '400':
+          $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
     post:
       tags: [Beds]
       summary: Create bed
+      description: >
+        No query parameters are accepted. Unknown body fields (`userId`,
+        `plantInstances`…) → 400.
       security:
         - bearerAuth: []
       requestBody:
@@ -565,11 +570,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/BedId'
       responses:
         '200':
           description: Bed
@@ -582,6 +583,8 @@ paths:
                 $ref: '#/components/schemas/Bed'
         '304':
           $ref: '#/components/responses/NotModified'
+        '400':
+          $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '404':
@@ -590,14 +593,11 @@ paths:
     patch:
       tags: [Beds]
       summary: Update bed
+      description: Check order — authentication, If-Match, then request validation.
       security:
         - bearerAuth: []
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/BedId'
         - $ref: '#/components/parameters/IfMatch'
       requestBody:
         required: true
@@ -631,14 +631,13 @@ paths:
     delete:
       tags: [Beds]
       summary: Delete bed
+      description: >
+        Check order — authentication, If-Match, then request validation. No
+        query, no body.
       security:
         - bearerAuth: []
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/BedId'
         - $ref: '#/components/parameters/IfMatch'
       responses:
         '204':
@@ -680,18 +679,37 @@ components:
         maxLength: 200
         pattern: '\S'
 
+    BedId:
+      name: id
+      in: path
+      required: true
+      description: Bed identifier (UUID).
+      schema:
+        type: string
+        format: uuid
+
     IfMatch:
       name: If-Match
       in: header
       required: true
       description: >
-        Version the client is modifying, as returned in `ETag`. Exactly one
-        strong tag. Missing or `*` → 428; malformed (weak, list, non-integer,
-        negative) → 400; outdated → 412.
+        One or more entity tags, comma-separated (RFC 9110 §13.1.1), as
+        returned in `ETag`. The write proceeds when a strong tag equals the
+        current version. Missing, empty or `*` → 428. Not an entity-tag list
+        (e.g. `3`, `"3`, `"3" "4"`) or more than 50 tags → 400 with the error
+        at `if-match`. Well-formed tags that cannot match (weak `W/"3"`, tags
+        the API never emits such as `"abc"`, outdated versions) → 412, after
+        the existence check (a missing resource still answers 404).
       schema:
         type: string
-        pattern: '^"(0|[1-9][0-9]*)"$'
+        # Documentation pattern: a list of [W/]"etagc*" with optional spaces.
+        pattern: '^[ \t]*(,[ \t]*)*(W/)?"[^"\x00-\x20\x7F]*"([ \t]*,([ \t]*(W/)?"[^"\x00-\x20\x7F]*")?)*[ \t]*$'
         example: '"3"'
+      examples:
+        single:
+          value: '"3"'
+        list:
+          value: '"2", "3"'
 
   securitySchemes:
     bearerAuth:
@@ -740,48 +758,188 @@ components:
         - totalPages
         - totalItems
 
-    FilterOperators:
-      type: object
-      additionalProperties: true
+    # ---------- shared operator shapes (one operator per field) ----------
 
-    SortOptions:
-      type: object
-      additionalProperties:
-        type: string
-        enum: [asc, desc]
+    FilterText:
+      description: Trimmed text, 1–200 characters. Blank → 400.
+      type: string
+      minLength: 1
+      maxLength: 200
+      pattern: '\S'
 
-    PaginationParams:
+    FilterTextList:
+      description: >
+        Comma-separated values or a repeated key. Entries are trimmed and blank
+        entries dropped; at least 1 and at most 50 entries remain.
+      oneOf:
+        - type: string
+        - type: array
+          maxItems: 50
+          items:
+            type: string
+
+    TextFieldFilter:
+      description: >
+        Text field. Exactly one operator. `eq` with a comma → 400 (use `in`);
+        `has`/`hasAny` → 400 (use `in`). Text operators match literally and
+        case-insensitively.
       type: object
-      required: [page, limit]
+      additionalProperties: false
+      minProperties: 1
+      maxProperties: 1
+      properties:
+        eq: { $ref: '#/components/schemas/FilterText' }
+        in: { $ref: '#/components/schemas/FilterTextList' }
+        contains: { $ref: '#/components/schemas/FilterText' }
+        startsWith: { $ref: '#/components/schemas/FilterText' }
+        endsWith: { $ref: '#/components/schemas/FilterText' }
+
+    TextListFieldFilter:
+      description: >
+        List-of-text field. Exactly one operator. `has` takes one value (a comma
+        → 400, use `hasAny`); `in` → 400 (use `hasAny`).
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      maxProperties: 1
+      properties:
+        has: { $ref: '#/components/schemas/FilterText' }
+        hasAny: { $ref: '#/components/schemas/FilterTextList' }
+
+    RangeFieldFilter:
+      description: >
+        Range field. `eq` is the available value; the plant matches when its
+        range covers it. Decimal number.
+      type: object
+      additionalProperties: false
+      required: [eq]
+      properties:
+        eq:
+          type: string
+          pattern: '^-?\d+(\.\d+)?$'
+
+    # ---------- Families ----------
+
+    FamilyListFilter:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: object
+          additionalProperties: false
+          minProperties: 1
+          maxProperties: 1
+          properties:
+            eq: { type: string, format: uuid }
+            in: { $ref: '#/components/schemas/FilterTextList' }
+        slug: { $ref: '#/components/schemas/TextFieldFilter' }
+        name: { $ref: '#/components/schemas/TextFieldFilter' }
+        scientificName: { $ref: '#/components/schemas/TextFieldFilter' }
+        aliases: { $ref: '#/components/schemas/TextListFieldFilter' }
+      example:
+        name:
+          startsWith: Aster
+
+    FamilyListSort:
+      type: object
+      additionalProperties: false
+      properties:
+        name: { $ref: '#/components/schemas/SortDirection' }
+        scientificName: { $ref: '#/components/schemas/SortDirection' }
+        slug: { $ref: '#/components/schemas/SortDirection' }
+
+    # ---------- Plants ----------
+
+    PlantListFilter:
+      description: >
+        Every field accepts its type's full operator set.
+      type: object
+      additionalProperties: false
+      properties:
+        identity:
+          description: >
+            Matches name, aliases or scientific name (any of them).
+          allOf:
+            - $ref: '#/components/schemas/TextFieldFilter'
+        family:
+          description: Family id.
+          type: object
+          additionalProperties: false
+          minProperties: 1
+          maxProperties: 1
+          properties:
+            eq: { type: string, format: uuid }
+            in: { $ref: '#/components/schemas/FilterTextList' }
+        lightType: { $ref: '#/components/schemas/TextFieldFilter' }
+        rootSystem: { $ref: '#/components/schemas/TextFieldFilter' }
+        lifeCycle:
+          description: Values annual, biennial, perennial. Exactly one operator.
+          type: object
+          additionalProperties: false
+          minProperties: 1
+          maxProperties: 1
+          properties:
+            eq:
+              type: string
+              enum: [annual, biennial, perennial]
+            in: { $ref: '#/components/schemas/FilterTextList' }
+        sowingMethod:
+          description: Values direct, starter. Exactly one operator.
+          type: object
+          additionalProperties: false
+          minProperties: 1
+          maxProperties: 1
+          properties:
+            eq:
+              type: string
+              enum: [direct, starter]
+            in: { $ref: '#/components/schemas/FilterTextList' }
+        spacingCm: { $ref: '#/components/schemas/RangeFieldFilter' }
+        soilPh: { $ref: '#/components/schemas/RangeFieldFilter' }
+        soilAvailableDepthCm: { $ref: '#/components/schemas/RangeFieldFilter' }
+        lightHoursMin: { $ref: '#/components/schemas/RangeFieldFilter' }
+        sowingMonths:
+          description: Months 1–12. Exactly one operator.
+          type: object
+          additionalProperties: false
+          minProperties: 1
+          maxProperties: 1
+          properties:
+            has:
+              type: string
+              pattern: '^(1[0-2]|[1-9])$'
+            hasAny: { $ref: '#/components/schemas/FilterTextList' }
+      example:
+        sowingMonths:
+          hasAny: '3,4,5'
+
+    PlantListSort:
+      type: object
+      additionalProperties: false
+      properties:
+        name: { $ref: '#/components/schemas/SortDirection' }
+        scientificName: { $ref: '#/components/schemas/SortDirection' }
+
+    # ---------- shared sort and pagination ----------
+
+    SortDirection:
+      type: string
+      enum: [asc, desc]
+
+    ListPagination:
+      description: Defaults page 1, limit 25. Unknown keys → 400.
+      type: object
+      additionalProperties: false
       properties:
         page:
           type: integer
           minimum: 1
-          example: 1
+          default: 1
         limit:
           type: integer
           minimum: 1
-          example: 10
-
-    QueryParams:
-      type: object
-      properties:
-        filter:
-          type: object
-          additionalProperties:
-            type: object
-            additionalProperties: true
-
-        sort:
-          $ref: '#/components/schemas/SortOptions'
-
-        pagination:
-          $ref: '#/components/schemas/PaginationParams'
-
-        include:
-          type: array
-          items:
-            type: string
+          maximum: 100
+          default: 25
 
     # ================= AUTH =================
 
@@ -1604,21 +1762,34 @@ components:
 
     Bed:
       type: object
+      # `name` and `depth` are always returned: now required in the response.
       required:
-        [id, userId, width, height, plantInstances, metadata, deleted, version]
+        [
+          id,
+          userId,
+          name,
+          width,
+          height,
+          depth,
+          plantInstances,
+          metadata,
+          deleted,
+          version
+        ]
       properties:
         id:
           type: string
+          format: uuid
         userId:
           type: string
         name:
-          type: string
+          $ref: '#/components/schemas/RequiredShortText'
         width:
-          type: number
+          $ref: '#/components/schemas/BedDimension'
         height:
-          type: number
+          $ref: '#/components/schemas/BedDimension'
         depth:
-          type: number
+          $ref: '#/components/schemas/BedDimension'
         plantInstances:
           type: array
           items:
@@ -1636,32 +1807,44 @@ components:
           minimum: 0
           readOnly: true
 
+    BedDimension:
+      description: A positive finite JSON number (numeric strings are rejected).
+      type: number
+      exclusiveMinimum: 0
+
     CreateBed:
       type: object
-      required: [id, width, height]
+      additionalProperties: false
+      required: [id, name, width, height, depth]
       properties:
         id:
           type: string
+          format: uuid
+        name:
+          $ref: '#/components/schemas/RequiredShortText'
         width:
-          type: number
+          $ref: '#/components/schemas/BedDimension'
         height:
-          type: number
-        plantInstances:
-          type: array
-          items:
-            $ref: '#/components/schemas/PlantInstance'
+          $ref: '#/components/schemas/BedDimension'
+        depth:
+          $ref: '#/components/schemas/BedDimension'
 
     UpdateBed:
+      description: >
+        Partial update. Every field is optional and none can be cleared
+        (`null` → 400). `{}` is a no-op: 200, version unchanged. Plants are
+        never placed by patching the bed.
       type: object
+      additionalProperties: false
       properties:
+        name:
+          $ref: '#/components/schemas/RequiredShortText'
         width:
-          type: number
+          $ref: '#/components/schemas/BedDimension'
         height:
-          type: number
-        plantInstances:
-          type: array
-          items:
-            $ref: '#/components/schemas/PlantInstance'
+          $ref: '#/components/schemas/BedDimension'
+        depth:
+          $ref: '#/components/schemas/BedDimension'
 
     #  ================= PLANT INSTANCES =================
 

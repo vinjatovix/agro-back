@@ -6,7 +6,7 @@ import { familyDomainMapper } from '../../../../Contexts/Agro/Families/mappers/f
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
 import { getValidatedRequest } from '../../middlewares/validateRequest.js';
 import { HttpController } from '../../shared/HttpController.js';
-import { setVersionETag } from '../../shared/setVersionETag.js';
+import { setVersionETag } from '../../shared/versionTags.js';
 import { createFamilyRequest } from './requestSchemas.js';
 
 export type CreateFamilyControllerDependencies = {

@@ -3,6 +3,7 @@ import type { ExactFilter } from '../../../../../../shared/domain/query/interfac
 import type { RangeFilter } from '../../../../../../shared/domain/query/interfaces/RangeFilter.js';
 import type { StringFilter } from '../../../../../../shared/domain/query/interfaces/StringFilter.js';
 import type { PlantLifecycleValue } from './PlantLifecycleValue.js';
+import type { PlantStatus } from './PlantStatus.js';
 
 export interface PlantFilter {
   identity?: StringFilter;
@@ -14,6 +15,7 @@ export interface PlantFilter {
   soilPh?: RangeFilter;
   soilAvailableDepthCm?: RangeFilter;
   lightHoursMin?: RangeFilter;
-  lightType?: ExactFilter<string>;
-  rootSystem?: ExactFilter<string>;
+  lightType?: StringFilter;
+  rootSystem?: StringFilter;
+  status?: ExactFilter<PlantStatus>;
 }

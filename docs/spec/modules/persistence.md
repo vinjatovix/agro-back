@@ -130,12 +130,11 @@ All aggregates persisted through `MongoCrudRepository` (Bed, Plant, Family) carr
 The client states the version it is modifying; the server never assumes it.
 
 1. Every single-resource response (`GET`, `POST`, `PATCH` of one bed, plant or family) carries a strong `ETag: "<version>"`, always equal to the body's `version`. Lists, `204` and error responses carry no `ETag` (Express's automatic `ETag` is disabled). CORS exposes `ETag` to allowed origins.
-2. `PATCH /beds/{id}`, `PATCH /plants/{id}`, `PATCH /families/{idOrSlug}`, `DELETE /beds/{id}` and `DELETE /plants/{id}` require `If-Match: "<version>"`. The `requireIfMatch` middleware runs after `auth`/`isAdmin` and before any body or params validation:
+2. `PATCH /beds/{id}`, `PATCH /plants/{id}`, `PATCH /families/{idOrSlug}`, `DELETE /beds/{id}` and `DELETE /plants/{id}` require `If-Match` (RFC 9110 entity-tag list, validation.md §3.1). The `requireIfMatch` middleware runs after `auth`/`isAdmin` and before any body or params validation:
    - missing, empty or `*` → `428 Precondition Required`;
-   - anything other than exactly one strong tag with a non-negative integer (`W/"3"`, `"3", "4"`, `3`, `"-1"`, `"03"`, `"abc"`) → `400` with an `if-match` error key;
-   - otherwise the parsed value is stored for the controller, which passes it to the use case as `expectedVersion`.
-   - **`[TARGET STATE (Pending [Iteration 14](../../roadmap.md#iteration-14-migrate-beds-and-query-dsl-to-zod))]`** RFC 9110 list grammar (validation.md §3.1): the controller passes a possibly empty list `expectedVersions` and `ensureVersion` checks that the stored version is among them.
-3. The use case loads the aggregate, then calls `ensureVersion(entity.version, expectedVersion, …)` right after the existence check and **before** any business rule. A mismatch throws `DomainStaleVersionException` (HTTP `412`), even when the patch would change nothing.
+   - not an entity-tag list (`3`, `"3`, `"3" "4"`, `*, "3"`) or more than 50 tags → `400` with an `if-match` error key;
+   - otherwise the versions named by its strong tags (`"2", "3"` → `[2, 3]`; `W/"3"` or `"abc"` → `[]`) are stored for the controller, which passes them to the use case as `expectedVersions`.
+3. The use case loads the aggregate, then calls `ensureVersion(entity.version, expectedVersions, …)` right after the existence check and **before** any business rule. It passes when the list contains the stored version; otherwise (including an empty list) it throws `DomainStaleVersionException` (HTTP `412`), even when the patch would change nothing.
 
 #### Conditional write
 
@@ -489,9 +488,13 @@ Migrations MUST NOT:
 
 Migrations live in `migrations/<package version>/` as ESM modules exporting `up(db)` / `down(db)`, and are applied by `migrations/index.ts` at server start.
 
-| Version | File                                      | Purpose                                                                                                                                 |
-| ------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| 1.0.0   | `20260927120000-add-aggregate-version.js` | Backfills `version: 0` on `beds`, `families` and `plants` documents that lack it (OCC, Sec. 4.3). Idempotent; `down` removes the field. |
+| Version | File                                          | Purpose                                                                                                                                                                                                                                                                                   |
+| ------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.0.0   | `20260927120000-add-aggregate-version.js`     | Backfills `version: 0` on `beds`, `families` and `plants` documents that lack it (OCC, Sec. 4.3). Idempotent; `down` removes the field.                                                                                                                                                   |
+| 1.0.0   | `20261002120000-normalize-plant-knowledge.js` | Brings stored plants in line with the Plant model (seasons, propagation method names, pollination, required labels…); stops on anything it cannot fix.                                                                                                                                    |
+| 1.0.0   | `20261003120000-plant-listing-indexes.js`     | Plant listing indexes with the plant collation (`es`, strength 2): rebuilds `plants_family_idx` (`identity.family`) and adds `plants_name_primary_idx` and `plants_scientific_name_idx` for the `name`/`scientificName` sort keys. Idempotent; `down` restores the start-up family index. |
+
+Indexes are declared in migrations (constitution v1.5.0). A string index only serves a query that uses the same collation, so plant indexes repeat the collation of `MongoPlantRepository`. `MongoCollectionIndexes.ts` still creates the `users` and `families` indexes at start-up, before the migrations run; moving them is an open proposal (roadmap, Iteration 14).
 
 ---
 
@@ -531,13 +534,13 @@ This layer only TRANSLATES the Query DSL into database queries.
 
 All filter/sort/pagination semantics are defined in:
 
-> **Query DSL Contract v1.4.0**
+> **Query DSL Contract v1.5.0**
 
 Rules:
 
-- filter operators are defined in Query DSL Contract v1.4.0
-- sort semantics are defined in Query DSL Contract v1.4.0
-- pagination semantics are defined in Query DSL Contract v1.4.0
+- filter operators are defined in Query DSL Contract v1.5.0
+- sort semantics are defined in Query DSL Contract v1.5.0
+- pagination semantics are defined in Query DSL Contract v1.5.0
 - this module ONLY implements translation to MongoDB query operators
 
 Supported translation targets:
@@ -555,9 +558,11 @@ A `MongoQueryTranslator` is responsible for:
 
 - converting Query DSL → MongoDB queries
 - ensuring compatibility with Mongo operators
-- normalizing CSV-based operators into arrays
-- applying numeric coercion rules
 - mapping DSL semantics to persistence-specific constructs
+
+Values arrive already decoded and typed by the listing schema (query.md), so translators never split CSV text or coerce numbers.
+
+`PlantQueryMapper` translates every operator a plant field declares, into the stored plant paths: `identity` matches primary name, aliases or scientific name (one `$or`), `sowingMethod[in]` is an `$or` of `$exists` checks, and several `$or` clauses are combined under `$and` so none overwrites another. Plants sort by public keys: `MongoCrudRepository.toMongoSortField(key)` (identity by default) is overridden by `MongoPlantRepository` to map `name` → `identity.name.primary` and `scientificName` → `identity.scientificName`.
 
 ---
 
@@ -565,9 +570,9 @@ A `MongoQueryTranslator` is responsible for:
 
 To secure the database against Regular Expression Injection (ReDoS) and filter bypasses on public endpoints, text search values are always matched as literal text.
 
-- `MongoQueryTranslator` passes every `contains`, `startsWith` and `endsWith` value (converted to text with `String(value)`) through the shared `escapeRegex` utility, then adds the anchor outside the escaped text: `contains` → `escaped`, `startsWith` → `^escaped`, `endsWith` → `escaped$`. The result keeps the `{ $regex, $options: 'i' }` shape (case-insensitive).
+- `MongoQueryTranslator` and `PlantQueryMapper` build text patterns with the shared `textPatternCondition` (`Contexts/shared/infrastructure/persistence/mongo/`), which passes every `contains`, `startsWith` and `endsWith` value through `escapeRegex`, then adds the anchor outside the escaped text: `contains` → `escaped`, `startsWith` → `^escaped`, `endsWith` → `escaped$`. The result keeps the `{ $regex, $options: 'i' }` shape (case-insensitive).
 - Text operator results skip identifier conversion: a UUID-shaped `contains` / `startsWith` / `endsWith` value is searched as text. Only `eq`, set (`in`, `has`, `hasAny`) and range values are converted with `toMongoId`.
-- Any other query mapper that builds a pattern from filter text MUST use `escapeRegex` too (today `PlantQueryMapper` for `identity.contains`). No other code path builds a pattern from client text.
+- Any other query mapper that builds a pattern from filter text MUST use `textPatternCondition` or `escapeRegex` too (`PlantQueryMapper` keeps an escaped `RegExp` for `identity.contains`). No other code path builds a pattern from client text.
 
 ---
 
@@ -589,7 +594,7 @@ This ensures robustness against imperfect upstream input.
 
 | Concern           | Layer                       |
 | ----------------- | --------------------------- |
-| Query semantics   | Query DSL Contract v1.4.0   |
+| Query semantics   | Query DSL Contract v1.5.0   |
 | Query parsing     | API / Validation layer      |
 | Query translation | Persistence layer           |
 | Query execution   | Persistence layer (MongoDB) |
@@ -775,7 +780,7 @@ Persistence MUST:
 - metadata ownership for User: `MongoAuthRepository.update(patch)` stores the audit data carried by `UserPatch` and never adds its own (`updateMetadata` removed)
 - FamilyRepository implementation
 - PlantDtoMapper
-- Query DSL + parser support (GenericQueryParser, QueryParserUtils)
+- Query DSL support: Zod listing schemas (`listQuerySchema`, query.md), `MongoQueryTranslator` (Families) and `PlantQueryMapper` (Plants, every declared operator; public sort keys mapped by `toMongoSortField`)
 
 ---
 

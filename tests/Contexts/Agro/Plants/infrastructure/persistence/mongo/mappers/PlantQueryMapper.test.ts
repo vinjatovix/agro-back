@@ -1,4 +1,5 @@
 import type { PlantFilter } from '../../../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantFilter.js';
+import { PlantStatus } from '../../../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantStatus.js';
 import { PlantQueryMapper } from '../../../../../../../../src/Contexts/Agro/Plants/infrastructure/persistence/mongo/mappers/PlantQueryMapper.js';
 
 describe('PlantQueryMapper', () => {
@@ -32,9 +33,9 @@ describe('PlantQueryMapper', () => {
 
     expect(result.$or).toEqual(
       expect.arrayContaining([
-        { 'identity.name.primary': /rose/i },
-        { 'identity.name.aliases': /rose/i },
-        { 'identity.scientificName': /rose/i }
+        { 'identity.name.primary': { $regex: 'rose', $options: 'i' } },
+        { 'identity.name.aliases': { $regex: 'rose', $options: 'i' } },
+        { 'identity.scientificName': { $regex: 'rose', $options: 'i' } }
       ])
     );
   });
@@ -49,6 +50,16 @@ describe('PlantQueryMapper', () => {
     expect(result['traits.lifecycle']).toEqual({
       $eq: 'perennial'
     });
+  });
+
+  it('should map status eq', () => {
+    const filter: PlantFilter = {
+      status: { eq: PlantStatus.ACTIVE }
+    };
+
+    const result = plantQueryMapper.toMongo(filter);
+
+    expect(result.status).toEqual(PlantStatus.ACTIVE);
   });
 
   it('should match plants that fit within available spacing', () => {
@@ -189,21 +200,141 @@ describe('PlantQueryMapper', () => {
     };
 
     const result = plantQueryMapper.toMongo(filter) as {
-      $or: Array<Record<string, RegExp>>;
+      $or: Array<Record<string, unknown>>;
     };
 
     expect(result.$or).toEqual(
       expect.arrayContaining([
         {
-          'identity.name.primary': /ro\.se\*\[\]/i
+          'identity.name.primary': { $regex: 'ro\\.se\\*\\[\\]', $options: 'i' }
         },
         {
-          'identity.name.aliases': /ro\.se\*\[\]/i
+          'identity.name.aliases': { $regex: 'ro\\.se\\*\\[\\]', $options: 'i' }
         },
         {
-          'identity.scientificName': /ro\.se\*\[\]/i
+          'identity.scientificName': {
+            $regex: 'ro\\.se\\*\\[\\]',
+            $options: 'i'
+          }
         }
       ])
     );
+  });
+
+  describe('identity text operators', () => {
+    const IDENTITY_PATHS = [
+      'identity.name.primary',
+      'identity.name.aliases',
+      'identity.scientificName'
+    ];
+
+    it.each([
+      ['eq', 'Tomate', 'Tomate'],
+      ['in', ['Tomate', 'Apio'], { $in: ['Tomate', 'Apio'] }],
+      ['startsWith', 'To(m', { $regex: '^To\\(m', $options: 'i' }],
+      ['endsWith', 'a.e', { $regex: 'a\\.e$', $options: 'i' }]
+    ])(
+      'should map identity %s to $or over the name paths',
+      (operator, value, condition) => {
+        // Arrange
+        const filter = { identity: { [operator]: value } } as PlantFilter;
+
+        // Act
+        const result = plantQueryMapper.toMongo(filter);
+
+        // Assert
+        expect(result).toEqual({
+          $or: IDENTITY_PATHS.map((path) => ({ [path]: condition }))
+        });
+      }
+    );
+  });
+
+  it.each([
+    [
+      'family in',
+      { family: { in: ['fam_1', 'fam_2'] } },
+      { 'identity.family': { $in: ['fam_1', 'fam_2'] } }
+    ],
+    [
+      'lifeCycle in',
+      { lifeCycle: { in: ['annual', 'biennial'] } },
+      { 'traits.lifecycle': { $in: ['annual', 'biennial'] } }
+    ],
+    [
+      'lightType in',
+      { lightType: { in: ['full_sun', 'shade'] } },
+      { 'knowledge.light.type': { $in: ['full_sun', 'shade'] } }
+    ],
+    [
+      'rootSystem in',
+      { rootSystem: { in: ['fibrous'] } },
+      { 'knowledge.rootSystem.type': { $in: ['fibrous'] } }
+    ],
+    [
+      'lightType contains',
+      { lightType: { contains: 'sun' } },
+      { 'knowledge.light.type': { $regex: 'sun', $options: 'i' } }
+    ],
+    [
+      'lightType startsWith',
+      { lightType: { startsWith: 'full' } },
+      { 'knowledge.light.type': { $regex: '^full', $options: 'i' } }
+    ],
+    [
+      'rootSystem endsWith',
+      { rootSystem: { endsWith: 'root' } },
+      { 'knowledge.rootSystem.type': { $regex: 'root$', $options: 'i' } }
+    ],
+    [
+      'rootSystem contains with pattern characters',
+      { rootSystem: { contains: '.*' } },
+      { 'knowledge.rootSystem.type': { $regex: '\\.\\*', $options: 'i' } }
+    ],
+    [
+      'sowingMethod in',
+      { sowingMethod: { in: ['direct', 'starter'] } },
+      {
+        $or: [
+          { 'phenology.sowing.methods.direct': { $exists: true } },
+          { 'phenology.sowing.methods.starter': { $exists: true } }
+        ]
+      }
+    ]
+  ])('should map %s', (_label, filter, expected) => {
+    // Act
+    const result = plantQueryMapper.toMongo(filter as PlantFilter);
+
+    // Assert
+    expect(result).toEqual(expected);
+  });
+
+  it('should keep both $or clauses when identity and sowingMethod in are combined', () => {
+    // Arrange
+    const filter: PlantFilter = {
+      identity: { startsWith: 'Tom' },
+      sowingMethod: { in: ['direct', 'starter'] }
+    };
+
+    // Act
+    const result = plantQueryMapper.toMongo(filter);
+
+    // Assert
+    expect(result).not.toHaveProperty('$or');
+    expect(result.$and).toEqual([
+      {
+        $or: [
+          { 'identity.name.primary': { $regex: '^Tom', $options: 'i' } },
+          { 'identity.name.aliases': { $regex: '^Tom', $options: 'i' } },
+          { 'identity.scientificName': { $regex: '^Tom', $options: 'i' } }
+        ]
+      },
+      {
+        $or: [
+          { 'phenology.sowing.methods.direct': { $exists: true } },
+          { 'phenology.sowing.methods.starter': { $exists: true } }
+        ]
+      }
+    ]);
   });
 });
