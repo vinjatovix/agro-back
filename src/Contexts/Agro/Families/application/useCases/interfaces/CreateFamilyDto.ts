@@ -4,7 +4,7 @@ export interface CreateFamilyDto {
   id: string;
   slug: string;
   name: string;
-  aliases: string[];
+  aliases?: string[];
   scientificName: string;
   shortDescription: string;
   highlights: string[];

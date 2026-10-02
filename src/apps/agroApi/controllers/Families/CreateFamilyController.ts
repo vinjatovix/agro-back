@@ -2,11 +2,12 @@ import { type NextFunction, type Request, type Response } from 'express';
 
 import httpStatus from 'http-status';
 import type { CreateFamily } from '../../../../Contexts/Agro/Families/application/useCases/CreateFamily.js';
-import type { CreateFamilyDto } from '../../../../Contexts/Agro/Families/application/useCases/interfaces/CreateFamilyDto.js';
 import { familyDomainMapper } from '../../../../Contexts/Agro/Families/mappers/familyDomainMapper.js';
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
+import { getValidatedRequest } from '../../middlewares/validateRequest.js';
 import { HttpController } from '../../shared/HttpController.js';
 import { setVersionETag } from '../../shared/setVersionETag.js';
+import { createFamilyRequest } from './requestSchemas.js';
 
 export type CreateFamilyControllerDependencies = {
   createFamily: CreateFamily;
@@ -19,9 +20,13 @@ export class CreateFamilyController extends HttpController {
     this.createFamily = createFamily;
   }
 
-  run = async (req: Request, res: Response, next: NextFunction) => {
+  run = async (
+    _req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     try {
-      const dto = req.body as CreateFamilyDto;
+      const { body: dto } = getValidatedRequest(res, createFamilyRequest);
       const user = res.locals.user as UserSessionInfo;
 
       const family = await this.createFamily.execute(dto, user.username);

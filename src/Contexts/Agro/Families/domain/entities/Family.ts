@@ -1,5 +1,7 @@
 import { hasStateChanged } from '../../../../../shared/domain/diff/hasStateChanged.js';
 import type { UnknownRecord } from '../../../../../shared/domain/types/UnknownRecord.js';
+import { requiredText } from '../../../../../shared/domain/utils/requiredText.js';
+import { uniqueTextList } from '../../../../../shared/domain/utils/uniqueTextList.js';
 import { AggregateRoot } from '../../../../shared/domain/entities/AggregateRoot.js';
 import { InvalidArgumentException } from '../../../../shared/domain/errors/index.js';
 import {
@@ -7,11 +9,27 @@ import {
   versionAfter
 } from '../../../../shared/domain/repositories/WriteOutcome.js';
 import { Metadata } from '../../../../shared/domain/valueObject/Metadata.js';
+import { familyExtra } from '../FamilyExtra.js';
 import type { FamilyId } from '../FamilyId.js';
 import type { FamilyExtraChanges } from '../types/FamilyExtraChanges.js';
 import type { FamilyExtraPrimitives } from '../types/FamilyExtraPrimitives.js';
 import type { FamilyInformationChanges } from '../types/FamilyInformationChanges.js';
 import type { FamilyProps } from '../types/FamilyProps.js';
+
+type FamilyState = FamilyProps & { version: number };
+
+type RequiredTextKey = 'slug' | 'name' | 'scientificName' | 'shortDescription';
+
+type TextListKey = 'aliases' | 'highlights';
+
+const INFORMATION_KEYS = [
+  'slug',
+  'name',
+  'scientificName',
+  'shortDescription',
+  'aliases',
+  'highlights'
+] as const satisfies ReadonlyArray<RequiredTextKey | TextListKey>;
 
 const EXTRA_KEYS = [
   'order',
@@ -19,6 +37,15 @@ const EXTRA_KEYS = [
   'distribution',
   'speciesCount'
 ] as const satisfies ReadonlyArray<keyof FamilyExtraChanges>;
+
+/** `undefined` keeps the field, any other value replaces it. */
+function applyChange<K extends RequiredTextKey | TextListKey>(
+  target: FamilyProps,
+  key: K,
+  value: FamilyProps[K] | undefined
+): void {
+  if (value !== undefined) target[key] = value;
+}
 
 /** `undefined` keeps the key, `null` removes it, any other value replaces it. */
 function applyExtraKey<K extends keyof FamilyExtraPrimitives>(
@@ -31,13 +58,29 @@ function applyExtraKey<K extends keyof FamilyExtraPrimitives>(
   else target[key] = value;
 }
 
+const familyText = (value: unknown, field: RequiredTextKey): string => {
+  if (typeof value !== 'string') {
+    throw new InvalidArgumentException(`Family.${field} is required`);
+  }
+  return requiredText(value, `Family.${field}`);
+};
+
+const familyTextList = (value: unknown, field: TextListKey): string[] => {
+  if (!Array.isArray(value)) {
+    throw new InvalidArgumentException(`Family.${field} must be an array`);
+  }
+  return uniqueTextList(value, `Family.${field}`);
+};
+
 export class Family extends AggregateRoot<FamilyId> {
-  private props: FamilyProps & { version: number };
+  private props: FamilyState;
 
   private constructor(props: FamilyProps) {
     super(props.id);
-    Family.validate(props);
-    this.props = Object.freeze({ ...props, version: props.version ?? 0 });
+    this.props = Object.freeze({
+      ...Family.normalise(props),
+      version: props.version ?? 0
+    });
   }
 
   get idValue(): string {
@@ -80,53 +123,38 @@ export class Family extends AggregateRoot<FamilyId> {
     return this.props.version;
   }
 
-  private static validate(props: FamilyProps): void {
-    const requiredKeys: Array<keyof FamilyProps> = [
-      'slug',
-      'name',
-      'scientificName',
-      'shortDescription',
-      'metadata'
-    ];
-    for (const key of requiredKeys) {
-      if (!props[key]) {
-        throw new InvalidArgumentException(`Family.${key} is required`);
-      }
+  /**
+   * Every built family meets the catalog rules, whether created, loaded or
+   * updated: required texts trimmed and never blank, text lists without blanks
+   * or repeats, and an empty `extra` stored as absent.
+   */
+  private static normalise(props: FamilyProps): FamilyProps {
+    if (!props.metadata) {
+      throw new InvalidArgumentException('Family.metadata is required');
     }
+    const { extra: rawExtra, ...rest } = props;
+    const extra = familyExtra(rawExtra);
 
-    const arrayKeys: Array<keyof FamilyProps> = ['aliases', 'highlights'];
-    for (const key of arrayKeys) {
-      if (!Array.isArray(props[key])) {
-        throw new InvalidArgumentException(`Family.${key} must be an array`);
-      }
-    }
+    return {
+      ...rest,
+      slug: familyText(props.slug, 'slug'),
+      name: familyText(props.name, 'name'),
+      scientificName: familyText(props.scientificName, 'scientificName'),
+      shortDescription: familyText(props.shortDescription, 'shortDescription'),
+      aliases: familyTextList(props.aliases, 'aliases'),
+      highlights: familyTextList(props.highlights, 'highlights'),
+      ...(extra !== undefined ? { extra } : {})
+    };
   }
 
-  private applyTextChange(
-    candidate: FamilyProps & { version: number },
-    field: 'slug' | 'name' | 'scientificName' | 'shortDescription',
-    value: string | undefined
-  ): void {
-    if (value === undefined) return;
-    const trimmed = value.trim();
-    if (!trimmed)
-      throw new InvalidArgumentException(`Family.${field} cannot be empty`);
-    candidate[field] = trimmed;
-  }
-
-  private applyExtraChanges(
-    candidate: FamilyProps & { version: number },
-    extraChanges: FamilyExtraChanges
-  ): void {
+  private mergeExtra(extraChanges: FamilyExtraChanges): FamilyExtraPrimitives {
     const next: FamilyExtraPrimitives = { ...(this.props.extra ?? {}) };
 
     for (const key of EXTRA_KEYS) {
       applyExtraKey(next, key, extraChanges[key]);
     }
 
-    // An empty `extra` has a single representation: absent.
-    if (Object.keys(next).length) candidate.extra = next;
-    else delete candidate.extra;
+    return next;
   }
 
   syncVersion(outcome: WriteOutcome): void {
@@ -141,29 +169,17 @@ export class Family extends AggregateRoot<FamilyId> {
     user: string,
     at: Date = new Date()
   ): void {
-    const candidate: FamilyProps & { version: number } = { ...this.props };
+    const draft: FamilyState = { ...this.props };
 
-    this.applyTextChange(candidate, 'slug', changes.slug);
-    this.applyTextChange(candidate, 'name', changes.name);
-    this.applyTextChange(candidate, 'scientificName', changes.scientificName);
-    this.applyTextChange(
-      candidate,
-      'shortDescription',
-      changes.shortDescription
-    );
-
-    if (changes.aliases !== undefined)
-      candidate.aliases = changes.aliases.map((a) => a.trim()).filter(Boolean);
-    if (changes.highlights !== undefined)
-      candidate.highlights = changes.highlights;
-
-    if (changes.extra === null) {
-      delete candidate.extra;
-    } else if (changes.extra !== undefined) {
-      this.applyExtraChanges(candidate, changes.extra);
+    for (const key of INFORMATION_KEYS) {
+      applyChange(draft, key, changes[key]);
     }
 
-    Family.validate(candidate);
+    if (changes.extra === null) delete draft.extra;
+    else if (changes.extra !== undefined)
+      draft.extra = this.mergeExtra(changes.extra);
+
+    const candidate = Family.normalise(draft);
 
     if (
       !hasStateChanged(Family.snapshot(this.props), Family.snapshot(candidate))
@@ -172,6 +188,7 @@ export class Family extends AggregateRoot<FamilyId> {
 
     this.props = Object.freeze({
       ...candidate,
+      version: this.props.version,
       metadata: Metadata.update(this.props.metadata, user, at)
     });
   }
