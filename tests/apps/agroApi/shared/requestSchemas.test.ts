@@ -7,7 +7,9 @@ import {
   partialRangeSchema,
   rangeSchema,
   REQUEST_LIMITS,
-  requiredShortTextSchema
+  requiredLongTextSchema,
+  requiredShortTextSchema,
+  trimmedLongTextSchema
 } from '../../../../src/apps/agroApi/shared/requestSchemas.js';
 
 describe('shared requestSchemas', () => {
@@ -52,6 +54,50 @@ describe('shared requestSchemas', () => {
       'should reject %j',
       (value) => {
         expect(requiredShortTextSchema.safeParse(value).success).toBe(false);
+      }
+    );
+  });
+
+  describe('trimmedLongTextSchema', () => {
+    it('should trim the text', () => {
+      expect(trimmedLongTextSchema.parse('  Five petals  ')).toBe(
+        'Five petals'
+      );
+    });
+
+    it('should accept an empty text', () => {
+      expect(trimmedLongTextSchema.parse('')).toBe('');
+    });
+
+    it('should check the length after trimming', () => {
+      const text = 'x'.repeat(REQUEST_LIMITS.longText);
+
+      expect(trimmedLongTextSchema.parse(`  ${text}  `)).toBe(text);
+    });
+
+    it.each([['x'.repeat(REQUEST_LIMITS.longText + 1)], [1], [null]])(
+      'should reject %j',
+      (value) => {
+        expect(trimmedLongTextSchema.safeParse(value).success).toBe(false);
+      }
+    );
+  });
+
+  describe('requiredLongTextSchema', () => {
+    it('should trim the text', () => {
+      expect(requiredLongTextSchema.parse('  A family  ')).toBe('A family');
+    });
+
+    it('should accept a text at the limit', () => {
+      const text = 'x'.repeat(REQUEST_LIMITS.longText);
+
+      expect(requiredLongTextSchema.parse(text)).toBe(text);
+    });
+
+    it.each([[''], ['   '], [null], ['x'.repeat(REQUEST_LIMITS.longText + 1)]])(
+      'should reject %j',
+      (value) => {
+        expect(requiredLongTextSchema.safeParse(value).success).toBe(false);
       }
     );
   });

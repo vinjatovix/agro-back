@@ -540,6 +540,23 @@ Given(
 );
 
 Given(
+  'a POST admin request to {string} with query {string} and body',
+  async function (route: string, query: string, body: string) {
+    const normalizedRoute = interpolateRoute(route, this);
+
+    // The OpenAPI check looks the path up without the query string.
+    setRequestContext(this, 'POST', normalizedRoute);
+
+    this.request = buildRequest({
+      method: 'post',
+      route: `${normalizedRoute}?${query}`,
+      ...withToken(getAuthToken(this, validAdminBearerToken!)),
+      body: parseBody(body, this)
+    });
+  }
+);
+
+Given(
   'a POST admin request to {string} with body',
   async function (route: string, body: string) {
     const normalizedRoute = interpolateRoute(route, this);
@@ -605,6 +622,21 @@ Given(
 
 Given('a family exists', async function () {
   const family = await familySeeder.create();
+
+  this.familyId = family.id;
+  this.familySlug = family.slug;
+  this.familyName = family.name;
+});
+
+Given('a family with extra exists', async function () {
+  const family = await familySeeder.create({
+    extra: {
+      order: 'Rosales',
+      distribution: 'Worldwide',
+      speciesCount: 3000,
+      subfamilies: ['Rosoideae']
+    }
+  });
 
   this.familyId = family.id;
   this.familySlug = family.slug;
@@ -990,6 +1022,29 @@ When(
       route: normalizedRoute,
       ifMatch: this.ifMatch,
       ...withToken(token),
+      body: parseBody(body, this)
+    });
+  }
+);
+
+When(
+  'I send a PATCH admin request to {string} with query {string} and body',
+  async function (
+    this: CucumberWorld,
+    route: string,
+    query: string,
+    body: string
+  ) {
+    const normalizedRoute = interpolateRoute(route, this);
+
+    // The OpenAPI check looks the path up without the query string.
+    setRequestContext(this, 'PATCH', normalizedRoute);
+
+    this.request = buildRequest({
+      method: 'patch',
+      route: `${normalizedRoute}?${query}`,
+      ifMatch: this.ifMatch,
+      ...withToken(getAuthToken(this, validAdminBearerToken!)),
       body: parseBody(body, this)
     });
   }

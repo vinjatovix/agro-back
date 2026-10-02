@@ -50,13 +50,15 @@ const buildDomainBase = (): FamilyProps => ({
   metadata: Metadata.create(USER)
 });
 
+const randomText = (): string => random.word({ min: 3, max: 30 });
+
 const buildRandomPrimitives = (): Omit<FamilyProps, 'id' | 'metadata'> => ({
-  slug: random.word(),
-  name: random.word(),
-  aliases: [random.word(), random.word()],
-  scientificName: random.word(),
+  slug: randomText(),
+  name: randomText(),
+  aliases: [randomText(), randomText()],
+  scientificName: randomText(),
   shortDescription: random.description(),
-  highlights: [random.word(), random.word()]
+  highlights: [randomText(), randomText()]
 });
 
 export const FamilyScenarios = {

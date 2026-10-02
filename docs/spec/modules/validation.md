@@ -20,7 +20,7 @@ Validation is a **schema enforcement layer**, not a business logic layer.
 
 ## 3. RULES
 
-- Zod is the central tool used for all transport boundary validation and schema declarations. The shared Zod step `validateRequest` (§3.2) exists since [Iteration 9](../../roadmap.md#iteration-9-establish-zod-validation-middleware); Auth moved to it in [Iteration 10](../../roadmap.md#iteration-10-migrate-health-and-auth-endpoints-to-zod) (§3.3); the remaining endpoints move in **`[TARGET STATE (Pending Iterations [12](../../roadmap.md#iteration-12-migrate-plants-endpoints-to-zod), [13](../../roadmap.md#iteration-13-migrate-families-endpoints-to-zod) & [14](../../roadmap.md#iteration-14-migrate-beds-and-query-dsl-to-zod))]`** (Currently, Plants, Families and Beds use `express-validator` at the route boundary).
+- Zod is the central tool used for all transport boundary validation and schema declarations. The shared Zod step `validateRequest` (§3.2) exists since [Iteration 9](../../roadmap.md#iteration-9-establish-zod-validation-middleware); Auth moved to it in [Iteration 10](../../roadmap.md#iteration-10-migrate-health-and-auth-endpoints-to-zod) (§3.3); Plants in [Iteration 12](../../roadmap.md#iteration-12-migrate-plants-endpoints-to-zod) and the single-family Families routes in [Iteration 13](../../roadmap.md#iteration-13-migrate-families-endpoints-to-zod). **`[TARGET STATE (Pending [Iteration 14](../../roadmap.md#iteration-14-migrate-beds-and-query-dsl-to-zod))]`** Beds still use `express-validator` at the route boundary, and the list endpoints keep their query parsers.
 - MUST NOT contain domain logic
 - MUST NOT enforce business rules
 - MUST be aligned with OpenAPI schemas
@@ -215,7 +215,7 @@ Validation system currently includes rules affecting:
 - Query DSL parsing (filters, sorting, pagination)
 - Auth endpoints (Zod via `validateRequest` since [Iteration 10](../../roadmap.md#iteration-10-migrate-health-and-auth-endpoints-to-zod); §3.3)
 - Health endpoints and `POST /auth/refresh`: migrated — no input to validate (they read no client input, so they declare no schema and extra query or body is ignored)
-- Families endpoints `[TARGET STATE (Pending [Iteration 13](../../roadmap.md#iteration-13-migrate-families-endpoints-to-zod))]`
+- Families endpoints: `POST`, `GET /:idOrSlug` and `PATCH /:idOrSlug` on Zod via `validateRequest` since [Iteration 13](../../roadmap.md#iteration-13-migrate-families-endpoints-to-zod) (schemas in `controllers/Families/requestSchemas.ts`); the listing keeps its query parser until [Iteration 14](../../roadmap.md#iteration-14-migrate-beds-and-query-dsl-to-zod)
 
 All MUST maintain consistent error structure, PATCH behavior semantics, and query parsing rules.
 

@@ -278,11 +278,7 @@ paths:
       tags: [Families]
       summary: Get family by id or slug
       parameters:
-        - name: idOrSlug
-          in: path
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/FamilyIdOrSlug'
       responses:
         '200':
           description: OK
@@ -305,11 +301,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: idOrSlug
-          in: path
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/FamilyIdOrSlug'
         - $ref: '#/components/parameters/IfMatch'
       requestBody:
         required: true
@@ -677,6 +669,17 @@ components:
         example: '"4"'
 
   parameters:
+    FamilyIdOrSlug:
+      name: idOrSlug
+      in: path
+      required: true
+      description: A UUID is looked up by id; anything else by slug. Trimmed.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 200
+        pattern: '\S'
+
     IfMatch:
       name: If-Match
       in: header
@@ -856,163 +859,149 @@ components:
 
     # ================= FAMILY =================
 
+    # Required texts are trimmed and never blank; text lists drop blank and
+    # repeated entries. Limits mirror the request validation.
+
+    FamilyTextList:
+      description: >
+        Entries are trimmed; blank entries and repeated entries (compared
+        after trimming, ignoring letter case) are dropped, keeping the first
+        occurrence. Non-string entries are rejected.
+      type: array
+      maxItems: 50
+      items:
+        type: string
+        maxLength: 200
+
+    FamilyHighlights:
+      description: Same rule as FamilyTextList, with long-text entries.
+      type: array
+      maxItems: 50
+      items:
+        type: string
+        maxLength: 2000
+
+    FamilyExtra:
+      description: >
+        Optional taxonomy details. An empty object is never stored: it is
+        returned and stored as absent.
+      type: object
+      additionalProperties: false
+      properties:
+        order:
+          $ref: '#/components/schemas/RequiredShortText'
+        distribution:
+          $ref: '#/components/schemas/RequiredShortText'
+        speciesCount:
+          type: integer
+          minimum: 1
+        subfamilies:
+          $ref: '#/components/schemas/FamilyTextList'
+
+    UpdateFamilyExtra:
+      description: >
+        Merged key by key. `null` on a key removes that key; `{}` changes
+        nothing; an extra left without keys is removed.
+      type: object
+      nullable: true
+      additionalProperties: false
+      properties:
+        order:
+          type: string
+          nullable: true
+          minLength: 1
+          maxLength: 200
+          pattern: '\S'
+        distribution:
+          type: string
+          nullable: true
+          minLength: 1
+          maxLength: 200
+          pattern: '\S'
+        speciesCount:
+          type: integer
+          nullable: true
+          minimum: 1
+        subfamilies:
+          type: array
+          nullable: true
+          maxItems: 50
+          items:
+            type: string
+            maxLength: 200
+
     Family:
       type: object
       required:
-        - id
-        - slug
-        - name
-        - scientificName
-        - shortDescription
-        - highlights
+        [id, slug, name, scientificName, shortDescription, aliases, highlights]
       properties:
         id:
           type: string
           format: uuid
-
         version:
           type: integer
           minimum: 0
           readOnly: true
-
         slug:
-          type: string
-
+          $ref: '#/components/schemas/RequiredShortText'
         name:
-          type: string
-
+          $ref: '#/components/schemas/RequiredShortText'
         scientificName:
-          type: string
-
+          $ref: '#/components/schemas/RequiredShortText'
         shortDescription:
-          type: string
-
-        highlights:
-          type: array
-          items:
-            type: string
-
+          $ref: '#/components/schemas/RequiredLongText'
         aliases:
-          type: array
-          items:
-            type: string
-          nullable: true
-
+          $ref: '#/components/schemas/FamilyTextList'
+        highlights:
+          $ref: '#/components/schemas/FamilyHighlights'
         extra:
-          type: object
-          nullable: true
-          properties:
-            order:
-              type: string
-            subfamilies:
-              type: array
-              items:
-                type: string
-            distribution:
-              type: string
-            speciesCount:
-              type: integer
-              minimum: 1
-          additionalProperties: false
+          $ref: '#/components/schemas/FamilyExtra'
 
     CreateFamily:
       type: object
-      required:
-        - id
-        - slug
-        - name
-        - scientificName
-        - shortDescription
-        - highlights
+      additionalProperties: false
+      required: [id, slug, name, scientificName, shortDescription, highlights]
       properties:
         id:
           type: string
           format: uuid
-
         slug:
-          type: string
-          minLength: 1
-
+          $ref: '#/components/schemas/RequiredShortText'
         name:
-          type: string
-          minLength: 1
-
-        aliases:
-          type: array
-          items:
-            type: string
-          nullable: true
-
+          $ref: '#/components/schemas/RequiredShortText'
         scientificName:
-          type: string
-          minLength: 1
-
+          $ref: '#/components/schemas/RequiredShortText'
         shortDescription:
-          type: string
-          minLength: 1
-
+          $ref: '#/components/schemas/RequiredLongText'
+        aliases:
+          $ref: '#/components/schemas/FamilyTextList'
         highlights:
-          type: array
-          items:
-            type: string
-
+          $ref: '#/components/schemas/FamilyHighlights'
         extra:
-          type: object
-          nullable: true
-          properties:
-            order:
-              type: string
-            distribution:
-              type: string
-            speciesCount:
-              type: integer
-              minimum: 1
-            subfamilies:
-              type: array
-              items:
-                type: string
-          additionalProperties: false
+          $ref: '#/components/schemas/FamilyExtra'
 
     UpdateFamily:
+      description: >
+        JSON Merge Patch. Every field optional; `{}` is a no-op. `id` and
+        `version` are not accepted. Only `extra` and its keys accept `null`.
       type: object
+      additionalProperties: false
       properties:
         slug:
-          type: string
+          $ref: '#/components/schemas/RequiredShortText'
         name:
-          type: string
+          $ref: '#/components/schemas/RequiredShortText'
         scientificName:
-          type: string
+          $ref: '#/components/schemas/RequiredShortText'
         shortDescription:
-          type: string
-        highlights:
-          type: array
-          items:
-            type: string
+          $ref: '#/components/schemas/RequiredLongText'
         aliases:
-          type: array
-          items:
-            type: string
-          nullable: true
+          $ref: '#/components/schemas/FamilyTextList'
+        highlights:
+          $ref: '#/components/schemas/FamilyHighlights'
         extra:
-          type: object
-          nullable: true
-          properties:
-            order:
-              type: string
-              nullable: true
-            distribution:
-              type: string
-              nullable: true
-            speciesCount:
-              type: integer
-              nullable: true
-              minimum: 1
-            subfamilies:
-              type: array
-              nullable: true
-              items:
-                type: string
-          additionalProperties: false
+          $ref: '#/components/schemas/UpdateFamilyExtra'
+
     # ================= PLANT =================
     # Shared pieces are published once and reused by the response, create and
     # update schemas. Size limits mirror the request validation.
@@ -1535,6 +1524,12 @@ components:
       type: string
       minLength: 1
       maxLength: 200
+      pattern: '\S'
+
+    RequiredLongText:
+      type: string
+      minLength: 1
+      maxLength: 2000
       pattern: '\S'
 
     ShortTextList:

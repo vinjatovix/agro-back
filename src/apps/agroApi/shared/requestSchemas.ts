@@ -47,6 +47,15 @@ export const requiredShortTextSchema = trimmedShortTextSchema.min(1);
 /** Free text, such as a note or a description. */
 export const longTextSchema = z.string().max(REQUEST_LIMITS.longText);
 
+/** Free text trimmed before its length is checked: padding does not count. */
+export const trimmedLongTextSchema = z
+  .string()
+  .trim()
+  .max(REQUEST_LIMITS.longText);
+
+/** A required free text, such as a description: trimmed and never blank. */
+export const requiredLongTextSchema = trimmedLongTextSchema.min(1);
+
 /** A bounded list of `item`. */
 export const listSchema = <T extends z.ZodType>(item: T) =>
   z.array(item).max(REQUEST_LIMITS.listItems);

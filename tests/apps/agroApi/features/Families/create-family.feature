@@ -111,32 +111,26 @@ Feature: Create Family
     And response matches OpenAPI contract
 
   Scenario: Invalid payload returns validation error
-    Given a POST admin request to "/api/v1/families/" with body
+    When a POST admin request to "/api/v1/families/" with body
       """
       {
         "id": "not-a-uuid",
         "slug": "",
-        "name": "",
+        "name": "   ",
         "scientificName": "",
         "shortDescription": "",
         "highlights": "not-an-array"
       }
       """
     Then the response status code should be 400
-    And the response body should be
-      """
-      {
-        "errors": {
-          "highlights": "Invalid value at body. Value: not-an-array",
-          "id": "Invalid value at body. Value: not-a-uuid",
-          "name": "Invalid value at body. Value: ",
-          "scientificName": "Invalid value at body. Value: ",
-          "shortDescription": "Invalid value at body. Value: ",
-          "slug": "Invalid value at body. Value: "
-        },
-        "message": "Validation error"
-      }
-      """
+    And the response errors should include "id"
+    And the response errors should include "slug"
+    And the response errors should include "name"
+    And the response errors should include "scientificName"
+    And the response errors should include "shortDescription"
+    And the response errors should include "highlights"
+    And the response body should not echo "not-a-uuid"
+    And the response body should not echo "not-an-array"
     And response matches OpenAPI contract
 
   Scenario: Creating duplicate family id returns conflict
@@ -212,15 +206,16 @@ Feature: Create Family
       }
       """
     Then the response status code should be 400
-    And the response body should be
+    And the response body should contain
       """
       {
         "message": "Validation error",
         "errors": {
-          "extra": "Unknown fields at body. Value: {\"order\":\"Rosales\",\"invalidField\":\"should fail\"}"
+          "extra.invalidField": "Unknown field"
         }
       }
       """
+    And the response body should not echo "should fail"
     And response matches OpenAPI contract
 
   Scenario: extra cannot be null on create
@@ -240,4 +235,145 @@ Feature: Create Family
       }
       """
     Then the response status code should be 400
+    And response matches OpenAPI contract
+
+  Scenario: A padded name is trimmed on creation
+    When a POST admin request to "/api/v1/families/" with body
+      """
+      {
+        "id": "0a6b2c1e-3f4d-4a5b-8c6d-7e8f9a0b1c2d",
+        "slug": "rosaceae",
+        "name": "  Rosaceae  ",
+        "scientificName": "Rosaceae",
+        "shortDescription": "Family of flowering plants",
+        "highlights": ["flowers"]
+      }
+      """
+    Then the response status code should be 201
+    And the response body matches "Rosaceae" for field "name"
+    And response matches OpenAPI contract
+
+  Scenario Outline: A whitespace-only <field> is rejected on creation
+    When a POST admin request to "/api/v1/families/" with body
+      """
+      {
+        "id": "1b7c3d2f-4a5e-4b6c-9d7e-8f9a0b1c2d3e",
+        "slug": "rosaceae",
+        "name": "Rosaceae",
+        "scientificName": "Rosaceae",
+        "shortDescription": "Family of flowering plants",
+        "highlights": ["flowers"],
+        "<field>": "   "
+      }
+      """
+    Then the response status code should be 400
+    And the response errors should include "<field>"
+    And response matches OpenAPI contract
+
+    Examples:
+      | field            |
+      | slug             |
+      | name             |
+      | scientificName   |
+      | shortDescription |
+
+  Scenario: aliases cannot be null on create
+    When a POST admin request to "/api/v1/families/" with body
+      """
+      {
+        "id": "2c8d4e3a-5b6f-4c7d-8e8f-9a0b1c2d3e4f",
+        "slug": "rosaceae",
+        "name": "Rosaceae",
+        "scientificName": "Rosaceae",
+        "shortDescription": "Family of flowering plants",
+        "highlights": ["flowers"],
+        "aliases": null
+      }
+      """
+    Then the response status code should be 400
+    And the response errors should include "aliases"
+    And response matches OpenAPI contract
+
+  Scenario: An empty extra is not stored
+    When a POST admin request to "/api/v1/families/" with body
+      """
+      {
+        "id": "3d9e5f4b-6c7a-4d8e-9f0a-0b1c2d3e4f5a",
+        "slug": "rosaceae",
+        "name": "Rosaceae",
+        "scientificName": "Rosaceae",
+        "shortDescription": "Family of flowering plants",
+        "highlights": ["flowers"],
+        "extra": {}
+      }
+      """
+    Then the response status code should be 201
+    And the response body should not contain
+      """
+      {
+        "extra": {}
+      }
+      """
+    And response matches OpenAPI contract
+
+  Scenario: A family can be created without aliases
+    When a POST admin request to "/api/v1/families/" with body
+      """
+      {
+        "id": "4e0f6a5c-7d8b-4e9f-8a1b-1c2d3e4f5a6b",
+        "slug": "rosaceae",
+        "name": "Rosaceae",
+        "scientificName": "Rosaceae",
+        "shortDescription": "Family of flowering plants",
+        "highlights": ["flowers"]
+      }
+      """
+    Then the response status code should be 201
+    And the response body should contain
+      """
+      {
+        "aliases": []
+      }
+      """
+    And response matches OpenAPI contract
+
+  Scenario: Blank and repeated aliases and highlights are dropped
+    When a POST admin request to "/api/v1/families/" with body
+      """
+      {
+        "id": "5f1a7b6d-8e9c-4f0a-9b2c-2d3e4f5a6b7c",
+        "slug": "rosaceae",
+        "name": "Rosaceae",
+        "scientificName": "Rosaceae",
+        "shortDescription": "Family of flowering plants",
+        "aliases": ["Rose family", " rose family ", "", "Roses"],
+        "highlights": ["Five petals", "  five PETALS ", "   ", "Edible fruits"]
+      }
+      """
+    Then the response status code should be 201
+    And the response body matches "Rose family,Roses" for field "aliases"
+    And the response body matches "Five petals,Edible fruits" for field "highlights"
+    And response matches OpenAPI contract
+
+  Scenario: An unknown query parameter is rejected on creation
+    When a POST admin request to "/api/v1/families/" with query "foo=bar" and body
+      """
+      {
+        "id": "6a2b8c7e-9f0d-4a1b-8c3d-3e4f5a6b7c8d",
+        "slug": "rosaceae",
+        "name": "Rosaceae",
+        "scientificName": "Rosaceae",
+        "shortDescription": "Family of flowering plants",
+        "highlights": ["flowers"]
+      }
+      """
+    Then the response status code should be 400
+    And the response body should contain
+      """
+      {
+        "errors": {
+          "foo": "Unknown field"
+        }
+      }
+      """
     And response matches OpenAPI contract

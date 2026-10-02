@@ -2,9 +2,9 @@ import { makeInvoker } from 'awilix-express';
 import type {
   CreateFamilyController,
   GetAllFamiliesController,
-  GetFamilyBySlugController
+  GetFamilyBySlugController,
+  UpdateFamilyController
 } from '../../controllers/Families/index.js';
-import type { UpdateFamilyController } from '../../controllers/Families/UpdateFamilyController.js';
 
 const api = ({
   createFamilyController,

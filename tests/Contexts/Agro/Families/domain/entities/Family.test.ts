@@ -1,3 +1,4 @@
+import type { FamilyExtraPrimitives } from '../../../../../../src/Contexts/Agro/Families/domain/types/FamilyExtraPrimitives.js';
 import { familyDomainMapper } from '../../../../../../src/Contexts/Agro/Families/mappers/familyDomainMapper.js';
 import { InvalidArgumentException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { Metadata } from '../../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
@@ -112,6 +113,83 @@ describe('Family Aggregate', () => {
   });
 });
 
+describe('Family normalisation on create', () => {
+  const REQUIRED_TEXTS = [
+    'slug',
+    'name',
+    'scientificName',
+    'shortDescription'
+  ] as const;
+
+  it.each(REQUIRED_TEXTS)('should trim %s', (field) => {
+    // Act
+    const family = FamilyScenarios.domainRandom({ [field]: '  Rosaceae  ' });
+
+    // Assert
+    expect(family[field]).toBe('Rosaceae');
+  });
+
+  it.each(REQUIRED_TEXTS)('should reject a whitespace-only %s', (field) => {
+    // Act
+    const act = (): unknown => FamilyScenarios.domainRandom({ [field]: '   ' });
+
+    // Assert
+    expect(act).toThrow(InvalidArgumentException);
+    expect(act).toThrow(new RegExp(`Family\\.${field}`));
+  });
+
+  it.each(['aliases', 'highlights'] as const)(
+    'should normalise %s with the text-list rule',
+    (field) => {
+      // Act
+      const family = FamilyScenarios.domainRandom({
+        [field]: ['Rose family', ' rose family ', '', 'Roses']
+      });
+
+      // Assert
+      expect(family[field]).toEqual(['Rose family', 'Roses']);
+    }
+  );
+
+  it.each(['aliases', 'highlights'] as const)(
+    'should reject a non-string entry in %s',
+    (field) => {
+      // Act
+      const act = (): unknown =>
+        FamilyScenarios.domainRandom({
+          [field]: ['Roses', 1] as unknown as string[]
+        });
+
+      // Assert
+      expect(act).toThrow(InvalidArgumentException);
+      expect(act).toThrow(new RegExp(`Family\\.${field}\\.1`));
+    }
+  );
+
+  it('should drop an empty extra', () => {
+    // Act
+    const family = FamilyScenarios.domainBaseWithExtra({});
+
+    // Assert
+    expect(family.extra).toBeUndefined();
+    expect(familyDomainMapper.toPrimitives(family)).not.toHaveProperty('extra');
+  });
+
+  it('should normalise extra', () => {
+    // Act
+    const family = FamilyScenarios.domainBaseWithExtra({
+      order: '  Rosales ',
+      subfamilies: ['  Rosoideae ', 'rosoideae']
+    });
+
+    // Assert
+    expect(family.extra).toEqual({
+      order: 'Rosales',
+      subfamilies: ['Rosoideae']
+    });
+  });
+});
+
 describe('Family.updateInformation', () => {
   it('should replace name and leave other fields unchanged', () => {
     const family = FamilyScenarios.domainRandom();
@@ -206,6 +284,77 @@ describe('Family.updateInformation', () => {
     expect(family.aliases).toEqual(['a1', 'a2']);
   });
 
+  it('should drop case-insensitive duplicate aliases', () => {
+    const family = FamilyScenarios.domainRandom();
+    family.updateInformation(
+      { aliases: ['Rose family', ' rose family ', 'Roses'] },
+      'test-user'
+    );
+
+    expect(family.aliases).toEqual(['Rose family', 'Roses']);
+  });
+
+  it('should normalise highlights with the text-list rule', () => {
+    const family = FamilyScenarios.domainRandom();
+    family.updateInformation(
+      { highlights: ['  Five petals ', '', '  ', 'five petals'] },
+      'test-user'
+    );
+
+    expect(family.highlights).toEqual(['Five petals']);
+  });
+
+  it('should normalise extra.subfamilies with the text-list rule', () => {
+    const family = FamilyScenarios.domainBaseWithExtra({ order: 'Rosales' });
+    family.updateInformation(
+      { extra: { subfamilies: ['  Rosoideae ', '', 'ROSOIDEAE'] } },
+      'test-user'
+    );
+
+    expect(family.extra).toEqual({
+      order: 'Rosales',
+      subfamilies: ['Rosoideae']
+    });
+  });
+
+  it.each([
+    ['aliases', { aliases: ['a1', 1] as unknown as string[] }],
+    ['highlights', { highlights: ['h1', 1] as unknown as string[] }],
+    [
+      'extra.subfamilies',
+      {
+        extra: {
+          subfamilies: ['s1', 1]
+        } as unknown as FamilyExtraPrimitives
+      }
+    ]
+  ])(
+    'should throw InvalidArgumentException for a non-string entry in %s',
+    (_label, changes) => {
+      const family = FamilyScenarios.domainRandom();
+      const before = familyDomainMapper.toPrimitives(family);
+
+      expect(() => family.updateInformation(changes, 'test-user')).toThrow(
+        InvalidArgumentException
+      );
+      expect(familyDomainMapper.toPrimitives(family)).toEqual(before);
+    }
+  );
+
+  it.each(['aliases', 'highlights'] as const)(
+    'should throw InvalidArgumentException when %s is not an array',
+    (field) => {
+      const family = FamilyScenarios.domainRandom();
+
+      expect(() =>
+        family.updateInformation(
+          { [field]: 'not-an-array' as unknown as string[] },
+          'test-user'
+        )
+      ).toThrow(InvalidArgumentException);
+    }
+  );
+
   it('should trim and store a padded name', () => {
     const family = FamilyScenarios.domainRandom();
     family.updateInformation({ name: '  Solanaceae  ' }, 'test-user');
@@ -281,7 +430,8 @@ describe('Family audit metadata', () => {
   it.each([
     ['no fields', {}],
     ['the same name', { name: 'Asteraceae' }],
-    ['the same extra key', { extra: { order: 'Asterales' } }]
+    ['the same extra key', { extra: { order: 'Asterales' } }],
+    ['an empty extra', { extra: {} }]
   ])('%s leaves the aggregate untouched', (_label, changes) => {
     const family = auditedFamily();
     const metadata = family.metadata;

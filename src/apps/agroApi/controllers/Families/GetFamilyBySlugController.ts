@@ -3,12 +3,10 @@ import type { GetFamilyById } from '../../../../Contexts/Agro/Families/applicati
 import type { GetFamilyBySlug } from '../../../../Contexts/Agro/Families/application/useCases/GetFamilyBySlug.js';
 import { familyDomainMapper } from '../../../../Contexts/Agro/Families/mappers/familyDomainMapper.js';
 import { UuidValidator } from '../../../../Contexts/shared/domain/valueObject/index.js';
+import { getValidatedRequest } from '../../middlewares/validateRequest.js';
 import { HttpController } from '../../shared/HttpController.js';
 import { setVersionETag } from '../../shared/setVersionETag.js';
-
-type GetFamilyBySlugParams = {
-  idOrSlug: string;
-};
+import { getFamilyByIdOrSlugRequest } from './requestSchemas.js';
 
 export type GetFamilyBySlugControllerDependencies = {
   getFamilyById: GetFamilyById;
@@ -28,12 +26,14 @@ export class GetFamilyBySlugController extends HttpController {
   }
 
   run = async (
-    req: Request<GetFamilyBySlugParams>,
+    _req: Request,
     res: Response,
     next: NextFunction
-  ) => {
+  ): Promise<void> => {
     try {
-      const { idOrSlug } = req.params;
+      const {
+        params: { idOrSlug }
+      } = getValidatedRequest(res, getFamilyByIdOrSlugRequest);
 
       const family = UuidValidator.isValid(idOrSlug)
         ? await this.getFamilyById.execute(idOrSlug)

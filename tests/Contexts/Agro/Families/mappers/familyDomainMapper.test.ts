@@ -38,7 +38,7 @@ describe('familyDomainMapper', () => {
       const familyExtra = {
         order: random.word(),
         distribution: random.word(),
-        speciesCount: random.integer()
+        speciesCount: random.integer({ min: 1, max: 1000 })
       };
 
       const family = familyDomainMapper.fromPrimitives({

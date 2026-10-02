@@ -93,14 +93,12 @@ import {
   CreateFamilyController,
   GetFamilyBySlugController,
   GetAllFamiliesController,
+  UpdateFamilyController,
   type CreateFamilyControllerDependencies,
   type GetFamilyBySlugControllerDependencies,
-  type GetAllFamiliesControllerDependencies
-} from './controllers/Families/index.js';
-import {
-  UpdateFamilyController,
+  type GetAllFamiliesControllerDependencies,
   type UpdateFamilyControllerDependencies
-} from './controllers/Families/UpdateFamilyController.js';
+} from './controllers/Families/index.js';
 import {
   HealthController,
   type HealthControllerDependencies

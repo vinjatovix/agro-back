@@ -233,6 +233,8 @@ _Note on Lookups:_ Read endpoints support polymorphic lookups by ID or Slug. Pol
 
 Families list endpoints supports Query DSL filtering, sorting, and pagination as defined in Query DSL Contract v1.4.0.
 
+`POST`, `GET /:idOrSlug` and `PATCH /:idOrSlug` validate with `validateRequest` (schemas in `controllers/Families/requestSchemas.ts`), not `validateBody`; `PATCH` keeps the order `auth → isAdmin → requireIfMatch → validateRequest`.
+
 ---
 
 ### 5.10 Plant Relations `[TARGET STATE (Pending [Iteration 37](../../roadmap.md#iteration-37-implement-plantrelation-aggregate-and-repository))]`
@@ -309,7 +311,7 @@ To guarantee resilience against network instability (e.g., poor 3G/4G connectivi
 - Plants, Beds: READ + CREATE + PATCH + DELETE
 - Families: READ + CREATE + PATCH (DELETE is pending `[TARGET STATE (Pending [Iteration 32](../../roadmap.md#iteration-32-implement-deletefamily-and-enable-polymorphic-lookups-for-family-mutations))]`)
 - Auth system (functional end-to-end, Swagger tested)
-- validation middleware: Zod `validateRequest` on Auth; Plants, Families and Beds still on `express-validator` (Iterations 12–14)
+- validation middleware: Zod `validateRequest` on Auth, Plants and Families (no route of theirs uses `validateBody`); Beds still on `express-validator` and `validateBody` (Iteration 14)
 - error handling (structured)
 
 ### Partially designed
