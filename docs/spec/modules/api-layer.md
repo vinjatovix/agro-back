@@ -50,7 +50,7 @@ All authentication, session, JWT payload, and user profile location management d
 
 ### 3.2 Middleware Chains
 
-Auth routes validate input with the shared Zod step `validateRequest` (validation.md §3.2–§3.3; rules per route in auth.md §3.3). They do not use `validateBody`: the strict body schema reports an empty body as one error per missing field. The request objects live in `controllers/Auth/requestSchemas.ts`: routes import them from the controllers barrel and controllers from the sibling file, so dependencies only go `routes → controllers`.
+Auth routes validate input with the shared Zod step `validateRequest` (validation.md §3.2–§3.3; rules per route in auth.md §3.3). The strict body schema reports an empty body as one error per missing field. The request objects live in `controllers/Auth/requestSchemas.ts`: routes import them from the controllers barrel and controllers from the sibling file, so dependencies only go `routes → controllers`.
 
 | Route                       | Chain                                                           |
 | --------------------------- | --------------------------------------------------------------- |
@@ -75,7 +75,7 @@ This module defines **HTTP transport query representation only** (e.g., deepObje
 
 All semantic rules, CSV parsing rules, operator mapping (`eq`, `contains`, `has`, `hasAny`, etc.), pagination coercion, and sorting mechanics are defined exclusively in:
 
-> **Query DSL Contract v1.4.0 (query-dsl-contract.md)**
+> **Query DSL Contract v1.5.0 (query-dsl-contract.md)**
 > **Module: Query (query.md)**
 
 ### 4.2 DeepObject Transport Representation
@@ -108,7 +108,7 @@ The Query Parser extracts JSON:API options to dynamically limit fields and prelo
 
 #### Query support
 
-List endpoints support filtering, sorting, and pagination (as defined in Query DSL Contract v1.4.0).
+List endpoints support filtering, sorting, and pagination (as defined in Query DSL Contract v1.5.0). `GET /plants` validates its query with `validateRequest(listPlantsRequest)` after `optionalAuth`; the plant fields, operators and the public sort keys (`name`, `scientificName`) are listed in the OpenAPI `PlantListFilter` / `PlantListSort`.
 
 ---
 
@@ -231,9 +231,13 @@ _Note on Germination tests:_ Logging a germination test triggers dynamic `germin
 
 _Note on Lookups:_ Read endpoints support polymorphic lookups by ID or Slug. Polymorphic lookups for mutations are pending [Iteration 32](../../roadmap.md#iteration-32-implement-deletefamily-and-enable-polymorphic-lookups-for-family-mutations).
 
-Families list endpoints supports Query DSL filtering, sorting, and pagination as defined in Query DSL Contract v1.4.0.
+Families list endpoints supports Query DSL filtering, sorting, and pagination as defined in Query DSL Contract v1.5.0 (`validateRequest(listFamiliesRequest)`).
 
-`POST`, `GET /:idOrSlug` and `PATCH /:idOrSlug` validate with `validateRequest` (schemas in `controllers/Families/requestSchemas.ts`), not `validateBody`; `PATCH` keeps the order `auth → isAdmin → requireIfMatch → validateRequest`.
+Every Families route validates with `validateRequest` (schemas in `controllers/Families/requestSchemas.ts`); `PATCH` keeps the order `auth → isAdmin → requireIfMatch → validateRequest`.
+
+### 5.9.1 Beds (CRUD)
+
+Every Bed route validates with `validateRequest` (schemas in `controllers/Beds/requestSchemas.ts`, since [Iteration 14](../../roadmap.md#iteration-14-migrate-beds-and-query-dsl-to-zod)); controllers read `getValidatedRequest` and hold no manual checks. Order: `auth → validateRequest` on `POST`, `GET /beds` and `GET /beds/:id`; `auth → requireIfMatch → validateRequest` on `PATCH` and `DELETE`. `GET /beds` takes no query and no body.
 
 ---
 
@@ -252,7 +256,7 @@ All endpoints MUST return a consistent error structure.
 Refer strictly to **Module: Validation (validation.md) Section 4 and 5** for the canonical definition of the `ApiErrorResponse` type and the structured validation error behaviors.
 
 - Errors thrown or rejected by async controllers and middlewares are forwarded to the global `errorHandler` by Express 5 itself; handlers MUST NOT be wrapped in custom async helpers.
-- A write request with no body (Express 5 leaves `req.body` `undefined`) returns `400`, never `500`: `"Empty body is not allowed"` on routes still behind `validateBody`, a `body` error on routes validated with `validateRequest`.
+- A write request with no body (Express 5 leaves `req.body` `undefined`) returns `400`, never `500`, with a `body` error from `validateRequest`.
 
 ---
 
@@ -269,10 +273,10 @@ Refer strictly to **Module: Validation (validation.md) Section 4 and 5** for the
 ### 7.1 Version preconditions (`If-Match` / `ETag`)
 
 - The only entity tag the API emits is the version tag: `ETag: "<version>"` (strong, quoted decimal integer, equal to the body's `version`) on single-resource `GET`, `POST` and `PATCH` of beds, plants and families. Express's automatic `ETag` is disabled, so lists, `204` and error responses carry none.
-- `PATCH /beds/{id}`, `PATCH /plants/{id}`, `PATCH /families/{idOrSlug}`, `DELETE /beds/{id}` and `DELETE /plants/{id}` require `If-Match` with exactly one strong tag. The `requireIfMatch` middleware runs after `auth`/`isAdmin` and before body/params validation: missing or `*` → `428`; malformed → `400` with an `if-match` error key. It performs no DB access.
+- `PATCH /beds/{id}`, `PATCH /plants/{id}`, `PATCH /families/{idOrSlug}`, `DELETE /beds/{id}` and `DELETE /plants/{id}` require `If-Match` with one or more entity tags (RFC 9110 list grammar, validation.md §3.1). The `requireIfMatch` middleware runs after `auth`/`isAdmin` and before body/params validation: missing, empty or `*` → `428`; not an entity-tag list → `400` with an `if-match` error key; otherwise it keeps the versions named by the strong tags for `getExpectedVersions`. It performs no DB access. The write proceeds when one of them is the stored version; weak or never-emitted tags name none and answer `412` after the existence check.
 - Precedence: `401/403 → 428 → 400 (If-Match) → 400 (body/params) → 404 → 412 → 409 → success`.
 - **`[TARGET STATE (Pending [Iteration 67](../../roadmap.md#iteration-67-implement-transactional-batch-save-layout-endpoint))]`** `PUT /beds/{id}/layout` joins this list with the same rules.
-- **`[TARGET STATE (Pending [Iteration 14](../../roadmap.md#iteration-14-migrate-beds-and-query-dsl-to-zod))]`** `If-Match` follows the RFC 9110 entity-tag list grammar (see validation.md §3.1): a list is accepted, weak or never-emitted tags yield `412` (after the existence check) instead of `400`, and use cases receive the list of acceptable versions. `getExpectedVersion` moves from the middleware module to `apps/agroApi/shared/`, next to its setter, so controllers stop importing from a middleware.
+- The version-tag helpers live in `apps/agroApi/shared/versionTags.ts` (`setVersionETag`, `ifMatchSchema`, `getExpectedVersions`), so controllers do not import from a middleware.
 - CORS exposes `ETag` (`Access-Control-Expose-Headers`) and reflects requested headers, so browsers can send `If-Match`.
 - A matching `If-None-Match` on a single-resource `GET` returns `304` with no body. This is accepted framework behavior; no caching headers are added.
 
@@ -311,7 +315,7 @@ To guarantee resilience against network instability (e.g., poor 3G/4G connectivi
 - Plants, Beds: READ + CREATE + PATCH + DELETE
 - Families: READ + CREATE + PATCH (DELETE is pending `[TARGET STATE (Pending [Iteration 32](../../roadmap.md#iteration-32-implement-deletefamily-and-enable-polymorphic-lookups-for-family-mutations))]`)
 - Auth system (functional end-to-end, Swagger tested)
-- validation middleware: Zod `validateRequest` on Auth, Plants and Families (no route of theirs uses `validateBody`); Beds still on `express-validator` and `validateBody` (Iteration 14)
+- validation middleware: Zod `validateRequest` on every route, listings included (`express-validator`, `validateReqSchema` and `validateBody` removed in Iteration 14)
 - error handling (structured)
 
 ### Partially designed

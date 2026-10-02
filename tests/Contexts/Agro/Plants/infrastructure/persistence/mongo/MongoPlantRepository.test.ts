@@ -526,5 +526,54 @@ describe('MongoPlantRepository', () => {
         totalItems: 10
       });
     });
+
+    describe('sort by public keys', () => {
+      const primaryNamesOf = (plants: Plant[]): string[] =>
+        plants.map((plant) => plant.identity.name.primary);
+
+      const saveNamed = async (
+        names: ReadonlyArray<readonly [string, string]>
+      ): Promise<void> => {
+        for (const [primary, scientificName] of names) {
+          await repository.save(
+            PlantFactory.random({
+              identity: PlantIdentityBuilder.named(primary, scientificName)
+            })
+          );
+        }
+      };
+
+      it('should order by primary name, ignoring case', async () => {
+        // Arrange
+        await saveNamed([
+          ['Tomate', 'Solanum lycopersicum'],
+          ['apio', 'Apium graveolens'],
+          ['Berenjena', 'Solanum melongena']
+        ]);
+
+        // Act
+        const { data } = await repository.findAll({ sort: { name: 'asc' } });
+
+        // Assert
+        expect(primaryNamesOf(data)).toEqual(['apio', 'Berenjena', 'Tomate']);
+      });
+
+      it('should order by scientific name in reverse', async () => {
+        // Arrange
+        await saveNamed([
+          ['Apio', 'Apium graveolens'],
+          ['Tomate', 'Solanum lycopersicum'],
+          ['Lechuga', 'Lactuca sativa']
+        ]);
+
+        // Act
+        const { data } = await repository.findAll({
+          sort: { scientificName: 'desc' }
+        });
+
+        // Assert
+        expect(primaryNamesOf(data)).toEqual(['Tomate', 'Lechuga', 'Apio']);
+      });
+    });
   });
 });

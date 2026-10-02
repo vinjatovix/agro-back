@@ -13,6 +13,9 @@ describe('ListPlants', () => {
   const ADMIN = {
     roles: ['admin']
   } as UserSessionInfo;
+  const COLLABORATOR = {
+    roles: ['collaborator']
+  } as UserSessionInfo;
 
   beforeEach(() => {
     repository = new PlantRepositoryMock();
@@ -31,6 +34,12 @@ describe('ListPlants', () => {
     repository.assertFindAllHasBeenCalledWith({ filter: {} });
   });
 
+  it('should call repository with all plants for collaborator users', async () => {
+    await listPlants.execute(COLLABORATOR);
+
+    repository.assertFindAllHasBeenCalledWith({ filter: {} });
+  });
+
   it('should call repository with active status filter for non-admin users', async () => {
     const plant1 = PlantFactory.random();
     plant1.markAsDeleted('test-user');
@@ -42,7 +51,7 @@ describe('ListPlants', () => {
 
     repository.assertFindAllHasBeenCalledWith({
       filter: {
-        status: PlantStatus.ACTIVE
+        status: { eq: PlantStatus.ACTIVE }
       }
     });
   });

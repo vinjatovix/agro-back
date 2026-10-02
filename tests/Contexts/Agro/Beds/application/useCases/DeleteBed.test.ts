@@ -30,7 +30,7 @@ describe('DeleteBed', () => {
 
     repository.addToStorage(bed);
 
-    await useCase.execute(bed.id, USER, CURRENT_VERSION);
+    await useCase.execute(bed.id, USER, [CURRENT_VERSION]);
 
     expect(repository.getStored(bed.id)?.isDeleted).toBe(true);
     repository.assertUpdateCalled();
@@ -42,7 +42,7 @@ describe('DeleteBed', () => {
     repository.addToStorage(bed);
     const deleter: UserSessionInfo = { ...USER, username: 'deleter' };
 
-    await useCase.execute(bed.id, deleter, bed.version);
+    await useCase.execute(bed.id, deleter, [bed.version]);
 
     const stored = repository.getStoredPrimitives(bed.id);
     expect(stored?.metadata.updatedBy).toBe('deleter');
@@ -63,7 +63,7 @@ describe('DeleteBed', () => {
     repository.addToStorage(bed);
 
     await expect(
-      useCase.execute(bed.id, USER, CURRENT_VERSION)
+      useCase.execute(bed.id, USER, [CURRENT_VERSION])
     ).rejects.toBeInstanceOf(DomainNotFoundException);
     repository.assertUpdateNotCalled();
     repository.assertSaveNotCalled();
@@ -73,7 +73,7 @@ describe('DeleteBed', () => {
     const nonExistentId = random.uuid();
 
     await expect(
-      useCase.execute(nonExistentId, USER, CURRENT_VERSION)
+      useCase.execute(nonExistentId, USER, [CURRENT_VERSION])
     ).rejects.toBeInstanceOf(DomainNotFoundException);
     repository.assertSaveNotCalled();
     repository.assertUpdateNotCalled();
@@ -84,7 +84,7 @@ describe('DeleteBed', () => {
     const expectedMessage = `Bed not found: ${nonExistentId}`;
 
     await expect(
-      useCase.execute(nonExistentId, USER, CURRENT_VERSION)
+      useCase.execute(nonExistentId, USER, [CURRENT_VERSION])
     ).rejects.toMatchObject({
       message: expectedMessage
     });
@@ -103,7 +103,7 @@ describe('DeleteBed', () => {
     };
 
     await expect(
-      useCase.execute(bed.id, otherUser, CURRENT_VERSION)
+      useCase.execute(bed.id, otherUser, [CURRENT_VERSION])
     ).rejects.toBeInstanceOf(DomainNotFoundException);
     repository.assertUpdateNotCalled();
   });
@@ -122,7 +122,7 @@ describe('DeleteBed', () => {
     };
 
     await expect(
-      useCase.execute(bed.id, otherUser, CURRENT_VERSION)
+      useCase.execute(bed.id, otherUser, [CURRENT_VERSION])
     ).rejects.toBeInstanceOf(DomainNotFoundException);
     repository.assertUpdateNotCalled();
   });
@@ -132,7 +132,7 @@ describe('DeleteBed', () => {
       const bed = BedFactory.fromUser(USER);
       repository.addToStorage(bed);
 
-      await useCase.execute(bed.id, USER, bed.version);
+      await useCase.execute(bed.id, USER, [bed.version]);
 
       expect(repository.getStored(bed.id)?.isDeleted).toBe(true);
       expect(repository.getStored(bed.id)?.version).toBe(bed.version + 1);
@@ -143,7 +143,7 @@ describe('DeleteBed', () => {
       repository.addToStorage(bed);
 
       await expect(
-        useCase.execute(bed.id, USER, bed.version + 1)
+        useCase.execute(bed.id, USER, [bed.version + 1])
       ).rejects.toBeInstanceOf(DomainStaleVersionException);
 
       repository.assertUpdateNotCalled();
@@ -155,7 +155,7 @@ describe('DeleteBed', () => {
       repository.addToStorage(bed);
 
       await expect(
-        useCase.execute(bed.id, USER, bed.version + 1)
+        useCase.execute(bed.id, USER, [bed.version + 1])
       ).rejects.toBeInstanceOf(DomainStaleVersionException);
       repository.assertUpdateNotCalled();
     });
@@ -165,13 +165,13 @@ describe('DeleteBed', () => {
       repository.addToStorage(bed);
 
       await expect(
-        useCase.execute(bed.id, USER, bed.version)
+        useCase.execute(bed.id, USER, [bed.version])
       ).rejects.toBeInstanceOf(DomainConflictException);
     });
 
     it('should throw DomainNotFoundException (not stale) for an absent bed with a wrong version', async () => {
       await expect(
-        useCase.execute(random.uuid(), USER, 999)
+        useCase.execute(random.uuid(), USER, [999])
       ).rejects.toBeInstanceOf(DomainNotFoundException);
     });
 
@@ -179,7 +179,7 @@ describe('DeleteBed', () => {
       const bed = BedFactory.fromUser(USER);
       repository.addToStorage(bed);
 
-      await useCase.execute(bed.id, USER, bed.version);
+      await useCase.execute(bed.id, USER, [bed.version]);
 
       repository.assertReadCalledTimes('findOwnedActiveById', 1);
       repository.assertUpdateCalledTimes(1);
@@ -194,8 +194,43 @@ describe('DeleteBed', () => {
     repository.addToStorage(bed);
 
     await expect(
-      useCase.execute(bed.id, USER, CURRENT_VERSION)
+      useCase.execute(bed.id, USER, [CURRENT_VERSION])
     ).rejects.toBeInstanceOf(DomainConflictException);
     repository.assertUpdateNotCalled();
+  });
+
+  describe('expected version lists', () => {
+    it('should proceed when the list contains the current version', async () => {
+      // Arrange
+      const bed = BedFactory.fromUser(USER);
+      repository.addToStorage(bed);
+
+      // Act
+      await useCase.execute(bed.id, USER, [bed.version + 1, bed.version]);
+
+      // Assert
+      expect(repository.getStored(bed.id)?.isDeleted).toBe(true);
+    });
+
+    it('should answer stale for an empty list without writing', async () => {
+      // Arrange
+      const bed = BedFactory.fromUser(USER);
+      repository.addToStorage(bed);
+
+      // Act
+      const remove = useCase.execute(bed.id, USER, []);
+
+      // Assert
+      await expect(remove).rejects.toBeInstanceOf(DomainStaleVersionException);
+      repository.assertUpdateNotCalled();
+    });
+
+    it('should answer not found before checking an empty list', async () => {
+      // Act
+      const remove = useCase.execute(random.uuid(), USER, []);
+
+      // Assert
+      await expect(remove).rejects.toBeInstanceOf(DomainNotFoundException);
+    });
   });
 });

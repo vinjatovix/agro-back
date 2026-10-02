@@ -10,6 +10,12 @@ import type { PlantPersistenceMapper } from '../../../mappers/interfaces/PlantPe
 import type { MongoPlantDocument } from '../types/MongoPlantDocument.js';
 import { PlantQueryMapper } from './mappers/PlantQueryMapper.js';
 
+// Public sort keys of the plant listing and the paths they order by.
+const SORT_FIELDS: Readonly<Record<string, string>> = {
+  name: 'identity.name.primary',
+  scientificName: 'identity.scientificName'
+};
+
 export class MongoPlantRepository
   extends MongoCrudRepository<
     Plant,
@@ -37,6 +43,10 @@ export class MongoPlantRepository
       locale: 'es',
       strength: 2
     };
+  }
+
+  protected toMongoSortField(key: string): string {
+    return SORT_FIELDS[key] ?? key;
   }
 
   protected toDomain(document: MongoPlantDocument): Plant {

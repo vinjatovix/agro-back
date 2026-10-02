@@ -1,7 +1,7 @@
 import type { Primitive } from '../../../../../shared/domain/types/Primitive.js';
-import { escapeRegex } from '../../../../../shared/utils/escapeRegex.js';
 import { UuidValidator } from '../../../domain/valueObject/UuidValidator.js';
 import { toMongoId } from './MongoId.js';
+import { findTextPatternCondition } from './textPatternCondition.js';
 import type { FilterOperators } from './types/FilterOperators.js';
 
 type MongoValue = Record<string, unknown>;
@@ -77,28 +77,7 @@ export class MongoQueryTranslator {
   }
 
   private static buildRegex(condition: FilterOperators<Primitive>): unknown {
-    if ('contains' in condition && condition.contains !== undefined) {
-      return {
-        $regex: escapeRegex(String(condition.contains)),
-        $options: 'i'
-      };
-    }
-
-    if ('startsWith' in condition && condition.startsWith !== undefined) {
-      return {
-        $regex: `^${escapeRegex(String(condition.startsWith))}`,
-        $options: 'i'
-      };
-    }
-
-    if ('endsWith' in condition && condition.endsWith !== undefined) {
-      return {
-        $regex: `${escapeRegex(String(condition.endsWith))}$`,
-        $options: 'i'
-      };
-    }
-
-    return undefined;
+    return findTextPatternCondition(condition);
   }
 
   private static buildSetOperators(

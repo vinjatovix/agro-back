@@ -166,14 +166,51 @@ Feature: Delete a plant
     Then the response status code should be 428
     And response matches OpenAPI contract
 
-  Scenario: Delete with a negative If-Match is rejected
+  Scenario Outline: Delete with an If-Match that names no current version fails the precondition (<header>)
     Given a family exists
     And a plant exists
-    And I use If-Match '"-1"'
+    And the plant is stored at version 3
+    And I use If-Match '<header>'
+    When I send a DELETE admin request to "/api/v1/plants/<plantId>"
+    Then the response status code should be 412
+    And the plant should be unchanged
+    And response matches OpenAPI contract
+
+    Examples:
+      | header |
+      | W/"3"  |
+      | "abc"  |
+      | "-1"   |
+
+  Scenario: Delete with a list of entity tags that includes the current version
+    Given a family exists
+    And a plant exists
+    And the plant is stored at version 3
+    And I use If-Match '"2", "3"'
+    When I send a DELETE admin request to "/api/v1/plants/<plantId>"
+    Then the response status code should be 204
+    And response matches OpenAPI contract
+
+  Scenario: A weak If-Match on a missing plant answers not found
+    Given I use If-Match 'W/"3"'
+    When I send a DELETE admin request to "/api/v1/plants/12384ea3-e55d-4f69-8b0c-b54cccb9f443"
+    Then the response status code should be 404
+    And response matches OpenAPI contract
+
+  Scenario Outline: Delete with a malformed If-Match is rejected (<header>)
+    Given a family exists
+    And a plant exists
+    And I use If-Match '<header>'
     When I send a DELETE admin request to "/api/v1/plants/<plantId>"
     Then the response status code should be 400
     And the response errors should include "if-match"
     And response matches OpenAPI contract
+
+    Examples:
+      | header  |
+      | 3       |
+      | "3      |
+      | "3" "4" |
 
   Scenario: The role check runs before the If-Match check
     Given a family exists

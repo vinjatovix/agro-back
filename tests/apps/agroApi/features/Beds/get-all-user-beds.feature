@@ -11,3 +11,35 @@ Feature: Get all user's beds
     And the response body should be a list
     And the list should contain at least 1 item
     And response matches OpenAPI contract
+
+  Scenario: Get all beds with a query parameter is rejected
+    Given a bed exists
+    When I send a GET user request to "/api/v1/beds" with query:
+      """
+      x
+      """
+    Then the response status code should be 400
+    And the response body should contain
+      """
+      {
+        "errors": { "query": "Unknown field" }
+      }
+      """
+    And response matches OpenAPI contract
+
+  Scenario: Get all beds with a body is rejected
+    Given a bed exists
+    When I send a GET user request to "/api/v1/beds" with body:
+      """
+      {
+        "name": "Bed"
+      }
+      """
+    Then the response status code should be 400
+    And the response body should contain
+      """
+      {
+        "errors": { "name": "Unknown field" }
+      }
+      """
+    And response matches OpenAPI contract

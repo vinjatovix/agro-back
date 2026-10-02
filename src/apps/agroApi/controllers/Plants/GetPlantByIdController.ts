@@ -5,7 +5,7 @@ import { plantDomainMapper } from '../../../../Contexts/Agro/Plants/mappers/plan
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
 import { getValidatedRequest } from '../../middlewares/validateRequest.js';
 import { HttpController } from '../../shared/HttpController.js';
-import { setVersionETag } from '../../shared/setVersionETag.js';
+import { setVersionETag } from '../../shared/versionTags.js';
 import { getPlantByIdRequest } from './requestSchemas.js';
 
 export type GetPlantByIdControllerDependencies = {

@@ -20,7 +20,7 @@ Validation is a **schema enforcement layer**, not a business logic layer.
 
 ## 3. RULES
 
-- Zod is the central tool used for all transport boundary validation and schema declarations. The shared Zod step `validateRequest` (§3.2) exists since [Iteration 9](../../roadmap.md#iteration-9-establish-zod-validation-middleware); Auth moved to it in [Iteration 10](../../roadmap.md#iteration-10-migrate-health-and-auth-endpoints-to-zod) (§3.3); Plants in [Iteration 12](../../roadmap.md#iteration-12-migrate-plants-endpoints-to-zod) and the single-family Families routes in [Iteration 13](../../roadmap.md#iteration-13-migrate-families-endpoints-to-zod). **`[TARGET STATE (Pending [Iteration 14](../../roadmap.md#iteration-14-migrate-beds-and-query-dsl-to-zod))]`** Beds still use `express-validator` at the route boundary, and the list endpoints keep their query parsers.
+- Zod is the central tool used for all transport boundary validation and schema declarations. The shared Zod step `validateRequest` (§3.2) exists since [Iteration 9](../../roadmap.md#iteration-9-establish-zod-validation-middleware); Auth moved to it in [Iteration 10](../../roadmap.md#iteration-10-migrate-health-and-auth-endpoints-to-zod) (§3.3); Plants in [Iteration 12](../../roadmap.md#iteration-12-migrate-plants-endpoints-to-zod) and the single-family Families routes in [Iteration 13](../../roadmap.md#iteration-13-migrate-families-endpoints-to-zod). Beds and the listings (`GET /plants`, `GET /families`, through `listQuerySchema`; query.md §3) moved in [Iteration 14](../../roadmap.md#iteration-14-migrate-beds-and-query-dsl-to-zod), which removed `express-validator`, `validateReqSchema` and `validateBody`: every route now validates with `validateRequest`.
 - MUST NOT contain domain logic
 - MUST NOT enforce business rules
 - MUST be aligned with OpenAPI schemas
@@ -32,13 +32,13 @@ Validation is a **schema enforcement layer**, not a business logic layer.
 ### 3.1 Header preconditions (`If-Match`)
 
 - `If-Match` on version-protected writes is validated by the dedicated `requireIfMatch` middleware (see api-layer.md §7.1), not by the body/params schemas: it must tell a missing header (`428`) from a malformed one (`400`), which a single validation chain cannot express.
-- The parsing rule lives in a pure function (`parseIfMatch`): exactly one strong tag holding a non-negative safe integer, e.g. `"3"`. Malformed values produce the standard validation error with the key `if-match`.
+- The rule is a Zod schema, `ifMatchSchema` (`apps/agroApi/shared/versionTags.ts`), following the RFC 9110 §13.1.1 entity-tag list grammar (decided in [Iteration 14](../../roadmap.md#iteration-14-migrate-beds-and-query-dsl-to-zod); it reversed the earlier rule that weak tags and lists are `400`):
+  - missing, empty or `*` → `428` (checked before the schema);
+  - a comma-separated list of entity tags (`"3"`, `"2", "3"`, `, "3",`; at most 50) is accepted and turned into the list of **expected versions**: the strong tags whose value is a non-negative safe integer. Tags are extracted by a pattern, never by splitting on commas (`"a,b"` is one tag);
+  - weak tags (`W/"3"`) and tags the API never emits (`"-1"`, `"abc"`) are well formed but name no version: the use case answers `412` after the existence check, so `404` still wins over `412`;
+  - only a value that is not an entity-tag list (`3`, `"3`, `"3" "4"`, `*, "3"`) or more than 50 tags is `400`, with the error at `if-match`.
 - It runs before body/params validation, so a request with both a bad header and a bad body reports the header.
-- It performs no DB access and no business check; comparing the version with the stored one is done by the use case.
-- **`[TARGET STATE (Pending [Iteration 14](../../roadmap.md#iteration-14-migrate-beds-and-query-dsl-to-zod))]`** wrap `parseIfMatch` in a Zod schema and adopt the RFC 9110 §13.1.1 grammar. **This reverses the current rule** that weak tags and lists are `400`:
-  - a comma-separated list of entity tags is accepted; the write proceeds if any tag equals the current version (strong comparison);
-  - weak tags (`W/"3"`) and tags the API never emits (`"-1"`, `"abc"`) are well formed but cannot match: they yield no candidate version and the use case answers `412` after the existence check, so `404` still wins over `412`;
-  - only a value that is not an entity-tag list (`3`, `"3`, `"3" "4"`) is `400`; missing, empty or `*` stay `428`.
+- It performs no DB access and no business check; the use case passes when the expected versions contain the stored one (`ensureVersion`).
 
 ### 3.2 Zod request validation step (`validateRequest`)
 
@@ -71,11 +71,11 @@ const { params, body } = getValidatedRequest(res, updateBedRequest);
 
 ### 3.3 Route schemas and empty parts (first applied to Auth)
 
-- Each migrated module keeps its schemas in `controllers/<Module>/requestSchemas.ts`: one schema per part (`registerBody`, `validateMailParams`…) and one request object per route declared `satisfies RequestSchemas` (`registerRequest`, `loginRequest`…). Routes import the request objects from the controllers barrel (the direction `routes → controllers` already used by the API invokers) and pass them to `validateRequest`; controllers import the same object from the sibling file and read `getValidatedRequest(res, xRequest)`, with no `req.body as X` casts or manual checks. Controllers never import from `routes/`. Modules still on `express-validator` keep `routes/<Module>/reqSchemas.ts` until they migrate.
+- Each migrated module keeps its schemas in `controllers/<Module>/requestSchemas.ts`: one schema per part (`registerBody`, `validateMailParams`…) and one request object per route declared `satisfies RequestSchemas` (`registerRequest`, `loginRequest`…). Routes import the request objects from the controllers barrel (the direction `routes → controllers` already used by the API invokers) and pass them to `validateRequest`; controllers import the same object from the sibling file and read `getValidatedRequest(res, xRequest)`, with no `req.body as X` casts or manual checks. Controllers never import from `routes/`.
 - `apps/agroApi/shared/requestSchemas.ts` holds the shared empty parts, the pattern for later iterations:
   - `emptyQuery` (`z.object({})`): declared as `query` on routes that take no query string; made strict by the step, so any key gets `"Unknown field"` (replaces what `checkExact()` did for the query).
   - `emptyBody` (`z.object({}).optional()`): declared as `body` on GET routes; Express 5 leaves `req.body` `undefined` without a body, so a missing body passes and any field gets `"Unknown field"`.
-- Routes validated with `validateRequest` drop `validateBody`: the strict body schema already reports an empty body `{}` as one error per missing required field, and a missing body as `body`. `validateBody` stays only on routes not yet migrated and is removed with the last of them.
+- The strict body schema reports an empty body `{}` as one error per missing required field, and a missing body as `body`. The former `validateBody` middleware (`"Empty body is not allowed"`) was removed with the last route that used it (Iteration 14).
 - Project message used by Auth (fixed, never echoes input): `"Passwords do not match"` (object refinement with `when`, so it is reported together with other field errors). The Auth use cases import the same constant, so both layers use one text. Password strength is a domain rule, not a schema check. Rules per route: auth.md §3.3.
 - Messages, new vs before (Auth):
 
@@ -106,9 +106,9 @@ Validation errors MUST:
 
 - use field path as key in dot-notation format
 - be deterministic across environments
-- include a stable, clean, and idiomatic string message provided natively by Zod (Zod 4 defaults, e.g., `"Invalid input: expected string, received undefined"`, `"Invalid UUID"`) — done for Auth; **`[TARGET STATE (Pending Iterations [12](../../roadmap.md#iteration-12-migrate-plants-endpoints-to-zod), [13](../../roadmap.md#iteration-13-migrate-families-endpoints-to-zod) & [14](../../roadmap.md#iteration-14-migrate-beds-and-query-dsl-to-zod))]`** for the other modules (currently `express-validator` custom errors are returned there).
+- include a stable, clean, and idiomatic string message provided natively by Zod (Zod 4 defaults, e.g., `"Invalid input: expected string, received undefined"`, `"Invalid UUID"`) — done for every module (the former `express-validator` messages, which echoed the value, are gone since Iteration 14).
 - MUST NOT require full object presence for PATCH requests
-- follow these key and message rules on routes validated with the shared `validateRequest` middleware (§3.2); routes still on `express-validator` keep their current keys until they migrate:
+- follow these key and message rules on routes validated with the shared `validateRequest` middleware (§3.2):
   - keys are the path inside the request part, without a part prefix (`id`, not `params.id`); array positions are numeric segments (`tags.1`); a problem on the root of a part uses the part name (`params`, `query`, `body`);
   - one message per key; when several problems share a key, the first wins (parts in order params → query → body, then schema order);
   - unknown fields get the fixed message `"Unknown field"`, one entry per field; the field name appears only as the key, never inside a message;

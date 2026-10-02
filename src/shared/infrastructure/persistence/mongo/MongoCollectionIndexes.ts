@@ -31,16 +31,5 @@ export const INDEXES: IndexConfig[] = [
         }
       }
     ]
-  },
-  {
-    collection: 'plants',
-    indexes: [
-      {
-        fields: { 'identity.family': 1 },
-        options: {
-          name: 'plants_family_idx'
-        }
-      }
-    ]
   }
 ];

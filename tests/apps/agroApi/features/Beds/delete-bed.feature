@@ -41,15 +41,8 @@ Feature: Delete a bed
         Given I use If-Match '"0"'
         When I send a DELETE user request to "/api/v1/beds/invalid-uuid"
         Then the response status code should be 400
-        Then the response body should be
-            """
-            {
-                "errors": {
-                    "id": "Invalid value at params. Value: invalid-uuid"
-                },
-                "message": "Validation error"
-            }
-            """
+        And the response errors should include "id"
+        And the response body should not echo "invalid-uuid"
         And response matches OpenAPI contract
 
     Scenario: Deleting an already deleted bed returns 404
@@ -121,21 +114,49 @@ Feature: Delete a bed
         Then the response status code should be 428
         And response matches OpenAPI contract
 
-    Scenario: Delete with a weak If-Match is rejected
+    Scenario Outline: Delete with an If-Match that names no current version fails the precondition (<header>)
         Given a bed exists
-        And I use If-Match 'W/"0"'
+        And the bed is stored at version 3
+        And I use If-Match '<header>'
         When I send a DELETE user request to "/api/v1/beds/<bedId>"
-        Then the response status code should be 400
-        And the response errors should include "if-match"
+        Then the response status code should be 412
+        And the bed should be unchanged
         And response matches OpenAPI contract
 
-    Scenario: Delete with a list of entity tags is rejected
+        Examples:
+            | header |
+            | W/"3"  |
+            | "abc"  |
+
+    Scenario: Delete with a list of entity tags that includes the current version
         Given a bed exists
-        And I use If-Match '"0", "1"'
+        And the bed is stored at version 3
+        And I use If-Match '"2", "3"'
+        When I send a DELETE user request to "/api/v1/beds/<bedId>"
+        Then the response status code should be 204
+        And response matches OpenAPI contract
+
+    Scenario: A weak If-Match on a missing bed answers not found
+        Given I use If-Match 'W/"3"'
+        When I send a DELETE user request to "/api/v1/beds/12384ea3-e55d-4f69-8b0c-b54cccb9f443"
+        Then the response status code should be 404
+        And response matches OpenAPI contract
+
+    Scenario Outline: Delete with a malformed If-Match is rejected (<header>)
+        Given a bed exists
+        And I record the current bed
+        And I use If-Match '<header>'
         When I send a DELETE user request to "/api/v1/beds/<bedId>"
         Then the response status code should be 400
         And the response errors should include "if-match"
+        And the bed should be unchanged
         And response matches OpenAPI contract
+
+        Examples:
+            | header  |
+            | 3       |
+            | "3      |
+            | "3" "4" |
 
     Scenario: A missing If-Match is reported before looking up the bed
         When I send a DELETE user request to "/api/v1/beds/12384ea3-e55d-4f69-8b0c-b54cccb9f443"

@@ -1,4 +1,5 @@
 import { randomBedId } from '../../../../../../src/Contexts/Agro/Beds/domain/BedId.js';
+import { BedName } from '../../../../../../src/Contexts/Agro/Beds/domain/BedName.js';
 import { Bed } from '../../../../../../src/Contexts/Agro/Beds/domain/entities/Bed.js';
 import type { BedProps } from '../../../../../../src/Contexts/Agro/Beds/domain/entities/types/BedProps.js';
 import type { UserSessionInfo } from '../../../../../../src/Contexts/Auth/application/index.js';
@@ -8,7 +9,6 @@ import {
 } from '../../../../../../src/Contexts/Auth/domain/UserId.js';
 import { Metadata } from '../../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
 import { PositiveNumber } from '../../../../../../src/Contexts/shared/domain/valueObject/PositiveNumber.js';
-import { StringValueObject } from '../../../../../../src/Contexts/shared/domain/valueObject/StringValueObject.js';
 import { random } from '../../../../shared/fixtures/random.js';
 import { PlantInstanceMother } from '../../../PlantInstances/domain/mothers/PlantInstanceMother.js';
 
@@ -18,7 +18,7 @@ function baseBed(overrides: BedOverrides = {}): BedProps {
   const defaults: BedProps = {
     id: randomBedId(),
     userId: randomUserId(),
-    name: new StringValueObject(`Bed ${random.integer({ min: 1, max: 100 })}`),
+    name: new BedName(`Bed ${random.integer({ min: 1, max: 100 })}`),
     width: PositiveNumber.create(100),
     height: PositiveNumber.create(200),
     depth: PositiveNumber.create(30),
@@ -39,7 +39,7 @@ function randomSize() {
 }
 
 function randomName() {
-  return new StringValueObject(`Bed ${random.integer({ min: 1, max: 100 })}`);
+  return new BedName(`Bed ${random.integer({ min: 1, max: 100 })}`);
 }
 
 export class BedFactory {

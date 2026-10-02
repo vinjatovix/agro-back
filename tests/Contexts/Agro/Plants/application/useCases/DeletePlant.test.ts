@@ -23,7 +23,7 @@ describe('DeletePlant use case', () => {
 
     repository.addToStorage(plant);
 
-    await useCase.execute(plant.id, USERNAME, CURRENT_VERSION);
+    await useCase.execute(plant.id, USERNAME, [CURRENT_VERSION]);
 
     expect(repository.getStored(plant.id)?.isDeleted()).toBe(true);
     repository.assertUpdateCalled();
@@ -34,7 +34,7 @@ describe('DeletePlant use case', () => {
     const plant = PlantFactory.create();
     repository.addToStorage(plant);
 
-    await useCase.execute(plant.id, 'deleter', plant.version);
+    await useCase.execute(plant.id, 'deleter', [plant.version]);
 
     const stored = repository.getStoredPrimitives(plant.id);
     expect(stored?.metadata.updatedBy).toBe('deleter');
@@ -52,7 +52,7 @@ describe('DeletePlant use case', () => {
     repository.addToStorage(plant);
 
     await expect(
-      useCase.execute(plant.id, USERNAME, CURRENT_VERSION)
+      useCase.execute(plant.id, USERNAME, [CURRENT_VERSION])
     ).rejects.toBeInstanceOf(DomainNotFoundException);
     repository.assertUpdateNotCalled();
     repository.assertSaveNotCalled();
@@ -60,7 +60,7 @@ describe('DeletePlant use case', () => {
 
   it('should throw not found and not write if plant does not exist', async () => {
     await expect(
-      useCase.execute(random.uuid(), USERNAME, CURRENT_VERSION)
+      useCase.execute(random.uuid(), USERNAME, [CURRENT_VERSION])
     ).rejects.toBeInstanceOf(DomainNotFoundException);
 
     repository.assertSaveNotCalled();
@@ -71,7 +71,7 @@ describe('DeletePlant use case', () => {
     const plant = PlantFactory.create();
     repository.addToStorage(plant);
 
-    await useCase.execute(plant.id, USERNAME, plant.version);
+    await useCase.execute(plant.id, USERNAME, [plant.version]);
 
     expect(repository.getStored(plant.id)?.version).toBe(plant.version + 1);
   });
@@ -81,7 +81,7 @@ describe('DeletePlant use case', () => {
     repository.addToStorage(plant);
 
     await expect(
-      useCase.execute(plant.id, USERNAME, plant.version + 1)
+      useCase.execute(plant.id, USERNAME, [plant.version + 1])
     ).rejects.toBeInstanceOf(DomainStaleVersionException);
 
     repository.assertUpdateNotCalled();
@@ -94,7 +94,7 @@ describe('DeletePlant use case', () => {
     repository.addToStorage(plant);
 
     await expect(
-      useCase.execute(plant.id, USERNAME, 999)
+      useCase.execute(plant.id, USERNAME, [999])
     ).rejects.toBeInstanceOf(DomainNotFoundException);
   });
 
@@ -102,7 +102,7 @@ describe('DeletePlant use case', () => {
     const plant = PlantFactory.create();
     repository.addToStorage(plant);
 
-    await useCase.execute(plant.id, USERNAME, plant.version);
+    await useCase.execute(plant.id, USERNAME, [plant.version]);
 
     repository.assertReadCalledTimes('findActiveById', 1);
     repository.assertUpdateCalledTimes(1);
@@ -120,7 +120,48 @@ describe('DeletePlant use case', () => {
       );
 
     await expect(
-      useCase.execute(plant.id, USERNAME, CURRENT_VERSION)
+      useCase.execute(plant.id, USERNAME, [CURRENT_VERSION])
     ).rejects.toBeInstanceOf(DomainNotFoundException);
+  });
+
+  describe('expected version lists', () => {
+    it('should proceed when the list contains the current version', async () => {
+      // Arrange
+      const plant = PlantFactory.create();
+      repository.addToStorage(plant);
+
+      // Act
+      await useCase.execute(plant.id, USERNAME, [
+        plant.version + 1,
+        plant.version
+      ]);
+
+      // Assert
+      expect(repository.getStored(plant.id)?.isDeleted()).toBe(true);
+    });
+
+    it('should answer stale for an empty list without writing', async () => {
+      // Arrange
+      const plant = PlantFactory.create();
+      repository.addToStorage(plant);
+
+      // Act
+      const remove = useCase.execute(plant.id, USERNAME, []);
+
+      // Assert
+      await expect(remove).rejects.toBeInstanceOf(DomainStaleVersionException);
+      repository.assertUpdateNotCalled();
+    });
+
+    it('should answer not found before checking an empty list', async () => {
+      // Arrange
+      const plant = PlantFactory.create();
+
+      // Act
+      const remove = useCase.execute(plant.id, USERNAME, []);
+
+      // Assert
+      await expect(remove).rejects.toBeInstanceOf(DomainNotFoundException);
+    });
   });
 });

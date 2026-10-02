@@ -35,7 +35,7 @@ describe('UpdatePlant use case', () => {
     await useCase.execute(
       { id: plant.id, identity: { name: { primary: 'New name' } } },
       'user-1',
-      CURRENT_VERSION
+      [CURRENT_VERSION]
     );
 
     const updated = await findExisting(plant.id);
@@ -55,7 +55,7 @@ describe('UpdatePlant use case', () => {
         }
       },
       'user-1',
-      CURRENT_VERSION
+      [CURRENT_VERSION]
     );
 
     const updated = await findExisting(plant.id);
@@ -71,7 +71,7 @@ describe('UpdatePlant use case', () => {
     await useCase.execute(
       { id: plant.id, identity: { name: { primary: 'New name' } } },
       'user-1',
-      CURRENT_VERSION
+      [CURRENT_VERSION]
     );
 
     const updated = await findExisting(plant.id);
@@ -85,7 +85,7 @@ describe('UpdatePlant use case', () => {
     await useCase.execute(
       { id: plant.id, identity: { scientificName: 'New scientific name' } },
       'user-1',
-      CURRENT_VERSION
+      [CURRENT_VERSION]
     );
 
     const updated = await findExisting(plant.id);
@@ -100,7 +100,7 @@ describe('UpdatePlant use case', () => {
     await useCase.execute(
       { id: plant.id, identity: { name: { primary: 'Updated name' } } },
       'user-1',
-      CURRENT_VERSION
+      [CURRENT_VERSION]
     );
 
     const [calledBefore, calledAfter] = repository.getLastUpdateArgs();
@@ -118,7 +118,7 @@ describe('UpdatePlant use case', () => {
       useCase.execute(
         { id: plant.id, identity: { scientificName: '   ' } },
         'user-1',
-        CURRENT_VERSION
+        [CURRENT_VERSION]
       )
     ).rejects.toThrow(InvalidArgumentException);
 
@@ -130,11 +130,9 @@ describe('UpdatePlant use case', () => {
     const plant = PlantFactory.random();
     repository.addToStorage(plant);
 
-    const result = await useCase.execute(
-      { id: plant.id },
-      'user-1',
+    const result = await useCase.execute({ id: plant.id }, 'user-1', [
       CURRENT_VERSION
-    );
+    ]);
 
     repository.assertUpdateCalledTimes(1);
     expect(result.version).toBe(plant.version);
@@ -151,7 +149,7 @@ describe('UpdatePlant use case', () => {
     await useCase.execute(
       { id: plant.id, identity: { family: `  ${family.id}  ` } },
       'user-1',
-      CURRENT_VERSION
+      [CURRENT_VERSION]
     );
 
     const updated = await findExisting(plant.id);
@@ -164,11 +162,9 @@ describe('UpdatePlant use case', () => {
     const existsSpy = jest.spyOn(familyRepository, 'exists');
 
     await expect(
-      useCase.execute(
-        { id: plant.id, identity: { family: '   ' } },
-        'user-1',
+      useCase.execute({ id: plant.id, identity: { family: '   ' } }, 'user-1', [
         CURRENT_VERSION
-      )
+      ])
     ).rejects.toThrow(InvalidArgumentException);
 
     expect(existsSpy).not.toHaveBeenCalled();
@@ -183,7 +179,7 @@ describe('UpdatePlant use case', () => {
     await useCase.execute(
       { id: plant.id, identity: { family: ` ${plant.identity.family} ` } },
       'user-1',
-      CURRENT_VERSION
+      [CURRENT_VERSION]
     );
 
     expect(existsSpy).not.toHaveBeenCalled();
@@ -198,7 +194,7 @@ describe('UpdatePlant use case', () => {
       useCase.execute(
         { id: plant.id, identity: { family: random.uuid() } },
         'user-1',
-        CURRENT_VERSION
+        [CURRENT_VERSION]
       )
     ).rejects.toBeInstanceOf(InvalidArgumentException);
 
@@ -210,7 +206,7 @@ describe('UpdatePlant use case', () => {
 
   it('should throw DomainNotFoundException before checking version', async () => {
     await expect(
-      useCase.execute({ id: random.uuid() }, 'user-1', 999)
+      useCase.execute({ id: random.uuid() }, 'user-1', [999])
     ).rejects.toBeInstanceOf(DomainNotFoundException);
   });
 
@@ -224,11 +220,9 @@ describe('UpdatePlant use case', () => {
       const plant = PlantFactory.random();
       repository.addToStorage(plant);
 
-      const updated = await useCase.execute(
-        rename(plant.id),
-        'user-1',
+      const updated = await useCase.execute(rename(plant.id), 'user-1', [
         plant.version
-      );
+      ]);
 
       expect(updated.identity.name.primary).toBe('New name');
       expect(repository.getStored(plant.id)?.version).toBe(plant.version + 1);
@@ -239,7 +233,7 @@ describe('UpdatePlant use case', () => {
       repository.addToStorage(plant);
 
       await expect(
-        useCase.execute(rename(plant.id), 'user-1', plant.version + 1)
+        useCase.execute(rename(plant.id), 'user-1', [plant.version + 1])
       ).rejects.toBeInstanceOf(DomainStaleVersionException);
 
       repository.assertUpdateNotCalled();
@@ -255,7 +249,7 @@ describe('UpdatePlant use case', () => {
         useCase.execute(
           { id: plant.id, identity: { family: random.uuid() } },
           'user-1',
-          plant.version + 1
+          [plant.version + 1]
         )
       ).rejects.toBeInstanceOf(DomainStaleVersionException);
       expect(existsSpy).not.toHaveBeenCalled();
@@ -268,7 +262,7 @@ describe('UpdatePlant use case', () => {
       await useCase.execute(
         rename(plant.id, plant.identity.name.primary),
         'user-1',
-        plant.version
+        [plant.version]
       );
 
       expect(repository.getStored(plant.id)?.version).toBe(plant.version);
@@ -288,7 +282,7 @@ describe('UpdatePlant use case', () => {
         .mockResolvedValueOnce(plantDomainMapper.fromPrimitives(primitives));
 
       await expect(
-        useCase.execute({ id: plant.id }, 'user-1', plant.version)
+        useCase.execute({ id: plant.id }, 'user-1', [plant.version])
       ).rejects.toBeInstanceOf(DomainStaleVersionException);
     });
 
@@ -300,7 +294,7 @@ describe('UpdatePlant use case', () => {
         useCase.execute(
           rename(plant.id, plant.identity.name.primary),
           'user-1',
-          plant.version
+          [plant.version]
         )
       ).rejects.toBeInstanceOf(DomainNotFoundException);
     });
@@ -309,7 +303,7 @@ describe('UpdatePlant use case', () => {
       const plant = PlantFactory.random();
       repository.addToStorage(plant);
 
-      await useCase.execute(rename(plant.id), 'user-1', plant.version);
+      await useCase.execute(rename(plant.id), 'user-1', [plant.version]);
 
       repository.assertReadCalledTimes('findActiveById', 1);
       repository.assertUpdateCalledTimes(1);
@@ -322,7 +316,7 @@ describe('UpdatePlant use case', () => {
     const existsSpy = jest.spyOn(familyRepository, 'exists');
 
     await expect(
-      useCase.execute(input, 'user-1', CURRENT_VERSION)
+      useCase.execute(input, 'user-1', [CURRENT_VERSION])
     ).rejects.toBeInstanceOf(DomainNotFoundException);
 
     repository.assertUpdateNotCalled();
@@ -334,7 +328,7 @@ describe('UpdatePlant use case', () => {
     const expectedMessage = `Plant not found: ${input.id}`;
 
     const error = await useCase
-      .execute(input, 'user-1', CURRENT_VERSION)
+      .execute(input, 'user-1', [CURRENT_VERSION])
       .catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(DomainNotFoundException);
@@ -354,7 +348,7 @@ describe('UpdatePlant use case', () => {
     const result = await useCase.execute(
       { id: plant.id, identity: { name: { primary: 'New name' } } },
       'user-1',
-      CURRENT_VERSION
+      [CURRENT_VERSION]
     );
 
     expect(result.identity.name.primary).toBe('New name');
@@ -371,7 +365,7 @@ describe('UpdatePlant use case', () => {
         traits: { lifecycle: 'perennial' }
       },
       'editor',
-      plant.version
+      [plant.version]
     );
 
     expect(updated.version).toBe(plant.version + 1);
@@ -398,7 +392,7 @@ describe('UpdatePlant use case', () => {
       useCase.execute(
         { id: plant.id, identity: { name: { primary: 'New name' } } },
         'user-1',
-        plant.version
+        [plant.version]
       )
     ).rejects.toBeInstanceOf(DomainNotFoundException);
   });
@@ -412,7 +406,7 @@ describe('UpdatePlant use case', () => {
     await useCase.execute(
       { id: plant.id, identity: { family: family.id } },
       'user-1',
-      CURRENT_VERSION
+      [CURRENT_VERSION]
     );
 
     const updated = await findExisting(plant.id);
@@ -425,11 +419,9 @@ describe('UpdatePlant use case', () => {
     const family = random.uuid();
 
     await expect(
-      useCase.execute(
-        { id: plant.id, identity: { family } },
-        'user-1',
+      useCase.execute({ id: plant.id, identity: { family } }, 'user-1', [
         CURRENT_VERSION
-      )
+      ])
     ).rejects.toThrow(`Family with id ${family} does not exist`);
   });
 
@@ -450,7 +442,7 @@ describe('UpdatePlant use case', () => {
         traits: { size: { height: { min: 1, max: 999 } } }
       },
       'user-1',
-      CURRENT_VERSION
+      [CURRENT_VERSION]
     );
 
     const at = updateIdentity.mock.calls[0]?.[2];
@@ -467,9 +459,53 @@ describe('UpdatePlant use case', () => {
       useCase.execute(
         { id: plant.id, identity: { name: { primary: 'New name' } } },
         'user-1',
-        CURRENT_VERSION
+        [CURRENT_VERSION]
       )
     ).rejects.toBeInstanceOf(DomainNotFoundException);
     repository.assertUpdateNotCalled();
+  });
+
+  describe('expected version lists', () => {
+    const rename = (id: string) => ({
+      id,
+      identity: { name: { primary: 'Listed' } }
+    });
+
+    it('should proceed when the list contains the current version', async () => {
+      // Arrange
+      const plant = PlantFactory.random();
+      repository.addToStorage(plant);
+
+      // Act
+      await useCase.execute(rename(plant.id), 'user-1', [
+        plant.version + 1,
+        plant.version
+      ]);
+
+      // Assert
+      const updated = await findExisting(plant.id);
+      expect(updated.identity.name.primary).toBe('Listed');
+    });
+
+    it('should answer stale for an empty list without writing', async () => {
+      // Arrange
+      const plant = PlantFactory.random();
+      repository.addToStorage(plant);
+
+      // Act
+      const update = useCase.execute(rename(plant.id), 'user-1', []);
+
+      // Assert
+      await expect(update).rejects.toBeInstanceOf(DomainStaleVersionException);
+      repository.assertUpdateNotCalled();
+    });
+
+    it('should answer not found before checking an empty list', async () => {
+      // Act
+      const update = useCase.execute(rename(random.uuid()), 'user-1', []);
+
+      // Assert
+      await expect(update).rejects.toBeInstanceOf(DomainNotFoundException);
+    });
   });
 });

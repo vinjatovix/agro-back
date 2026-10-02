@@ -20,14 +20,14 @@ export class UpdatePlant {
   async execute(
     input: UpdatePlantInput,
     user: string,
-    expectedVersion: number
+    expectedVersions: readonly number[]
   ): Promise<Plant> {
     const plant = ensureFound(
       await this.plantRepository.findActiveById(input.id),
       'Plant',
       input.id
     );
-    ensureVersion(plant.version, expectedVersion, 'Plant', input.id);
+    ensureVersion(plant.version, expectedVersions, 'Plant', input.id);
 
     const changes = plantInputMapper.toChanges(input);
 

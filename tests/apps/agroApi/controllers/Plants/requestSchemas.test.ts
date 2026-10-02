@@ -4,12 +4,17 @@ import {
   createPlantRequest,
   deletePlantRequest,
   getPlantByIdRequest,
+  listPlantsRequest,
   updatePlantRequest
 } from '../../../../../src/apps/agroApi/controllers/Plants/requestSchemas.js';
-import type { RequestSchemas } from '../../../../../src/apps/agroApi/middlewares/validateRequest.js';
+import {
+  getValidatedRequest,
+  type RequestSchemas
+} from '../../../../../src/apps/agroApi/middlewares/validateRequest.js';
 import { REQUEST_LIMITS } from '../../../../../src/apps/agroApi/shared/requestSchemas.js';
 import { randomPlantId } from '../../../../../src/Contexts/Agro/Plants/domain/PlantId.js';
 import { HttpError } from '../../../../../src/shared/errors/index.js';
+import { random } from '../../../../Contexts/shared/fixtures/random.js';
 import { withPath, withoutPath } from '../../../../shared/dto/editPath.js';
 import {
   buildRequest,
@@ -760,6 +765,125 @@ describe('Plant requestSchemas', () => {
       const errors = await errorsOf(schemas, { params, body });
 
       expect(errors).toHaveProperty(['unexpected'], 'Unknown field');
+    });
+  });
+
+  describe('listPlantsRequest', () => {
+    const UNKNOWN_FIELD = 'Unknown field';
+    const TEXT_OPERATORS = ['eq', 'in', 'contains', 'startsWith', 'endsWith'];
+
+    const listErrorsOf = (query: Record<string, unknown>) =>
+      errorsOf(listPlantsRequest, { query });
+
+    const listQueryOf = async (query: Record<string, unknown>) => {
+      const { res } = buildResponse();
+      const error = await runWithValidation(
+        listPlantsRequest,
+        buildRequest({ query }),
+        res
+      );
+      expect(error).toBeUndefined();
+
+      return getValidatedRequest(res, listPlantsRequest).query;
+    };
+
+    it.each<[string, string, string]>([
+      ...['identity', 'lightType', 'rootSystem'].flatMap((field) =>
+        TEXT_OPERATORS.map((operator): [string, string, string] => [
+          field,
+          operator,
+          'tom'
+        ])
+      ),
+      ['family', 'eq', random.uuid()],
+      ['family', 'in', `${random.uuid()},${random.uuid()}`],
+      ['lifeCycle', 'eq', 'annual'],
+      ['lifeCycle', 'in', 'annual,biennial'],
+      ['sowingMethod', 'eq', 'direct'],
+      ['sowingMethod', 'in', 'direct,starter'],
+      ['spacingCm', 'eq', '30'],
+      ['soilPh', 'eq', '6.5'],
+      ['soilAvailableDepthCm', 'eq', '20'],
+      ['lightHoursMin', 'eq', '6'],
+      ['sowingMonths', 'has', '3'],
+      ['sowingMonths', 'hasAny', '3,4']
+    ])('should accept %s with %s', async (field, operator, value) => {
+      // Act
+      const query = await listQueryOf({
+        filter: { [field]: { [operator]: value } }
+      });
+
+      // Assert
+      expect(query.filter).toHaveProperty([field, operator]);
+    });
+
+    it.each([
+      ['family', 'contains'],
+      ['spacingCm', 'lte'],
+      ['lightHoursMin', 'gte'],
+      ['soilAvailableDepthCm', 'lte'],
+      ['aliases', 'has'],
+      ['strategicBenefits', 'hasAny']
+    ])('should reject %s with %s', async (field, operator) => {
+      // Act
+      const errors = await listErrorsOf({
+        filter: { [field]: { [operator]: 'x' } }
+      });
+
+      // Assert
+      expect(Object.values(errors)).toEqual([UNKNOWN_FIELD]);
+    });
+
+    it.each([
+      ['family', 'eq', 'not-a-uuid'],
+      ['lifeCycle', 'eq', 'yearly'],
+      ['sowingMethod', 'eq', 'seed'],
+      ['soilPh', 'eq', 'abc'],
+      ['sowingMonths', 'has', '13']
+    ])('should reject %s.%s %j', async (field, operator, value) => {
+      // Act
+      const errors = await listErrorsOf({
+        filter: { [field]: { [operator]: value } }
+      });
+
+      // Assert
+      expect(Object.keys(errors)).toEqual([`filter.${field}.${operator}`]);
+    });
+
+    it('should decode typed values', async () => {
+      // Act
+      const query = await listQueryOf({
+        filter: {
+          lifeCycle: { in: 'annual,biennial' },
+          spacingCm: { eq: '30' },
+          sowingMonths: { hasAny: '3,4' }
+        }
+      });
+
+      // Assert
+      expect(query.filter).toEqual({
+        lifeCycle: { in: ['annual', 'biennial'] },
+        spacingCm: { eq: 30 },
+        sowingMonths: { hasAny: [3, 4] }
+      });
+    });
+
+    it.each(['name', 'scientificName'])('should sort by %s', async (key) => {
+      // Act
+      const query = await listQueryOf({ sort: { [key]: 'asc' } });
+
+      // Assert
+      expect(query.sort).toEqual({ [key]: 'asc' });
+    });
+
+    it('should reject a stored path as sort key', async () => {
+      // Act
+      const errors = await listErrorsOf({
+        sort: { 'identity.name.primary': 'asc' }
+      });
+
+      // Assert
+      expect(Object.values(errors)).toEqual([UNKNOWN_FIELD]);
     });
   });
 });
