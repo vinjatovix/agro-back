@@ -10,14 +10,14 @@ import {
   GoogleIdTokenVerifierMock
 } from '../../../../Contexts/Auth/__mocks__/index.js';
 
-import { buildGoogleAuthBody } from './fixtures/authBodies.js';
 import {
   buildNext,
   buildRequest,
   buildResponse,
   expectInternalErrorPassedTo,
   runWithValidation
-} from './fixtures/httpFakes.js';
+} from '../../shared/fixtures/httpFakes.js';
+import { buildGoogleAuthBody } from './fixtures/authBodies.js';
 
 describe('AuthenticateWithGoogleController', () => {
   let authenticateWithGoogle: AuthenticateWithGoogle;

@@ -42,8 +42,8 @@ describe('PlantDomainMapper', () => {
     const p = plantDomainMapper.toPrimitives(plant);
 
     expect(p.phenology.flowering.pollination).toBeDefined();
-    expect(p.phenology.flowering.pollination?.type).toBe(
-      plant.phenology.flowering.pollination?.type
+    expect(p.phenology.flowering.pollination?.types).toEqual(
+      plant.phenology.flowering.pollination?.types
     );
   });
 

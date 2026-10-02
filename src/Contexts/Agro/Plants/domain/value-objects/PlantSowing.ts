@@ -1,6 +1,8 @@
+import { mergePatchField } from '../../../../../shared/domain/utils/patchField.js';
 import { MonthSet } from '../../../../../shared/domain/value-objects/MonthSet.js';
 import { Range } from '../../../../../shared/domain/value-objects/Range.js';
 import { InvalidArgumentException } from '../../../../shared/domain/errors/index.js';
+import type { PlantSowingChanges } from '../entities/types/PlantPhenologyChanges.js';
 import type { PlantSowingPrimitives } from '../entities/types/PlantSowingPrimitives.js';
 import type { PlantSowingProps } from './interfaces/PlantSowingProps.js';
 import type { SowingMethod } from './interfaces/SowingMethod.js';
@@ -62,7 +64,52 @@ export class PlantSowing {
     }
   }
 
-  toPrimitives() {
+  /** Merges partial ranges into the current ones; `null` removes `starter`. */
+  update(changes: PlantSowingChanges): PlantSowing {
+    const months = changes.months
+      ? MonthSet.fromArray(changes.months)
+      : this.months;
+    const seedsPerHole = changes.seedsPerHole
+      ? this.seedsPerHole.with(changes.seedsPerHole)
+      : this.seedsPerHole;
+    const germinationDays = changes.germinationDays
+      ? this.germinationDays.with(changes.germinationDays)
+      : this.germinationDays;
+    const directDepth = changes.methods?.direct?.depthCm
+      ? this.methods.direct.depthCm.with(changes.methods.direct.depthCm)
+      : this.methods.direct.depthCm;
+    const starter = mergePatchField(
+      changes.methods?.starter,
+      this.methods.starter,
+      (change, current) => PlantSowing.mergeStarter(change, current)
+    );
+
+    return new PlantSowing({
+      months,
+      seedsPerHole,
+      germinationDays,
+      methods: {
+        direct: { depthCm: directDepth },
+        ...(starter !== undefined && { starter })
+      }
+    });
+  }
+
+  private static mergeStarter(
+    change: NonNullable<NonNullable<PlantSowingChanges['methods']>['starter']>,
+    current: SowingMethod | undefined
+  ): SowingMethod | undefined {
+    if (!change.depthCm) return current;
+    if (current) return { depthCm: current.depthCm.with(change.depthCm) };
+    return {
+      depthCm: Range.fromPartial(
+        change.depthCm,
+        'phenology.sowing.methods.starter.depthCm'
+      )
+    };
+  }
+
+  toPrimitives(): PlantSowingPrimitives {
     return {
       seedsPerHole: this.seedsPerHole.toPrimitives(),
       germinationDays: this.germinationDays.toPrimitives(),

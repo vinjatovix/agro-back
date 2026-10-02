@@ -29,14 +29,19 @@ Feature: Delete a plant
     Given I use If-Match '"0"'
     When I send a DELETE admin request to "/api/v1/plants/invalid-uuid"
     Then the response status code should be 400
-    And the response body should contain
-      """
-      {
-        "errors": {
-          "id": "Invalid value at params. Value: invalid-uuid"
-        }
-      }
-      """
+    And the response errors should include "id"
+    And the response body should not echo "invalid-uuid"
+    And response matches OpenAPI contract
+
+  Scenario: Delete with an unknown query parameter
+    Given a family exists
+    And a plant exists
+    And I record the current plant
+    And I use If-Match '"0"'
+    When I send a DELETE admin request to "/api/v1/plants/<plantId>?foo=bar"
+    Then the response status code should be 400
+    And the response errors should include "foo"
+    And the plant should be unchanged
     And response matches OpenAPI contract
 
   Scenario: Non-admin user cannot delete a plant

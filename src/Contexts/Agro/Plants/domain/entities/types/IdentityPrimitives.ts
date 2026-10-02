@@ -1,8 +1,8 @@
-export interface IdentityPrimitives {
+export type IdentityPrimitives = {
   name: {
     primary: string;
     aliases?: string[];
   };
   family: string;
-  scientificName?: string | null;
-}
+  scientificName: string;
+};

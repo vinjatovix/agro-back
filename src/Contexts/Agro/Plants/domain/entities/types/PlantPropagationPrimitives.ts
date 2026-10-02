@@ -5,7 +5,7 @@ export type PlantPropagationPrimitives = {
   methods: Record<
     string,
     {
-      season?: Seasons;
+      seasons?: Seasons[];
       estimatedTimeWeeks?: RangePrimitives;
       bestPractices?: string[];
     }

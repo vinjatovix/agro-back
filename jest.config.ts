@@ -6,14 +6,26 @@ const config: Config = {
 
   setupFilesAfterEnv: ['<rootDir>/setupTests.ts'],
 
+  // Jest runs CommonJS. `bundler` resolution, unlike the deprecated `node`
+  // (node10), is accepted with CommonJS output from TypeScript 6 on.
   transform: {
     '^.+\\.tsx?$': [
       'ts-jest',
       {
         tsconfig: {
           module: 'CommonJS',
-          moduleResolution: 'node',
-          ignoreDeprecations: '6.0'
+          moduleResolution: 'bundler'
+        }
+      }
+    ],
+    // Migrations are plain ESM `.js` files run by migrate-mongo.
+    '^.+/migrations/.+\\.js$': [
+      'ts-jest',
+      {
+        tsconfig: {
+          allowJs: true,
+          module: 'CommonJS',
+          moduleResolution: 'bundler'
         }
       }
     ],
@@ -25,8 +37,7 @@ const config: Config = {
         tsconfig: {
           allowJs: true,
           module: 'CommonJS',
-          moduleResolution: 'node',
-          ignoreDeprecations: '6.0'
+          moduleResolution: 'bundler'
         }
       }
     ]

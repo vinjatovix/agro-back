@@ -116,7 +116,7 @@ describe('DeletePlant use case', () => {
     jest
       .spyOn(repository, 'updateWithDiff')
       .mockRejectedValueOnce(
-        new DomainNotFoundException('Plant', plant.id.toString())
+        new DomainNotFoundException(`Plant ${plant.id} not found`)
       );
 
     await expect(

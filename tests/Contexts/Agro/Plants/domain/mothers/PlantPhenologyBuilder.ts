@@ -1,6 +1,12 @@
 import type { PlantProps } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantProps.js';
 import { PollinationType } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PollinationType.js';
-import { PlantSowing } from '../../../../../../src/Contexts/Agro/Plants/domain/value-objects/PlantSowing.js';
+import {
+  PlantFlowering,
+  PlantHarvest,
+  PlantPhenology,
+  PlantSowing,
+  Pollination
+} from '../../../../../../src/Contexts/Agro/Plants/domain/value-objects/index.js';
 import { MonthSet } from '../../../../../../src/shared/domain/value-objects/MonthSet.js';
 import { Range } from '../../../../../../src/shared/domain/value-objects/Range.js';
 import { random } from '../../../../shared/fixtures/random.js';
@@ -9,7 +15,7 @@ const month = () => random.integer({ min: 1, max: 12 });
 
 export const PlantPhenologyBuilder = {
   generic(): PlantProps['phenology'] {
-    return {
+    return new PlantPhenology({
       sowing: new PlantSowing({
         seedsPerHole: new Range(1, 3),
         germinationDays: new Range(7, 14),
@@ -18,17 +24,17 @@ export const PlantPhenologyBuilder = {
           direct: { depthCm: new Range(1, 2) }
         }
       }),
-      flowering: {
+      flowering: new PlantFlowering({
         months: new MonthSet([6])
-      },
-      harvest: {
+      }),
+      harvest: new PlantHarvest({
         months: new MonthSet([9])
-      }
-    };
+      })
+    });
   },
 
   random(): PlantProps['phenology'] {
-    return {
+    return new PlantPhenology({
       sowing: new PlantSowing({
         seedsPerHole: new Range(1, random.integer({ min: 2, max: 5 })),
         germinationDays: new Range(3, random.integer({ min: 10, max: 30 })),
@@ -37,17 +43,17 @@ export const PlantPhenologyBuilder = {
           direct: { depthCm: new Range(1, random.integer({ min: 5, max: 10 })) }
         }
       }),
-      flowering: {
+      flowering: new PlantFlowering({
         months: new MonthSet([month(), month()])
-      },
-      harvest: {
+      }),
+      harvest: new PlantHarvest({
         months: new MonthSet([month(), month()])
-      }
-    };
+      })
+    });
   },
 
   full(): PlantProps['phenology'] {
-    return {
+    return new PlantPhenology({
       sowing: new PlantSowing({
         seedsPerHole: new Range(1, random.integer({ min: 2, max: 5 })),
         germinationDays: new Range(3, random.integer({ min: 10, max: 30 })),
@@ -59,22 +65,22 @@ export const PlantPhenologyBuilder = {
           }
         }
       }),
-      flowering: {
+      flowering: new PlantFlowering({
         months: new MonthSet([month(), month()]),
-        pollination: {
-          type: PollinationType.INSECT,
+        pollination: new Pollination({
+          types: [PollinationType.INSECT],
           agents: ['bees', 'butterflies']
-        }
-      },
-      harvest: {
+        })
+      }),
+      harvest: new PlantHarvest({
         months: new MonthSet([month(), month()]),
         description: 'Harvest when fruits are fully ripe.'
-      }
-    };
+      })
+    });
   },
 
   tomato(): PlantProps['phenology'] {
-    return {
+    return new PlantPhenology({
       sowing: new PlantSowing({
         seedsPerHole: new Range(1, 2),
         germinationDays: new Range(5, 10),
@@ -84,22 +90,23 @@ export const PlantPhenologyBuilder = {
           starter: { depthCm: new Range(0, 1) }
         }
       }),
-      flowering: {
+      flowering: new PlantFlowering({
         months: new MonthSet([6, 7]),
-        pollination: {
-          type: PollinationType.INSECT,
+        // Self-pollinated, helped by the bees shaking its flowers.
+        pollination: new Pollination({
+          types: [PollinationType.SELF, PollinationType.INSECT],
           agents: ['bees']
-        }
-      },
-      harvest: {
+        })
+      }),
+      harvest: new PlantHarvest({
         months: new MonthSet([8, 9]),
         description: 'Harvest when fruits are fully red.'
-      }
-    };
+      })
+    });
   },
 
   lettuce(): PlantProps['phenology'] {
-    return {
+    return new PlantPhenology({
       sowing: new PlantSowing({
         seedsPerHole: new Range(1, 3),
         germinationDays: new Range(7, 14),
@@ -108,13 +115,13 @@ export const PlantPhenologyBuilder = {
           direct: { depthCm: new Range(0.5, 1) }
         }
       }),
-      flowering: {
+      flowering: new PlantFlowering({
         months: new MonthSet([5, 6])
-      },
-      harvest: {
+      }),
+      harvest: new PlantHarvest({
         months: new MonthSet([4, 5]),
         description: 'Harvest when leaves are tender and before flowering.'
-      }
-    };
+      })
+    });
   }
 };

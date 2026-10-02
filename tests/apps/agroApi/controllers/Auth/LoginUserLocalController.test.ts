@@ -9,14 +9,14 @@ import {
   CryptAdapterMock
 } from '../../../../Contexts/Auth/__mocks__/index.js';
 
-import { buildLoginBody } from './fixtures/authBodies.js';
 import {
   buildNext,
   buildRequest,
   buildResponse,
   expectInternalErrorPassedTo,
   runWithValidation
-} from './fixtures/httpFakes.js';
+} from '../../shared/fixtures/httpFakes.js';
+import { buildLoginBody } from './fixtures/authBodies.js';
 
 describe('LoginUserLocalController', () => {
   let loginUser: LoginUserLocal;

@@ -12,6 +12,7 @@ export const PlantSeeder = (httpServer: Server, token: string) => {
         id: random.uuid(),
         identity: {
           name: { primary: 'Test plant' },
+          scientificName: 'Plantus testus',
           family: 'fam_test'
         },
         traits: {
@@ -33,6 +34,19 @@ export const PlantSeeder = (httpServer: Server, token: string) => {
           },
           flowering: { months: [1] },
           harvest: { months: [1] }
+        },
+        knowledge: {
+          rootSystem: {
+            type: 'fibrous',
+            depthCm: { min: 10, max: 30 },
+            spreadCm: { min: 10, max: 20 }
+          },
+          soil: {
+            ph: { min: 6, max: 7 },
+            availableDepthCm: { min: 20, max: 40 }
+          },
+          light: { hoursMin: 6, type: 'full_sun' },
+          propagation: { methods: {} }
         }
       };
       const patch = buildPatch(overrides);

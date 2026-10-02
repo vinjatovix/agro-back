@@ -1,4 +1,3 @@
-export * from './IdentityDomain.js';
 export * from './IdentityPrimitives.js';
 export * from './PlantChanges.js';
 export * from './PlantIdentityChanges.js';

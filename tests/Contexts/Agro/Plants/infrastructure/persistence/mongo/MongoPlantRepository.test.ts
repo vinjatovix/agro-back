@@ -19,6 +19,7 @@ import {
 } from '../../../../../../../src/shared/infrastructure/persistence/index.js';
 import { random } from '../../../../../shared/fixtures/random.js';
 import { PlantFactory } from '../../../domain/mothers/PlantFactory.js';
+import { PlantIdentityBuilder } from '../../../domain/mothers/PlantIdentityBuilder.js';
 
 let container: AppContainer;
 let repository: PlantRepository;
@@ -246,22 +247,25 @@ describe('MongoPlantRepository', () => {
       }
     });
 
-    it('should allow clearing scientificName when set to null', async () => {
-      const plant = PlantFactory.full();
+    it('should remove an optional field left out of the update', async () => {
+      const plant = PlantFactory.full({
+        identity: PlantIdentityBuilder.withAliases()
+      });
       const current = plantDomainMapper.toPrimitives(plant);
       await repository.save(plant);
 
+      const { aliases: _removed, ...name } = current.identity.name;
       const updated: PlantPrimitives = {
         ...current,
-        identity: { ...current.identity, scientificName: null }
+        identity: { ...current.identity, name }
       };
 
       await repository.updateWithDiff(current, updated);
 
       const result = await findExisting(plant.id);
 
-      expect(plant.identity.scientificName).toBeDefined();
-      expect(result.identity.scientificName).toBeUndefined();
+      expect(plant.identity.name.aliases).toBeDefined();
+      expect(result.identity.name.aliases).toBeUndefined();
     });
 
     it('should NOT overwrite untouched fields', async () => {

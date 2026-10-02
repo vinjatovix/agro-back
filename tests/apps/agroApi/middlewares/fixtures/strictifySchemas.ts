@@ -117,7 +117,7 @@ type TreeNode = { name: string; children?: TreeNode[] };
 /** Recursive schema built with `z.lazy`. */
 export const recursiveTreeSchema = (): z.ZodType<TreeNode> => {
   const tree: z.ZodType<TreeNode> = z.lazy(() =>
-    z.object({ name: z.string(), children: z.array(tree).optional() })
+    z.object({ name: z.string(), children: z.array(tree).exactOptional() })
   );
 
   return tree;
@@ -129,8 +129,8 @@ type Category = { name: string; subcategories?: Category[] };
 export const recursiveGetterSchema = (): z.ZodType<Category> => {
   const category = z.object({
     name: z.string(),
-    get subcategories(): z.ZodOptional<z.ZodArray<typeof category>> {
-      return z.array(category).optional();
+    get subcategories(): z.ZodExactOptional<z.ZodArray<typeof category>> {
+      return z.array(category).exactOptional();
     }
   });
 

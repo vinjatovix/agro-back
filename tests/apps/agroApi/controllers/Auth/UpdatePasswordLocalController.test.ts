@@ -13,14 +13,14 @@ import {
 } from '../../../../Contexts/Auth/__mocks__/index.js';
 import { UserMother } from '../../../../Contexts/Auth/domain/mothers/UserMother.js';
 
-import { buildUpdatePasswordBody } from './fixtures/authBodies.js';
 import {
   buildNext,
   buildRequest,
   buildResponse,
   expectInternalErrorPassedTo,
   runWithValidation
-} from './fixtures/httpFakes.js';
+} from '../../shared/fixtures/httpFakes.js';
+import { buildUpdatePasswordBody } from './fixtures/authBodies.js';
 
 describe('UpdatePasswordLocalController', () => {
   let updatePassword: UpdatePasswordLocal;

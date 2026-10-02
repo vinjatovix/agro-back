@@ -19,6 +19,7 @@ export class PlantFactory {
     overrides: Partial<PlantProps>,
     defaultBuilders: DefaultBuilders
   ): PlantProps {
+    const status = overrides.deletedAt ? PlantStatus.DELETED : overrides.status;
     return {
       id: overrides.id ?? randomPlantId(),
       identity: overrides.identity ?? defaultBuilders.identity(),
@@ -26,8 +27,10 @@ export class PlantFactory {
       phenology: overrides.phenology ?? defaultBuilders.phenology(),
       knowledge: overrides.knowledge ?? PlantKnowledge.empty(),
       metadata: overrides.metadata ?? Metadata.create('test'),
-      status: overrides.deletedAt ? PlantStatus.DELETED : overrides.status,
-      deletedAt: overrides.deletedAt
+      ...(status !== undefined && { status }),
+      ...(overrides.deletedAt !== undefined && {
+        deletedAt: overrides.deletedAt
+      })
     };
   }
 
