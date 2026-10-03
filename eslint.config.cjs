@@ -75,6 +75,29 @@ module.exports = defineConfig([
     }
   },
 
+  {
+    // Step definitions keep per-scenario state on the World and per-run
+    // resources in suite(); module-level reassignable state leaks between
+    // scenarios.
+    files: ['tests/apps/agroApi/features/step_definitions/**/*.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'Program > VariableDeclaration[kind=/^(let|var)$/]',
+          message:
+            'No module-level let/var in step definitions: use the World (per scenario) or suite() (per run).'
+        },
+        {
+          selector:
+            'Program > ExportNamedDeclaration > VariableDeclaration[kind=/^(let|var)$/]',
+          message:
+            'No module-level let/var in step definitions: use the World (per scenario) or suite() (per run).'
+        }
+      ]
+    }
+  },
+
   globalIgnores([
     '**/dist/',
     '**/node_modules/',

@@ -26,7 +26,7 @@ Feature: Validate token
       """
 
   Scenario: Valid token
-    Given a GET request to "/api/v1/auth/validate/current-user-token"
+    Given a GET request to "/api/v1/auth/validate/logged-in-token"
     Then the response status code should be 200
     And the response body should include an auth token
     And response matches OpenAPI contract

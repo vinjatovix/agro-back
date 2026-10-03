@@ -356,8 +356,15 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [testing.md](spec/modules/testing.md)
 
+- **Status**: Done (2026-10-03)
 - **Value delivered**: Improves test suite execution speed and resolves state cross-contamination.
 - **Definition of Done**: Step files are split into bounded contexts. Execution state is strictly encapsulated inside Cucumber World (`this`).
+- **Implementation notes**:
+  - The 1,781-line `controller.steps.ts` is split into 12 `*.steps.ts` files (4 bounded contexts + CORS + 7 shared files named by purpose), each under 400 lines; helpers live behind `step_definitions/utils/index.ts`. Step wording is unchanged.
+  - Per-scenario state lives on a fully typed `AgroWorld` (no index signature); per-run resources are built once and read through a read-only `suite()` registry. The login step no longer overwrites the start-up user token.
+  - `cucumber.mjs` is the single loading config (`*.steps.ts` glob) and runs scenarios in random order, printing the seed (`npm run test:features -- --order random:<seed>` reproduces it).
+  - A `no-restricted-syntax` lint rule rejects module-level `let`/`var` under `step_definitions/`.
+  - One scenario (`Auth/update-password.feature`, _Fail when old password is incorrect_) only passed thanks to the leaked login token; its login now uses the password the Background registers.
 - **Dependencies**: None.
 - **Risks**: Flaky test failures during rewrite.
 - **Prompt for /speckit.specify**:

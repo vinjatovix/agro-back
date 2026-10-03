@@ -117,7 +117,7 @@ Rules:
 Scope:
 
 - feature-based system tests
-- shared world state
+- per-scenario World state, read-only per-run resources
 - scenario-driven API behavior
 
 Features:
@@ -130,7 +130,28 @@ Rules:
 
 - Call the API only in the `When` step under test. Build prior state (created, updated to a given version, soft-deleted, bed with plants…) in `Given` steps with seeders or DB helpers (e.g. `the bed is stored at version 1`, `the plant was last updated by another user`, `a soft-deleted plant exists`), never with setup `PATCH`/`DELETE` requests.
 - A read-only check after the `When` step (e.g. `a GET user request to "..." should return the same body`) is allowed in `Then`: it builds no state.
-- When asserting the acting user (e.g. audit data), read the username from the token the step actually sends: login steps can replace the scenario's user token.
+- When asserting the acting user (e.g. audit data), read the username from the token the step actually sends (`usernameFor(world, role)`).
+- A login step (`an authentication with body`) never replaces a role's token. Steps act as that user only through the explicit `logged-in` role (`a POST logged-in request to "..." with body`) or the `logged-in-token` route segment (`a GET request to "/api/v1/auth/validate/logged-in-token"`).
+- Scenarios run in random order on every run (`order: 'random'` in `cucumber.mjs`), and each run prints `Random order using seed: <n>`. To reproduce a failing order: `npm run test:features -- --order random:<n>`. To run only some features: `npm run test:features -- path/to/a.feature path/to/b.feature`.
+- No module-level `let`/`var` under `step_definitions/`: a lint rule (`no-restricted-syntax`) rejects it. Per-scenario state goes on the World; per-run resources come from `suite()`.
+
+Layout (`tests/apps/agroApi/features/step_definitions/`, loaded by the `*.steps.ts` glob in `cucumber.mjs`, the single loading config):
+
+| File                                                    | Holds                                                                                                                            |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `lifecycle.steps.ts`                                    | World constructor, `BeforeAll` / `Before` / `AfterAll`, `{role}` and `{resource}` parameter types                                |
+| `auth.steps.ts`                                         | login, logged-in user removal, auth token check                                                                                  |
+| `beds.steps.ts`, `families.steps.ts`, `plants.steps.ts` | setup (`Given`) and read steps of each bounded context                                                                           |
+| `readRequests.steps.ts`                                 | generic `GET` request steps                                                                                                      |
+| `writeRequests.steps.ts`                                | generic `POST` / `PATCH` / `DELETE` request steps                                                                                |
+| `cors.steps.ts`                                         | origin `GET` and CORS preflight                                                                                                  |
+| `responses.steps.ts`                                    | status, body, list, errors and read-back checks                                                                                  |
+| `conditionalRequests.steps.ts`                          | `If-Match` / `If-None-Match`, concurrent requests, `ETag` checks                                                                 |
+| `auditTrail.steps.ts`                                   | version / last-editor setup and audit assertions                                                                                 |
+| `contract.steps.ts`                                     | `response matches OpenAPI contract`                                                                                              |
+| `utils/`                                                | helpers behind the `utils/index.ts` barrel (World, `suite()`, tokens, `prepareRequest`, DB helpers…); never loaded as step files |
+
+Step files import helpers only from `utils/index.ts`, never from another step file. Request steps go through `prepareRequest(world, { method, route, role?, query?, body?, conditional? })`.
 
 Added coverage:
 
@@ -199,35 +220,38 @@ Seeders are allowed to:
 
 ## 7. WORLD MODEL (ATDD)
 
-Cucumber tests MAY define:
+Per-scenario state lives on `AgroWorld` (`step_definitions/utils/world.ts`), created fresh by Cucumber for every scenario. It has no catch-all index signature: reading or writing an undeclared field is a type error.
 
 ```ts
-class TestWorldImpl extends World {
-  family?: string;
-  familySlug?: string;
-  plantId?: string;
+class AgroWorld extends World {
   bedId?: string;
-  token?: string;
-  route?: string;
-  method?: string;
+  plantId?: string;
+  familyId?: string;
+  familySlug?: string;
+  familyName?: string;
+  otherFamilyId?: string;
+  loggedInToken?: string; // set only by the login step
+  loggedInEmail?: string;
+  route?: string; // path without query string (OpenAPI lookup)
+  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE' | 'OPTIONS';
   ifMatch?: string; // sent by PATCH/DELETE steps
   ifNoneMatch?: string; // sent by GET steps
   request?: request.Test;
-  responseRaw?: request.Response;
   responses?: request.Response[]; // concurrent-request steps
+  storedDocument?: Nullable<Record<string, unknown>>; // raw DB snapshot
+
+  placeholders(): Readonly<Partial<Record<PlaceholderKey, string>>>;
 }
 ```
 
+Per-run resources (app, HTTP server, DB client, container, environment arranger, start-up tokens and user ids, seeders) are built once in `BeforeAll` and read through `suite()` (`utils/suite.ts`). Every level is `readonly`, so a step cannot reassign them.
+
 Rules:
 
-- state is isolated per scenario
-- no cross-scenario leakage
-
-Extended state usage:
-
-- bedId used in Beds scenarios
-- plantId used in Plants scenarios
-- query/filter state used in list/filter scenarios
+- state is isolated per scenario; no cross-scenario leakage
+- `<key>` placeholders in routes and bodies read `world.placeholders()` (`bedId`, `plantId`, `familyId`, `familySlug`, `familyName`, `otherFamilyId`); any other key throws `Missing route param`
+- the token a step sends is `tokenFor(world, role)`: `world.loggedInToken` for the `loggedIn` role (it fails if the scenario has not logged in), else `suite().tokens[role]`. A login only affects its own scenario and never stands in for `user`, `admin` or any other role
+- `usernameFor(world, role)` decodes that same token, so audit checks follow the token actually sent
 
 ---
 
@@ -236,11 +260,6 @@ Extended state usage:
 - mutation testing
 - contract-driven test generation
 - scenario-based DSL expansion
-- ATDD step definition modularization (Cucumber scalability layer) `[TARGET STATE (Pending [Iteration 16](../../roadmap.md#iteration-16-modularize-cucumber-atdd-step-definitions))]`
-  - current step file structure is becoming too large
-  - steps MUST be split by bounded context (Plant, Bed, Auth, Query, etc.)
-  - shared steps MUST be extracted into reusable step utilities
-  - step definition organization MUST follow domain-aligned structure rather than feature dump files
 
 ---
 

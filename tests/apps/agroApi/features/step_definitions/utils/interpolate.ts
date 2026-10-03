@@ -2,10 +2,9 @@ import { isPrimitive } from '../../../../../../src/shared/domain/utils/isPrimiti
 
 const INTERPOLATION_REGEX = /<([^<>]+)>/g;
 
-const interpolate = <T extends Record<string, unknown>>(
-  input: unknown,
-  world: T
-): unknown => {
+type InterpolationSource = Readonly<Record<string, unknown>>;
+
+const interpolate = (input: unknown, world: InterpolationSource): unknown => {
   if (typeof input === 'string') {
     return input.replaceAll(INTERPOLATION_REGEX, (_, key: string) => {
       const value = world[key];
@@ -40,9 +39,9 @@ const interpolate = <T extends Record<string, unknown>>(
   return input;
 };
 
-export const interpolateRoute = <T extends Record<string, unknown>>(
+export const interpolateRoute = (
   route: string,
-  world: T
+  world: InterpolationSource
 ): string =>
   route.replaceAll(INTERPOLATION_REGEX, (_, key: string) => {
     const value = world[key];
@@ -58,9 +57,9 @@ export const interpolateRoute = <T extends Record<string, unknown>>(
     return String(value);
   });
 
-export const interpolateJson = <T extends Record<string, unknown>>(
+export const interpolateJson = (
   body: string,
-  world: T
+  world: InterpolationSource
 ): string => {
   const parsed = JSON.parse(body) as unknown;
   return JSON.stringify(interpolate(parsed, world));
