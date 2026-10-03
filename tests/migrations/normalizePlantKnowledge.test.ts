@@ -7,7 +7,7 @@ import {
   type MigrationPlant,
   PlantsChangedWhileMigratingError,
   up
-} from '../../migrations/1.0.0/20261002120000-normalize-plant-knowledge.js';
+} from '../../migrations/scripts/20261002120000-normalize-plant-knowledge.js';
 
 const LEGACY_IDENTITY = {
   name: { primary: 'Tomato' },

@@ -56,6 +56,15 @@ Given('another family exists', async function (this: AgroWorld) {
   this.otherFamilyId = family.id;
 });
 
+Given(
+  'another family exists with slug {string}',
+  async function (this: AgroWorld, slug: string) {
+    const family = await suite().seeders.family.create({ slug });
+
+    this.otherFamilyId = family.id;
+  }
+);
+
 Then('the family should be unchanged', async function (this: AgroWorld) {
   await assertDocumentUnchanged(this, 'families', this.familyId);
 });

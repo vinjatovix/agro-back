@@ -82,6 +82,27 @@ Feature: Register a new user
       """
     And response matches OpenAPI contract
 
+  Scenario: Registering a username already in use returns conflict
+    Given a user exists with username "takenname"
+    When a POST request to "/api/v1/auth/register" with body
+      """
+      {
+        "id": "4c2a7e91-6b3d-4f58-9a0e-1d2c3b4a5f60",
+        "username": "takenname",
+        "email": "takenname@aa.com",
+        "password": "#aD3fe2.0%",
+        "repeatPassword": "#aD3fe2.0%"
+      }
+      """
+    Then the response status code should be 409
+    And the response body should be
+      """
+      {
+        "message": "Duplicate document with {\"username\":\"takenname\"}"
+      }
+      """
+    And response matches OpenAPI contract
+
   Scenario: Password and repeat password are different
     Given a POST request to "/api/v1/auth/register" with body
       """
