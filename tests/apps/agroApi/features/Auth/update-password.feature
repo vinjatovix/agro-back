@@ -27,7 +27,7 @@ Feature: Update Password
         "password": "#aD3fe2.0%"
       }
       """
-    And a POST user request to "/api/v1/auth/update" with body
+    And a POST logged-in request to "/api/v1/auth/update" with body
       """
       {
         "oldPassword": "#aD3fe2.0%",
@@ -49,10 +49,10 @@ Feature: Update Password
       """
       {
         "email": "update@password.com",
-        "password": "Sup3rSecretPassword!"
+        "password": "#aD3fe2.0%"
       }
       """
-    And a POST user request to "/api/v1/auth/update" with body
+    And a POST logged-in request to "/api/v1/auth/update" with body
       """
       {
         "oldPassword": "Wr0ngPassw0rd!",
@@ -74,10 +74,10 @@ Feature: Update Password
       """
       {
         "email": "update@password.com",
-        "password": "Sup3rSecretPassword!"
+        "password": "#aD3fe2.0%"
       }
       """
-    And a POST user request to "/api/v1/auth/update" with body
+    And a POST logged-in request to "/api/v1/auth/update" with body
       """
       {
         "oldPassword": "#aD3fe2.0%",
@@ -97,7 +97,7 @@ Feature: Update Password
         "password": "#aD3fe2.0%"
       }
       """
-    And a POST user request to "/api/v1/auth/update" with body
+    And a POST logged-in request to "/api/v1/auth/update" with body
       """
       {
         "oldPassword": "#aD3fe2.0%",
@@ -123,7 +123,7 @@ Feature: Update Password
       }
       """
     And the logged-in user is removed from storage
-    And a POST user request to "/api/v1/auth/update" with body
+    And a POST logged-in request to "/api/v1/auth/update" with body
       """
       {
         "oldPassword": "#aD3fe2.0%",
@@ -148,7 +148,7 @@ Feature: Update Password
         "password": "#aD3fe2.0%"
       }
       """
-    When a POST user request to "/api/v1/auth/update" with body
+    When a POST logged-in request to "/api/v1/auth/update" with body
       """
       {
         "oldPassword": "#aD3fe2.0%",
@@ -169,7 +169,7 @@ Feature: Update Password
         "password": "#aD3fe2.0%"
       }
       """
-    When a POST user request to "/api/v1/auth/update" with body
+    When a POST logged-in request to "/api/v1/auth/update" with body
       """
       {}
       """
@@ -187,7 +187,7 @@ Feature: Update Password
         "password": "#aD3fe2.0%"
       }
       """
-    When a POST user request to "/api/v1/auth/update" with body
+    When a POST logged-in request to "/api/v1/auth/update" with body
       """
       {
         "oldPassword": "#aD3fe2.0%",

@@ -1,0 +1,61 @@
+import { Given, Then } from '@cucumber/cucumber';
+import { assert } from 'chai';
+
+import type { FamilyPrimitives } from '../../../../../src/Contexts/Agro/Families/domain/types/FamilyPrimitives.js';
+
+import {
+  assertDocumentUnchanged,
+  suite,
+  type AgroWorld
+} from './utils/index.js';
+
+const rememberFamily = (world: AgroWorld, family: FamilyPrimitives): void => {
+  world.familyId = family.id;
+  world.familySlug = family.slug;
+  world.familyName = family.name;
+};
+
+Given('a family exists', async function (this: AgroWorld) {
+  rememberFamily(this, await suite().seeders.family.create());
+});
+
+Given('a family with extra exists', async function (this: AgroWorld) {
+  const family = await suite().seeders.family.create({
+    extra: {
+      order: 'Rosales',
+      distribution: 'Worldwide',
+      speciesCount: 3000,
+      subfamilies: ['Rosoideae']
+    }
+  });
+
+  rememberFamily(this, family);
+});
+
+Given(
+  'a family exists with scientific name {string}',
+  async function (this: AgroWorld, scientificName: string) {
+    rememberFamily(
+      this,
+      await suite().seeders.family.create({ scientificName })
+    );
+  }
+);
+
+Given('multiple families exist', async function (this: AgroWorld) {
+  const [family] = await suite().seeders.family.seed();
+  assert.exists(family, 'FamilySeeder created no families');
+
+  this.familyId = family.id;
+  this.familySlug = family.slug;
+});
+
+Given('another family exists', async function (this: AgroWorld) {
+  const family = await suite().seeders.family.create();
+
+  this.otherFamilyId = family.id;
+});
+
+Then('the family should be unchanged', async function (this: AgroWorld) {
+  await assertDocumentUnchanged(this, 'families', this.familyId);
+});

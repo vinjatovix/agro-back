@@ -26,7 +26,7 @@ Feature: Refresh token
       """
 
   Scenario: Refresh with valid user token
-    Given a POST user request to "/api/v1/auth/refresh" with body
+    Given a POST logged-in request to "/api/v1/auth/refresh" with body
       """
       {}
       """
