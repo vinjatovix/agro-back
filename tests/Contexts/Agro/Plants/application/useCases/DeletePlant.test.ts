@@ -126,41 +126,32 @@ describe('DeletePlant use case', () => {
 
   describe('expected version lists', () => {
     it('should proceed when the list contains the current version', async () => {
-      // Arrange
       const plant = PlantFactory.create();
       repository.addToStorage(plant);
 
-      // Act
       await useCase.execute(plant.id, USERNAME, [
         plant.version + 1,
         plant.version
       ]);
 
-      // Assert
       expect(repository.getStored(plant.id)?.isDeleted()).toBe(true);
     });
 
     it('should answer stale for an empty list without writing', async () => {
-      // Arrange
       const plant = PlantFactory.create();
       repository.addToStorage(plant);
 
-      // Act
       const remove = useCase.execute(plant.id, USERNAME, []);
 
-      // Assert
       await expect(remove).rejects.toBeInstanceOf(DomainStaleVersionException);
       repository.assertUpdateNotCalled();
     });
 
     it('should answer not found before checking an empty list', async () => {
-      // Arrange
       const plant = PlantFactory.create();
 
-      // Act
       const remove = useCase.execute(plant.id, USERNAME, []);
 
-      // Assert
       await expect(remove).rejects.toBeInstanceOf(DomainNotFoundException);
     });
   });

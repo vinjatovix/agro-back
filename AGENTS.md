@@ -72,6 +72,7 @@ Contract-driven REST API for agricultural asset management.
 - Do not run IO, database queries, or have external API coupling in unit tests (use mocks).
 - Do not use manual inline object creation/duplication in tests; prefer factories/seeders.
 - Do not assert exact raw error strings in tests (use semantic matching or pre-defined error paths).
+- Do not write `// Arrange` / `// Act` / `// Assert` comments in tests; ESLint (`no-warning-comments`) rejects them.
 - **NEVER use `npx tsc`, `npx tsc --noEmit`, or any other manual compilation/checking command. ALWAYS run the scripts defined in `package.json` (e.g., `npm run build`, `npm run lint`, `npm run check`).**
 
 ## graphify

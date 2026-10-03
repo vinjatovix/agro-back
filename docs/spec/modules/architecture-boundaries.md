@@ -113,12 +113,14 @@ Examples of allowed behavior:
 
 ---
 
-## 7.1 CQRS READ-ONLY BYPASS ALLOWANCE (GET QUERIES) `[TARGET STATE (Pending [Iteration 18](../../roadmap.md#iteration-18-implement-cqrs-read-only-bypass-for-catalog))]`
+## 7.1 CQRS READ-ONLY BYPASS ALLOWANCE (GET QUERIES) `[CURRENT STATE (Done in [Iteration 18](../../roadmap.md#iteration-18-implement-cqrs-read-only-bypass-for-catalog))]`
 
 - To optimize system performance (CPU and memory), pure read-only operations (such as GET lists, search endpoints, and paginated listings) **are officially permitted to bypass full rich Domain aggregate hydration**.
 - The API layer / Persistence layer can directly project MongoDB query results into plain DTOs or primitives without instantiating domain Entities, Value Objects, or executing constructor validations.
 - **Schema Validation Safety Net**: To mitigate the risk of projecting malformed or corrupted persistent data when bypassing aggregate construction, output validation schemas (Zod) in the API layer MUST strictly validate the response DTO contract shape. This ensures data integrity at the system boundary with minimal overhead.
 - This bypass is strictly forbidden for write/mutation operations (POST, PATCH, DELETE), where full Domain aggregate lifecycle validation remains mandatory to enforce business invariants.
+- **Current scope**: the catalog `GET` routes (`/plants`, `/plants/{id}`, `/families`, `/families/{idOrSlug}`). Their use cases depend on read ports (`PlantReadRepository`, `FamilyReadRepository`) declared in each context's `application/queries/`, next to plain read views (`PlantReadView`, `FamilyReadView`). The ports live in the application layer, not in `domain/`, because they return transport-shaped data, not aggregates; write ports stay in `domain/repositories`.
+- **Enforced by a test**: `tests/apps/agroApi/wiring/readModelBoundary.test.ts` fails if a read module (`application/queries/**`, `*Read*` persistence files, `MongoReadRepository`, `MongoPageQuery`) takes a value from `domain/`, or imports anything (even a type) from `domain/entities/` or `domain/value-objects/`. Primitive types under `domain/**/types/` are allowed as `import type`. The same test checks that the read use cases and GET controllers no longer use the domain mappers.
 
 _(Note: For complete details on repository implementation and data projection rules, see **Module: Persistence (persistence.md) Sec. 5.8.8**)_
 

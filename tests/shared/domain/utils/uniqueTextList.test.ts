@@ -15,22 +15,17 @@ describe('uniqueTextList', () => {
     ['returns an empty list when every entry is blank', ['', '   '], []],
     ['returns an empty list for an empty list', [], []]
   ])('%s', (_label, values, expected) => {
-    // Act
     const result = uniqueTextList(values, PATH);
 
-    // Assert
     expect(result).toEqual(expected);
   });
 
   it('should not mutate the input list', () => {
-    // Arrange
     const values = [' a1 ', 'A1', ''];
     const copy = [...values];
 
-    // Act
     uniqueTextList(values, PATH);
 
-    // Assert
     expect(values).toEqual(copy);
   });
 
@@ -39,13 +34,10 @@ describe('uniqueTextList', () => {
     ['null', null],
     ['an object', {}]
   ])('should reject %s entry naming its index', (_label, entry) => {
-    // Arrange
     const values = ['Rose family', entry];
 
-    // Act
     const act = (): string[] => uniqueTextList(values, PATH);
 
-    // Assert
     expect(act).toThrow(InvalidArgumentException);
     expect(act).toThrow(/Family\.aliases\.1/);
   });

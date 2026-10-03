@@ -9,12 +9,7 @@ import type { PlantRepository } from '../../../domain/repositories/interfaces/Pl
 import type { PlantPersistenceMapper } from '../../../mappers/interfaces/PlantPersistenceMapper.js';
 import type { MongoPlantDocument } from '../types/MongoPlantDocument.js';
 import { PlantQueryMapper } from './mappers/PlantQueryMapper.js';
-
-// Public sort keys of the plant listing and the paths they order by.
-const SORT_FIELDS: Readonly<Record<string, string>> = {
-  name: 'identity.name.primary',
-  scientificName: 'identity.scientificName'
-};
+import { toPlantSortField } from './plantSortFields.js';
 
 export type MongoPlantRepositoryDependencies = {
   db: Db;
@@ -57,7 +52,7 @@ export class MongoPlantRepository
   }
 
   protected toMongoSortField(key: string): string {
-    return SORT_FIELDS[key] ?? key;
+    return toPlantSortField(key);
   }
 
   protected toDomain(document: MongoPlantDocument): Plant {

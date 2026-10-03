@@ -1,11 +1,11 @@
 import { ListPlants } from '../../../../../../src/Contexts/Agro/Plants/application/useCases/ListPlants.js';
 import { PlantStatus } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantStatus.js';
 import type { UserSessionInfo } from '../../../../../../src/Contexts/Auth/application/index.js';
-import { PlantRepositoryMock } from '../../__mocks__/PlantRepositoryMock.js';
-import { PlantFactory } from '../../domain/mothers/PlantFactory.js';
+import { PlantReadRepositoryMock } from '../../__mocks__/PlantReadRepositoryMock.js';
+import { PlantReadViewMother } from '../queries/PlantReadViewMother.js';
 
 describe('ListPlants', () => {
-  let repository: PlantRepositoryMock;
+  let repository: PlantReadRepositoryMock;
   let listPlants: ListPlants;
   const USER = {
     roles: ['user']
@@ -18,16 +18,13 @@ describe('ListPlants', () => {
   } as UserSessionInfo;
 
   beforeEach(() => {
-    repository = new PlantRepositoryMock();
-    listPlants = new ListPlants({ plantRepository: repository });
+    repository = new PlantReadRepositoryMock();
+    listPlants = new ListPlants({ plantReadRepository: repository });
   });
 
   it('should call repository with all plants for admin users', async () => {
-    const plant1 = PlantFactory.random();
-    plant1.markAsDeleted('test-user');
-    const plant2 = PlantFactory.random();
-    repository.addToStorage(plant1);
-    repository.addToStorage(plant2);
+    repository.addToStorage(PlantReadViewMother.deleted());
+    repository.addToStorage(PlantReadViewMother.random());
 
     await listPlants.execute(ADMIN);
 
@@ -41,12 +38,6 @@ describe('ListPlants', () => {
   });
 
   it('should call repository with active status filter for non-admin users', async () => {
-    const plant1 = PlantFactory.random();
-    plant1.markAsDeleted('test-user');
-    const plant2 = PlantFactory.random();
-    repository.addToStorage(plant1);
-    repository.addToStorage(plant2);
-
     await listPlants.execute(USER);
 
     repository.assertFindAllHasBeenCalledWith({
@@ -54,5 +45,39 @@ describe('ListPlants', () => {
         status: { eq: PlantStatus.ACTIVE }
       }
     });
+  });
+
+  it('should keep the user filter and add the active status for anonymous requests', async () => {
+    await listPlants.execute(null, {
+      query: { filter: { identity: { contains: 'tom' } } }
+    });
+
+    repository.assertFindAllHasBeenCalledWith({
+      filter: {
+        identity: { contains: 'tom' },
+        status: { eq: PlantStatus.ACTIVE }
+      }
+    });
+  });
+
+  it('should pass sort and pagination through unchanged', async () => {
+    const query = {
+      sort: { name: 'desc' as const },
+      pagination: { page: 2, limit: 5 }
+    };
+
+    await listPlants.execute(ADMIN, { query });
+
+    repository.assertFindAllHasBeenCalledWith({ ...query, filter: {} });
+  });
+
+  it('returns stored data as is, without building a Plant', async () => {
+    const plant = PlantReadViewMother.breakingABusinessRule();
+    repository.addToStorage(plant);
+
+    const result = await listPlants.execute(ADMIN);
+
+    expect(result.data).toEqual([plant]);
+    expect(result.data[0]).toBe(plant);
   });
 });

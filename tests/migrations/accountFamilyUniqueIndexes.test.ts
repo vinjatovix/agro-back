@@ -70,13 +70,10 @@ describe('account and family unique indexes migration', () => {
     it.each(UNIQUE_INDEXES)(
       'should create %s %s as unique on an empty database',
       async (collectionName, name, key) => {
-        // Arrange
         const { db, collection } = buildDb();
 
-        // Act
         await up(db);
 
-        // Assert
         expect(collection(collectionName).createIndex).toHaveBeenCalledWith(
           key,
           { name, unique: true }
@@ -85,22 +82,18 @@ describe('account and family unique indexes migration', () => {
     );
 
     it('should leave indexes with the same definition unchanged', async () => {
-      // Arrange
       const { db, stored } = buildDb();
       await up(db);
       const afterFirstRun = structuredClone([...stored.entries()]);
 
-      // Act
       await up(db);
 
-      // Assert
       expect([...stored.entries()]).toEqual(afterFirstRun);
     });
 
     it.each([85, 86])(
       'should stop naming the collection and index on a conflicting definition (code %i)',
       async (code) => {
-        // Arrange
         const { db, collection } = buildDb();
         collection('users').createIndex.mockImplementation((_key, options) =>
           options.name === 'users_username_unique'
@@ -108,10 +101,8 @@ describe('account and family unique indexes migration', () => {
             : Promise.resolve(options.name)
         );
 
-        // Act
         const result = up(db);
 
-        // Assert
         await expect(result).rejects.toThrow(
           /users_username_unique.*\busers\b/
         );
@@ -120,14 +111,11 @@ describe('account and family unique indexes migration', () => {
     );
 
     it('should stop naming the collection and index when duplicates are stored', async () => {
-      // Arrange
       const { db, collection } = buildDb();
       collection('families').createIndex.mockRejectedValue(mongoError(11000));
 
-      // Act
       const result = up(db);
 
-      // Assert
       await expect(result).rejects.toThrow(/families_slug_unique.*families/);
       expect(collection('families').dropIndex).not.toHaveBeenCalled();
     });
@@ -135,14 +123,11 @@ describe('account and family unique indexes migration', () => {
 
   describe('down', () => {
     it('should drop the three unique indexes', async () => {
-      // Arrange
       const { db, stored } = buildDb();
       await up(db);
 
-      // Act
       await down(db);
 
-      // Assert
       expect(stored.get('users')?.size).toBe(0);
       expect(stored.get('families')?.size).toBe(0);
     });
@@ -150,27 +135,21 @@ describe('account and family unique indexes migration', () => {
     it.each([26, 27])(
       'should not fail when an index or collection is missing (code %i)',
       async (code) => {
-        // Arrange
         const { db, collection } = buildDb();
         collection('users').dropIndex.mockRejectedValue(mongoError(code));
 
-        // Act
         const result = down(db);
 
-        // Assert
         await expect(result).resolves.toBeUndefined();
       }
     );
 
     it('should rethrow any other error', async () => {
-      // Arrange
       const { db, collection } = buildDb();
       collection('families').dropIndex.mockRejectedValue(mongoError(13));
 
-      // Act
       const result = down(db);
 
-      // Assert
       await expect(result).rejects.toMatchObject({ code: 13 });
     });
   });

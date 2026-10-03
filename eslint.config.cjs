@@ -46,6 +46,11 @@ module.exports = defineConfig([
 
     rules: {
       complexity: ['error', 10],
+      // Code over comments: no Arrange/Act/Assert markers in tests.
+      'no-warning-comments': [
+        'error',
+        { terms: ['arrange', 'act', 'assert'], location: 'start' }
+      ],
       // AGENTS.md import order: Node built-ins, npm packages, then parent
       // (distant first), then siblings; alphabetical within each group.
       'import-x/order': [

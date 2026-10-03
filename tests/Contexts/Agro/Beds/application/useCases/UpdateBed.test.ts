@@ -396,35 +396,30 @@ describe('UpdateBed', () => {
     const storedBed = () => repository.getStored(bed.id);
 
     it('should rename only, trimming the name, and bump the version', async () => {
-      // Act
       const updated = await useCase.execute(
         { id: bed.id, name: '  Raised bed  ' },
         USER,
         [bed.version]
       );
 
-      // Assert
       expect(updated.name.value).toBe('Raised bed');
       expect(updated.width.value).toBe(bed.width.value);
       expect(storedBed()?.version).toBe(bed.version + 1);
     });
 
     it('should change only the depth', async () => {
-      // Act
       const updated = await useCase.execute(
         { id: bed.id, depth: bed.depth.value + 5 },
         USER,
         [bed.version]
       );
 
-      // Assert
       expect(updated.depth.value).toBe(bed.depth.value + 5);
       expect(updated.name.value).toBe(bed.name.value);
       expect(updated.width.value).toBe(bed.width.value);
     });
 
     it('should neither rename nor resize for an empty update', async () => {
-      // Arrange
       const loaded = bedDomainMapper.fromPrimitives(
         bedDomainMapper.toPrimitives(bed)
       );
@@ -434,10 +429,8 @@ describe('UpdateBed', () => {
       const rename = jest.spyOn(loaded, 'rename');
       const resize = jest.spyOn(loaded, 'resize');
 
-      // Act
       const result = await useCase.execute({ id: bed.id }, USER, [bed.version]);
 
-      // Assert
       expect(rename).not.toHaveBeenCalled();
       expect(resize).not.toHaveBeenCalled();
       repository.assertUpdateCalledTimes(1);
@@ -448,35 +441,29 @@ describe('UpdateBed', () => {
 
   describe('expected version lists', () => {
     it('should proceed when the list contains the current version', async () => {
-      // Act
       const updated = await useCase.execute(
         { id: bed.id, name: 'Listed' },
         USER,
         [bed.version + 5, bed.version]
       );
 
-      // Assert
       expect(updated.name.value).toBe('Listed');
     });
 
     it('should answer stale for an empty list without writing', async () => {
-      // Act
       const update = useCase.execute({ id: bed.id, name: 'Listed' }, USER, []);
 
-      // Assert
       await expect(update).rejects.toBeInstanceOf(DomainStaleVersionException);
       repository.assertUpdateNotCalled();
     });
 
     it('should answer not found before checking an empty list', async () => {
-      // Act
       const update = useCase.execute(
         { id: randomBedId(), name: 'Listed' },
         USER,
         []
       );
 
-      // Assert
       await expect(update).rejects.toBeInstanceOf(DomainNotFoundException);
     });
   });

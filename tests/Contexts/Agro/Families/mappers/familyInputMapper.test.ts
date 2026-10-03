@@ -33,45 +33,39 @@ describe('familyInputMapper', () => {
       expect(family.extra).toEqual(dto.extra);
     });
     it('should create Family with no aliases when they are omitted', () => {
-      // Arrange
       const { aliases: _aliases, ...dto } = FamilyScenarios.createDtoBase();
 
-      // Act
       const family = familyInputMapper.fromCreateDto(dto, USER);
 
-      // Assert
       expect(family.aliases).toEqual([]);
     });
 
     it('should create Family without extra when extra is empty', () => {
-      // Arrange
       const dto = FamilyScenarios.createDtoBaseWithExtra({});
 
-      // Act
       const family = familyInputMapper.fromCreateDto(dto, USER);
 
-      // Assert
       expect(family.extra).toBeUndefined();
     });
   });
 
   describe('toChanges', () => {
-    const id = random.uuid();
+    const idOrSlug = random.uuid();
 
-    it('should include only the given fields (no id)', () => {
+    it('should include only the given fields (no idOrSlug)', () => {
       const changes = familyInputMapper.toChanges({
-        id,
+        idOrSlug,
         name: 'New Name',
         slug: 'new-slug'
       });
 
       expect(changes).toEqual({ name: 'New Name', slug: 'new-slug' });
-      expect(changes).not.toHaveProperty('id');
+      expect(changes).not.toHaveProperty('idOrSlug');
     });
 
     it('should pass padded scalars through for the domain to trim', () => {
       const changes = familyInputMapper.toChanges({
-        id,
+        idOrSlug,
         name: '  Solanaceae  ',
         slug: '  solanum  '
       });
@@ -83,21 +77,24 @@ describe('familyInputMapper', () => {
     it.each(['slug', 'name', 'scientificName', 'shortDescription'] as const)(
       'should keep %s when empty so the domain can reject it',
       (field) => {
-        const changes = familyInputMapper.toChanges({ id, [field]: '   ' });
+        const changes = familyInputMapper.toChanges({
+          idOrSlug,
+          [field]: '   '
+        });
 
         expect(changes[field]).toBe('   ');
       }
     );
 
     it('should pass extra: null through as null', () => {
-      const changes = familyInputMapper.toChanges({ id, extra: null });
+      const changes = familyInputMapper.toChanges({ idOrSlug, extra: null });
 
       expect(changes.extra).toBeNull();
     });
 
     it('should pass extra object with nullable keys through unchanged', () => {
       const changes = familyInputMapper.toChanges({
-        id,
+        idOrSlug,
         extra: { order: null, speciesCount: 32000 }
       });
 
@@ -106,7 +103,7 @@ describe('familyInputMapper', () => {
 
     it('should pass aliases and highlights through without trimming', () => {
       const changes = familyInputMapper.toChanges({
-        id,
+        idOrSlug,
         aliases: ['a1', 'a2'],
         highlights: ['h1']
       });
@@ -115,8 +112,8 @@ describe('familyInputMapper', () => {
       expect(changes.highlights).toEqual(['h1']);
     });
 
-    it('should return empty object when only id is given', () => {
-      const changes = familyInputMapper.toChanges({ id });
+    it('should return empty object when only idOrSlug is given', () => {
+      const changes = familyInputMapper.toChanges({ idOrSlug });
 
       expect(changes).toEqual({});
     });

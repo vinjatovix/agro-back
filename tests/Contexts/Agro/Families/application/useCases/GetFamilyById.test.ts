@@ -1,31 +1,25 @@
 import { GetFamilyById } from '../../../../../../src/Contexts/Agro/Families/application/useCases/GetFamilyById.js';
 import { DomainNotFoundException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { random } from '../../../../shared/fixtures/random.js';
-import { FamilyRepositoryMock } from '../../__mocks__/FamilyRepositoryMock.js';
-import { FamilyScenarios } from '../../domain/mothers/FamilyScenarios.js';
+import { FamilyReadRepositoryMock } from '../../__mocks__/FamilyReadRepositoryMock.js';
+import { FamilyReadViewMother } from '../queries/FamilyReadViewMother.js';
 
 describe('GetFamilyById', () => {
-  let repository: FamilyRepositoryMock;
+  let repository: FamilyReadRepositoryMock;
   let useCase: GetFamilyById;
 
   beforeEach(() => {
-    repository = new FamilyRepositoryMock();
-    useCase = new GetFamilyById({ familyRepository: repository });
-  });
-
-  afterEach(() => {
-    repository.clear();
+    repository = new FamilyReadRepositoryMock();
+    useCase = new GetFamilyById({ familyReadRepository: repository });
   });
 
   it('should return a family when it exists', async () => {
-    const family = FamilyScenarios.domainBase();
-
+    const family = FamilyReadViewMother.base();
     repository.addToStorage(family);
 
-    const result = await useCase.execute(family.idValue);
+    await expect(useCase.execute(family.id)).resolves.toEqual(family);
 
-    expect(result.idValue).toBe(family.idValue);
-    repository.assertFindByIdHasBeenCalledWith(family.idValue);
+    repository.assertFindByIdHasBeenCalledWith(family.id);
   });
 
   it('should throw not found error when family does not exist', async () => {
@@ -36,5 +30,12 @@ describe('GetFamilyById', () => {
     );
 
     repository.assertFindByIdHasBeenCalledWith(id);
+  });
+
+  it('returns stored data as is, without building a Family', async () => {
+    const family = FamilyReadViewMother.breakingABusinessRule();
+    repository.addToStorage(family);
+
+    await expect(useCase.execute(family.id)).resolves.toBe(family);
   });
 });

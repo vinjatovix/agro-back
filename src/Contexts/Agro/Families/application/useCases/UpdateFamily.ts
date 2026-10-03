@@ -1,5 +1,6 @@
 import { ensureFound } from '../../../../shared/application/utils/ensureFound.js';
 import { ensureVersion } from '../../../../shared/application/utils/ensureVersion.js';
+import { UuidValidator } from '../../../../shared/domain/valueObject/index.js';
 import type { Family } from '../../domain/entities/Family.js';
 import type { FamilyRepository } from '../../domain/repositories/interfaces/FamilyRepository.js';
 import { familyDomainMapper } from '../../mappers/familyDomainMapper.js';
@@ -22,13 +23,9 @@ export class UpdateFamily {
     user: string,
     expectedVersions: readonly number[]
   ): Promise<Family> {
-    const family = ensureFound(
-      await this.familyRepository.findById(input.id),
-      'Family',
-      input.id
-    );
+    const family = await this.findFamily(input.idOrSlug);
 
-    ensureVersion(family.version, expectedVersions, 'Family', input.id);
+    ensureVersion(family.version, expectedVersions, 'Family', family.idValue);
 
     const changes = familyInputMapper.toChanges(input);
     const before = familyDomainMapper.toPrimitives(family);
@@ -43,5 +40,23 @@ export class UpdateFamily {
     );
 
     return family;
+  }
+
+  /** One read of the aggregate, by id when the key is a UUID, else by slug. */
+  private async findFamily(idOrSlug: string): Promise<Family> {
+    if (UuidValidator.isValid(idOrSlug)) {
+      return ensureFound(
+        await this.familyRepository.findById(idOrSlug),
+        'Family',
+        idOrSlug
+      );
+    }
+
+    return ensureFound(
+      await this.familyRepository.findBySlug(idOrSlug),
+      'Family',
+      idOrSlug,
+      'slug'
+    );
   }
 }

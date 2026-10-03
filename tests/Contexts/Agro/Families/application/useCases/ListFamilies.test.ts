@@ -1,37 +1,24 @@
 import type { ListFamiliesDto } from '../../../../../../src/Contexts/Agro/Families/application/useCases/interfaces/ListFamiliesDto.js';
 import { ListFamilies } from '../../../../../../src/Contexts/Agro/Families/application/useCases/ListFamilies.js';
-import { FamilyRepositoryMock } from '../../__mocks__/FamilyRepositoryMock.js';
-import { FamilyScenarios } from '../../domain/mothers/FamilyScenarios.js';
+import { FamilyReadRepositoryMock } from '../../__mocks__/FamilyReadRepositoryMock.js';
+import { FamilyReadViewMother } from '../queries/FamilyReadViewMother.js';
 
 describe('ListFamilies', () => {
-  let repository: FamilyRepositoryMock;
+  let repository: FamilyReadRepositoryMock;
   let useCase: ListFamilies;
 
   beforeEach(() => {
-    repository = new FamilyRepositoryMock();
-    useCase = new ListFamilies({ familyRepository: repository });
-  });
-
-  afterEach(() => {
-    repository.clear();
+    repository = new FamilyReadRepositoryMock();
+    useCase = new ListFamilies({ familyReadRepository: repository });
   });
 
   it('should return families from repository', async () => {
-    const family1 = FamilyScenarios.domainBase();
-    const family2 = FamilyScenarios.domainBase();
-
-    repository.addToStorage(family1);
-    repository.addToStorage(family2);
+    repository.addToStorage(FamilyReadViewMother.random());
+    repository.addToStorage(FamilyReadViewMother.random());
 
     const { data } = await useCase.execute();
 
     expect(data).toHaveLength(2);
-  });
-
-  it('should call repository findAll', async () => {
-    await useCase.execute();
-
-    repository.assertFindAllCalled();
   });
 
   it('should forward query options to repository', async () => {
@@ -47,5 +34,14 @@ describe('ListFamilies', () => {
     await useCase.execute(dto);
 
     repository.assertFindAllHasBeenCalledWith(dto.query);
+  });
+
+  it('returns stored data as is, without building a Family', async () => {
+    const family = FamilyReadViewMother.breakingABusinessRule();
+    repository.addToStorage(family);
+
+    const { data } = await useCase.execute();
+
+    expect(data[0]).toBe(family);
   });
 });

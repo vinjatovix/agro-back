@@ -203,3 +203,22 @@ Feature: Get All Families
       { "errors": { "filter.name": "Use one operator per field" } }
       """
     And response matches OpenAPI contract
+
+  Scenario: A stored field outside the contract is not listed
+    Given a family exists with an extra stored field "internalNote"
+    When I send a GET request to "/api/v1/families"
+    Then the response status code should be 200
+    And the list should contain at least 1 item
+    And the response body should not echo "internalNote"
+    And response matches OpenAPI contract
+
+  Scenario: A page holding a family that breaks the contract answers 500 with no data
+    Given a stored family is missing the required field "shortDescription"
+    When I send a GET request to "/api/v1/families"
+    Then the response status code should be 500
+    And the response body should be
+      """
+      {
+        "message": "Internal server error"
+      }
+      """

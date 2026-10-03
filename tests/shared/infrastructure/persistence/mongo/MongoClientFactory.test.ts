@@ -30,10 +30,8 @@ describe('MongoClientFactory', () => {
   });
 
   it('should only connect, never touching indexes', async () => {
-    // Act
     await MongoClientFactory.createClient('indexes-ctx', buildConfig());
 
-    // Assert
     expect(connect).toHaveBeenCalledTimes(1);
     expect(db).not.toHaveBeenCalled();
     expect(collection).not.toHaveBeenCalled();
@@ -41,20 +39,17 @@ describe('MongoClientFactory', () => {
   });
 
   it('should reuse the cached client of a context without reconnecting', async () => {
-    // Arrange
     const first = await MongoClientFactory.createClient(
       'cached-ctx',
       buildConfig()
     );
     connect.mockClear();
 
-    // Act
     const second = await MongoClientFactory.createClient(
       'cached-ctx',
       buildConfig()
     );
 
-    // Assert
     expect(second).toBe(first);
     expect(connect).not.toHaveBeenCalled();
     expect(jest.mocked(MongoClient)).toHaveBeenCalledTimes(1);

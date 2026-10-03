@@ -14,10 +14,8 @@ import {
   DomainStaleVersionException
 } from '../../../../../../../src/Contexts/shared/domain/errors/index.js';
 import type { EnvironmentArranger } from '../../../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
-import {
-  DBClientFactory,
-  DBConfigFactory
-} from '../../../../../../../src/shared/infrastructure/persistence/index.js';
+import { DBClientFactory } from '../../../../../../../src/shared/infrastructure/persistence/index.js';
+import { createTestDBConfig } from '../../../../../../shared/infrastructure/persistence/mongo/testDBConfig.js';
 import { SOURCE_ROOT } from '../../../../../../shared/sourceRoot.js';
 import { random } from '../../../../../shared/fixtures/random.js';
 import { PlantInstanceMother } from '../../../../PlantInstances/domain/mothers/PlantInstanceMother.js';
@@ -42,7 +40,7 @@ describe('MongoBedRepository', () => {
   beforeAll(async () => {
     client = await DBClientFactory.createClient(
       'agroApi-test',
-      DBConfigFactory.createConfig()
+      createTestDBConfig()
     );
 
     const db = client.db();

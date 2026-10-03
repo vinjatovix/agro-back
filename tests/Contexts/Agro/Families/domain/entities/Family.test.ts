@@ -122,18 +122,14 @@ describe('Family normalisation on create', () => {
   ] as const;
 
   it.each(REQUIRED_TEXTS)('should trim %s', (field) => {
-    // Act
     const family = FamilyScenarios.domainRandom({ [field]: '  Rosaceae  ' });
 
-    // Assert
     expect(family[field]).toBe('Rosaceae');
   });
 
   it.each(REQUIRED_TEXTS)('should reject a whitespace-only %s', (field) => {
-    // Act
     const act = (): unknown => FamilyScenarios.domainRandom({ [field]: '   ' });
 
-    // Assert
     expect(act).toThrow(InvalidArgumentException);
     expect(act).toThrow(new RegExp(`Family\\.${field}`));
   });
@@ -141,12 +137,10 @@ describe('Family normalisation on create', () => {
   it.each(['aliases', 'highlights'] as const)(
     'should normalise %s with the text-list rule',
     (field) => {
-      // Act
       const family = FamilyScenarios.domainRandom({
         [field]: ['Rose family', ' rose family ', '', 'Roses']
       });
 
-      // Assert
       expect(family[field]).toEqual(['Rose family', 'Roses']);
     }
   );
@@ -154,35 +148,29 @@ describe('Family normalisation on create', () => {
   it.each(['aliases', 'highlights'] as const)(
     'should reject a non-string entry in %s',
     (field) => {
-      // Act
       const act = (): unknown =>
         FamilyScenarios.domainRandom({
           [field]: ['Roses', 1] as unknown as string[]
         });
 
-      // Assert
       expect(act).toThrow(InvalidArgumentException);
       expect(act).toThrow(new RegExp(`Family\\.${field}\\.1`));
     }
   );
 
   it('should drop an empty extra', () => {
-    // Act
     const family = FamilyScenarios.domainBaseWithExtra({});
 
-    // Assert
     expect(family.extra).toBeUndefined();
     expect(familyDomainMapper.toPrimitives(family)).not.toHaveProperty('extra');
   });
 
   it('should normalise extra', () => {
-    // Act
     const family = FamilyScenarios.domainBaseWithExtra({
       order: '  Rosales ',
       subfamilies: ['  Rosoideae ', 'rosoideae']
     });
 
-    // Assert
     expect(family.extra).toEqual({
       order: 'Rosales',
       subfamilies: ['Rosoideae']
