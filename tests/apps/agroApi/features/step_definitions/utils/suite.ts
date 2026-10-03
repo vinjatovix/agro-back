@@ -15,7 +15,11 @@ import {
 import { UserMother } from '../../../../../Contexts/Auth/domain/mothers/UserMother.js';
 import { random } from '../../../../../Contexts/shared/fixtures/random.js';
 import { SOURCE_ROOT } from '../../../../../shared/sourceRoot.js';
-import { FamilySeeder, PlantSeeder } from '../../shared/seeders/index.js';
+import {
+  FamilySeeder,
+  PlantSeeder,
+  UserSeeder
+} from '../../shared/seeders/index.js';
 
 export type SuiteRole = 'admin' | 'user' | 'anotherUser' | 'collaborator';
 
@@ -31,6 +35,7 @@ export interface SuiteResources {
   readonly seeders: Readonly<{
     plant: ReturnType<typeof PlantSeeder>;
     family: ReturnType<typeof FamilySeeder>;
+    user: ReturnType<typeof UserSeeder>;
   }>;
 }
 
@@ -121,7 +126,8 @@ const buildSuite = async (): Promise<SuiteResources> => {
     ids,
     seeders: {
       family: FamilySeeder(httpServer, tokens.admin),
-      plant: PlantSeeder(httpServer, tokens.admin)
+      plant: PlantSeeder(httpServer, tokens.admin),
+      user: UserSeeder(httpServer)
     }
   };
 };

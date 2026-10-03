@@ -65,6 +65,13 @@ Given(
   }
 );
 
+Given(
+  'a user exists with username {string}',
+  async function (this: AgroWorld, username: string) {
+    await suite().seeders.user.create({ username });
+  }
+);
+
 Then(
   'the response body should include an auth token',
   async function (this: AgroWorld) {

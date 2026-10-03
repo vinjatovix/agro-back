@@ -418,6 +418,26 @@ Feature: Update Family
     And the response errors should include "slug"
     And response matches OpenAPI contract
 
+  Scenario: Updating a family to the slug of another family returns conflict
+    Given another family exists with slug "taken-slug"
+    And I record the current family
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/families/<familyId>" with body
+      """
+      {
+        "slug": "taken-slug"
+      }
+      """
+    Then the response status code should be 409
+    And the response body should be
+      """
+      {
+        "message": "Duplicate document with {\"slug\":\"taken-slug\"}"
+      }
+      """
+    And the family should be unchanged
+    And response matches OpenAPI contract
+
   Scenario: A successful update answers from memory with the acting user's audit data
     Given the family was last updated by another user
     And I use If-Match '"0"'

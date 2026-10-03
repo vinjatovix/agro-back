@@ -1,4 +1,4 @@
-import { Collection, type MongoClient } from 'mongodb';
+import { Collection, type MongoClient, MongoServerError } from 'mongodb';
 import {
   type AppContainer,
   createAppContainer
@@ -9,6 +9,7 @@ import type { PlantRepository } from '../../../../../../../src/Contexts/Agro/Pla
 import { plantDomainMapper } from '../../../../../../../src/Contexts/Agro/Plants/mappers/plantDomainMapper.js';
 import { ensureFound } from '../../../../../../../src/Contexts/shared/application/utils/ensureFound.js';
 import {
+  DomainConflictException,
   DomainNotFoundException,
   DomainStaleVersionException
 } from '../../../../../../../src/Contexts/shared/domain/errors/index.js';
@@ -249,6 +250,35 @@ describe('MongoPlantRepository', () => {
         expect(countSpy).toHaveBeenCalledTimes(1);
       } finally {
         countSpy.mockRestore();
+      }
+    });
+
+    it('should throw DomainConflictException when the update hits a duplicate key error', async () => {
+      const plant = PlantFactory.random();
+      await repository.save(plant);
+      const current = plantDomainMapper.toPrimitives(plant);
+      const updateSpy = jest
+        .spyOn(Collection.prototype, 'updateOne')
+        .mockRejectedValueOnce(
+          new MongoServerError({
+            code: 11000,
+            errmsg: 'duplicate key',
+            keyValue: { 'identity.scientificName': 'Plantus repeatus' }
+          })
+        );
+
+      try {
+        await expect(
+          repository.updateWithDiff(current, {
+            ...current,
+            identity: {
+              ...current.identity,
+              scientificName: 'Plantus repeatus'
+            }
+          })
+        ).rejects.toThrow(DomainConflictException);
+      } finally {
+        updateSpy.mockRestore();
       }
     });
 
