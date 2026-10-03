@@ -1,5 +1,5 @@
 import { jest, expect } from '@jest/globals';
-import type { CryptAdapter } from '../../../../src/Contexts/shared/plugins/CryptAdapter.js';
+import type { EncrypterAdapter } from '../../../../src/Contexts/shared/plugins/EncrypterAdapter.js';
 import type { Nullable } from '../../../../src/shared/domain/types/Nullable.js';
 import type { UnknownRecord } from '../../../../src/shared/domain/types/UnknownRecord.js';
 import { EmailMother } from '../../shared/domain/mothers/EmailMother.js';
@@ -17,7 +17,7 @@ const DEFAULT_OPTIONS: Options = {
   refresh: true
 };
 
-export class CryptAdapterMock implements CryptAdapter {
+export class EncrypterAdapterMock implements EncrypterAdapter {
   private readonly hashMock: jest.Mock<(password: string) => string>;
   private readonly compareMock: jest.Mock<
     (value: string, encryptedValue: string) => boolean

@@ -11,7 +11,7 @@ describe('GetBedById', () => {
 
   beforeEach(() => {
     repository = new BedRepositoryMock();
-    useCase = new GetBedById(repository);
+    useCase = new GetBedById({ bedRepository: repository });
   });
 
   it('should search the active bed owned by the user', async () => {

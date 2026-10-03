@@ -9,27 +9,27 @@ import {
 } from '../../controllers/Auth/index.js';
 
 const api = ({
-  registerUserController,
-  loginUserController,
+  registerUserLocalController,
+  loginUserLocalController,
   authenticateWithGoogleController,
   validateMailController,
   refreshTokenController,
-  updatePasswordController
+  updatePasswordLocalController
 }: {
-  registerUserController: RegisterUserLocalController;
-  loginUserController: LoginUserLocalController;
+  registerUserLocalController: RegisterUserLocalController;
+  loginUserLocalController: LoginUserLocalController;
   authenticateWithGoogleController: AuthenticateWithGoogleController;
   validateMailController: ValidateMailController;
   refreshTokenController: RefreshTokenController;
-  updatePasswordController: UpdatePasswordLocalController;
+  updatePasswordLocalController: UpdatePasswordLocalController;
 }) => {
   return {
-    registerUser: registerUserController.run,
-    login: loginUserController.run,
+    registerUser: registerUserLocalController.run,
+    login: loginUserLocalController.run,
     authenticateWithGoogle: authenticateWithGoogleController.run,
     validateMail: validateMailController.run,
     refreshToken: refreshTokenController.run,
-    updatePassword: updatePasswordController.run
+    updatePassword: updatePasswordLocalController.run
   };
 };
 

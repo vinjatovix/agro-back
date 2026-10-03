@@ -15,10 +15,10 @@ jest.mock('jsonwebtoken', () => ({
   }
 }));
 
-import { CryptAdapter } from '../../../../src/Contexts/shared/plugins/CryptAdapter.js';
+import { EncrypterAdapter } from '../../../../src/Contexts/shared/plugins/EncrypterAdapter.js';
 import type { UnknownRecord } from '../../../../src/shared/domain/types/UnknownRecord.js';
 
-describe('CryptAdapter', () => {
+describe('EncrypterAdapter', () => {
   const mockedGenSaltSync = genSaltSync as jest.MockedFunction<
     typeof genSaltSync
   >;
@@ -31,11 +31,11 @@ describe('CryptAdapter', () => {
     verify: jest.Mock;
   };
 
-  let adapter: CryptAdapter;
+  let adapter: EncrypterAdapter;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    adapter = new CryptAdapter();
+    adapter = new EncrypterAdapter();
   });
 
   describe('hash', () => {

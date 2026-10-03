@@ -4,8 +4,16 @@ import { ensureVersion } from '../../../../shared/application/utils/ensureVersio
 import type { BedRepository } from '../../domain/repositories/interfaces/BedRepository.js';
 import { bedDomainMapper } from '../../mappers/bedDomainMapper.js';
 
+export type DeleteBedDependencies = {
+  bedRepository: BedRepository;
+};
+
 export class DeleteBed {
-  constructor(private readonly bedRepository: BedRepository) {}
+  private readonly bedRepository: BedRepository;
+
+  constructor({ bedRepository }: DeleteBedDependencies) {
+    this.bedRepository = bedRepository;
+  }
 
   async execute(
     id: string,

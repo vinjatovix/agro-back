@@ -11,7 +11,7 @@ describe('CreateFamily', () => {
 
   beforeEach(() => {
     repository = new FamilyRepositoryMock();
-    useCase = new CreateFamily(repository);
+    useCase = new CreateFamily({ familyRepository: repository });
   });
 
   afterEach(() => {

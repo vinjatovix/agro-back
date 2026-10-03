@@ -25,7 +25,10 @@ describe('UpdatePlant use case', () => {
   beforeEach(() => {
     repository = new PlantRepositoryMock();
     familyRepository = new FamilyRepositoryMock();
-    useCase = new UpdatePlant(repository, familyRepository);
+    useCase = new UpdatePlant({
+      plantRepository: repository,
+      familyRepository
+    });
   });
 
   it('should update plant name', async () => {

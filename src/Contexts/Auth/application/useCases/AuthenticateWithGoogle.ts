@@ -21,12 +21,26 @@ const INVALID_GOOGLE_TOKEN_MESSAGE = 'Invalid Google token';
 const TOKEN_GENERATION_ERROR_MESSAGE =
   'Failed to generate authentication token';
 
+export type AuthenticateWithGoogleDependencies = {
+  authRepository: AuthRepository;
+  encrypter: EncrypterTool;
+  googleIdTokenVerifier: GoogleIdTokenVerifierTool;
+};
+
 export class AuthenticateWithGoogle {
-  constructor(
-    private readonly repository: AuthRepository,
-    private readonly encrypter: EncrypterTool,
-    private readonly googleIdTokenVerifier: GoogleIdTokenVerifierTool
-  ) {}
+  private readonly authRepository: AuthRepository;
+  private readonly encrypter: EncrypterTool;
+  private readonly googleIdTokenVerifier: GoogleIdTokenVerifierTool;
+
+  constructor({
+    authRepository,
+    encrypter,
+    googleIdTokenVerifier
+  }: AuthenticateWithGoogleDependencies) {
+    this.authRepository = authRepository;
+    this.encrypter = encrypter;
+    this.googleIdTokenVerifier = googleIdTokenVerifier;
+  }
 
   async run({ idToken }: AuthenticateWithGoogleRequest): Promise<string> {
     const tokenPayload =
@@ -48,7 +62,7 @@ export class AuthenticateWithGoogle {
     email: string,
     providerUserId: string
   ): Promise<User> {
-    const existingByProvider = await this.repository.searchByProvider(
+    const existingByProvider = await this.authRepository.searchByProvider(
       'google',
       providerUserId
     );
@@ -60,7 +74,7 @@ export class AuthenticateWithGoogle {
       return existingByProvider;
     }
 
-    const existingByEmail = await this.repository.search(email);
+    const existingByEmail = await this.authRepository.search(email);
     if (existingByEmail) {
       const linkedMethod = existingByEmail.findAuthMethod('google');
       if (linkedMethod && linkedMethod.providerUserId !== providerUserId) {
@@ -99,7 +113,7 @@ export class AuthenticateWithGoogle {
       ]
     });
 
-    await this.repository.update(userPatch);
+    await this.authRepository.update(userPatch);
   }
 
   private async createGoogleUser(
@@ -125,7 +139,7 @@ export class AuthenticateWithGoogle {
       metadata: Metadata.create(username.value)
     });
 
-    await this.repository.save(user);
+    await this.authRepository.save(user);
     logger.info(
       `Created user <${user.username.value}> with Google authentication`
     );

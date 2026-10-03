@@ -11,17 +11,22 @@ const INVALID_CREDENTIALS_MESSAGE = 'Invalid credentials';
 const TOKEN_GENERATION_ERROR_MESSAGE =
   'Failed to generate authentication token';
 
+export type LoginUserLocalDependencies = {
+  authRepository: AuthRepository;
+  encrypter: EncrypterTool;
+};
+
 export class LoginUserLocal {
-  private readonly repository: AuthRepository;
+  private readonly authRepository: AuthRepository;
   private readonly encrypter: EncrypterTool;
 
-  constructor(repository: AuthRepository, encrypter: EncrypterTool) {
-    this.repository = repository;
+  constructor({ authRepository, encrypter }: LoginUserLocalDependencies) {
+    this.authRepository = authRepository;
     this.encrypter = encrypter;
   }
 
   async run({ email, password }: LoginUserRequest): Promise<string> {
-    const storedUser = await this.repository.search(email);
+    const storedUser = await this.authRepository.search(email);
     if (!storedUser) {
       throw new DomainUnauthorizedException(INVALID_CREDENTIALS_MESSAGE);
     }

@@ -8,11 +8,13 @@ import {
   DBClientFactory,
   DBConfigFactory
 } from '../../shared/infrastructure/persistence/index.js';
+import { createAppContainer } from './container.js';
 import { Server } from './server.js';
 
 export interface AgroBackAppConfig {
   host: string;
   port: string;
+  sourceRoot: string;
 }
 
 export class AgroBackApp {
@@ -24,17 +26,19 @@ export class AgroBackApp {
   constructor(private readonly config: AgroBackAppConfig) {}
 
   async start(logger: AppLogger): Promise<void> {
-    const { host, port } = this.config;
+    const { host, port, sourceRoot } = this.config;
     this.client = await DBClientFactory.createClient(
       'agroApi',
       DBConfigFactory.createConfig()
     );
     this.db = this.client.db();
     attachMongoTransport(this.client);
-    this.server = new Server(host, port, logger, {
+    const container = await createAppContainer({
       db: this.db,
-      client: this.client
+      client: this.client,
+      sourceRoot
     });
+    this.server = new Server(host, port, logger, container);
 
     await this.server.listen();
 

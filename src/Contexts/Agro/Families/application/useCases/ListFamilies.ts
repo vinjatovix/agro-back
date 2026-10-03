@@ -3,10 +3,18 @@ import type { Family } from '../../domain/entities/Family.js';
 import type { FamilyRepository } from '../../domain/repositories/interfaces/FamilyRepository.js';
 import type { ListFamiliesDto } from './interfaces/ListFamiliesDto.js';
 
+export type ListFamiliesDependencies = {
+  familyRepository: FamilyRepository;
+};
+
 export class ListFamilies {
-  constructor(private readonly repository: FamilyRepository) {}
+  private readonly familyRepository: FamilyRepository;
+
+  constructor({ familyRepository }: ListFamiliesDependencies) {
+    this.familyRepository = familyRepository;
+  }
 
   async execute(dto?: ListFamiliesDto): Promise<PaginatedResult<Family>> {
-    return this.repository.findAll(dto?.query);
+    return this.familyRepository.findAll(dto?.query);
   }
 }

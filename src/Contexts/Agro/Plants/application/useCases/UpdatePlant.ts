@@ -11,11 +11,19 @@ import type { UpdatePlantDto } from './interfaces/UpdatePlantDto.js';
 
 export type UpdatePlantInput = UpdatePlantDto & { id: string };
 
+export type UpdatePlantDependencies = {
+  plantRepository: PlantRepository;
+  familyRepository: FamilyRepository;
+};
+
 export class UpdatePlant {
-  constructor(
-    private readonly plantRepository: PlantRepository,
-    private readonly familyRepository: FamilyRepository
-  ) {}
+  private readonly plantRepository: PlantRepository;
+  private readonly familyRepository: FamilyRepository;
+
+  constructor({ plantRepository, familyRepository }: UpdatePlantDependencies) {
+    this.plantRepository = plantRepository;
+    this.familyRepository = familyRepository;
+  }
 
   async execute(
     input: UpdatePlantInput,

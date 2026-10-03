@@ -4,8 +4,16 @@ import type { BedRepository } from '../../domain/repositories/interfaces/BedRepo
 import { bedInputMapper } from '../../mappers/bedInputMapper.js';
 import type { CreateBedInput } from './interfaces/CreateBedInput.js';
 
+export type CreateBedDependencies = {
+  bedRepository: BedRepository;
+};
+
 export class CreateBed {
-  constructor(private readonly bedRepository: BedRepository) {}
+  private readonly bedRepository: BedRepository;
+
+  constructor({ bedRepository }: CreateBedDependencies) {
+    this.bedRepository = bedRepository;
+  }
 
   async execute(dtoWithUserId: CreateBedInput, user: string): Promise<Bed> {
     const exists = await this.bedRepository.exists(dtoWithUserId.id);
