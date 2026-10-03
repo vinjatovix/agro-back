@@ -21,6 +21,8 @@ RUN groupadd -r appgroup && useradd -r -g appgroup -m appuser
 COPY --chown=appuser:appgroup --chmod=555 --from=deps /app/node_modules /app/node_modules
 COPY --chown=appuser:appgroup --chmod=555 --from=build /app/dist /app/dist
 COPY --chown=appuser:appgroup --chmod=555 --from=build /app/package.json /app/package.json
+# Migrations run at start-up from `migrations/scripts`, relative to /app.
+COPY --chown=appuser:appgroup --chmod=555 --from=build /app/migrations/scripts/*.js /app/migrations/scripts/
 
 RUN mkdir -p /app/logs && chown -R appuser:appgroup /app/logs
 

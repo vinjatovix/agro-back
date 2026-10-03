@@ -189,7 +189,10 @@ export abstract class MongoCrudRepository<
     if (hasSet) updateQuery.$set = patch.set;
     if (hasUnset) updateQuery.$unset = patch.unset;
 
-    const result = await this.collection().updateOne(writeFilter, updateQuery);
+    // A duplicate key (e.g. a slug already in use) answers 409, as on create.
+    const result = await this.handleMongoError(() =>
+      this.collection().updateOne(writeFilter, updateQuery)
+    );
 
     if (result.matchedCount > 0) return 'written';
 

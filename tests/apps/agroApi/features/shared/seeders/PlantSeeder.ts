@@ -12,7 +12,8 @@ export const PlantSeeder = (httpServer: Server, token: string) => {
         id: random.uuid(),
         identity: {
           name: { primary: 'Test plant' },
-          scientificName: 'Plantus testus',
+          // Unique: plant scientific names are unique ignoring case.
+          scientificName: `Plantus ${random.word({ min: 8, max: 16 })}`,
           family: 'fam_test'
         },
         traits: {

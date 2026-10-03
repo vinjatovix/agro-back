@@ -890,6 +890,93 @@ Feature: Create a new plant
     Then the response status code should be 409
     And response matches OpenAPI contract
 
+  Scenario: Fail to create a plant whose scientific name is already used ignoring case
+    Given a family exists
+    And the following plants exist:
+      | name   | scientificName       |
+      | Tomato | Solanum lycopersicum |
+    When a POST admin request to "/api/v1/plants" with body
+      """
+      {
+        "id": "2d9c4b1e-7a3f-4e65-8b0d-5c1f9e2a7b34",
+        "identity": {
+          "name": { "primary": "Cherry tomato" },
+          "scientificName": "solanum lycopersicum",
+          "family": "<familyId>"
+        },
+        "traits": {
+          "lifecycle": "perennial",
+          "size": {
+            "height": { "min": 10, "max": 50 },
+            "spread": { "min": 10, "max": 30 }
+          },
+          "spacingCm": { "min": 20, "max": 40 }
+        },
+        "phenology": {
+          "sowing": {
+            "months": [3, 4],
+            "seedsPerHole": { "min": 1, "max": 2 },
+            "germinationDays": { "min": 10, "max": 20 },
+            "methods": { "direct": { "depthCm": { "min": 1, "max": 2 } } }
+          }
+        },
+        "knowledge": {
+          "rootSystem": { "type": "rhizome", "depthCm": { "min": 10, "max": 60 }, "spreadCm": { "min": 10, "max": 80 } },
+          "soil": {
+            "ph": { "min": 5, "max": 7 },
+            "availableDepthCm": { "min": 20, "max": 40 }
+          },
+          "light": { "hoursMin": 4, "type": "partial_shade" },
+          "propagation": { "methods": { "division": { "seasons": ["spring"] } } }
+        }
+      }
+      """
+    Then the response status code should be 409
+    And response matches OpenAPI contract
+    And a GET admin request to "/api/v1/plants/2d9c4b1e-7a3f-4e65-8b0d-5c1f9e2a7b34" should return status 404
+
+  Scenario: A soft-deleted plant keeps its scientific name reserved
+    Given a family exists
+    And a soft-deleted plant exists with scientific name "Lactuca sativa"
+    When a POST admin request to "/api/v1/plants" with body
+      """
+      {
+        "id": "6e1a3c5b-9d2f-4a87-b6c4-0f8e2d1a3b59",
+        "identity": {
+          "name": { "primary": "Reused name" },
+          "scientificName": "Lactuca sativa",
+          "family": "<familyId>"
+        },
+        "traits": {
+          "lifecycle": "perennial",
+          "size": {
+            "height": { "min": 10, "max": 50 },
+            "spread": { "min": 10, "max": 30 }
+          },
+          "spacingCm": { "min": 20, "max": 40 }
+        },
+        "phenology": {
+          "sowing": {
+            "months": [3, 4],
+            "seedsPerHole": { "min": 1, "max": 2 },
+            "germinationDays": { "min": 10, "max": 20 },
+            "methods": { "direct": { "depthCm": { "min": 1, "max": 2 } } }
+          }
+        },
+        "knowledge": {
+          "rootSystem": { "type": "rhizome", "depthCm": { "min": 10, "max": 60 }, "spreadCm": { "min": 10, "max": 80 } },
+          "soil": {
+            "ph": { "min": 5, "max": 7 },
+            "availableDepthCm": { "min": 20, "max": 40 }
+          },
+          "light": { "hoursMin": 4, "type": "partial_shade" },
+          "propagation": { "methods": { "division": { "seasons": ["spring"] } } }
+        }
+      }
+      """
+    Then the response status code should be 409
+    And response matches OpenAPI contract
+
   # The bounds order is a domain rule (`Range`), not a request-shape one.
   Scenario: Fail to create a plant with invalid range values
     Given a family exists

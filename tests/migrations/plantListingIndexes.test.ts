@@ -5,7 +5,7 @@ import {
   type MigrationIndex,
   type MigrationIndexOptions,
   up
-} from '../../migrations/1.0.0/20261003120000-plant-listing-indexes.js';
+} from '../../migrations/scripts/20261003120000-plant-listing-indexes.js';
 
 const PLANT_COLLATION = { locale: 'es', strength: 2 };
 

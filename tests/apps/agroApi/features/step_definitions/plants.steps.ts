@@ -65,20 +65,37 @@ Given(
   }
 );
 
-Given('a soft-deleted plant exists', async function (this: AgroWorld) {
+const createSoftDeletedPlant = async (
+  world: AgroWorld,
+  overrides: Record<string, unknown> = {}
+): Promise<void> => {
   const [plant] = await suite().seeders.plant.createMany(1, {
-    'identity.family': this.familyId
+    'identity.family': world.familyId,
+    ...overrides
   });
   assert.exists(plant, 'PlantSeeder created no plants');
 
   const plantIdStr = plant.id.toString();
 
-  this.storedDocument = await softDeleteDocument('plants', plantIdStr, {
+  world.storedDocument = await softDeleteDocument('plants', plantIdStr, {
     status: PlantStatus.DELETED,
     deletedAt: new Date().toISOString()
   });
-  this.plantId = plantIdStr;
+  world.plantId = plantIdStr;
+};
+
+Given('a soft-deleted plant exists', async function (this: AgroWorld) {
+  await createSoftDeletedPlant(this);
 });
+
+Given(
+  'a soft-deleted plant exists with scientific name {string}',
+  async function (this: AgroWorld, scientificName: string) {
+    await createSoftDeletedPlant(this, {
+      'identity.scientificName': scientificName
+    });
+  }
+);
 
 When('I get the plant', function (this: AgroWorld) {
   if (!this.plantId) {

@@ -1,8 +1,7 @@
 import { UUID } from 'bson';
 import { MongoClient } from 'mongodb';
 
-import type { IndexConfig, MongoConfig } from './interfaces/index.js';
-import { INDEXES } from './MongoCollectionIndexes.js';
+import type { MongoConfig } from './interfaces/index.js';
 
 export class MongoClientFactory {
   private static clients: Record<string, MongoClient> = {};
@@ -20,8 +19,6 @@ export class MongoClientFactory {
       client = await MongoClientFactory.createAndConnectClient(config);
 
       MongoClientFactory.registerClient(client, contextName);
-
-      await MongoClientFactory.ensureIndexes(client, config.db, INDEXES);
     }
 
     return client;
@@ -94,33 +91,5 @@ export class MongoClientFactory {
     if (client) {
       await client.close();
     }
-  }
-
-  private static async ensureIndexes(
-    client: MongoClient,
-    dbName: string,
-    indexConfigs: IndexConfig[]
-  ): Promise<void> {
-    const db = client.db(dbName);
-
-    await Promise.all(
-      indexConfigs.flatMap(({ collection, indexes }) =>
-        indexes.map(async ({ fields, options }) => {
-          try {
-            await db.collection(collection).createIndex(fields, options);
-            console.info(
-              `Mongo index ensured: ${collection} ${JSON.stringify(fields)}`
-            );
-          } catch (error) {
-            console.error(
-              `Error creating index in ${collection}: ${JSON.stringify(fields)}`,
-              error
-            );
-
-            throw error;
-          }
-        })
-      )
-    );
   }
 }

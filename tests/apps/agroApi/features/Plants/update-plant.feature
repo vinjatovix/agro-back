@@ -60,6 +60,26 @@ Feature: Update a plant
       """
     And response matches OpenAPI contract
 
+  Scenario: Fail to update a plant to a scientific name already used
+    Given a family exists
+    And a plant exists
+    And the following plants exist:
+      | name   | scientificName       |
+      | Tomato | Solanum lycopersicum |
+    And I record the current plant
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "identity": {
+          "scientificName": "SOLANUM LYCOPERSICUM"
+        }
+      }
+      """
+    Then the response status code should be 409
+    And the plant should be unchanged
+    And response matches OpenAPI contract
+
   Scenario: Fail to update with invalid UUID
     Given I use If-Match '"0"'
     When I send a PATCH admin request to "/api/v1/plants/invalid-uuid" with body

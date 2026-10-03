@@ -419,11 +419,11 @@ This rule ensures:
 
 ---
 
-### 5.7 MIGRATIONS `[TARGET STATE (Pending [Iteration 17](../../roadmap.md#iteration-17-integrate-formal-schema-migrations-migrate-mongo))]`
+### 5.7 MIGRATIONS (Completed — [Iteration 17](../../roadmap.md#iteration-17-integrate-formal-schema-migrations-migrate-mongo))
 
-#### 5.7.1 Purpose `[TARGET STATE (Pending [Iteration 17](../../roadmap.md#iteration-17-integrate-formal-schema-migrations-migrate-mongo))]`
+#### 5.7.1 Purpose
 
-Migrations are infrastructure lifecycle tools responsible for evolving the MongoDB schema over time.
+Migrations are infrastructure lifecycle tools responsible for evolving the MongoDB schema over time. They are run by `migrate-mongo` and recorded in the `changelog` collection, which is the single source of truth for the schema version.
 
 They are NOT part of domain, application, or repository logic.
 
@@ -433,35 +433,41 @@ They are NOT part of domain, application, or repository logic.
 
 Migrations are responsible for:
 
-- creating indexes (e.g. unique slug constraints)
+- creating, changing and dropping indexes (e.g. unique slug constraints)
 - evolving collection structure
 - backfilling data when necessary
-- ensuring schema consistency across versions
+- ensuring schema consistency across environments
+
+**Indexes live only in migrations.** Opening a connection (`MongoClientFactory.createClient`) only connects: it never creates, changes or drops an index. The start-up index list (`MongoCollectionIndexes.ts`) was removed in Iteration 17 because several instances starting at once raced to build the same indexes, and nothing recorded when or why an index appeared. The only index not created by a migration is the TTL index `migrate-mongo` builds on its own lock collection (Sec. 5.7.4).
 
 ---
 
-#### 5.7.3 Execution Context
+#### 5.7.3 Execution Context and Deployment Order
 
-Migrations:
-
-- run at application startup OR deployment phase
-- are executed once per version
-- MUST be idempotent or tracked via changelog collection
-- a failed migration aborts startup (`migrations/index.ts` logs and rethrows; the process exits with code `1`), so the API never serves over a partially migrated schema
+- `src/apps/agroApi/server.ts` calls `migrations.up()` (`migrations/index.ts`) before the HTTP server listens: migrations run, and must succeed, before the service serves requests.
+- Every migration lives in one flat folder, `migrations/scripts/`, whatever the application version. `migrate-mongo` orders them by their timestamp prefix and skips those already in `changelog`, so a new database receives every migration ever written, oldest first. (Until Iteration 17 the folder was named after the `package.json` version, so a database started on a later version skipped earlier folders.)
+- The production image ships `migrations/scripts/*.js` at `/app/migrations/scripts/` (`Dockerfile`), next to the working directory the runner resolves against; the `.d.ts` test types are not shipped.
+- A failed migration aborts startup (`migrations/index.ts` logs and rethrows; the process exits with code `1`), so the API never serves over a partially migrated schema.
+- Every migration MUST be safe to re-run (second line of defence behind the lock).
 
 ---
 
-#### 5.7.4 Storage
+#### 5.7.4 Storage and Lock
 
-Migration state is stored in:
+| Setting                   | Value                | Notes                                                                                 |
+| ------------------------- | -------------------- | ------------------------------------------------------------------------------------- |
+| `migrationsDir`           | `migrations/scripts` | Flat; no version folders.                                                             |
+| `changelogCollectionName` | `changelog`          | Each entry: `fileName`, `appliedAt`, `migrationBlock`. Only the file name is matched. |
+| `lockCollectionName`      | `changelog_lock`     | `migrate-mongo`'s built-in lock.                                                      |
+| `lockTtl`                 | `300` seconds        | Fixed on purpose (see below).                                                         |
 
-- changelog collection
+`buildMigrationsConfig(url)` in `migrations/index.ts` returns these settings (unit-tested).
 
-Each entry tracks:
+**Lock behaviour**: `up` checks for a lock document, inserts one, applies the pending migrations and clears it (also when a migration fails). If a lock is already in place, start-up fails fast with `Could not migrate up, a lock is in place.`, serves no requests and applies nothing; the orchestrator's restart is the retry. A holder that dies leaves its lock to expire through the TTL index (`createdAt`, `expireAfterSeconds: 300`); MongoDB's TTL monitor runs every 60 s, so a dead holder blocks start-up for at most about 6 minutes.
 
-- fileName
-- appliedAt
-- version block
+**The TTL is frozen**: `migrate-mongo` creates the TTL index without awaiting it, so changing `lockTtl` later makes that `createIndex` reject and crash start-up (unhandled rejection). A change needs a migration that runs `collMod` on `changelog_lock` first.
+
+**Known limit**: the lock checks and then inserts in two operations, so two instances starting in the same instant can both pass. Re-runnable migrations cover that case; a unique index on `changelog.fileName` is a roadmap proposal.
 
 ---
 
@@ -470,8 +476,11 @@ Each entry tracks:
 Migrations MUST NOT:
 
 - contain business logic
-- depend on domain layer
+- depend on domain layer or import any application code (they are frozen snapshots: constants such as the plant collation are repeated)
 - modify application behavior directly
+- change or delete data to make an index buildable
+
+Each migration is a plain ESM `.js` file `<yyyyMMddHHmmss>-<kebab-case-name>.js` exporting `up(db)` and `down(db)`, with a sibling `.d.ts` declaring the minimal `db` shape it uses so its Jest tests can pass a fake database without `any`. Errors are thrown, never swallowed, and name the collection and index involved. Historical migrations are never edited.
 
 ---
 
@@ -480,21 +489,41 @@ Migrations MUST NOT:
 - schema evolution is handled via migrations system
 - migrations are executed at bootstrap phase
 - persistence layer assumes schema is already up-to-date
-- repositories MUST NOT trigger migrations
+- repositories MUST NOT trigger migrations or declare indexes
+
+**Duplicates and conflicting definitions**: when stored data breaks a unique rule a migration declares, or an index with the same name exists with another definition, MongoDB rejects the index (codes `11000`, `85`, `86`). The migration stops with an error naming the collection and index, start-up fails, and no data is changed: the data is fixed by hand or by a dedicated data-fix migration, never guessed. The plant scientific name migration looks for repeated names before dropping any index and lists up to five of them.
+
+**Duplicates at runtime**: a write that breaks a unique index (create through `MongoRepository.persist`, update through `MongoCrudRepository.updateWithDiff`) becomes `DomainConflictException` (`409`, `Duplicate document with {...}`) through `MongoErrorHandler`.
+
+**Rollback**: every migration ships a `down` step covered by unit tests. The project has no rollback command yet (roadmap proposal).
 
 ---
 
 #### 5.7.7 Current Migrations
 
-Migrations live in `migrations/<package version>/` as ESM modules exporting `up(db)` / `down(db)`, and are applied by `migrations/index.ts` at server start.
+| File                                              | Purpose                                                                                                                                                                                                                                                                                   |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `20260927120000-add-aggregate-version.js`         | Backfills `version: 0` on `beds`, `families` and `plants` documents that lack it (OCC, Sec. 4.3). Idempotent; `down` removes the field.                                                                                                                                                   |
+| `20261002120000-normalize-plant-knowledge.js`     | Brings stored plants in line with the Plant model (seasons, propagation method names, pollination, required labels…); stops on anything it cannot fix.                                                                                                                                    |
+| `20261003120000-plant-listing-indexes.js`         | Plant listing indexes with the plant collation (`es`, strength 2): rebuilds `plants_family_idx` (`identity.family`) and adds `plants_name_primary_idx` and `plants_scientific_name_idx` for the `name`/`scientificName` sort keys. Idempotent; `down` restores the start-up family index. |
+| `20261003130000-account-family-unique-indexes.js` | Declares the unique rules once built at start-up: `users_email_unique`, `users_username_unique`, `families_slug_unique`, same names and options. A no-op where they already exist; `down` drops them.                                                                                     |
+| `20261003131000-plant-scientific-name-unique.js`  | Plant scientific names unique ignoring case: replaces `plants_scientific_name_idx` and the undeclared case-sensitive `plants_scientificName_unique` with one index, `plants_scientific_name_unique`, that also serves the listing sort. `down` restores both old indexes.                 |
 
-| Version | File                                          | Purpose                                                                                                                                                                                                                                                                                   |
-| ------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1.0.0   | `20260927120000-add-aggregate-version.js`     | Backfills `version: 0` on `beds`, `families` and `plants` documents that lack it (OCC, Sec. 4.3). Idempotent; `down` removes the field.                                                                                                                                                   |
-| 1.0.0   | `20261002120000-normalize-plant-knowledge.js` | Brings stored plants in line with the Plant model (seasons, propagation method names, pollination, required labels…); stops on anything it cannot fix.                                                                                                                                    |
-| 1.0.0   | `20261003120000-plant-listing-indexes.js`     | Plant listing indexes with the plant collation (`es`, strength 2): rebuilds `plants_family_idx` (`identity.family`) and adds `plants_name_primary_idx` and `plants_scientific_name_idx` for the `name`/`scientificName` sort keys. Idempotent; `down` restores the start-up family index. |
+A string index only serves a query that uses the same collation, so plant indexes repeat the collation of `MongoPlantRepository`.
 
-Indexes are declared in migrations (constitution v1.5.0). A string index only serves a query that uses the same collation, so plant indexes repeat the collation of `MongoPlantRepository`. `MongoCollectionIndexes.ts` still creates the `users` and `families` indexes at start-up, before the migrations run; moving them is an open proposal (roadmap, Iteration 14).
+#### 5.7.8 Indexes
+
+| Collection       | Index                           | Key                                | Options                    | Declared in                                    |
+| ---------------- | ------------------------------- | ---------------------------------- | -------------------------- | ---------------------------------------------- |
+| `users`          | `users_email_unique`            | `{ email: 1 }`                     | `unique`                   | `20261003130000-account-family-unique-indexes` |
+| `users`          | `users_username_unique`         | `{ username: 1 }`                  | `unique`                   | `20261003130000-account-family-unique-indexes` |
+| `families`       | `families_slug_unique`          | `{ slug: 1 }`                      | `unique`                   | `20261003130000-account-family-unique-indexes` |
+| `plants`         | `plants_family_idx`             | `{ 'identity.family': 1 }`         | collation `es`/2           | `20261003120000-plant-listing-indexes`         |
+| `plants`         | `plants_name_primary_idx`       | `{ 'identity.name.primary': 1 }`   | collation `es`/2           | `20261003120000-plant-listing-indexes`         |
+| `plants`         | `plants_scientific_name_unique` | `{ 'identity.scientificName': 1 }` | `unique`, collation `es`/2 | `20261003131000-plant-scientific-name-unique`  |
+| `changelog_lock` | `createdAt_1`                   | `{ createdAt: 1 }`                 | `expireAfterSeconds: 300`  | `migrate-mongo` itself (accepted exception)    |
+
+Every collection also keeps the default `_id_` index. Plant scientific names are unique ignoring letter case only (strength 2 keeps accents distinct), soft-deleted plants included, as a soft-deleted family keeps its slug.
 
 ---
 
@@ -780,6 +809,7 @@ Persistence MUST:
 - metadata ownership for User: `MongoAuthRepository.update(patch)` stores the audit data carried by `UserPatch` and never adds its own (`updateMetadata` removed)
 - FamilyRepository implementation
 - PlantDtoMapper
+- formal schema migrations: every index declared in `migrations/scripts/` (flat, version-independent), runner lock on, start-up connection never touches indexes (Sec. 5.7)
 - Query DSL support: Zod listing schemas (`listQuerySchema`, query.md), `MongoQueryTranslator` (Families) and `PlantQueryMapper` (Plants, every declared operator; public sort keys mapped by `toMongoSortField`)
 
 ---
