@@ -31,8 +31,8 @@
     "test:all": "npm run test:unit && npm run test:features",
     "test:unit": "cross-env NODE_ENV=test jest --coverage --detectOpenHandles --forceExit",
     "test:unit:watch": "cross-env NODE_ENV=test jest --watch --detectOpenHandles --forceExit",
-    "test:features": "cross-env NODE_ENV=test NODE_OPTIONS='--loader ts-node/esm' cucumber-js tests/**/*.feature --import ./setupTests.ts --import ./tests/apps/agroApi/features/step_definitions/controller.steps.ts",
-    "debug:features": "cross-env NODE_ENV=test NODE_OPTIONS='--loader ts-node/esm' node --inspect-brk ./node_modules/@cucumber/cucumber/bin/cucumber-js tests/apps/agroApi/features/**/*.feature --import ./setupTests.ts --import ./tests/apps/agroApi/features/step_definitions/controller.steps.ts",
+    "test:features": "cross-env NODE_ENV=test NODE_OPTIONS='--loader ts-node/esm' cucumber-js",
+    "debug:features": "cross-env NODE_ENV=test NODE_OPTIONS='--loader ts-node/esm' node --inspect-brk ./node_modules/@cucumber/cucumber/bin/cucumber-js",
     "prepare": "husky"
   },
   "lint-staged": {
