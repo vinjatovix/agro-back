@@ -13,7 +13,7 @@ const SALT_ROUNDS = envs.BCRYPT_SALT_ROUNDS;
 const DEFAULT_TOKEN_DURATION = envs.JWT_DEFAULT_DURATION;
 const { sign, verify } = jwt;
 
-export class CryptAdapter implements EncrypterTool {
+export class EncrypterAdapter implements EncrypterTool {
   hash(password: string): string {
     const salt = genSaltSync(SALT_ROUNDS);
     return hashSync(password, salt);

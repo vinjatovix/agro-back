@@ -16,6 +16,12 @@ const SORT_FIELDS: Readonly<Record<string, string>> = {
   scientificName: 'identity.scientificName'
 };
 
+export type MongoPlantRepositoryDependencies = {
+  db: Db;
+  plantPersistenceMapper: PlantPersistenceMapper;
+  plantQueryMapper: PlantQueryMapper;
+};
+
 export class MongoPlantRepository
   extends MongoCrudRepository<
     Plant,
@@ -25,12 +31,17 @@ export class MongoPlantRepository
   >
   implements PlantRepository
 {
-  constructor(
-    db: Db,
-    private readonly plantPersistenceMapper: PlantPersistenceMapper,
-    private readonly plantQueryMapper: PlantQueryMapper
-  ) {
+  private readonly plantPersistenceMapper: PlantPersistenceMapper;
+  private readonly plantQueryMapper: PlantQueryMapper;
+
+  constructor({
+    db,
+    plantPersistenceMapper,
+    plantQueryMapper
+  }: MongoPlantRepositoryDependencies) {
     super(db);
+    this.plantPersistenceMapper = plantPersistenceMapper;
+    this.plantQueryMapper = plantQueryMapper;
   }
   protected entityName(): string {
     return 'Plant';

@@ -6,7 +6,7 @@ import { googleAuthRequest } from '../../../../../src/apps/agroApi/controllers/A
 import { AuthenticateWithGoogle } from '../../../../../src/Contexts/Auth/application/index.js';
 import {
   AuthRepositoryMock,
-  CryptAdapterMock,
+  EncrypterAdapterMock,
   GoogleIdTokenVerifierMock
 } from '../../../../Contexts/Auth/__mocks__/index.js';
 
@@ -24,16 +24,16 @@ describe('AuthenticateWithGoogleController', () => {
   let controller: AuthenticateWithGoogleController;
 
   beforeEach(() => {
-    authenticateWithGoogle = new AuthenticateWithGoogle(
-      new AuthRepositoryMock({ find: false }),
-      new CryptAdapterMock({ login: true }),
-      new GoogleIdTokenVerifierMock({
+    authenticateWithGoogle = new AuthenticateWithGoogle({
+      authRepository: new AuthRepositoryMock({ find: false }),
+      encrypter: new EncrypterAdapterMock({ login: true }),
+      googleIdTokenVerifier: new GoogleIdTokenVerifierMock({
         sub: 'google-sub-1',
         email: 'google-user@aa.com',
         emailVerified: true,
         name: 'Google User'
       })
-    );
+    });
     controller = new AuthenticateWithGoogleController({
       authenticateWithGoogle
     });

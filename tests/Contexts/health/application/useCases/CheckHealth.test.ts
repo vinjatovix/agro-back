@@ -3,7 +3,7 @@ import { CheckHealth } from '../../../../../src/Contexts/health/application/inde
 describe('CheckHealth', () => {
   it('should return status, version and timestamp', () => {
     const version = '1.2.3';
-    const useCase = new CheckHealth(version);
+    const useCase = new CheckHealth({ appVersion: version });
 
     const result = useCase.run();
 
@@ -13,7 +13,7 @@ describe('CheckHealth', () => {
   });
 
   it('should return an ISO-8601 timestamp', () => {
-    const useCase = new CheckHealth('1.0.0');
+    const useCase = new CheckHealth({ appVersion: '1.0.0' });
 
     const result = useCase.run();
 

@@ -8,14 +8,16 @@ import { HttpController } from '../../shared/HttpController.js';
 import { updatePasswordRequest } from './requestSchemas.js';
 
 export type UpdatePasswordLocalControllerDependencies = {
-  updatePassword: UpdatePasswordLocal;
+  updatePasswordLocal: UpdatePasswordLocal;
 };
 
 export class UpdatePasswordLocalController extends HttpController {
-  protected readonly updatePassword: UpdatePasswordLocal;
-  constructor({ updatePassword }: UpdatePasswordLocalControllerDependencies) {
+  protected readonly updatePasswordLocal: UpdatePasswordLocal;
+  constructor({
+    updatePasswordLocal
+  }: UpdatePasswordLocalControllerDependencies) {
     super();
-    this.updatePassword = updatePassword;
+    this.updatePasswordLocal = updatePasswordLocal;
   }
 
   run = async (
@@ -27,7 +29,7 @@ export class UpdatePasswordLocalController extends HttpController {
       const { body } = getValidatedRequest(res, updatePasswordRequest);
       const user = res.locals.user as UserSessionInfo;
 
-      await this.updatePassword.run(body, user);
+      await this.updatePasswordLocal.run(body, user);
 
       res.status(this.status()).json({ message: 'User updated successfully' });
     } catch (error) {

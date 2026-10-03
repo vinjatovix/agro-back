@@ -10,20 +10,20 @@ import {
 const api = ({
   createPlantController,
   getAllPlantsController,
-  getPlantController,
+  getPlantByIdController,
   updatePlantController,
   deletePlantController
 }: {
   createPlantController: CreatePlantController;
   getAllPlantsController: GetAllPlantsController;
-  getPlantController: GetPlantByIdController;
+  getPlantByIdController: GetPlantByIdController;
   updatePlantController: UpdatePlantController;
   deletePlantController: DeletePlantController;
 }) => {
   return {
     createPlant: createPlantController.run,
     getAllPlants: getAllPlantsController.run,
-    getPlantById: getPlantController.run,
+    getPlantById: getPlantByIdController.run,
     updatePlant: updatePlantController.run,
     deletePlant: deletePlantController.run
   };

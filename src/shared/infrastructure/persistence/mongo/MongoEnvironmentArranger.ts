@@ -1,9 +1,14 @@
 import { MongoClient } from 'mongodb';
 import { EnvironmentArranger } from '../../arranger/EnvironmentArranger.js';
 
+export type MongoEnvironmentArrangerDependencies = {
+  DBClient: MongoClient;
+};
+
 export class MongoEnvironmentArranger extends EnvironmentArranger {
-  private readonly DBClient: Promise<MongoClient>;
-  constructor({ DBClient }: { DBClient: Promise<MongoClient> }) {
+  private readonly DBClient: MongoClient;
+
+  constructor({ DBClient }: MongoEnvironmentArrangerDependencies) {
     super();
     this.DBClient = DBClient;
   }
@@ -13,11 +18,11 @@ export class MongoEnvironmentArranger extends EnvironmentArranger {
   }
 
   public async close(): Promise<void> {
-    await (await this.client()).close();
+    await this.client().close();
   }
 
   private async collections(): Promise<string[]> {
-    const client = await this.client();
+    const client = this.client();
     const collections = await client
       .db()
       .listCollections(undefined, { nameOnly: true })
@@ -26,13 +31,13 @@ export class MongoEnvironmentArranger extends EnvironmentArranger {
     return collections.map((collection) => collection.name);
   }
 
-  protected client(): Promise<MongoClient> {
+  protected client(): MongoClient {
     return this.DBClient;
   }
 
   protected async cleanDatabase(): Promise<void> {
     const collections = await this.collections();
-    const client = await this.client();
+    const client = this.client();
 
     for (const collection of collections) {
       await client.db().collection(collection).deleteMany({});

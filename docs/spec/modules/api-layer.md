@@ -338,24 +338,80 @@ Any change affecting this module is a breaking change and MUST be versioned.
 
 ---
 
-## 12. DEPENDENCY INJECTION STRATEGY
+## 12. DEPENDENCY INJECTION & AUTO-WIRING
 
-The system uses **Awilix PROXY MODE** as the active dependency injection mechanism.
+The system uses **Awilix PROXY MODE** with automated directory scanning and strict validation as the active dependency injection mechanism.
 
-### Current state
+### 12.1 Scanned locations and roles
 
-- Proxy mode is enabled, allowing controllers and services to receive dependencies lazily by property name destructuring.
-- Manual bindings are currently maintained inside `src/apps/agroApi/container.ts` using explicit registrations (e.g., `asClass`, `asFunction`, `asValue`).
+Paths are relative to the source root (`src/` from source, `dist/src/` from the build). Extensions `{ts,js}`. Only files whose name starts with an uppercase letter are scanned.
 
-### Target State `[TARGET STATE (Pending [Iteration 15](../../roadmap.md#iteration-15-automate-awilix-dependency-injection))]`
+| Role                  | Location                                                              | Class rule                  | Registration name         | Lifetime               |
+| :-------------------- | :-------------------------------------------------------------------- | :-------------------------- | :------------------------ | :--------------------- |
+| `useCase`             | `Contexts/**/application/useCases/`                                   | PascalCase, no role suffix¹ | camelCase                 | per request (`SCOPED`) |
+| `controller`          | `apps/agroApi/controllers/**/`                                        | `…Controller`               | camelCase                 | per request (`SCOPED`) |
+| `repository`          | `Contexts/**/infrastructure/persistence/**/` (not `Contexts/shared/`) | `Mongo…Repository`          | drop `Mongo`, camelCase   | process (`SINGLETON`)  |
+| `queryMapper`         | same as `repository`                                                  | `…QueryMapper`              | camelCase                 | process (`SINGLETON`)  |
+| `adapter`             | `Contexts/shared/plugins/`                                            | `…Adapter`                  | drop `Adapter`, camelCase | process (`SINGLETON`)  |
+| `environmentArranger` | `shared/infrastructure/persistence/**/…EnvironmentArranger.*`         | `Mongo…EnvironmentArranger` | drop `Mongo`, camelCase   | process (`SINGLETON`)  |
 
-- **Awilix Auto-Wiring**: Automate registrations through dynamic directory scanning (e.g. `container.loadModules`), completely eliminating the need for manual bindings inside `container.ts`.
+¹ Role suffixes: `Controller`, `Repository`, `QueryMapper`, `Adapter`, `EnvironmentArranger`. A use-case-folder class ending in one of them is misplaced and fails.
 
-### Impact
+**Port-name rule**: only two affixes are ever dropped, the `Mongo` prefix and the `Adapter` suffix. If an implementation's name does not yield its port name this way, rename the class (example: `EncrypterAdapter` → `encrypter`).
 
-- Eliminates classic binding issues
-- Reduces API composition boilerplate
-- Standardizes dependency resolution across runtime and tests
+### 12.2 Never-registered files & Multi-export rules
+
+- `index.*`, `requestSchemas.*`, `*.test.*`, `*.d.ts`, anything under `interfaces/` or `types/`.
+- camelCase files (helpers).
+- Exports that are not classes (functions, constants, types).
+- **Single component per file convention**: Each scanned file MUST export exactly one primary component class matching the PascalCase file name.
+- If a scanned file exports additional classes (passing `isClass`), each exported class is evaluated against the role rule of that location. Any exported class failing the role rule causes container construction to fail with `ContainerWiringError.unrecognizedClass`.
+
+### 12.3 Component shape
+
+```ts
+export type CreateBedDependencies = {
+  bedRepository: BedRepository; // port type, key = registration name
+};
+
+export class CreateBed {
+  private readonly bedRepository: BedRepository;
+
+  constructor({ bedRepository }: CreateBedDependencies) {
+    this.bedRepository = bedRepository;
+  }
+}
+```
+
+- One object parameter; keys are registration names; only the dependencies used.
+- Destructure in the constructor (a missing dependency then fails at resolution with the Awilix resolution path).
+- Process-wide components never depend on per-request ones.
+
+### 12.4 Explicit registrations
+
+Only values that are not discoverable classes, each with a one-line reason in `container.ts`:
+
+- `db`: Runtime Mongo database instance connected at start-up
+- `DBClient`: Runtime Mongo client connection handle
+- `appVersion`: Service release version read from package.json
+- `logger`: Contextual root logger instance built by factory
+- `bedPersistenceMapper`: Plain persistence mapper without class state
+- `familyPersistenceMapper`: Plain persistence mapper without class state
+- `plantPersistenceMapper`: Plain persistence mapper without class state
+
+### 12.5 Typed cradle
+
+`src/apps/agroApi/wiring/ContainerCradle.ts` is type-only. Adding a component means adding one line there; the wiring test fails if the cradle and the registrations differ.
+
+### 12.6 Failures
+
+| Mistake                               | Detected                                  | Message names                              |
+| :------------------------------------ | :---------------------------------------- | :----------------------------------------- |
+| Class matches no rule of its location | Container build (start-up)                | File and class                             |
+| Two classes map to the same name      | Container build (start-up)                | Both files and the name                    |
+| Dependency nothing provides           | Wiring test / first resolve               | Component and dependency (resolution path) |
+| Process-wide depends on per-request   | Wiring test / first resolve (strict mode) | Both components                            |
+| Cradle and registrations differ       | Wiring test                               | Missing and extra names                    |
 
 ---
 

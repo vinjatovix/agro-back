@@ -29,7 +29,7 @@ describe('GetPlant', () => {
 
   beforeEach(() => {
     repository = new PlantRepositoryMock();
-    getPlant = new GetPlant(repository);
+    getPlant = new GetPlant({ plantRepository: repository });
   });
 
   it('should search only active plants for regular users', async () => {

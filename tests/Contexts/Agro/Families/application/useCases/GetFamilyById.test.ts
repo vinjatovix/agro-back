@@ -10,7 +10,7 @@ describe('GetFamilyById', () => {
 
   beforeEach(() => {
     repository = new FamilyRepositoryMock();
-    useCase = new GetFamilyById(repository);
+    useCase = new GetFamilyById({ familyRepository: repository });
   });
 
   afterEach(() => {

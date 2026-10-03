@@ -13,12 +13,17 @@ type ValidateMailRequest = {
   token: string;
 };
 
+export type ValidateMailDependencies = {
+  authRepository: AuthRepository;
+  encrypter: EncrypterTool;
+};
+
 export class ValidateMail {
-  private readonly repository: AuthRepository;
+  private readonly authRepository: AuthRepository;
   private readonly encrypter: EncrypterTool;
 
-  constructor(repository: AuthRepository, encrypter: EncrypterTool) {
-    this.repository = repository;
+  constructor({ authRepository, encrypter }: ValidateMailDependencies) {
+    this.authRepository = authRepository;
     this.encrypter = encrypter;
   }
 
@@ -30,7 +35,7 @@ export class ValidateMail {
 
     const email = this.extractEmailFromToken(validToken);
 
-    const storedUser = await this.repository.search(email);
+    const storedUser = await this.authRepository.search(email);
     if (!storedUser) {
       throw new DomainUnauthorizedException(INVALID_TOKEN_MESSAGE);
     }
@@ -41,7 +46,7 @@ export class ValidateMail {
       emailValidated: true
     });
 
-    await this.repository.update(userToPatch);
+    await this.authRepository.update(userToPatch);
     logger.info(`User <${storedUser.username.value}> validated email`);
 
     const newToken = await this.encrypter.refreshToken(token);

@@ -1,4 +1,4 @@
-export * from './CryptAdapter.js';
+export * from './EncrypterAdapter.js';
 export * from './EncrypterTool.js';
 export * from './GoogleIdTokenVerifierTool.js';
 export * from './GoogleIdTokenVerifierAdapter.js';

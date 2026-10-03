@@ -6,7 +6,7 @@ import { registerRequest } from '../../../../../src/apps/agroApi/controllers/Aut
 import { RegisterUserLocal } from '../../../../../src/Contexts/Auth/application/index.js';
 import {
   AuthRepositoryMock,
-  CryptAdapterMock
+  EncrypterAdapterMock
 } from '../../../../Contexts/Auth/__mocks__/index.js';
 
 import {
@@ -19,19 +19,19 @@ import {
 import { buildRegisterBody } from './fixtures/authBodies.js';
 
 describe('RegisterUserLocalController', () => {
-  let registerUser: RegisterUserLocal;
+  let registerUserLocal: RegisterUserLocal;
   let controller: RegisterUserLocalController;
 
   beforeEach(() => {
-    registerUser = new RegisterUserLocal(
-      new AuthRepositoryMock({ find: false }),
-      new CryptAdapterMock({ login: false })
-    );
-    controller = new RegisterUserLocalController({ registerUser });
+    registerUserLocal = new RegisterUserLocal({
+      authRepository: new AuthRepositoryMock({ find: false }),
+      encrypter: new EncrypterAdapterMock({ login: false })
+    });
+    controller = new RegisterUserLocalController({ registerUserLocal });
   });
 
   it('passes the validated body to the use case', async () => {
-    const runSpy = jest.spyOn(registerUser, 'run');
+    const runSpy = jest.spyOn(registerUserLocal, 'run');
     const body = buildRegisterBody();
     const req = buildRequest({ body });
     const { res, status, send } = buildResponse();

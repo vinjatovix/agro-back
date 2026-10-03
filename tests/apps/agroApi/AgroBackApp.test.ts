@@ -1,7 +1,9 @@
 import type { AddressInfo } from 'node:net';
 
 import { AgroBackApp } from '../../../src/apps/agroApi/AgroBackApp.js';
+import type { AppContainer } from '../../../src/apps/agroApi/container.js';
 import type { AppLogger } from '../../../src/Contexts/shared/plugins/logger.plugin.js';
+import { SOURCE_ROOT } from '../../shared/sourceRoot.js';
 
 const listenMock = jest.fn<Promise<void>, []>();
 const stopMock = jest.fn<Promise<void>, []>();
@@ -12,8 +14,13 @@ jest.mock('../../../src/apps/agroApi/server.js', () => ({
   Server: jest
     .fn()
     .mockImplementation(
-      (host: string, port: string, logger: AppLogger, containerDeps) => {
-        serverConstructorMock(host, port, logger, containerDeps);
+      (
+        host: string,
+        port: string,
+        logger: AppLogger,
+        container: AppContainer
+      ) => {
+        serverConstructorMock(host, port, logger, container);
 
         return {
           listen: listenMock,
@@ -45,7 +52,8 @@ describe('AgroBackApp', () => {
   it('should start server with provided host and port', async () => {
     const app = new AgroBackApp({
       host: 'http://localhost',
-      port: '0'
+      port: '0',
+      sourceRoot: SOURCE_ROOT
     });
 
     getHTTPServerMock.mockReturnValue({
@@ -69,7 +77,8 @@ describe('AgroBackApp', () => {
   it('should use the injected config values', async () => {
     const app = new AgroBackApp({
       host: 'http://agro.test',
-      port: '8080'
+      port: '8080',
+      sourceRoot: SOURCE_ROOT
     });
 
     getHTTPServerMock.mockReturnValue({
@@ -92,7 +101,8 @@ describe('AgroBackApp', () => {
   it('should fall back to configured port when address is not an object', async () => {
     const app = new AgroBackApp({
       host: 'http://localhost',
-      port: '8080'
+      port: '8080',
+      sourceRoot: SOURCE_ROOT
     });
 
     getHTTPServerMock.mockReturnValue({
@@ -109,7 +119,8 @@ describe('AgroBackApp', () => {
   it('should stop server and log when server exists', async () => {
     const app = new AgroBackApp({
       host: 'http://localhost',
-      port: '0'
+      port: '0',
+      sourceRoot: SOURCE_ROOT
     });
 
     getHTTPServerMock.mockReturnValue({
@@ -126,7 +137,8 @@ describe('AgroBackApp', () => {
   it('should do nothing on stop when server was not started', async () => {
     const app = new AgroBackApp({
       host: 'http://localhost',
-      port: '0'
+      port: '0',
+      sourceRoot: SOURCE_ROOT
     });
 
     await app.stop(logger);
@@ -142,7 +154,8 @@ describe('AgroBackApp', () => {
 
     const app = new AgroBackApp({
       host: 'http://localhost',
-      port: '0'
+      port: '0',
+      sourceRoot: SOURCE_ROOT
     });
     getHTTPServerMock.mockReturnValue(httpServer);
 

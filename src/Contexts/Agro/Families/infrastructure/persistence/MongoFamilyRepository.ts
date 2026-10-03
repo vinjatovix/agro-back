@@ -8,6 +8,11 @@ import type { FamilyPrimitives } from '../../domain/types/FamilyPrimitives.js';
 import type { FamilyPersistenceMapper } from '../../mappers/interfaces/FamilyPersistenceMapper.js';
 import type { MongoFamilyDocument } from './types/MongoFamilyDocument.js';
 
+export type MongoFamilyRepositoryDependencies = {
+  db: Db;
+  familyPersistenceMapper: FamilyPersistenceMapper;
+};
+
 export class MongoFamilyRepository
   extends MongoCrudRepository<
     Family,
@@ -17,11 +22,14 @@ export class MongoFamilyRepository
   >
   implements FamilyRepository
 {
-  constructor(
-    db: Db,
-    private readonly familyPersistenceMapper: FamilyPersistenceMapper
-  ) {
+  private readonly familyPersistenceMapper: FamilyPersistenceMapper;
+
+  constructor({
+    db,
+    familyPersistenceMapper
+  }: MongoFamilyRepositoryDependencies) {
     super(db);
+    this.familyPersistenceMapper = familyPersistenceMapper;
   }
   protected entityName(): string {
     return 'Family';

@@ -9,7 +9,7 @@ describe('ListFamilies', () => {
 
   beforeEach(() => {
     repository = new FamilyRepositoryMock();
-    useCase = new ListFamilies(repository);
+    useCase = new ListFamilies({ familyRepository: repository });
   });
 
   afterEach(() => {

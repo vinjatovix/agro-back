@@ -1,4 +1,5 @@
 import type { Binary, UUID } from 'bson';
+import type { Db } from 'mongodb';
 import type { Nullable } from '../../../../shared/domain/types/Nullable.js';
 import type { MetadataPrimitives } from '../../../shared/domain/MetadataPrimitives.js';
 import {
@@ -25,10 +26,17 @@ export interface AuthDocument {
   metadata: MetadataPrimitives;
 }
 
+export type MongoAuthRepositoryDependencies = {
+  db: Db;
+};
+
 export class MongoAuthRepository
   extends MongoRepository
   implements AuthRepository
 {
+  constructor({ db }: MongoAuthRepositoryDependencies) {
+    super(db);
+  }
   protected entityName(): string {
     return 'User';
   }

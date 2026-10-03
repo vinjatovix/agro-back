@@ -22,12 +22,17 @@ import { PASSWORDS_DO_NOT_MATCH_MESSAGE } from '../messages.js';
 
 const logger = buildLogger('registerUser');
 
+export type RegisterUserLocalDependencies = {
+  authRepository: AuthRepository;
+  encrypter: EncrypterTool;
+};
+
 export class RegisterUserLocal {
-  private readonly repository: AuthRepository;
+  private readonly authRepository: AuthRepository;
   private readonly encrypter: EncrypterTool;
 
-  constructor(repository: AuthRepository, encrypter: EncrypterTool) {
-    this.repository = repository;
+  constructor({ authRepository, encrypter }: RegisterUserLocalDependencies) {
+    this.authRepository = authRepository;
     this.encrypter = encrypter;
   }
 
@@ -60,18 +65,18 @@ export class RegisterUserLocal {
       metadata: Metadata.create(username)
     });
 
-    await this.repository.save(user);
+    await this.authRepository.save(user);
     logger.info(`User <${user.username.value}> registered`);
   }
   private async ensureIdDoesNotExist(id: string): Promise<void> {
-    const storedUser = await this.repository.findByQuery({ id });
+    const storedUser = await this.authRepository.findByQuery({ id });
     if (storedUser.length > 0) {
       throw new DomainConflictException(`User with id ${id} already exists`);
     }
   }
 
   private async ensureUserDoesNotExist(email: string): Promise<void> {
-    const storedUser = await this.repository.search(email);
+    const storedUser = await this.authRepository.search(email);
     if (storedUser) {
       throw new InvalidArgumentException(`User ${email} already exists`);
     }

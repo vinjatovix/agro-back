@@ -1,16 +1,19 @@
 import { LoginUserLocal } from '../../../../../src/Contexts/Auth/application/useCases/LoginUserLocal.js';
-import { AuthRepositoryMock, CryptAdapterMock } from '../../__mocks__/index.js';
+import {
+  AuthRepositoryMock,
+  EncrypterAdapterMock
+} from '../../__mocks__/index.js';
 import { LoginUserRequestMother } from '../mothers/index.js';
 
 describe('LoginUserLocal', () => {
-  let encrypter: CryptAdapterMock;
+  let encrypter: EncrypterAdapterMock;
   let repository: AuthRepositoryMock;
   let loginUser: LoginUserLocal;
 
   beforeEach(() => {
-    encrypter = new CryptAdapterMock({ login: true });
+    encrypter = new EncrypterAdapterMock({ login: true });
     repository = new AuthRepositoryMock({ find: true });
-    loginUser = new LoginUserLocal(repository, encrypter);
+    loginUser = new LoginUserLocal({ authRepository: repository, encrypter });
   });
 
   it('should login a valid user', async () => {
@@ -27,15 +30,15 @@ describe('LoginUserLocal', () => {
 
   it('should throw an error when the user does not exist', async () => {
     repository = new AuthRepositoryMock();
-    loginUser = new LoginUserLocal(repository, encrypter);
+    loginUser = new LoginUserLocal({ authRepository: repository, encrypter });
     const request = LoginUserRequestMother.random();
 
     await expect(loginUser.run(request)).rejects.toThrow(`Invalid credentials`);
   });
 
   it('should throw an error when the password is invalid', async () => {
-    encrypter = new CryptAdapterMock({ login: false });
-    loginUser = new LoginUserLocal(repository, encrypter);
+    encrypter = new EncrypterAdapterMock({ login: false });
+    loginUser = new LoginUserLocal({ authRepository: repository, encrypter });
     const request = LoginUserRequestMother.random();
 
     await expect(loginUser.run(request)).rejects.toThrow(`Invalid credentials`);

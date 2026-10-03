@@ -16,7 +16,7 @@ describe('UpdateFamily', () => {
 
   beforeEach(() => {
     repository = new FamilyRepositoryMock();
-    useCase = new UpdateFamily(repository);
+    useCase = new UpdateFamily({ familyRepository: repository });
   });
 
   afterEach(() => {

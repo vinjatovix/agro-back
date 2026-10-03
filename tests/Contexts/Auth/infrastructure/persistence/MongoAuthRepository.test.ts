@@ -10,6 +10,7 @@ import {
   DBClientFactory,
   DBConfigFactory
 } from '../../../../../src/shared/infrastructure/persistence/index.js';
+import { SOURCE_ROOT } from '../../../../shared/sourceRoot.js';
 import { UserMother } from '../../domain/mothers/UserMother.js';
 
 let container: AppContainer;
@@ -32,7 +33,11 @@ describe('MongoAuthRepository', () => {
 
     const db = client.db();
 
-    container = createAppContainer({ db, client });
+    container = await createAppContainer({
+      db,
+      client,
+      sourceRoot: SOURCE_ROOT
+    });
     environmentArranger = Promise.resolve(
       container.resolve<EnvironmentArranger>('environmentArranger')
     );

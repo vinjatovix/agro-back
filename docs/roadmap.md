@@ -335,10 +335,16 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [api-layer.md](spec/modules/api-layer.md)
 
+- **Status**: Done (2026-10-03)
 - **Value delivered**: Eliminates verbose DI registration boilerplate, preventing composition-root errors during scaling.
-- **Definition of Done**: Manual `container.ts` class registrations are replaced with dynamic directory scanning (`container.loadModules`).
+- **Definition of Done**: Manual `container.ts` class registrations are replaced with dynamic directory scanning using Awilix `asClass` registration in `PROXY` mode with `strict: true`.
+- **Implementation notes**:
+  - Scanning discovers all components in `Contexts/**/application/useCases/`, `apps/agroApi/controllers/**/`, `Contexts/**/infrastructure/persistence/**/`, `Contexts/shared/plugins/`, and `shared/infrastructure/persistence/**/`.
+  - Exactly 7 explicit values retained: `db`, `DBClient`, `appVersion`, `logger`, and the 3 persistence mappers.
+  - Fail-fast validation with `ContainerWiringError` catching unrecognized classes and duplicate registration names before container boot.
+  - Guarded by comprehensive wiring test in `tests/apps/agroApi/container.test.ts` verifying all registrations against TypeScript `ContainerCradle` properties and checking resolution of all singletons and scoped components.
 - **Dependencies**: None.
-- **Risks**: Registration failure if files are incorrectly named.
+- **Risks**: None.
 - **Prompt for /speckit.specify**:
   ```text
   AUTOMATE AWILIX DI AUTO-WIRING

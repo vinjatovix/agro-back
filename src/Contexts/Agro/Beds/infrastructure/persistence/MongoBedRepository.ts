@@ -10,15 +10,20 @@ import type { BedRepository } from '../../domain/repositories/interfaces/BedRepo
 import type { BedPersistenceMapper } from '../../mappers/interfaces/BedPersistenceMapper.js';
 import type { MongoBedDocument } from './types/MongoBedDocument.js';
 
+export type MongoBedRepositoryDependencies = {
+  db: Db;
+  bedPersistenceMapper: BedPersistenceMapper;
+};
+
 export class MongoBedRepository
   extends MongoCrudRepository<Bed, BedPrimitives, MongoBedDocument, BedFilter>
   implements BedRepository
 {
-  constructor(
-    db: Db,
-    private readonly bedPersistenceMapper: BedPersistenceMapper
-  ) {
+  private readonly bedPersistenceMapper: BedPersistenceMapper;
+
+  constructor({ db, bedPersistenceMapper }: MongoBedRepositoryDependencies) {
     super(db);
+    this.bedPersistenceMapper = bedPersistenceMapper;
   }
   protected entityName(): string {
     return 'Bed';

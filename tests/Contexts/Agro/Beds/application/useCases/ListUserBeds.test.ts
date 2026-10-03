@@ -8,7 +8,7 @@ describe('ListUserBeds', () => {
 
   beforeEach(() => {
     repository = new BedRepositoryMock();
-    useCase = new ListUserBeds(repository);
+    useCase = new ListUserBeds({ bedRepository: repository });
   });
 
   it('should call repository.findByUser with correct userId', async () => {

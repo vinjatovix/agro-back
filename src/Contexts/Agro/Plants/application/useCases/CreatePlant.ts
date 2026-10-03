@@ -8,11 +8,19 @@ import type { PlantRepository } from '../../domain/repositories/interfaces/Plant
 import { plantInputMapper } from '../../mappers/plantInputMapper.js';
 import type { CreatePlantDto } from './interfaces/CreatePlantDto.js';
 
+export type CreatePlantDependencies = {
+  plantRepository: PlantRepository;
+  familyRepository: FamilyRepository;
+};
+
 export class CreatePlant {
-  constructor(
-    private readonly plantRepository: PlantRepository,
-    private readonly familyRepository: FamilyRepository
-  ) {}
+  private readonly plantRepository: PlantRepository;
+  private readonly familyRepository: FamilyRepository;
+
+  constructor({ plantRepository, familyRepository }: CreatePlantDependencies) {
+    this.plantRepository = plantRepository;
+    this.familyRepository = familyRepository;
+  }
 
   async execute(dto: CreatePlantDto, user = 'system'): Promise<Plant> {
     const exists = await this.plantRepository.exists(dto.id);

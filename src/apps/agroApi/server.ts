@@ -8,11 +8,7 @@ import qs from 'qs';
 import migrations from '../../../migrations/index.js';
 import type { AppLogger } from '../../Contexts/shared/plugins/logger.plugin.js';
 import { envs } from './config/plugins/envs.plugin.js';
-import {
-  createAppContainer,
-  type AppContainer,
-  type containerDeps as ContainerDeps
-} from './container.js';
+import type { AppContainer } from './container.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import {
   createRequestLoggerMiddleware,
@@ -45,7 +41,7 @@ export class Server {
     host: string,
     port: string,
     logger: AppLogger,
-    containerDeps: ContainerDeps
+    container: AppContainer
   ) {
     this.port = port;
     this.host = host;
@@ -53,7 +49,7 @@ export class Server {
     this.express.set('trust proxy', false);
     // The version ETag set by controllers is the only entity tag emitted.
     this.express.set('etag', false);
-    this.container = createAppContainer(containerDeps);
+    this.container = container;
     this.logger = logger;
 
     this.express.use(cors(corsOptions));

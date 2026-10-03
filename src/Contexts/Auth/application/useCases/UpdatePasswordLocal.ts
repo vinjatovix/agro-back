@@ -28,11 +28,19 @@ const INVALID_CREDENTIALS_MESSAGE = 'Invalid credentials';
 const PASSWORD_MUST_DIFFER_FROM_OLD_MESSAGE =
   'New password must be different from old password';
 
+export type UpdatePasswordLocalDependencies = {
+  authRepository: AuthRepository;
+  encrypter: EncrypterTool;
+};
+
 export class UpdatePasswordLocal {
-  constructor(
-    private readonly repository: AuthRepository,
-    private readonly encrypter: EncrypterTool
-  ) {}
+  private readonly authRepository: AuthRepository;
+  private readonly encrypter: EncrypterTool;
+
+  constructor({ authRepository, encrypter }: UpdatePasswordLocalDependencies) {
+    this.authRepository = authRepository;
+    this.encrypter = encrypter;
+  }
 
   async run(
     { password, repeatPassword, oldPassword }: UpdatePasswordRequest,
@@ -59,7 +67,7 @@ export class UpdatePasswordLocal {
       )
     });
 
-    await this.repository.update(userPatch);
+    await this.authRepository.update(userPatch);
     logger.info(`Updated User: <${userPatch.id}> by <${user.username}>`);
   }
 
@@ -68,7 +76,7 @@ export class UpdatePasswordLocal {
     user: UserSessionInfo
   ): Promise<User> {
     const storedUser = ensureFound(
-      await this.repository.search(user.email),
+      await this.authRepository.search(user.email),
       'User',
       user.email,
       'email'

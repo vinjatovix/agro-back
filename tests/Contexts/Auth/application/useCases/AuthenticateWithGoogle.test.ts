@@ -2,22 +2,22 @@ import { AuthenticateWithGoogle } from '../../../../../src/Contexts/Auth/applica
 import type { UserPatch } from '../../../../../src/Contexts/Auth/domain/entities/UserPatch.js';
 import type { UserAuthMethod } from '../../../../../src/Contexts/Auth/domain/value-objects/UserAuthMethod.js';
 import {
-  CryptAdapterMock,
-  GoogleIdTokenVerifierMock,
-  AuthRepositoryMock
+  AuthRepositoryMock,
+  EncrypterAdapterMock,
+  GoogleIdTokenVerifierMock
 } from '../../__mocks__/index.js';
 import { UserMother } from '../../domain/mothers/UserMother.js';
 
 describe('AuthenticateWithGoogle', () => {
   const request = { idToken: 'google-id-token' };
 
-  let encrypter: CryptAdapterMock;
+  let encrypter: EncrypterAdapterMock;
   let repository: AuthRepositoryMock;
   let verifier: GoogleIdTokenVerifierMock;
   let authenticateWithGoogle: AuthenticateWithGoogle;
 
   beforeEach(() => {
-    encrypter = new CryptAdapterMock({ login: true });
+    encrypter = new EncrypterAdapterMock({ login: true });
     repository = new AuthRepositoryMock({ find: false });
     verifier = new GoogleIdTokenVerifierMock({
       sub: 'google-sub-1',
@@ -25,11 +25,11 @@ describe('AuthenticateWithGoogle', () => {
       emailVerified: true,
       name: 'Google User'
     });
-    authenticateWithGoogle = new AuthenticateWithGoogle(
-      repository,
+    authenticateWithGoogle = new AuthenticateWithGoogle({
+      authRepository: repository,
       encrypter,
-      verifier
-    );
+      googleIdTokenVerifier: verifier
+    });
   });
 
   it('should login when user already exists by Google provider identity', async () => {

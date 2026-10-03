@@ -22,7 +22,7 @@ describe('DeleteBed', () => {
   };
   beforeEach(() => {
     repository = new BedRepositoryMock();
-    useCase = new DeleteBed(repository);
+    useCase = new DeleteBed({ bedRepository: repository });
   });
 
   it('should mark bed as deleted via updateWithDiff', async () => {

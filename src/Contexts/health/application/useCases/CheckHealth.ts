@@ -1,5 +1,13 @@
+export type CheckHealthDependencies = {
+  appVersion: string;
+};
+
 export class CheckHealth {
-  constructor(private readonly appVersion: string) {}
+  private readonly appVersion: string;
+
+  constructor({ appVersion }: CheckHealthDependencies) {
+    this.appVersion = appVersion;
+  }
 
   run(): {
     status: string;

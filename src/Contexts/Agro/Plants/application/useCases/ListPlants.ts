@@ -7,8 +7,16 @@ import type { PlantRepository } from '../../domain/repositories/interfaces/Plant
 import { canSeeDeletedPlants } from './canSeeDeletedPlants.js';
 import type { ListPlantsDto } from './interfaces/ListPlantsDto.js';
 
+export type ListPlantsDependencies = {
+  plantRepository: PlantRepository;
+};
+
 export class ListPlants {
-  constructor(private readonly plantRepository: PlantRepository) {}
+  private readonly plantRepository: PlantRepository;
+
+  constructor({ plantRepository }: ListPlantsDependencies) {
+    this.plantRepository = plantRepository;
+  }
 
   async execute(
     user: UserSessionInfo | null,

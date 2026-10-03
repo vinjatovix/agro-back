@@ -3,8 +3,16 @@ import { ensureVersion } from '../../../../shared/application/utils/ensureVersio
 import type { PlantRepository } from '../../domain/repositories/interfaces/PlantRepository.js';
 import { plantDomainMapper } from '../../mappers/plantDomainMapper.js';
 
+export type DeletePlantDependencies = {
+  plantRepository: PlantRepository;
+};
+
 export class DeletePlant {
-  constructor(private readonly plantRepository: PlantRepository) {}
+  private readonly plantRepository: PlantRepository;
+
+  constructor({ plantRepository }: DeletePlantDependencies) {
+    this.plantRepository = plantRepository;
+  }
 
   async execute(
     id: string,

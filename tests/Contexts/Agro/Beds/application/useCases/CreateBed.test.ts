@@ -23,7 +23,7 @@ describe('CreateBed', () => {
 
   beforeEach((): void => {
     repository = new BedRepositoryMock();
-    useCase = new CreateBed(repository);
+    useCase = new CreateBed({ bedRepository: repository });
   });
 
   it('should throw conflict if bed already exists', async () => {

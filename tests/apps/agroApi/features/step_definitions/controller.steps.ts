@@ -37,6 +37,7 @@ import {
 import { PlantInstanceMother } from '../../../../Contexts/Agro/PlantInstances/domain/mothers/PlantInstanceMother.js';
 import { UserMother } from '../../../../Contexts/Auth/domain/mothers/UserMother.js';
 import { random } from '../../../../Contexts/shared/fixtures/random.js';
+import { SOURCE_ROOT } from '../../../../shared/sourceRoot.js';
 
 import {
   BedSeeder,
@@ -412,7 +413,7 @@ BeforeAll(async () => {
 
   const db = client.db();
 
-  container = createAppContainer({ db, client });
+  container = await createAppContainer({ db, client, sourceRoot: SOURCE_ROOT });
 
   environmentArranger = Promise.resolve(
     container.resolve<EnvironmentArranger>('environmentArranger')
@@ -420,7 +421,8 @@ BeforeAll(async () => {
 
   app = new AgroBackApp({
     host: process.env.HOST || 'http://localhost',
-    port: process.env.PORT || '0'
+    port: process.env.PORT || '0',
+    sourceRoot: SOURCE_ROOT
   });
 
   await app.start(container.resolve('logger'));

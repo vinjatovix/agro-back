@@ -6,14 +6,14 @@ import { HttpController } from '../../shared/HttpController.js';
 import { registerRequest } from './requestSchemas.js';
 
 export type RegisterUserLocalControllerDependencies = {
-  registerUser: RegisterUserLocal;
+  registerUserLocal: RegisterUserLocal;
 };
 
 export class RegisterUserLocalController extends HttpController {
-  protected readonly registerUser: RegisterUserLocal;
-  constructor({ registerUser }: RegisterUserLocalControllerDependencies) {
+  protected readonly registerUserLocal: RegisterUserLocal;
+  constructor({ registerUserLocal }: RegisterUserLocalControllerDependencies) {
     super();
-    this.registerUser = registerUser;
+    this.registerUserLocal = registerUserLocal;
   }
 
   run = async (
@@ -23,7 +23,7 @@ export class RegisterUserLocalController extends HttpController {
   ): Promise<void> => {
     try {
       const { body } = getValidatedRequest(res, registerRequest);
-      await this.registerUser.run(body);
+      await this.registerUserLocal.run(body);
       res.status(this.status()).send();
     } catch (error) {
       next(error);

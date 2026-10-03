@@ -2,7 +2,7 @@
 
 - Express API
 - Layered architecture (Domain / Application / Infrastructure)
-- Awilix for dependency injection
+- Awilix for dependency injection: automated directory scanning (`src/apps/agroApi/wiring/`) in `PROXY` mode with `strict: true` and 7 explicit values in `src/apps/agroApi/container.ts`
 - OpenAPI as contract source of truth
 
 ## Existence Invariants

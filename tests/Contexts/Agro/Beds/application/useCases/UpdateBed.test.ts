@@ -29,7 +29,7 @@ describe('UpdateBed', () => {
   beforeEach(() => {
     repository = new BedRepositoryMock();
     repository.addToStorage(bed);
-    useCase = new UpdateBed(repository);
+    useCase = new UpdateBed({ bedRepository: repository });
   });
 
   it('should throw not found error if bed does not exist', async () => {

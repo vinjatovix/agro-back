@@ -165,7 +165,7 @@ The immediate focus to stabilize the codebase covers the following refactoring b
     - _Remedy:_ Route boundaries now validate with Zod (runtime validation and typed DTOs); auto-generating the Swagger documentation from the schemas is still pending.
 4.  **Awilix DI Auto-Wiring:**
     - _Symptom:_ `container.ts` contains verbose, manual registrations of every controller and use case.
-    - _Remedy:_ Automate registration through directory scanning (`container.loadModules`).
+    - _Remedy:_ Automate registration through directory scanning with Awilix registration (`asClass`) instead of `container.loadModules` (named exports would need the Awilix `RESOLVER` symbol in application classes).
 5.  **Modularize ATDD Step Definitions:**
     - _Symptom:_ Cucumber test steps are concentrated in a few large feature-dump files.
     - _Remedy:_ Split step definitions by bounded context (Plant, Bed, Auth), extracting shared steps into reusable step utilities.

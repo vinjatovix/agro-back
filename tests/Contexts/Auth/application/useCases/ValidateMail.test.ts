@@ -1,18 +1,21 @@
 import { ValidateMail } from '../../../../../src/Contexts/Auth/application/useCases/ValidateMail.js';
 import type { UserPatch } from '../../../../../src/Contexts/Auth/domain/entities/UserPatch.js';
 import { random } from '../../../shared/fixtures/index.js';
-import { AuthRepositoryMock, CryptAdapterMock } from '../../__mocks__/index.js';
+import {
+  AuthRepositoryMock,
+  EncrypterAdapterMock
+} from '../../__mocks__/index.js';
 import { UserMother } from '../../domain/mothers/UserMother.js';
 
 describe('ValidateMail', () => {
-  let encrypter: CryptAdapterMock;
+  let encrypter: EncrypterAdapterMock;
   let repository: AuthRepositoryMock;
   let service: ValidateMail;
 
   beforeEach(() => {
-    encrypter = new CryptAdapterMock({ token: true });
+    encrypter = new EncrypterAdapterMock({ token: true });
     repository = new AuthRepositoryMock({ find: true });
-    service = new ValidateMail(repository, encrypter);
+    service = new ValidateMail({ authRepository: repository, encrypter });
   });
 
   it('should validate the user', async () => {
@@ -38,8 +41,8 @@ describe('ValidateMail', () => {
   });
 
   it('should throw an error if the token is invalid', async () => {
-    encrypter = new CryptAdapterMock({ token: false });
-    service = new ValidateMail(repository, encrypter);
+    encrypter = new EncrypterAdapterMock({ token: false });
+    service = new ValidateMail({ authRepository: repository, encrypter });
     const token = random.word({ min: 6, max: 255 });
 
     await expect(service.run({ token })).rejects.toThrow({
@@ -50,7 +53,7 @@ describe('ValidateMail', () => {
 
   it('should throw an error if the user is not found', async () => {
     repository = new AuthRepositoryMock({ find: false });
-    service = new ValidateMail(repository, encrypter);
+    service = new ValidateMail({ authRepository: repository, encrypter });
     const token = random.word({ min: 6, max: 255 });
 
     await expect(service.run({ token })).rejects.toThrow({

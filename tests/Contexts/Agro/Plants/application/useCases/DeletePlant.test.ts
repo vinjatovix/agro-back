@@ -15,7 +15,7 @@ describe('DeletePlant use case', () => {
 
   beforeEach(() => {
     repository = new PlantRepositoryMock();
-    useCase = new DeletePlant(repository);
+    useCase = new DeletePlant({ plantRepository: repository });
   });
 
   it('should mark plant as deleted via updateWithDiff', async () => {

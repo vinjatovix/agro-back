@@ -7,8 +7,16 @@ import { bedDomainMapper } from '../../mappers/bedDomainMapper.js';
 import { bedInputMapper } from '../../mappers/bedInputMapper.js';
 import type { UpdateBedInput } from './interfaces/UpdateBedInput.js';
 
+export type UpdateBedDependencies = {
+  bedRepository: BedRepository;
+};
+
 export class UpdateBed {
-  constructor(private readonly bedRepository: BedRepository) {}
+  private readonly bedRepository: BedRepository;
+
+  constructor({ bedRepository }: UpdateBedDependencies) {
+    this.bedRepository = bedRepository;
+  }
 
   async execute(
     input: UpdateBedInput,

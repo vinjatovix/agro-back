@@ -5,7 +5,8 @@ import { buildLogger } from './Contexts/shared/plugins/logger.plugin.js';
 const logger = buildLogger('agroAPI');
 const config = {
   host: envs.HOST,
-  port: String(envs.PORT)
+  port: String(envs.PORT),
+  sourceRoot: import.meta.dirname
 };
 
 async function startServer() {

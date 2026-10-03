@@ -13,7 +13,10 @@ describe('CreatePlant (use case)', () => {
   beforeEach(() => {
     repository = new PlantRepositoryMock();
     familyRepository = new FamilyRepositoryMock();
-    useCase = new CreatePlant(repository, familyRepository);
+    useCase = new CreatePlant({
+      plantRepository: repository,
+      familyRepository
+    });
   });
 
   it('should throw if plant already exists', async () => {
