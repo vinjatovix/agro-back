@@ -69,13 +69,10 @@ const startupFamilyIndex: MigrationIndex = {
 describe('plant listing indexes migration', () => {
   describe('up', () => {
     it('should rebuild the family index with the plant collation', async () => {
-      // Arrange
       const { db, dropIndex, stored } = buildPlants([startupFamilyIndex]);
 
-      // Act
       await up(db);
 
-      // Assert
       expect(dropIndex).toHaveBeenCalledWith('plants_family_idx');
       expect(stored.get('plants_family_idx')?.collation).toEqual(
         PLANT_COLLATION
@@ -85,13 +82,10 @@ describe('plant listing indexes migration', () => {
     it.each(LISTING_INDEXES)(
       'should create %s with the plant collation',
       async (name, key) => {
-        // Arrange
         const { db, stored } = buildPlants([startupFamilyIndex]);
 
-        // Act
         await up(db);
 
-        // Assert
         expect(stored.get(name)).toEqual(
           expect.objectContaining({ key, collation: PLANT_COLLATION })
         );
@@ -99,26 +93,20 @@ describe('plant listing indexes migration', () => {
     );
 
     it('should not fail on a database without the plants collection', async () => {
-      // Arrange
       const { db, stored } = buildPlants([], { exists: false });
 
-      // Act
       await up(db);
 
-      // Assert
       expect([...stored.keys()]).toEqual(LISTING_INDEXES.map(([name]) => name));
     });
 
     it('should be harmless when run twice', async () => {
-      // Arrange
       const { db, dropIndex, stored } = buildPlants([startupFamilyIndex]);
       await up(db);
       const afterFirstRun = [...stored.values()];
 
-      // Act
       await up(db);
 
-      // Assert
       expect([...stored.values()]).toEqual(afterFirstRun);
       expect(dropIndex).toHaveBeenCalledTimes(1);
     });
@@ -126,14 +114,11 @@ describe('plant listing indexes migration', () => {
 
   describe('down', () => {
     it('should drop the listing indexes and restore the family index without collation', async () => {
-      // Arrange
       const { db, stored } = buildPlants([startupFamilyIndex]);
       await up(db);
 
-      // Act
       await down(db);
 
-      // Assert
       expect([...stored.values()]).toEqual([
         expect.objectContaining({ ...startupFamilyIndex })
       ]);
@@ -141,13 +126,10 @@ describe('plant listing indexes migration', () => {
     });
 
     it('should not fail when the listing indexes are missing', async () => {
-      // Arrange
       const { db, stored } = buildPlants();
 
-      // Act
       await down(db);
 
-      // Assert
       expect([...stored.keys()]).toEqual(['plants_family_idx']);
     });
   });

@@ -408,6 +408,10 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [architecture-boundaries.md](spec/modules/architecture-boundaries.md), [validation.md](spec/modules/validation.md), [openapi.md](spec/modules/openapi.md)
 
+- **Status**: Done (2026-10-03)
+- **Outcome**: the four catalog `GET` routes read through `PlantReadRepository` / `FamilyReadRepository` (inclusion projection, shared `MongoPageQuery` paging) and send a plain read view checked by strict Zod response schemas (strip mode; a failure logs every failing id and answers `500`). The contract publishes `FamilySummary` and the `oneOf` family relation (`PlantIdentityView`); the API keeps sending the plain id until Iteration 19. Write routes keep their bodies; `PATCH /families/{idOrSlug}` no longer calls the read use cases to turn a slug into an id: `UpdateFamily` takes `idOrSlug` and loads the aggregate once, by id (UUID) or by slug, through `FamilyRepository`.
+- **Contract finding**: GET bodies already sent `metadata` (plants and families) and plant `status`/`deletedAt`, which the OpenAPI schemas never declared. They are now declared as read-only response fields, so bodies stay identical and the strict check keeps them.
+
 - **Value delivered**: Optimizes read latency by skipping heavy domain aggregate hydration for public endpoints.
 - **Definition of Done**: GET endpoints for Plants and Families bypass aggregate hydration, returning plain DTOs validated by Zod Unions. Responses must comply with the polymorphic populated schemas (`oneOf`) defined in `openapi.md`.
 - **Dependencies**: Iteration 12, Iteration 13.
@@ -641,6 +645,7 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 **Spec Module(s)**: [family.md](spec/modules/family.md), [openapi.md](spec/modules/openapi.md)
 
 - **Value delivered**: Simplifies API consumer usage by allowing slug-based updates and completes missing administrative endpoints.
+- **Progress**: `PATCH /families/{idOrSlug}` already resolves the id or slug inside `UpdateFamily` (Iteration 18); `DELETE` is still pending.
 - **Definition of Done**: Polymorphic `idOrSlug` lookup is extended to mutation routes (`PATCH`, `DELETE` Families). Since the administrative `DELETE /api/v1/families/:idOrSlug` usecase, controller, and repository routing are completely missing, this iteration includes implementing the full `DeleteFamily` application usecase, repository method, and Express router controller.
 - **Dependencies**: Iteration 31.
 - **Risks**: Accidentally overriding records if slugs collide.

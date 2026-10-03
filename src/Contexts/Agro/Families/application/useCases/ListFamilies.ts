@@ -1,20 +1,21 @@
 import type { PaginatedResult } from '../../../../../shared/domain/query/interfaces/PaginatedResult.js';
-import type { Family } from '../../domain/entities/Family.js';
-import type { FamilyRepository } from '../../domain/repositories/interfaces/FamilyRepository.js';
+import type { FamilyReadRepository, FamilyReadView } from '../queries/index.js';
 import type { ListFamiliesDto } from './interfaces/ListFamiliesDto.js';
 
 export type ListFamiliesDependencies = {
-  familyRepository: FamilyRepository;
+  familyReadRepository: FamilyReadRepository;
 };
 
 export class ListFamilies {
-  private readonly familyRepository: FamilyRepository;
+  private readonly familyReadRepository: FamilyReadRepository;
 
-  constructor({ familyRepository }: ListFamiliesDependencies) {
-    this.familyRepository = familyRepository;
+  constructor({ familyReadRepository }: ListFamiliesDependencies) {
+    this.familyReadRepository = familyReadRepository;
   }
 
-  async execute(dto?: ListFamiliesDto): Promise<PaginatedResult<Family>> {
-    return this.familyRepository.findAll(dto?.query);
+  async execute(
+    dto?: ListFamiliesDto
+  ): Promise<PaginatedResult<FamilyReadView>> {
+    return this.familyReadRepository.findAll(dto?.query);
   }
 }

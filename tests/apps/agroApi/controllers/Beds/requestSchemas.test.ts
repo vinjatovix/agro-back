@@ -70,13 +70,10 @@ const bedParams = () => ({ id: random.uuid() });
 describe('Bed requestSchemas', () => {
   describe('createBedRequest', () => {
     it('should accept a valid body and trim the name', async () => {
-      // Arrange
       const body = buildCreateBedBody({ name: '  Raised bed  ' });
 
-      // Act
       const parsed = await parsedOf(createBedRequest, { body });
 
-      // Assert
       expect(parsed.body).toEqual({ ...body, name: 'Raised bed' });
     });
 
@@ -97,51 +94,42 @@ describe('Bed requestSchemas', () => {
         [`a null ${field}`, { [field]: null }, field]
       ])
     ])('should reject %s', async (_label, overrides, field) => {
-      // Act
       const errors = await errorsOf(createBedRequest, {
         body: buildCreateBedBody(overrides)
       });
 
-      // Assert
       expect(Object.keys(errors)).toEqual([field]);
     });
 
     it.each(['userId', 'plantInstances', 'unexpected'])(
       'should report %s as an unknown field',
       async (key) => {
-        // Act
         const errors = await errorsOf(createBedRequest, {
           body: buildCreateBedBody({ [key]: [] })
         });
 
-        // Assert
         expect(errors).toEqual({ [key]: UNKNOWN_FIELD });
       }
     );
 
     it('should report one error per missing field for an empty body', async () => {
-      // Act
       const errors = await errorsOf(createBedRequest, { body: {} });
 
-      // Assert
       expect(Object.keys(errors).sort()).toEqual(
         ['depth', 'height', 'id', 'name', 'width'].sort()
       );
     });
 
     it('should report a query key as an unknown field', async () => {
-      // Act
       const errors = await errorsOf(createBedRequest, {
         query: { x: '1' },
         body: buildCreateBedBody()
       });
 
-      // Assert
       expect(errors).toEqual({ x: UNKNOWN_FIELD });
     });
 
     it('should not echo the submitted values', async () => {
-      // Act
       const errors = await errorsOf(createBedRequest, {
         body: buildCreateBedBody({
           id: SENTINEL,
@@ -150,7 +138,6 @@ describe('Bed requestSchemas', () => {
         })
       });
 
-      // Assert
       for (const message of Object.values(errors)) {
         expect(message).not.toContain(SENTINEL);
       }
@@ -163,29 +150,23 @@ describe('Bed requestSchemas', () => {
     ['deleteBedRequest', deleteBedRequest, { params: bedParams() }]
   ])('%s', (_name, schemas: RequestSchemas, parts: RequestParts) => {
     it('should accept a request without body', async () => {
-      // Act
       const error = await validate(schemas, parts);
 
-      // Assert
       expect(error).toBeUndefined();
     });
 
     it('should report a query key as an unknown field', async () => {
-      // Act
       const errors = await errorsOf(schemas, { ...parts, query: { x: '1' } });
 
-      // Assert
       expect(errors).toEqual({ x: UNKNOWN_FIELD });
     });
 
     it('should report a body field as an unknown field', async () => {
-      // Act
       const errors = await errorsOf(schemas, {
         ...parts,
         body: { name: 'Bed' }
       });
 
-      // Assert
       expect(errors).toEqual({ name: UNKNOWN_FIELD });
     });
   });
@@ -196,13 +177,11 @@ describe('Bed requestSchemas', () => {
     ['deleteBedRequest', deleteBedRequest]
   ])('%s params', (_name, schemas: RequestSchemas) => {
     it('should reject an id that is not a UUID', async () => {
-      // Act
       const errors = await errorsOf(schemas, {
         params: { id: 'not-a-uuid' },
         body: {}
       });
 
-      // Assert
       expect(Object.keys(errors)).toEqual(['id']);
     });
   });
@@ -214,24 +193,20 @@ describe('Bed requestSchemas', () => {
       ['only the depth', { depth: 40 }],
       ['every field', buildUpdateBedBody()]
     ])('should accept %s', async (_label, body) => {
-      // Act
       const parsed = await parsedOf(updateBedRequest, {
         params: bedParams(),
         body
       });
 
-      // Assert
       expect(parsed.body).toEqual(body);
     });
 
     it('should trim the name', async () => {
-      // Act
       const parsed = await parsedOf(updateBedRequest, {
         params: bedParams(),
         body: { name: '  Bed  ' }
       });
 
-      // Assert
       expect(parsed.body).toEqual({ name: 'Bed' });
     });
 
@@ -243,39 +218,33 @@ describe('Bed requestSchemas', () => {
         [`a zero ${field}`, { [field]: 0 }, field]
       ])
     ])('should reject %s', async (_label, body, field) => {
-      // Act
       const errors = await errorsOf(updateBedRequest, {
         params: bedParams(),
         body
       });
 
-      // Assert
       expect(Object.keys(errors)).toEqual([field]);
     });
 
     it.each(['plantInstances', 'userId', 'id'])(
       'should report %s as an unknown field',
       async (key) => {
-        // Act
         const errors = await errorsOf(updateBedRequest, {
           params: bedParams(),
           body: { [key]: [] }
         });
 
-        // Assert
         expect(errors).toEqual({ [key]: UNKNOWN_FIELD });
       }
     );
 
     it('should report a query key as an unknown field', async () => {
-      // Act
       const errors = await errorsOf(updateBedRequest, {
         params: bedParams(),
         query: { x: '1' },
         body: {}
       });
 
-      // Assert
       expect(errors).toEqual({ x: UNKNOWN_FIELD });
     });
   });

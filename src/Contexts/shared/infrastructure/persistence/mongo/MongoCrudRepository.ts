@@ -1,8 +1,7 @@
-import type { CollationOptions, FindCursor } from 'mongodb';
+import type { CollationOptions } from 'mongodb';
 import { diffObjects } from '../../../../../shared/domain/diff/diffObjects.js';
 import type { PaginatedResult } from '../../../../../shared/domain/query/interfaces/PaginatedResult.js';
 import type { QueryOptions } from '../../../../../shared/domain/query/interfaces/QueryOptions.js';
-import type { SortOptions } from '../../../../../shared/domain/query/interfaces/SortOptions.js';
 import type { Nullable } from '../../../../../shared/domain/types/Nullable.js';
 import type { UnknownRecord } from '../../../../../shared/domain/types/UnknownRecord.js';
 import {
@@ -10,8 +9,8 @@ import {
   DomainStaleVersionException
 } from '../../../../shared/domain/errors/index.js';
 import type { WriteOutcome } from '../../../../shared/domain/repositories/WriteOutcome.js';
-import { normalizePagination } from '../../../application/utils/normalizePagination.js';
 import { toMongoId } from './MongoId.js';
+import { MongoPageQuery } from './MongoPageQuery.js';
 import { MongoQueryTranslator } from './MongoQueryTranslator.js';
 import { MongoRepository } from './MongoRepository.js';
 import type { Entity, WithId } from './types/index.js';
@@ -35,33 +34,8 @@ export abstract class MongoCrudRepository<
     return key;
   }
 
-  protected applySort(cursor: FindCursor, sort?: SortOptions): void {
-    if (!sort) return;
-
-    const mongoSort: Record<string, 1 | -1> = {};
-
-    for (const field in sort) {
-      mongoSort[this.toMongoSortField(field)] = sort[field] === 'asc' ? 1 : -1;
-    }
-
-    cursor.sort(mongoSort);
-  }
-
   protected getCollation(): CollationOptions | undefined {
     return undefined;
-  }
-
-  protected applyPagination(
-    cursor: FindCursor,
-    pagination?: { page: number; limit: number }
-  ): void {
-    if (!pagination) return;
-
-    const { page, limit } = pagination;
-
-    const skip = (page - 1) * limit;
-
-    cursor.skip(skip).limit(limit);
   }
 
   async findById(id: string): Promise<Nullable<TDomain>> {
@@ -91,38 +65,26 @@ export abstract class MongoCrudRepository<
   async findAll(
     options: Partial<QueryOptions<TFilter>> = {}
   ): Promise<PaginatedResult<TDomain>> {
-    const collection = this.collection();
-
     const { filter, sort, pagination } = options;
-    const safePagination = normalizePagination(pagination);
-
-    const mongoFilter = this.toMongoFilter(filter);
     const collation = this.getCollation();
-    const findOptions = collation ? { collation } : {};
 
-    const totalItems = await collection.countDocuments(
-      mongoFilter,
-      findOptions
-    );
-
-    const cursor = collection.find<TDocument>(mongoFilter, findOptions);
-
-    this.applySort(cursor, sort);
-    this.applyPagination(cursor, safePagination);
-
-    const docs = await cursor.toArray();
-    const page = safePagination?.page ?? 1;
-    const limit = (safePagination?.limit ?? totalItems) || 1;
-    const totalPages = Math.ceil(totalItems / limit);
+    const { documents, pagination: page } =
+      // Untyped handle: the page query only reads, and returns documents
+      // typed by the caller.
+      await MongoPageQuery.find<TDocument>(
+        this.db.collection(this.collectionName()),
+        {
+          filter: this.toMongoFilter(filter),
+          toSortField: (key) => this.toMongoSortField(key),
+          ...(sort && { sort }),
+          ...(pagination && { pagination }),
+          ...(collation && { collation })
+        }
+      );
 
     return {
-      data: docs.map((doc) => this.toDomain(doc)),
-      pagination: {
-        page,
-        limit,
-        totalPages,
-        totalItems
-      }
+      data: documents.map((doc) => this.toDomain(doc)),
+      pagination: page
     };
   }
 

@@ -33,6 +33,7 @@
     "test:unit:watch": "cross-env NODE_ENV=test jest --watch --detectOpenHandles --forceExit",
     "test:features": "cross-env NODE_ENV=test NODE_OPTIONS='--loader ts-node/esm' cucumber-js",
     "debug:features": "cross-env NODE_ENV=test NODE_OPTIONS='--loader ts-node/esm' node --inspect-brk ./node_modules/@cucumber/cucumber/bin/cucumber-js",
+    "bench:catalog-read": "cross-env NODE_ENV=test tsx ./scripts/bench/catalogReadMapping.ts",
     "prepare": "husky"
   },
   "lint-staged": {

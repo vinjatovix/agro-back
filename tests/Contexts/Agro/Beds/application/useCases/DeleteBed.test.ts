@@ -201,35 +201,27 @@ describe('DeleteBed', () => {
 
   describe('expected version lists', () => {
     it('should proceed when the list contains the current version', async () => {
-      // Arrange
       const bed = BedFactory.fromUser(USER);
       repository.addToStorage(bed);
 
-      // Act
       await useCase.execute(bed.id, USER, [bed.version + 1, bed.version]);
 
-      // Assert
       expect(repository.getStored(bed.id)?.isDeleted).toBe(true);
     });
 
     it('should answer stale for an empty list without writing', async () => {
-      // Arrange
       const bed = BedFactory.fromUser(USER);
       repository.addToStorage(bed);
 
-      // Act
       const remove = useCase.execute(bed.id, USER, []);
 
-      // Assert
       await expect(remove).rejects.toBeInstanceOf(DomainStaleVersionException);
       repository.assertUpdateNotCalled();
     });
 
     it('should answer not found before checking an empty list', async () => {
-      // Act
       const remove = useCase.execute(random.uuid(), USER, []);
 
-      // Assert
       await expect(remove).rejects.toBeInstanceOf(DomainNotFoundException);
     });
   });

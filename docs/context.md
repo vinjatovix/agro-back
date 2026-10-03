@@ -55,7 +55,7 @@ The codebase adheres strictly to **Clean DDD-Inspired Hexagonal Architecture**, 
 1.  **Pure Domain Core:** The domain layer (`src/Contexts/*/domain`) is stateless, side-effect free, and holds zero technology dependencies. No database models, HTTP error structures, or framework utilities are allowed inside.
 2.  **No DTOs in Domain:** Data Transfer Objects only exist at the system boundary (API / Use Case inputs). The domain only receives validated aggregates, entities, and rich Value Objects.
 3.  **Audit Metadata Ownership:** Audit fields (`createdAt`, `updatedAt`, `createdBy`, `updatedBy`) are mutated in memory directly by domain methods prior to persistence, ensuring read-after-write queries (`findById` post-update) can be completely bypassed.
-4.  **CQRS Read-Only Bypass:** To maximize system throughput, read-only listings (GET queries) are officially permitted to bypass full rich domain aggregate hydration. Plain MongoDB projections map directly to boundary DTOs, validated by output schemas (Zod/OpenAPI).
+4.  **CQRS Read-Only Bypass:** To maximize system throughput, read-only listings (GET queries) are officially permitted to bypass full rich domain aggregate hydration. Plain MongoDB projections map directly to boundary DTOs, validated by output schemas (Zod/OpenAPI). Current state: the Plants and Families `GET` routes read through dedicated read ports and strict output schemas (Iteration 18); writes always go through aggregates.
 5.  **Repository Retrieval Contract:** Repositories function purely as data retrieval mechanisms. They return nullable values (`null` or `undefined`) when a record is absent and never throw domain-level exceptions (like `DomainNotFoundException`), shifting error enforcement strictly to application use cases.
 
 ---
@@ -108,7 +108,7 @@ To drive the new system roadmap, this section contrasts the current state of eac
   - Supports polymorphic read-only lookups (by UUID ID or alphanumeric string Slug) on GET routes.
   - Updates use optimistic concurrency control (`version` via `If-Match`; stale version → `412`, missing `If-Match` → `428`).
 - **Target State (Spec v1.4.0):**
-  - **Polymorphic Mutation:** Extend polymorphic `idOrSlug` resolution to mutations (`PATCH`, `DELETE`).
+  - **Polymorphic Mutation:** `PATCH` already resolves `idOrSlug`; extend it to `DELETE`.
   - **Collaborator Role:** Authorization for a `collaborator` role to manage catalog taxonomies, separate from system administrators.
 
 ### E. Botanical Companions Graph (Plant Relations)

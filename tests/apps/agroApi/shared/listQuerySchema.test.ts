@@ -96,10 +96,8 @@ describe('listQuerySchema', () => {
     ])(
       'should accept %s field %s with %s',
       async (_type, field, operator, value) => {
-        // Act
         const filter = await filterOf({ [field]: { [operator]: value } });
 
-        // Assert
         expect(filter).toHaveProperty([field, operator]);
       }
     );
@@ -112,10 +110,8 @@ describe('listQuerySchema', () => {
     ])(
       'should accept %s field %s with the list operator %s',
       async (_type, field, operator, value) => {
-        // Act
         const filter = await filterOf({ [field]: { [operator]: value } });
 
-        // Assert
         expect(filter).toHaveProperty([field, operator]);
       }
     );
@@ -131,12 +127,10 @@ describe('listQuerySchema', () => {
     ])(
       'should reject %s with the undeclared operator %s',
       async (field, operator) => {
-        // Act
         const errors = await errorsOf({
           filter: { [field]: { [operator]: 'x' } }
         });
 
-        // Assert
         expect(errors).toEqual({
           [`filter.${field}.${operator}`]: UNKNOWN_FIELD
         });
@@ -144,20 +138,16 @@ describe('listQuerySchema', () => {
     );
 
     it('should reject an undeclared field', async () => {
-      // Act
       const errors = await errorsOf({ filter: { password: { eq: 'x' } } });
 
-      // Assert
       expect(errors).toEqual({ 'filter.password': UNKNOWN_FIELD });
     });
   });
 
   describe('single-value operators', () => {
     it('should trim the value', async () => {
-      // Act
       const filter = await filterOf({ name: { contains: '  ros  ' } });
 
-      // Assert
       expect(filter).toEqual({ name: { contains: 'ros' } });
     });
 
@@ -167,36 +157,28 @@ describe('listQuerySchema', () => {
       ['an empty value', ''],
       ['a blank value', '   ']
     ])('should reject %s', async (_label, value) => {
-      // Act
       const errors = await errorsOf({ filter: { name: { eq: value } } });
 
-      // Assert
       expect(errors).toHaveProperty(['filter.name.eq']);
     });
 
     it('should hint at in when eq holds a comma', async () => {
-      // Act
       const errors = await errorsOf({ filter: { name: { eq: 'Rose,Lily' } } });
 
-      // Assert
       expect(errors).toEqual({ 'filter.name.eq': USE_IN });
     });
 
     it('should hint at hasAny when has holds a comma', async () => {
-      // Act
       const errors = await errorsOf({ filter: { tags: { has: 'red,blue' } } });
 
-      // Assert
       expect(errors).toEqual({ 'filter.tags.has': USE_HAS_ANY });
     });
 
     it.each(['contains', 'startsWith', 'endsWith'])(
       'should keep commas literal in %s',
       async (operator) => {
-        // Act
         const filter = await filterOf({ name: { [operator]: 'a, b' } });
 
-        // Assert
         expect(filter).toEqual({ name: { [operator]: 'a, b' } });
       }
     );
@@ -207,10 +189,8 @@ describe('listQuerySchema', () => {
       ['a comma-separated string', ' Rose , ,Lily '],
       ['a repeated key', ['Rose', ' ', 'Lily']]
     ])('should accept %s', async (_label, value) => {
-      // Act
       const filter = await filterOf({ name: { in: value } });
 
-      // Assert
       expect(filter).toEqual({ name: { in: ['Rose', 'Lily'] } });
     });
 
@@ -225,10 +205,8 @@ describe('listQuerySchema', () => {
         ).join(',')
       ]
     ])('should reject %s', async (_label, value) => {
-      // Act
       const errors = await errorsOf({ filter: { name: { in: value } } });
 
-      // Assert
       expect(errors).toHaveProperty(['filter.name.in']);
     });
 
@@ -239,12 +217,10 @@ describe('listQuerySchema', () => {
     ])(
       'should report an invalid entry of %s.%s at its index',
       async (field, operator, value, path) => {
-        // Act
         const errors = await errorsOf({
           filter: { [field]: { [operator]: value } }
         });
 
-        // Assert
         expect(Object.keys(errors)).toEqual([path]);
       }
     );
@@ -261,24 +237,20 @@ describe('listQuerySchema', () => {
       ['a month below 1', 'months', 'has', '0'],
       ['a month that is not whole', 'months', 'has', '1.5']
     ])('should reject %s', async (_label, field, operator, value) => {
-      // Act
       const errors = await errorsOf({
         filter: { [field]: { [operator]: value } }
       });
 
-      // Assert
       expect(Object.keys(errors)).toEqual([`filter.${field}.${operator}`]);
     });
 
     it('should decode typed values', async () => {
-      // Act
       const filter = await filterOf({
         size: { eq: '-2.5' },
         months: { hasAny: '3,12' },
         lifeCycle: { in: 'annual,perennial' }
       });
 
-      // Assert
       expect(filter).toEqual({
         size: { eq: -2.5 },
         months: { hasAny: [3, 12] },
@@ -287,10 +259,8 @@ describe('listQuerySchema', () => {
     });
 
     it('should take one value for has', async () => {
-      // Act
       const filter = await filterOf({ months: { has: '5' } });
 
-      // Assert
       expect(filter).toEqual({ months: { has: 5 } });
     });
   });
@@ -302,51 +272,41 @@ describe('listQuerySchema', () => {
       ['owner', 'hasAny'],
       ['lifeCycle', 'has']
     ])('should hint at in for %s.%s', async (field, operator) => {
-      // Act
       const errors = await errorsOf({
         filter: { [field]: { [operator]: 'x' } }
       });
 
-      // Assert
       expect(errors).toEqual({ [`filter.${field}.${operator}`]: USE_IN });
     });
 
     it('should hint at hasAny for in on a list field', async () => {
-      // Act
       const errors = await errorsOf({ filter: { tags: { in: 'red,blue' } } });
 
-      // Assert
       expect(errors).toEqual({ 'filter.tags.in': USE_HAS_ANY });
     });
   });
 
   describe('one operator per field', () => {
     it('should reject two operators on the same field', async () => {
-      // Act
       const errors = await errorsOf({
         filter: { name: { contains: 'ros', eq: 'Rosaceae' } }
       });
 
-      // Assert
       expect(errors).toEqual({ 'filter.name': ONE_OPERATOR });
     });
 
     it('should reject a field without operators', async () => {
-      // Act
       const errors = await errorsOf({ filter: { name: {} } });
 
-      // Assert
       expect(errors).toEqual({ 'filter.name': ONE_OPERATOR });
     });
 
     it('should accept one operator on each of several fields', async () => {
-      // Act
       const filter = await filterOf({
         name: { contains: 'ros' },
         lifeCycle: { eq: 'annual' }
       });
 
-      // Assert
       expect(filter).toEqual({
         name: { contains: 'ros' },
         lifeCycle: { eq: 'annual' }
@@ -356,10 +316,8 @@ describe('listQuerySchema', () => {
 
   describe('sort', () => {
     it('should accept declared keys with asc or desc', async () => {
-      // Act
       const { sort } = await parsedOf({ sort: { name: 'asc', slug: 'desc' } });
 
-      // Assert
       expect(sort).toEqual({ name: 'asc', slug: 'desc' });
     });
 
@@ -369,46 +327,36 @@ describe('listQuerySchema', () => {
       ['an undeclared key', { password: 'asc' }, 'sort.password'],
       ['the JSON-string form', '{"name":"asc"}', 'sort']
     ])('should reject %s', async (_label, sort, path) => {
-      // Act
       const errors = await errorsOf({ sort });
 
-      // Assert
       expect(Object.keys(errors)).toEqual([path]);
     });
 
     it('should leave out an empty sort', async () => {
-      // Act
       const query = await parsedOf({ sort: {} });
 
-      // Assert
       expect(query).not.toHaveProperty('sort');
     });
   });
 
   describe('pagination', () => {
     it('should apply the defaults when absent', async () => {
-      // Act
       const query = await parsedOf({});
 
-      // Assert
       expect(query).toEqual({ pagination: DEFAULT_PAGINATION });
     });
 
     it('should decode page and limit', async () => {
-      // Act
       const { pagination } = await parsedOf({
         pagination: { page: '2', limit: String(LIST_LIMITS.maxPageSize) }
       });
 
-      // Assert
       expect(pagination).toEqual({ page: 2, limit: LIST_LIMITS.maxPageSize });
     });
 
     it('should apply the default of a missing value', async () => {
-      // Act
       const { pagination } = await parsedOf({ pagination: { page: '3' } });
 
-      // Assert
       expect(pagination).toEqual({
         page: 3,
         limit: LIST_LIMITS.defaultPageSize
@@ -426,30 +374,24 @@ describe('listQuerySchema', () => {
       ['limit', 'abc'],
       ['limit', String(LIST_LIMITS.maxPageSize + 1)]
     ])('should reject %s %j', async (key, value) => {
-      // Act
       const errors = await errorsOf({ pagination: { [key]: value } });
 
-      // Assert
       expect(Object.keys(errors)).toEqual([`pagination.${key}`]);
     });
 
     it('should name the maximum page size when limit is too big', async () => {
-      // Act
       const errors = await errorsOf({
         pagination: { limit: String(LIST_LIMITS.maxPageSize + 1) }
       });
 
-      // Assert
       expect(errors['pagination.limit']).toContain(
         String(LIST_LIMITS.maxPageSize)
       );
     });
 
     it('should reject an unknown pagination key', async () => {
-      // Act
       const errors = await errorsOf({ pagination: { size: '5' } });
 
-      // Assert
       expect(errors).toEqual({ 'pagination.size': UNKNOWN_FIELD });
     });
   });
@@ -458,19 +400,15 @@ describe('listQuerySchema', () => {
     it.each(['include', 'foo'])(
       'should reject the unknown key %s',
       async (key) => {
-        // Act
         const errors = await errorsOf({ [key]: 'x' });
 
-        // Assert
         expect(errors).toEqual({ [key]: UNKNOWN_FIELD });
       }
     );
 
     it('should reject a filter sent as text', async () => {
-      // Act
       const errors = await errorsOf({ filter: 'name' });
 
-      // Assert
       expect(Object.keys(errors)).toEqual(['filter']);
     });
   });
@@ -490,22 +428,18 @@ describe('listQuerySchema', () => {
       ['a wrong UUID', { filter: { owner: { in: `${SENTINEL},x` } } }],
       ['a wrong number', { filter: { size: { eq: SENTINEL } } }]
     ])('should not echo the value for %s', async (_label, query) => {
-      // Act
       const errors = await errorsOf(query);
 
-      // Assert
       for (const message of Object.values(errors)) {
         expect(message).not.toContain(SENTINEL);
       }
     });
 
     it('should state the expected values of an enumeration', async () => {
-      // Act
       const errors = await errorsOf({
         filter: { lifeCycle: { eq: 'yearly' } }
       });
 
-      // Assert
       expect(errors['filter.lifeCycle.eq']).toContain('perennial');
     });
   });

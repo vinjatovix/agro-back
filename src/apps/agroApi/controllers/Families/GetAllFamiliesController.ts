@@ -1,21 +1,26 @@
 import { type NextFunction, type Request, type Response } from 'express';
 
-import { ListFamilies } from '../../../../Contexts/Agro/Families/application/useCases/ListFamilies.js';
-import { familyDomainMapper } from '../../../../Contexts/Agro/Families/mappers/familyDomainMapper.js';
+import type { ListFamilies } from '../../../../Contexts/Agro/Families/application/useCases/ListFamilies.js';
+import type { AppLogger } from '../../../../Contexts/shared/plugins/logger.plugin.js';
 import { getValidatedRequest } from '../../middlewares/validateRequest.js';
 import { HttpController } from '../../shared/HttpController.js';
+import { checkPage } from '../../shared/responseValidation.js';
 import { listFamiliesRequest } from './requestSchemas.js';
+import { familyResponseSchema } from './responseSchemas.js';
 
 export type GetAllFamiliesControllerDependencies = {
   listFamilies: ListFamilies;
+  logger: AppLogger;
 };
 
 export class GetAllFamiliesController extends HttpController {
   protected readonly listFamilies: ListFamilies;
+  private readonly logger: AppLogger;
 
-  constructor({ listFamilies }: GetAllFamiliesControllerDependencies) {
+  constructor({ listFamilies, logger }: GetAllFamiliesControllerDependencies) {
     super();
     this.listFamilies = listFamilies;
+    this.logger = logger;
   }
 
   run = async (
@@ -25,16 +30,14 @@ export class GetAllFamiliesController extends HttpController {
   ): Promise<void> => {
     try {
       const { query } = getValidatedRequest(res, listFamiliesRequest);
+      const page = await this.listFamilies.execute({ query });
 
-      const result = await this.listFamilies.execute({ query });
-      const data = result.data.map((family) =>
-        familyDomainMapper.toPrimitives(family)
+      res.status(this.status()).json(
+        checkPage(familyResponseSchema, page, {
+          resource: 'Family',
+          logger: this.logger
+        })
       );
-
-      res.status(this.status()).json({
-        ...result,
-        data
-      });
     } catch (error) {
       next(error);
     }

@@ -475,39 +475,31 @@ describe('UpdatePlant use case', () => {
     });
 
     it('should proceed when the list contains the current version', async () => {
-      // Arrange
       const plant = PlantFactory.random();
       repository.addToStorage(plant);
 
-      // Act
       await useCase.execute(rename(plant.id), 'user-1', [
         plant.version + 1,
         plant.version
       ]);
 
-      // Assert
       const updated = await findExisting(plant.id);
       expect(updated.identity.name.primary).toBe('Listed');
     });
 
     it('should answer stale for an empty list without writing', async () => {
-      // Arrange
       const plant = PlantFactory.random();
       repository.addToStorage(plant);
 
-      // Act
       const update = useCase.execute(rename(plant.id), 'user-1', []);
 
-      // Assert
       await expect(update).rejects.toBeInstanceOf(DomainStaleVersionException);
       repository.assertUpdateNotCalled();
     });
 
     it('should answer not found before checking an empty list', async () => {
-      // Act
       const update = useCase.execute(rename(random.uuid()), 'user-1', []);
 
-      // Assert
       await expect(update).rejects.toBeInstanceOf(DomainNotFoundException);
     });
   });

@@ -1,19 +1,22 @@
 import { ensureFound } from '../../../../shared/application/utils/ensureFound.js';
-import type { Family } from '../../domain/entities/Family.js';
-import type { FamilyRepository } from '../../domain/repositories/interfaces/FamilyRepository.js';
+import type { FamilyReadRepository, FamilyReadView } from '../queries/index.js';
 
 export type GetFamilyByIdDependencies = {
-  familyRepository: FamilyRepository;
+  familyReadRepository: FamilyReadRepository;
 };
 
 export class GetFamilyById {
-  private readonly familyRepository: FamilyRepository;
+  private readonly familyReadRepository: FamilyReadRepository;
 
-  constructor({ familyRepository }: GetFamilyByIdDependencies) {
-    this.familyRepository = familyRepository;
+  constructor({ familyReadRepository }: GetFamilyByIdDependencies) {
+    this.familyReadRepository = familyReadRepository;
   }
 
-  async execute(id: string): Promise<Family> {
-    return ensureFound(await this.familyRepository.findById(id), 'Family', id);
+  async execute(id: string): Promise<FamilyReadView> {
+    return ensureFound(
+      await this.familyReadRepository.findById(id),
+      'Family',
+      id
+    );
   }
 }

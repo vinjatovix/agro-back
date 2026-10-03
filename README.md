@@ -110,6 +110,12 @@ npm run test:features
 npm run test:unit
 ```
 
+> Repository tests run against the Docker MongoDB. Jest workers run in parallel and each one gets its own database (`test-1`, `test-2`…, see `tests/shared/infrastructure/persistence/mongo/testDBConfig.ts`); `docker/mongo/mongo-init.js` lets the test user write to `test-1`…`test-16`. A container created before this rule needs the grant once:
+>
+> ```bash
+> docker exec agro-api-mongo mongosh -u root -p rootPassword --quiet --eval 'db.getSiblingDB("test").grantRolesToUser("localUser", Array.from({length:16},(_,i)=>({role:"readWrite",db:"test-"+(i+1)})))'
+> ```
+
 - Full tests routines
 
 ```bash

@@ -85,25 +85,19 @@ describe('bedInputMapper', () => {
 
   describe('bed name on create', () => {
     it('should store a padded name trimmed', () => {
-      // Arrange
       const input = CreateBedInputMother.random({ name: '  Raised bed  ' });
 
-      // Act
       const bed = bedInputMapper.fromCreateInputToDomain(input, 'tester');
 
-      // Assert
       expect(bed.name.value).toBe('Raised bed');
     });
 
     it('should reject a blank name', () => {
-      // Arrange
       const input = CreateBedInputMother.random({ name: '   ' });
 
-      // Act
       const create = () =>
         bedInputMapper.fromCreateInputToDomain(input, 'tester');
 
-      // Assert
       expect(create).toThrow(InvalidArgumentException);
     });
   });

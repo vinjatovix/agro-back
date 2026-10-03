@@ -104,13 +104,10 @@ const scientificNameIndexes = (
 describe('plant scientific name unique migration', () => {
   describe('up', () => {
     it('should replace both old indexes with one unique collated index', async () => {
-      // Arrange
       const { db, stored, calls } = buildPlants([sortIndex, undeclaredIndex]);
 
-      // Act
       await up(db);
 
-      // Assert
       expect(scientificNameIndexes(stored)).toEqual([
         expect.objectContaining(migratedIndex)
       ]);
@@ -123,13 +120,10 @@ describe('plant scientific name unique migration', () => {
     });
 
     it('should look for names repeated ignoring case with the plant collation', async () => {
-      // Arrange
       const { db, aggregate } = buildPlants([sortIndex]);
 
-      // Act
       await up(db);
 
-      // Assert
       expect(aggregate).toHaveBeenCalledWith(REPEATED_NAMES_PIPELINE, {
         collation: PLANT_COLLATION
       });
@@ -142,13 +136,10 @@ describe('plant scientific name unique migration', () => {
     ])(
       'should end with the single unique index from %s',
       async (_case, initial, options) => {
-        // Arrange
         const { db, stored } = buildPlants(initial, options);
 
-        // Act
         await up(db);
 
-        // Assert
         expect(scientificNameIndexes(stored)).toEqual([
           expect.objectContaining(migratedIndex)
         ]);
@@ -156,44 +147,35 @@ describe('plant scientific name unique migration', () => {
     );
 
     it('should do nothing on an already migrated database', async () => {
-      // Arrange
       const { db, aggregate, createIndex, dropIndex } = buildPlants([
         migratedIndex
       ]);
 
-      // Act
       await up(db);
 
-      // Assert
       expect(aggregate).not.toHaveBeenCalled();
       expect(createIndex).not.toHaveBeenCalled();
       expect(dropIndex).not.toHaveBeenCalled();
     });
 
     it('should stop before dropping anything when names are repeated ignoring case', async () => {
-      // Arrange
       const { db, createIndex, dropIndex } = buildPlants([sortIndex], {
         repeated: [{ _id: 'Solanum lycopersicum', n: 2 }]
       });
 
-      // Act
       const result = up(db);
 
-      // Assert
       await expect(result).rejects.toThrow(/plants.*Solanum lycopersicum/);
       expect(dropIndex).not.toHaveBeenCalled();
       expect(createIndex).not.toHaveBeenCalled();
     });
 
     it('should stop naming the collection and index when the index cannot be built', async () => {
-      // Arrange
       const { db, createIndex } = buildPlants([sortIndex]);
       createIndex.mockRejectedValueOnce(mongoError(11000));
 
-      // Act
       const result = up(db);
 
-      // Assert
       await expect(result).rejects.toThrow(
         /plants_scientific_name_unique.*\bplants\b/
       );
@@ -202,13 +184,10 @@ describe('plant scientific name unique migration', () => {
 
   describe('down', () => {
     it('should restore the sort index and the case-sensitive unique index', async () => {
-      // Arrange
       const { db, stored } = buildPlants([migratedIndex]);
 
-      // Act
       await down(db);
 
-      // Assert
       expect(scientificNameIndexes(stored)).toEqual([
         expect.objectContaining(sortIndex),
         expect.objectContaining(undeclaredIndex)
@@ -220,14 +199,11 @@ describe('plant scientific name unique migration', () => {
     it.each([26, 27])(
       'should not fail when the unique index is missing (code %i)',
       async (code) => {
-        // Arrange
         const { db, dropIndex, stored } = buildPlants();
         dropIndex.mockRejectedValueOnce(mongoError(code));
 
-        // Act
         await down(db);
 
-        // Assert
         expect([...stored.keys()]).toEqual([SORT_INDEX, UNDECLARED_INDEX]);
       }
     );

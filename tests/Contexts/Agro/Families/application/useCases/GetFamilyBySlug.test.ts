@@ -1,30 +1,24 @@
 import { GetFamilyBySlug } from '../../../../../../src/Contexts/Agro/Families/application/useCases/GetFamilyBySlug.js';
 import { DomainNotFoundException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { random } from '../../../../shared/fixtures/random.js';
-import { FamilyRepositoryMock } from '../../__mocks__/FamilyRepositoryMock.js';
-import { FamilyScenarios } from '../../domain/mothers/FamilyScenarios.js';
+import { FamilyReadRepositoryMock } from '../../__mocks__/FamilyReadRepositoryMock.js';
+import { FamilyReadViewMother } from '../queries/FamilyReadViewMother.js';
 
 describe('GetFamilyBySlug', () => {
-  let repository: FamilyRepositoryMock;
+  let repository: FamilyReadRepositoryMock;
   let useCase: GetFamilyBySlug;
 
   beforeEach(() => {
-    repository = new FamilyRepositoryMock();
-    useCase = new GetFamilyBySlug({ familyRepository: repository });
-  });
-
-  afterEach(() => {
-    repository.clear();
+    repository = new FamilyReadRepositoryMock();
+    useCase = new GetFamilyBySlug({ familyReadRepository: repository });
   });
 
   it('should return a family when it exists', async () => {
-    const family = FamilyScenarios.domainBase();
-
+    const family = FamilyReadViewMother.base();
     repository.addToStorage(family);
 
-    const result = await useCase.execute(family.slug);
+    await expect(useCase.execute(family.slug)).resolves.toEqual(family);
 
-    expect(result.idValue).toBe(family.idValue);
     repository.assertFindBySlugHasBeenCalledWith(family.slug);
   });
 
@@ -36,5 +30,12 @@ describe('GetFamilyBySlug', () => {
     );
 
     repository.assertFindBySlugHasBeenCalledWith(slug);
+  });
+
+  it('returns stored data as is, without building a Family', async () => {
+    const family = FamilyReadViewMother.breakingABusinessRule();
+    repository.addToStorage(family);
+
+    await expect(useCase.execute(family.slug)).resolves.toBe(family);
   });
 });

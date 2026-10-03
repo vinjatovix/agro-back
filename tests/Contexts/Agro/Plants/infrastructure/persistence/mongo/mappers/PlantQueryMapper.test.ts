@@ -236,13 +236,10 @@ describe('PlantQueryMapper', () => {
     ])(
       'should map identity %s to $or over the name paths',
       (operator, value, condition) => {
-        // Arrange
         const filter = { identity: { [operator]: value } } as PlantFilter;
 
-        // Act
         const result = plantQueryMapper.toMongo(filter);
 
-        // Assert
         expect(result).toEqual({
           $or: IDENTITY_PATHS.map((path) => ({ [path]: condition }))
         });
@@ -302,24 +299,19 @@ describe('PlantQueryMapper', () => {
       }
     ]
   ])('should map %s', (_label, filter, expected) => {
-    // Act
     const result = plantQueryMapper.toMongo(filter as PlantFilter);
 
-    // Assert
     expect(result).toEqual(expected);
   });
 
   it('should keep both $or clauses when identity and sowingMethod in are combined', () => {
-    // Arrange
     const filter: PlantFilter = {
       identity: { startsWith: 'Tom' },
       sowingMethod: { in: ['direct', 'starter'] }
     };
 
-    // Act
     const result = plantQueryMapper.toMongo(filter);
 
-    // Assert
     expect(result).not.toHaveProperty('$or');
     expect(result.$and).toEqual([
       {

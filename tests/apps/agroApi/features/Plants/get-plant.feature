@@ -13,7 +13,8 @@ Feature: Get Plant
         "identity": {
           "name": {
             "primary": "Test plant"
-          }
+          },
+          "family": "<familyId>"
         }
       }
       """
@@ -83,3 +84,32 @@ Feature: Get Plant
     Then the response status code should be 200
     And the response ETag should match the body version
     And response matches OpenAPI contract
+
+  Scenario: A matching If-None-Match returns 304 without a body
+    Given a family exists
+    And a plant exists
+    And I use If-None-Match '"0"'
+    When I send a GET user request to "/api/v1/plants/<plantId>"
+    Then the response status code should be 304
+    And the response body should be empty
+    And response matches OpenAPI contract
+
+  Scenario: A stored field outside the contract is not sent
+    Given a family exists
+    And a plant exists with an extra stored field "internalNote"
+    When I get the plant
+    Then the response status code should be 200
+    And the response body should not echo "internalNote"
+    And response matches OpenAPI contract
+
+  Scenario: A stored plant that breaks the contract answers 500
+    Given a family exists
+    And a stored plant is missing the required field "traits"
+    When I get the plant
+    Then the response status code should be 500
+    And the response body should be
+      """
+      {
+        "message": "Internal server error"
+      }
+      """

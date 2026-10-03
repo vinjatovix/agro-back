@@ -168,12 +168,14 @@ PATCH endpoints MUST:
 
 ---
 
-## 7.1 POPULATED RELATIONS VALIDATION (ZOD UNIONS) `[TARGET STATE (Pending [Iteration 18](../../roadmap.md#iteration-18-implement-cqrs-read-only-bypass-for-catalog))]`
+## 7.1 POPULATED RELATIONS VALIDATION (ZOD UNIONS) `[CURRENT STATE (Done in [Iteration 18](../../roadmap.md#iteration-18-implement-cqrs-read-only-bypass-for-catalog))]`
 
 To support dynamic JSON:API relation population (e.g., `?include=family` resolving the `familyId` string into a structured object containing family `name` and `slug`) without making output schemas loose or fully partial, output validation schemas MUST use **Zod Unions (`z.union`)** on optionally populated relation fields.
 
-- **`[TARGET STATE (Pending [Iteration 18](../../roadmap.md#iteration-18-implement-cqrs-read-only-bypass-for-catalog))]`** For example, a `Plant` response schema's `family` field is strictly validated as either a valid UUID string OR a picked subset of the `Family` response schema:
-  `family: z.union([z.string().uuid(), FamilyResponseSchema.pick({ id: true, name: true, slug: true })])`
+- A `Plant` response schema's `family` field is strictly validated as either the plain family id (required short text, as the contract's `RequiredShortText`; stored ids are not always UUIDs, e.g. `fam_test`) OR a picked subset of the `Family` response schema:
+  `family: z.union([familyIdSchema, familyResponseSchema.pick({ id: true, name: true, slug: true })])`
+  (`apps/agroApi/controllers/Plants/responseSchemas.ts`). Responses keep sending the plain id until `include` exists (Iteration 19).
+- **Output check (current)**: every body of the catalog `GET` routes goes through `checkResponse` / `checkPage` (`apps/agroApi/shared/responseValidation.ts`) before it is sent. Response schemas use `z.object` (strip mode): unknown keys are removed at any depth; a missing or mistyped contract field fails. They reuse `REQUEST_LIMITS` and only non-transforming building blocks (`apps/agroApi/shared/responseSchemas.ts`); the `trimmed*`/`required*` request schemas are never reused, because trimming would rewrite stored values. A failure logs one `error` entry with the resource, every failing id and the issue paths (never stored values) and answers `500`; a page with any failing item sends no data.
 - This ensures output schemas remain strictly typed, statically checked by TypeScript, and correctly defined in OpenAPI, without having to make the entire schema loose or optional.
 
 ---

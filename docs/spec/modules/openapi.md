@@ -58,19 +58,19 @@ OpenAPI is an **external mapping of the Query DSL**, not its definition.
 
 ---
 
-## 4.1 POPULATED RELATION SCHEMAS (oneOf Polymorphism) `[TARGET STATE (Pending [Iteration 18](../../roadmap.md#iteration-18-implement-cqrs-read-only-bypass-for-catalog))]`
+## 4.1 POPULATED RELATION SCHEMAS (oneOf Polymorphism) `[CURRENT STATE (Done in [Iteration 18](../../roadmap.md#iteration-18-implement-cqrs-read-only-bypass-for-catalog))]`
 
 - To support JSON:API relation populating dynamically (e.g., embedding the Family relation in the `family` field on Plant) without breaking OpenAPI static validation, the contract representation of optionally populated fields MUST use the **polymorphic `oneOf` keyword**.
 - For example, a Plant's `family` schema is defined as:
   ```yaml
+  # PlantIdentityView (response only; CreatePlant keeps PlantIdentity)
   family:
     oneOf:
-      - type: string
-        format: uuid
-        description: The raw unpopulated Family UUID.
-      - $ref: '#/components/schemas/FamilyPickedResponse'
-        description: The populated Family relation (only whitelisted fields such as id, name, slug).
+      - $ref: '#/components/schemas/RequiredShortText' # the family id
+      - $ref: '#/components/schemas/FamilySummary' # id, name, slug only
   ```
+- **Published (Iteration 18)**: `FamilySummary` (`additionalProperties: false`, required `id`, `name`, `slug`) and the response-only `PlantIdentityView` are in `openapi.yaml`; `Plant.identity` points at `PlantIdentityView`, so requests still accept only a plain id. Populating the relation is pending [Iteration 19](../../roadmap.md#iteration-19-support-jsonapi-sparse-fields-in-query-parser): until then the API always sends the id.
+- **Read-only response fields (Iteration 18)**: `Plant` and `Family` now declare `metadata` (and plant `status`, `deletedAt`) as `readOnly`. The API already sent them; declaring them lets the strict output check keep them.
 - This directly aligns with the Zod Union implementation strategy (`z.union`) in the validation layer.
 
 ---
@@ -197,7 +197,7 @@ When implementing **[Iteration 35](../../roadmap.md#iteration-35-make-plant-sowi
 - POST /api/v1/families (implemented for `admin`, `collaborator` role is `[TARGET STATE (Pending [Iteration 31](../../roadmap.md#iteration-31-introduce-collaborator-role-in-auth-middleware))]`)
 - GET /api/v1/families (public)
 - GET /api/v1/families/:idOrSlug (public - supports polymorphic lookup by ID or Slug)
-- PATCH /api/v1/families/:id (implemented for `admin` via `:id` parameter; supporting polymorphic `:idOrSlug` lookup for mutations and authorization for the `collaborator` role is pending `[TARGET STATE (Pending Iterations [31](../../roadmap.md#iteration-31-introduce-collaborator-role-in-auth-middleware) & [32](../../roadmap.md#iteration-32-implement-deletefamily-and-enable-polymorphic-lookups-for-family-mutations))]`)
+- PATCH /api/v1/families/:idOrSlug (implemented for `admin`, by id or slug; authorization for the `collaborator` role is pending `[TARGET STATE (Pending [Iteration 31](../../roadmap.md#iteration-31-introduce-collaborator-role-in-auth-middleware))]`)
 - DELETE /api/v1/families/:idOrSlug (completely pending `[TARGET STATE (Pending Iterations [31](../../roadmap.md#iteration-31-introduce-collaborator-role-in-auth-middleware) & [32](../../roadmap.md#iteration-32-implement-deletefamily-and-enable-polymorphic-lookups-for-family-mutations))]`, including administrative DELETE use case, controller, routing, and collaborator authorization)
 
 #### Query parameters (transport layer only)

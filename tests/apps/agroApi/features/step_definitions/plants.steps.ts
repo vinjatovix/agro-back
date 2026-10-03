@@ -9,6 +9,7 @@ import {
   prepareRequest,
   softDeleteDocument,
   suite,
+  updateStoredDocument,
   type AgroWorld
 } from './utils/index.js';
 
@@ -24,6 +25,26 @@ const createPlants = async (world: AgroWorld): Promise<void> => {
 Given('a plant exists', async function (this: AgroWorld) {
   await createPlants(this);
 });
+
+Given(
+  'a plant exists with an extra stored field {string}',
+  async function (this: AgroWorld, field: string) {
+    await createPlants(this);
+    await updateStoredDocument('plants', this.plantId as string, {
+      $set: { [field]: 'stored outside the contract' }
+    });
+  }
+);
+
+Given(
+  'a stored plant is missing the required field {string}',
+  async function (this: AgroWorld, field: string) {
+    await createPlants(this);
+    await updateStoredDocument('plants', this.plantId as string, {
+      $unset: { [field]: '' }
+    });
+  }
+);
 
 Given('a plant with optional details exists', async function (this: AgroWorld) {
   const plant = await suite().seeders.plant.create({

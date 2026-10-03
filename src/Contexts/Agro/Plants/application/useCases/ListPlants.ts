@@ -1,34 +1,33 @@
 import type { PaginatedResult } from '../../../../../shared/domain/query/interfaces/PaginatedResult.js';
 import type { UserSessionInfo } from '../../../../Auth/application/index.js';
-import type { Plant } from '../../domain/entities/Plant.js';
 import type { PlantFilter } from '../../domain/entities/types/PlantFilter.js';
 import { PlantStatus } from '../../domain/entities/types/PlantStatus.js';
-import type { PlantRepository } from '../../domain/repositories/interfaces/PlantRepository.js';
+import type { PlantReadRepository, PlantReadView } from '../queries/index.js';
 import { canSeeDeletedPlants } from './canSeeDeletedPlants.js';
 import type { ListPlantsDto } from './interfaces/ListPlantsDto.js';
 
 export type ListPlantsDependencies = {
-  plantRepository: PlantRepository;
+  plantReadRepository: PlantReadRepository;
 };
 
 export class ListPlants {
-  private readonly plantRepository: PlantRepository;
+  private readonly plantReadRepository: PlantReadRepository;
 
-  constructor({ plantRepository }: ListPlantsDependencies) {
-    this.plantRepository = plantRepository;
+  constructor({ plantReadRepository }: ListPlantsDependencies) {
+    this.plantReadRepository = plantReadRepository;
   }
 
   async execute(
     user: UserSessionInfo | null,
     dto?: ListPlantsDto
-  ): Promise<PaginatedResult<Plant>> {
+  ): Promise<PaginatedResult<PlantReadView>> {
     const userFilters = dto?.query?.filter ?? {};
 
     const filters: PlantFilter = canSeeDeletedPlants(user)
       ? userFilters
       : { ...userFilters, status: { eq: PlantStatus.ACTIVE } };
 
-    return this.plantRepository.findAll({
+    return this.plantReadRepository.findAll({
       ...dto?.query,
       filter: filters
     });

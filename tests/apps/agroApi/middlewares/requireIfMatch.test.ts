@@ -28,16 +28,13 @@ describe('requireIfMatch middleware', () => {
   it.each([[undefined], [''], ['   '], ['*'], [' * ']])(
     'should reject %p with 428 Precondition Required',
     (header) => {
-      // Arrange
       const next = jest.fn() as NextFunction;
       const res = buildRes();
 
-      // Act
       const error = captureError(() =>
         requireIfMatch(buildReq(header), res, next)
       );
 
-      // Assert
       expect(error).toBeInstanceOf(HttpError);
       expect((error as HttpError).statusCode).toBe(
         httpStatus.PRECONDITION_REQUIRED
@@ -50,16 +47,13 @@ describe('requireIfMatch middleware', () => {
   it.each([['3'], ['"3'], ['"3" "4"'], ['*, "3"'], ['W/3']])(
     'should reject the malformed %p with 400 and an if-match error key',
     (header) => {
-      // Arrange
       const next = jest.fn() as NextFunction;
       const res = buildRes();
 
-      // Act
       const error = captureError(() =>
         requireIfMatch(buildReq(header), res, next)
       );
 
-      // Assert
       expect(error).toBeInstanceOf(HttpError);
       expect((error as HttpError).statusCode).toBe(httpStatus.BAD_REQUEST);
       expect(Object.keys((error as HttpError).errors ?? {})).toEqual([
@@ -80,14 +74,11 @@ describe('requireIfMatch middleware', () => {
   ])(
     'should accept %p and keep the expected versions %j',
     (header, expectedVersions) => {
-      // Arrange
       const next = jest.fn() as NextFunction;
       const res = buildRes();
 
-      // Act
       requireIfMatch(buildReq(header), res, next);
 
-      // Assert
       expect(getExpectedVersions(res)).toEqual(expectedVersions);
       expect(next).toHaveBeenCalledTimes(1);
       expect(next).toHaveBeenCalledWith();

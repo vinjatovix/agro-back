@@ -10,6 +10,7 @@ import type {
 } from '../../../Contexts/Agro/Beds/application/useCases/index.js';
 import type { MongoBedRepository } from '../../../Contexts/Agro/Beds/infrastructure/persistence/MongoBedRepository.js';
 import type { BedPersistenceMapper } from '../../../Contexts/Agro/Beds/mappers/interfaces/BedPersistenceMapper.js';
+import type { FamilyReadRepository } from '../../../Contexts/Agro/Families/application/queries/index.js';
 import type {
   CreateFamily,
   GetFamilyById,
@@ -19,6 +20,7 @@ import type {
 } from '../../../Contexts/Agro/Families/application/useCases/index.js';
 import type { MongoFamilyRepository } from '../../../Contexts/Agro/Families/infrastructure/persistence/MongoFamilyRepository.js';
 import type { FamilyPersistenceMapper } from '../../../Contexts/Agro/Families/mappers/interfaces/FamilyPersistenceMapper.js';
+import type { PlantReadRepository } from '../../../Contexts/Agro/Plants/application/queries/index.js';
 import type {
   CreatePlant,
   DeletePlant,
@@ -91,7 +93,9 @@ export type ContainerCradle = {
   googleIdTokenVerifier: GoogleIdTokenVerifierAdapter;
   authRepository: MongoAuthRepository;
   familyRepository: MongoFamilyRepository;
+  familyReadRepository: FamilyReadRepository;
   plantRepository: MongoPlantRepository;
+  plantReadRepository: PlantReadRepository;
   bedRepository: MongoBedRepository;
   plantQueryMapper: PlantQueryMapper;
 

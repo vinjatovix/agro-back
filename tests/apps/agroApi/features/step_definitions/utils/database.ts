@@ -30,6 +30,27 @@ export const softDeleteDocument = async (
   return collection.findOne(filter);
 };
 
+/**
+ * Changes a stored document directly, bypassing the API: used to build
+ * states the API never writes (unknown fields, missing contract fields).
+ */
+export const updateStoredDocument = async (
+  collectionName: string,
+  id: string,
+  update: { $set?: Record<string, unknown>; $unset?: Record<string, ''> }
+): Promise<void> => {
+  const result = await rawCollection(collectionName).updateOne(
+    { _id: toMongoId(id) },
+    update
+  );
+
+  assert.strictEqual(
+    result.matchedCount,
+    1,
+    `Expected to update ${collectionName} document ${id}`
+  );
+};
+
 export const recordDocument = async (
   world: AgroWorld,
   collectionName: string,

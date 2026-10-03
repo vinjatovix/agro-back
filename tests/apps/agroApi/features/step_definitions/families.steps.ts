@@ -6,6 +6,7 @@ import type { FamilyPrimitives } from '../../../../../src/Contexts/Agro/Families
 import {
   assertDocumentUnchanged,
   suite,
+  updateStoredDocument,
   type AgroWorld
 } from './utils/index.js';
 
@@ -18,6 +19,28 @@ const rememberFamily = (world: AgroWorld, family: FamilyPrimitives): void => {
 Given('a family exists', async function (this: AgroWorld) {
   rememberFamily(this, await suite().seeders.family.create());
 });
+
+Given(
+  'a family exists with an extra stored field {string}',
+  async function (this: AgroWorld, field: string) {
+    const family = await suite().seeders.family.create();
+    rememberFamily(this, family);
+    await updateStoredDocument('families', family.id, {
+      $set: { [field]: 'stored outside the contract' }
+    });
+  }
+);
+
+Given(
+  'a stored family is missing the required field {string}',
+  async function (this: AgroWorld, field: string) {
+    const family = await suite().seeders.family.create();
+    rememberFamily(this, family);
+    await updateStoredDocument('families', family.id, {
+      $unset: { [field]: '' }
+    });
+  }
+);
 
 Given('a family with extra exists', async function (this: AgroWorld) {
   const family = await suite().seeders.family.create({

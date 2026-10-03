@@ -29,7 +29,7 @@ describe('UpdateFamily', () => {
     const before = familyDomainMapper.toPrimitives(family);
 
     await useCase.execute(
-      { id: family.idValue, name: 'New name', slug: 'new-slug' },
+      { idOrSlug: family.idValue, name: 'New name', slug: 'new-slug' },
       'test-user',
       [CURRENT_VERSION]
     );
@@ -53,9 +53,11 @@ describe('UpdateFamily', () => {
     repository.addToStorage(family);
     expect(familyDomainMapper.toPrimitives(family).extra).toBeDefined();
 
-    await useCase.execute({ id: family.idValue, extra: null }, 'test-user', [
-      CURRENT_VERSION
-    ]);
+    await useCase.execute(
+      { idOrSlug: family.idValue, extra: null },
+      'test-user',
+      [CURRENT_VERSION]
+    );
 
     const stored = repository.getStored(family.idValue);
     expect(stored?.extra).toBeUndefined();
@@ -66,7 +68,7 @@ describe('UpdateFamily', () => {
     repository.addToStorage(family);
 
     await expect(
-      useCase.execute({ id: family.idValue, name: '' }, 'test-user', [
+      useCase.execute({ idOrSlug: family.idValue, name: '' }, 'test-user', [
         CURRENT_VERSION
       ])
     ).rejects.toThrow(InvalidArgumentException);
@@ -79,9 +81,11 @@ describe('UpdateFamily', () => {
     const family = FamilyScenarios.domainRandom();
     repository.addToStorage(family);
 
-    const result = await useCase.execute({ id: family.idValue }, 'test-user', [
-      CURRENT_VERSION
-    ]);
+    const result = await useCase.execute(
+      { idOrSlug: family.idValue },
+      'test-user',
+      [CURRENT_VERSION]
+    );
 
     repository.assertUpdateCalledTimes(1);
     expect(result.version).toBe(family.version);
@@ -94,7 +98,7 @@ describe('UpdateFamily', () => {
 
     await useCase.execute(
       {
-        id: family.idValue,
+        idOrSlug: family.idValue,
         name: 'Updated name'
       },
       'test-user',
@@ -104,8 +108,57 @@ describe('UpdateFamily', () => {
     repository.assertFindByIdHasBeenCalledWith(family.idValue);
   });
 
+  it('should find the family by slug when the key is not a UUID', async () => {
+    const family = FamilyScenarios.domainRandom();
+    repository.addToStorage(family);
+
+    await useCase.execute(
+      { idOrSlug: family.slug, name: 'Updated name' },
+      'test-user',
+      [CURRENT_VERSION]
+    );
+
+    repository.assertFindBySlugHasBeenCalledWith(family.slug);
+  });
+
+  it('should update the family found by slug', async () => {
+    const family = FamilyScenarios.domainRandom();
+    repository.addToStorage(family);
+
+    await useCase.execute(
+      { idOrSlug: family.slug, name: 'Updated name' },
+      'test-user',
+      [CURRENT_VERSION]
+    );
+
+    expect(repository.getStored(family.idValue)?.name).toBe('Updated name');
+  });
+
+  it('should not look the family up by id when the key is a slug', async () => {
+    const family = FamilyScenarios.domainRandom();
+    repository.addToStorage(family);
+
+    await useCase.execute(
+      { idOrSlug: family.slug, name: 'Updated name' },
+      'test-user',
+      [CURRENT_VERSION]
+    );
+
+    repository.assertReadCalledTimes('findById', 0);
+  });
+
+  it('should report the missing slug in the not found message', async () => {
+    const patch = { idOrSlug: 'unknown-family', name: 'whatever' };
+
+    await expect(
+      useCase.execute(patch, 'test-user', [CURRENT_VERSION])
+    ).rejects.toMatchObject({
+      message: `Family not found with slug: ${patch.idOrSlug}`
+    });
+  });
+
   it('should throw not found error when family does not exist', async () => {
-    const patch = { id: random.uuid(), name: 'whatever' };
+    const patch = { idOrSlug: random.uuid(), name: 'whatever' };
 
     await expect(
       useCase.execute(patch, 'test-user', [CURRENT_VERSION])
@@ -113,8 +166,8 @@ describe('UpdateFamily', () => {
   });
 
   it('should report the missing family id in the not found message', async () => {
-    const patch = { id: random.uuid(), name: 'whatever' };
-    const expectedMessage = `Family not found: ${patch.id}`;
+    const patch = { idOrSlug: random.uuid(), name: 'whatever' };
+    const expectedMessage = `Family not found: ${patch.idOrSlug}`;
 
     await expect(
       useCase.execute(patch, 'test-user', [CURRENT_VERSION])
@@ -124,7 +177,7 @@ describe('UpdateFamily', () => {
   });
 
   it('should not call updateWithDiff when family does not exist', async () => {
-    const patch = { id: random.uuid(), name: 'whatever' };
+    const patch = { idOrSlug: random.uuid(), name: 'whatever' };
 
     await expect(
       useCase.execute(patch, 'test-user', [CURRENT_VERSION])
@@ -146,7 +199,7 @@ describe('UpdateFamily', () => {
       .mockResolvedValueOnce(null);
 
     const result = await useCase.execute(
-      { id: family.idValue, name: 'Updated name' },
+      { idOrSlug: family.idValue, name: 'Updated name' },
       'test-user',
       [CURRENT_VERSION]
     );
@@ -159,7 +212,7 @@ describe('UpdateFamily', () => {
     repository.addToStorage(family);
 
     const result = await useCase.execute(
-      { id: family.idValue, name: 'Renamed' },
+      { idOrSlug: family.idValue, name: 'Renamed' },
       'editor',
       [family.version]
     );
@@ -183,9 +236,11 @@ describe('UpdateFamily', () => {
       );
 
     await expect(
-      useCase.execute({ id: family.idValue, name: 'Renamed' }, 'test-user', [
-        family.version
-      ])
+      useCase.execute(
+        { idOrSlug: family.idValue, name: 'Renamed' },
+        'test-user',
+        [family.version]
+      )
     ).rejects.toBeInstanceOf(DomainStaleVersionException);
   });
 
@@ -195,7 +250,7 @@ describe('UpdateFamily', () => {
       repository.addToStorage(family);
 
       const result = await useCase.execute(
-        { id: family.idValue, name: 'Renamed' },
+        { idOrSlug: family.idValue, name: 'Renamed' },
         'test-user',
         [family.version]
       );
@@ -211,9 +266,11 @@ describe('UpdateFamily', () => {
       repository.addToStorage(family);
 
       await expect(
-        useCase.execute({ id: family.idValue, name: 'Renamed' }, 'test-user', [
-          family.version + 1
-        ])
+        useCase.execute(
+          { idOrSlug: family.idValue, name: 'Renamed' },
+          'test-user',
+          [family.version + 1]
+        )
       ).rejects.toBeInstanceOf(DomainStaleVersionException);
 
       repository.assertUpdateNotCalled();
@@ -223,7 +280,7 @@ describe('UpdateFamily', () => {
     it('should throw DomainNotFoundException (not stale) for an absent family with a wrong version', async () => {
       await expect(
         useCase.execute(
-          { id: random.uuid(), name: 'Renamed' },
+          { idOrSlug: random.uuid(), name: 'Renamed' },
           'test-user',
           [999]
         )
@@ -236,7 +293,7 @@ describe('UpdateFamily', () => {
 
       await expect(
         useCase.execute(
-          { id: family.idValue, name: family.name },
+          { idOrSlug: family.idValue, name: family.name },
           'test-user',
           [family.version + 1]
         )
@@ -248,7 +305,7 @@ describe('UpdateFamily', () => {
       repository.addToStorage(family);
 
       await useCase.execute(
-        { id: family.idValue, name: family.name },
+        { idOrSlug: family.idValue, name: family.name },
         'test-user',
         [family.version]
       );
@@ -272,7 +329,9 @@ describe('UpdateFamily', () => {
         .mockResolvedValueOnce(familyDomainMapper.fromPrimitives(primitives));
 
       await expect(
-        useCase.execute({ id: family.idValue }, 'test-user', [family.version])
+        useCase.execute({ idOrSlug: family.idValue }, 'test-user', [
+          family.version
+        ])
       ).rejects.toBeInstanceOf(DomainStaleVersionException);
     });
 
@@ -282,7 +341,7 @@ describe('UpdateFamily', () => {
 
       await expect(
         useCase.execute(
-          { id: family.idValue, name: family.name },
+          { idOrSlug: family.idValue, name: family.name },
           'test-user',
           [family.version]
         )
@@ -294,7 +353,7 @@ describe('UpdateFamily', () => {
       repository.addToStorage(family);
 
       await useCase.execute(
-        { id: family.idValue, name: 'Renamed' },
+        { idOrSlug: family.idValue, name: 'Renamed' },
         'test-user',
         [family.version]
       );
@@ -311,7 +370,7 @@ describe('UpdateFamily', () => {
 
     const result = await useCase.execute(
       {
-        id: family.idValue,
+        idOrSlug: family.idValue,
         name: 'final-name'
       },
       'test-user',
@@ -324,47 +383,39 @@ describe('UpdateFamily', () => {
 
   describe('expected version lists', () => {
     it('should proceed when the list contains the current version', async () => {
-      // Arrange
       const family = FamilyScenarios.domainRandom();
       repository.addToStorage(family);
 
-      // Act
       const updated = await useCase.execute(
-        { id: family.idValue, name: 'Listed' },
+        { idOrSlug: family.idValue, name: 'Listed' },
         'test-user',
         [family.version + 1, family.version]
       );
 
-      // Assert
       expect(familyDomainMapper.toPrimitives(updated).name).toBe('Listed');
     });
 
     it('should answer stale for an empty list without writing', async () => {
-      // Arrange
       const family = FamilyScenarios.domainRandom();
       repository.addToStorage(family);
 
-      // Act
       const update = useCase.execute(
-        { id: family.idValue, name: 'Listed' },
+        { idOrSlug: family.idValue, name: 'Listed' },
         'test-user',
         []
       );
 
-      // Assert
       await expect(update).rejects.toBeInstanceOf(DomainStaleVersionException);
       repository.assertUpdateNotCalled();
     });
 
     it('should answer not found before checking an empty list', async () => {
-      // Act
       const update = useCase.execute(
-        { id: FamilyScenarios.domainRandom().idValue, name: 'Listed' },
+        { idOrSlug: FamilyScenarios.domainRandom().idValue, name: 'Listed' },
         'test-user',
         []
       );
 
-      // Assert
       await expect(update).rejects.toBeInstanceOf(DomainNotFoundException);
     });
   });

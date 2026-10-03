@@ -1,24 +1,26 @@
 import type { UserSessionInfo } from '../../../../Auth/application/index.js';
 import { ensureFound } from '../../../../shared/application/utils/ensureFound.js';
-import type { Plant } from '../../domain/entities/Plant.js';
-import type { PlantRepository } from '../../domain/repositories/interfaces/PlantRepository.js';
+import type { PlantReadRepository, PlantReadView } from '../queries/index.js';
 import { canSeeDeletedPlants } from './canSeeDeletedPlants.js';
 
 export type GetPlantDependencies = {
-  plantRepository: PlantRepository;
+  plantReadRepository: PlantReadRepository;
 };
 
 export class GetPlant {
-  private readonly plantRepository: PlantRepository;
+  private readonly plantReadRepository: PlantReadRepository;
 
-  constructor({ plantRepository }: GetPlantDependencies) {
-    this.plantRepository = plantRepository;
+  constructor({ plantReadRepository }: GetPlantDependencies) {
+    this.plantReadRepository = plantReadRepository;
   }
 
-  async execute(id: string, user: UserSessionInfo | undefined): Promise<Plant> {
+  async execute(
+    id: string,
+    user: UserSessionInfo | undefined
+  ): Promise<PlantReadView> {
     const plant = canSeeDeletedPlants(user)
-      ? await this.plantRepository.findById(id)
-      : await this.plantRepository.findActiveById(id);
+      ? await this.plantReadRepository.findById(id)
+      : await this.plantReadRepository.findActiveById(id);
 
     return ensureFound(plant, 'Plant', id);
   }
