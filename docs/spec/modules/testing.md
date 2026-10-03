@@ -268,3 +268,4 @@ Rules:
 - testing implementation details instead of behavior
 - coupling tests to Express internals
 - missing contract alignment with OpenAPI
+- `// Arrange` / `// Act` / `// Assert` marker comments: the test reads in that order on its own (enforced by ESLint `no-warning-comments`)

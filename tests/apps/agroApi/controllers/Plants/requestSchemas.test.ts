@@ -808,12 +808,10 @@ describe('Plant requestSchemas', () => {
       ['sowingMonths', 'has', '3'],
       ['sowingMonths', 'hasAny', '3,4']
     ])('should accept %s with %s', async (field, operator, value) => {
-      // Act
       const query = await listQueryOf({
         filter: { [field]: { [operator]: value } }
       });
 
-      // Assert
       expect(query.filter).toHaveProperty([field, operator]);
     });
 
@@ -825,12 +823,10 @@ describe('Plant requestSchemas', () => {
       ['aliases', 'has'],
       ['strategicBenefits', 'hasAny']
     ])('should reject %s with %s', async (field, operator) => {
-      // Act
       const errors = await listErrorsOf({
         filter: { [field]: { [operator]: 'x' } }
       });
 
-      // Assert
       expect(Object.values(errors)).toEqual([UNKNOWN_FIELD]);
     });
 
@@ -841,17 +837,14 @@ describe('Plant requestSchemas', () => {
       ['soilPh', 'eq', 'abc'],
       ['sowingMonths', 'has', '13']
     ])('should reject %s.%s %j', async (field, operator, value) => {
-      // Act
       const errors = await listErrorsOf({
         filter: { [field]: { [operator]: value } }
       });
 
-      // Assert
       expect(Object.keys(errors)).toEqual([`filter.${field}.${operator}`]);
     });
 
     it('should decode typed values', async () => {
-      // Act
       const query = await listQueryOf({
         filter: {
           lifeCycle: { in: 'annual,biennial' },
@@ -860,7 +853,6 @@ describe('Plant requestSchemas', () => {
         }
       });
 
-      // Assert
       expect(query.filter).toEqual({
         lifeCycle: { in: ['annual', 'biennial'] },
         spacingCm: { eq: 30 },
@@ -869,20 +861,16 @@ describe('Plant requestSchemas', () => {
     });
 
     it.each(['name', 'scientificName'])('should sort by %s', async (key) => {
-      // Act
       const query = await listQueryOf({ sort: { [key]: 'asc' } });
 
-      // Assert
       expect(query.sort).toEqual({ [key]: 'asc' });
     });
 
     it('should reject a stored path as sort key', async () => {
-      // Act
       const errors = await listErrorsOf({
         sort: { 'identity.name.primary': 'asc' }
       });
 
-      // Assert
       expect(Object.values(errors)).toEqual([UNKNOWN_FIELD]);
     });
   });

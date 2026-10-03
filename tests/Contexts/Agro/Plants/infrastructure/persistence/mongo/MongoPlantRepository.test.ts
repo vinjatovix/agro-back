@@ -14,10 +14,8 @@ import {
   DomainStaleVersionException
 } from '../../../../../../../src/Contexts/shared/domain/errors/index.js';
 import type { EnvironmentArranger } from '../../../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
-import {
-  DBClientFactory,
-  DBConfigFactory
-} from '../../../../../../../src/shared/infrastructure/persistence/index.js';
+import { DBClientFactory } from '../../../../../../../src/shared/infrastructure/persistence/index.js';
+import { createTestDBConfig } from '../../../../../../shared/infrastructure/persistence/mongo/testDBConfig.js';
 import { SOURCE_ROOT } from '../../../../../../shared/sourceRoot.js';
 import { random } from '../../../../../shared/fixtures/random.js';
 import { PlantFactory } from '../../../domain/mothers/PlantFactory.js';
@@ -35,7 +33,7 @@ describe('MongoPlantRepository', () => {
   beforeAll(async () => {
     client = await DBClientFactory.createClient(
       'agroApi-test',
-      DBConfigFactory.createConfig()
+      createTestDBConfig()
     );
 
     const db = client.db();
@@ -579,34 +577,28 @@ describe('MongoPlantRepository', () => {
       };
 
       it('should order by primary name, ignoring case', async () => {
-        // Arrange
         await saveNamed([
           ['Tomate', 'Solanum lycopersicum'],
           ['apio', 'Apium graveolens'],
           ['Berenjena', 'Solanum melongena']
         ]);
 
-        // Act
         const { data } = await repository.findAll({ sort: { name: 'asc' } });
 
-        // Assert
         expect(primaryNamesOf(data)).toEqual(['apio', 'Berenjena', 'Tomate']);
       });
 
       it('should order by scientific name in reverse', async () => {
-        // Arrange
         await saveNamed([
           ['Apio', 'Apium graveolens'],
           ['Tomate', 'Solanum lycopersicum'],
           ['Lechuga', 'Lactuca sativa']
         ]);
 
-        // Act
         const { data } = await repository.findAll({
           sort: { scientificName: 'desc' }
         });
 
-        // Assert
         expect(primaryNamesOf(data)).toEqual(['Tomate', 'Lechuga', 'Apio']);
       });
     });

@@ -42,10 +42,8 @@ describe('versionTags', () => {
       ['"a,b", "4"', [4]],
       [tagList(50), Array.from({ length: 50 }, (_, i) => i)]
     ])('should parse %j into the versions %j', (header, versions) => {
-      // Act
       const result = ifMatchSchema.safeParse(header);
 
-      // Assert
       expect(result.success).toBe(true);
       expect(result.data).toEqual(versions);
     });
@@ -65,31 +63,24 @@ describe('versionTags', () => {
       ['"3";'],
       [tagList(51)]
     ])('should reject %j', (header) => {
-      // Act
       const result = ifMatchSchema.safeParse(header);
 
-      // Assert
       expect(result.success).toBe(false);
     });
 
     it('should not echo the header in its message', () => {
-      // Act
       const result = ifMatchSchema.safeParse('zz-sentinel');
 
-      // Assert
       expect(result.error?.issues[0]?.message).not.toContain('zz-sentinel');
     });
   });
 
   describe('setVersionETag', () => {
     it('should set a strong ETag holding the version', () => {
-      // Arrange
       const { res, set } = buildRes();
 
-      // Act
       setVersionETag(res, 4);
 
-      // Assert
       expect(set).toHaveBeenCalledWith('ETag', '"4"');
     });
   });
@@ -98,13 +89,10 @@ describe('versionTags', () => {
     it.each([[[3]], [[2, 3]], [[]]])(
       'should round-trip %j through res.locals',
       (versions) => {
-        // Arrange
         const { res } = buildRes();
 
-        // Act
         storeExpectedVersions(res, versions);
 
-        // Assert
         expect(getExpectedVersions(res)).toEqual(versions);
       }
     );
@@ -112,13 +100,10 @@ describe('versionTags', () => {
     it.each([[undefined], [3], [['3']], [[-1]], [[1.5]]])(
       'should fail with an internal error when locals hold %j',
       (value) => {
-        // Arrange
         const { res } = buildRes({ expectedVersions: value });
 
-        // Act
         const read = () => getExpectedVersions(res);
 
-        // Assert
         expect(read).toThrow(HttpError);
       }
     );

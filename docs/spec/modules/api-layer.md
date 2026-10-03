@@ -110,13 +110,17 @@ The Query Parser extracts JSON:API options to dynamically limit fields and prelo
 
 List endpoints support filtering, sorting, and pagination (as defined in Query DSL Contract v1.5.0). `GET /plants` validates its query with `validateRequest(listPlantsRequest)` after `optionalAuth`; the plant fields, operators and the public sort keys (`name`, `scientificName`) are listed in the OpenAPI `PlantListFilter` / `PlantListSort`.
 
+#### Read path (GET)
+
+`GET /plants` and `GET /plants/{id}` use the CQRS read bypass (architecture-boundaries.md §7.1): `validateRequest → use case (read port, PlantReadView) → checkResponse / checkPage (output check) → setVersionETag (single plant) → res.json`. No `Plant` aggregate is built and the controllers do not use `plantDomainMapper`. A stored plant that breaks the response contract answers `500` (a listing page holding one sends no data); stored fields outside the contract are never sent. Bodies, `ETag`/`304`, filters, sort and pagination are the same as before the bypass.
+
 ---
 
 ### 5.1.1 Plant by ID
 
 Behavior:
 
-- returns a Plant aggregate by UUID
+- returns the stored plant (a read view, not an aggregate) by UUID, checked against the `Plant` response schema
 - public route: the requester may be anonymous
 - soft-deleted plants are only visible to `admin` and `collaborator` roles; anonymous and other users get 404
 - returns 404 if not found
@@ -234,6 +238,8 @@ _Note on Lookups:_ Read endpoints support polymorphic lookups by ID or Slug. Pol
 Families list endpoints supports Query DSL filtering, sorting, and pagination as defined in Query DSL Contract v1.5.0 (`validateRequest(listFamiliesRequest)`).
 
 Every Families route validates with `validateRequest` (schemas in `controllers/Families/requestSchemas.ts`); `PATCH` keeps the order `auth → isAdmin → requireIfMatch → validateRequest`.
+
+`GET /families` and `GET /families/{idOrSlug}` follow the same read path as plants (§5.1): read port (`FamilyReadView`) → output check (`familyResponseSchema`) → `ETag` (single family) → send. No `Family` aggregate is built.
 
 ### 5.9.1 Beds (CRUD)
 

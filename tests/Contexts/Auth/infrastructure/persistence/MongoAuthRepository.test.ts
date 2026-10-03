@@ -6,10 +6,8 @@ import {
 import type { AuthRepository } from '../../../../../src/Contexts/Auth/domain/repositories/interfaces/AuthRepository.js';
 import { toMongoId } from '../../../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoId.js';
 import { EnvironmentArranger } from '../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
-import {
-  DBClientFactory,
-  DBConfigFactory
-} from '../../../../../src/shared/infrastructure/persistence/index.js';
+import { DBClientFactory } from '../../../../../src/shared/infrastructure/persistence/index.js';
+import { createTestDBConfig } from '../../../../shared/infrastructure/persistence/mongo/testDBConfig.js';
 import { SOURCE_ROOT } from '../../../../shared/sourceRoot.js';
 import { UserMother } from '../../domain/mothers/UserMother.js';
 
@@ -28,7 +26,7 @@ describe('MongoAuthRepository', () => {
   beforeAll(async () => {
     client = await DBClientFactory.createClient(
       'agroApi-test',
-      DBConfigFactory.createConfig()
+      createTestDBConfig()
     );
 
     const db = client.db();

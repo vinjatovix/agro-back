@@ -647,7 +647,7 @@ Persistence MUST NOT enforce validation rules.
 
 ---
 
-#### 5.8.8 CQRS Read-Only Bypass `[TARGET STATE (Pending [Iteration 18](../../roadmap.md#iteration-18-implement-cqrs-read-only-bypass-for-catalog))]`
+#### 5.8.8 CQRS Read-Only Bypass `[CURRENT STATE (Done in [Iteration 18](../../roadmap.md#iteration-18-implement-cqrs-read-only-bypass-for-catalog))]`
 
 To optimize memory and CPU usage on search, list, and GET endpoints, the read pathway **is officially permitted to bypass full Domain aggregate hydration**.
 
@@ -656,6 +656,14 @@ To optimize memory and CPU usage on search, list, and GET endpoints, the read pa
 - **Output DTO Validation**: While database-direct modifications are not expected, output validation schemas (Zod) in the API layer MUST be used to validate the response DTO contract, ensuring a robust safety net against data inconsistency with minimal performance friction.
 - Dynamic fields and projected counts (e.g., counting plant instances inside a Bed) are resolved directly via MongoDB pipelines or mappers without domain aggregate overhead.
 - This bypass is strictly prohibited for write operations (POST, PATCH, DELETE).
+
+**Implementation (Iteration 18)**:
+
+- `MongoReadRepository` (`Contexts/shared/infrastructure/persistence/mongo/`) is the abstract read base: `findById`, `findAll`, protected `findOneView(filter)` and `findPage(options)`, abstract `toView(document)` and `projection()`, and the overridable hooks `getCollation()`, `toMongoSortField()` and `toMongoFilter()` (same defaults as `MongoCrudRepository`). It has no `activeFilter()` hook: `findById` and `findAll` see every document, and `MongoPlantReadRepository` keeps its own private soft-delete filter for `findActiveById`. Listings send `countDocuments` and the page `find` together (`Promise.all`, one round-trip). It has no write method.
+- `MongoPageQuery` holds the listing query both sides share: count, sort (through the sort-field mapper), collation, pagination and page metadata. `MongoCrudRepository.findAll` and `MongoReadRepository.findPage` both call it, so the same `QueryOptions` give the same ids, order and pagination on both paths.
+- Adapters: `MongoPlantReadRepository` (same `PlantQueryMapper`, shared `plantSortFields.ts`, collation `es`/strength 2, active filter `status != DELETED`) and `MongoFamilyReadRepository` (default `MongoQueryTranslator`). Both are auto-wired by the `repository` role as `plantReadRepository` and `familyReadRepository`.
+- **Inclusion projection**: each read repository fetches only the contract fields (plants: `identity, traits, phenology, knowledge, metadata, status, deletedAt, version`; families: `slug, name, aliases, scientificName, shortDescription, highlights, extra, metadata, version`; `_id` always). Unknown stored fields never leave the database.
+- **Read mappers** (`toPlantReadView`, `toFamilyReadView`) copy stored values and apply the defaults the aggregate round-trip applied, so bodies stay the same: missing `version` → `0`; plant `status` missing → `ACTIVE`, `deletedAt` missing → `null`, `knowledge` missing → `{}`; metadata dates as `Date`; absent `aliases`/`extra` stay absent; a stored family `extra` keeps only its known fields (`order`, `subfamilies`, `distribution`, `speciesCount`) and is absent when none is left, as `familyExtra` reads it. Parity tests compare them with the domain round-trip.
 
 _(Note: For the architectural boundary enforcement rules governing this bypass, see **Module: Architecture Boundaries (architecture-boundaries.md) Sec. 7.1**)_
 

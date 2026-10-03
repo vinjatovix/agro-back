@@ -137,16 +137,13 @@ describe('bedPersistenceMapper', () => {
 
   describe('bed name', () => {
     it('should reject a stored blank name', () => {
-      // Arrange
       const document = {
         ...bedPersistenceMapper.toMongoDocument(BedFactory.create()),
         name: ''
       };
 
-      // Act
       const load = () => bedPersistenceMapper.fromMongoDocument(document);
 
-      // Assert
       expect(load).toThrow(InvalidArgumentException);
     });
   });

@@ -1114,6 +1114,25 @@ components:
           $ref: '#/components/schemas/FamilyHighlights'
         extra:
           $ref: '#/components/schemas/FamilyExtra'
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          readOnly: true
+
+    FamilySummary:
+      description: >
+        Embedded family relation: only id, name and slug. Returned in place of
+        the family id once a client asks for it (Iteration 19, `include`).
+      type: object
+      additionalProperties: false
+      required: [id, name, slug]
+      properties:
+        id:
+          type: string
+        name:
+          $ref: '#/components/schemas/RequiredShortText'
+        slug:
+          $ref: '#/components/schemas/RequiredShortText'
 
     CreateFamily:
       type: object
@@ -1177,7 +1196,7 @@ components:
           readOnly: true
 
         identity:
-          $ref: '#/components/schemas/PlantIdentity'
+          $ref: '#/components/schemas/PlantIdentityView'
 
         traits:
           $ref: '#/components/schemas/PlantTraits'
@@ -1195,6 +1214,27 @@ components:
 
         knowledge:
           $ref: '#/components/schemas/PlantKnowledge'
+
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          readOnly: true
+
+        status:
+          allOf:
+            - $ref: '#/components/schemas/PlantStatus'
+          readOnly: true
+
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          readOnly: true
+          description: Set when the plant is deleted; `null` otherwise.
+
+    PlantStatus:
+      type: string
+      enum: [ACTIVE, DELETED]
 
     CreatePlant:
       type: object
@@ -1470,6 +1510,29 @@ components:
           $ref: '#/components/schemas/RequiredShortText'
         family:
           $ref: '#/components/schemas/RequiredShortText'
+
+    PlantIdentityView:
+      description: >
+        Plant identity as returned by the API. `family` is the family id, or
+        the family summary once the relation can be included (Iteration 19).
+      type: object
+      required: [name, scientificName, family]
+      properties:
+        name:
+          type: object
+          required: [primary]
+          properties:
+            primary:
+              $ref: '#/components/schemas/RequiredShortText'
+            aliases:
+              $ref: '#/components/schemas/ShortTextList'
+        scientificName:
+          $ref: '#/components/schemas/RequiredShortText'
+        family:
+          description: Always the id until Iteration 19.
+          oneOf:
+            - $ref: '#/components/schemas/RequiredShortText'
+            - $ref: '#/components/schemas/FamilySummary'
 
     PlantLifecycle:
       type: string

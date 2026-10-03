@@ -248,6 +248,7 @@ Rules:
 - records the deleting user as `metadata.updatedBy`, with `metadata.updatedAt` equal to `deletedAt`
 - at HTTP level `DELETE /plants/:id` requires `If-Match: "<version>"` (outdated → `412`, missing → `428`). A repeated `DELETE` returns `404` instead of `204` because the use case only loads active plants; it remains idempotent per RFC 9110 §9.2.2 because server state is identical
 - `GET /plants` and `GET /plants/:id` show deleted plants only to admins and collaborators (`canSeeDeletedPlants`); for everyone else the listing adds `status: { eq: ACTIVE }` to the filter, which `PlantQueryMapper` translates to the `status` field (`findAll` does not apply `activeFilter()`)
+- **Read path (Iteration 18)**: `GetPlant` and `ListPlants` depend on the read port `PlantReadRepository` (`application/queries/`), not on `PlantRepository`; they return `PlantReadView` (plain stored data) and never build a `Plant`. The visibility rule above is unchanged. Write use cases keep loading the aggregate (persistence.md §5.8.8)
 
 ---
 

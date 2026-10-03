@@ -145,3 +145,24 @@ Feature: Get All Plants
       | filter[soilPh][eq]=abc                         | filter.soilPh.eq                 |
       | filter[sowingMonths][has]=13                   | filter.sowingMonths.has          |
       | sort[identity.name.primary]=asc                | sort.identity.name.primary       |
+
+  Scenario: A stored field outside the contract is not listed
+    Given a family exists
+    And a plant exists with an extra stored field "internalNote"
+    When I send a GET request to "/api/v1/plants"
+    Then the response status code should be 200
+    And the list should contain at least 1 item
+    And the response body should not echo "internalNote"
+    And response matches OpenAPI contract
+
+  Scenario: A page holding a plant that breaks the contract answers 500 with no data
+    Given a family exists
+    And a stored plant is missing the required field "traits"
+    When I send a GET request to "/api/v1/plants"
+    Then the response status code should be 500
+    And the response body should be
+      """
+      {
+        "message": "Internal server error"
+      }
+      """
