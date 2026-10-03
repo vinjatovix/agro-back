@@ -18,6 +18,7 @@ import {
   DBClientFactory,
   DBConfigFactory
 } from '../../../../../../../src/shared/infrastructure/persistence/index.js';
+import { SOURCE_ROOT } from '../../../../../../shared/sourceRoot.js';
 import { random } from '../../../../../shared/fixtures/random.js';
 import { PlantInstanceMother } from '../../../../PlantInstances/domain/mothers/PlantInstanceMother.js';
 import { BedFactory } from '../../../domain/mothers/BedFactory.js';
@@ -46,7 +47,11 @@ describe('MongoBedRepository', () => {
 
     const db = client.db();
 
-    container = createAppContainer({ db, client });
+    container = await createAppContainer({
+      db,
+      client,
+      sourceRoot: SOURCE_ROOT
+    });
     environmentArranger = Promise.resolve(
       container.resolve<EnvironmentArranger>('environmentArranger')
     );

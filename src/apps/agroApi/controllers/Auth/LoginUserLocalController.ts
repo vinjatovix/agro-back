@@ -5,14 +5,14 @@ import { HttpController } from '../../shared/HttpController.js';
 import { loginRequest } from './requestSchemas.js';
 
 export type LoginUserLocalControllerDependencies = {
-  loginUser: LoginUserLocal;
+  loginUserLocal: LoginUserLocal;
 };
 
 export class LoginUserLocalController extends HttpController {
-  protected readonly loginUser: LoginUserLocal;
-  constructor({ loginUser }: LoginUserLocalControllerDependencies) {
+  protected readonly loginUserLocal: LoginUserLocal;
+  constructor({ loginUserLocal }: LoginUserLocalControllerDependencies) {
     super();
-    this.loginUser = loginUser;
+    this.loginUserLocal = loginUserLocal;
   }
 
   run = async (
@@ -22,7 +22,7 @@ export class LoginUserLocalController extends HttpController {
   ): Promise<void> => {
     try {
       const { body } = getValidatedRequest(res, loginRequest);
-      const token = await this.loginUser.run(body);
+      const token = await this.loginUserLocal.run(body);
       res.status(this.status()).json({ token });
     } catch (error) {
       next(error);

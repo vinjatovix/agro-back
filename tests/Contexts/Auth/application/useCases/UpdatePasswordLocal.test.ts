@@ -15,7 +15,7 @@ import { Email } from '../../../../../src/Contexts/shared/domain/valueObject/ind
 import { EmailMother } from '../../../shared/domain/mothers/EmailMother.js';
 import { random } from '../../../shared/fixtures/index.js';
 import { AuthRepositoryMock } from '../../__mocks__/AuthRepositoryMock.js';
-import { CryptAdapterMock } from '../../__mocks__/CryptAdapterMock.js';
+import { EncrypterAdapterMock } from '../../__mocks__/EncrypterAdapterMock.js';
 import { UserMother } from '../../domain/mothers/UserMother.js';
 
 const CURRENT_USER = {
@@ -34,19 +34,25 @@ const PAYLOAD = {
 };
 
 describe('UpdatePasswordLocal', () => {
-  let encrypter: CryptAdapterMock;
+  let encrypter: EncrypterAdapterMock;
   let repository: AuthRepositoryMock;
   let updatePassword: UpdatePasswordLocal;
 
   beforeEach(() => {
-    encrypter = new CryptAdapterMock({ login: true });
+    encrypter = new EncrypterAdapterMock({ login: true });
     repository = new AuthRepositoryMock({ find: true });
-    updatePassword = new UpdatePasswordLocal(repository, encrypter);
+    updatePassword = new UpdatePasswordLocal({
+      authRepository: repository,
+      encrypter
+    });
   });
 
   it('should throw an error when the user does not exist', async () => {
     repository = new AuthRepositoryMock();
-    updatePassword = new UpdatePasswordLocal(repository, encrypter);
+    updatePassword = new UpdatePasswordLocal({
+      authRepository: repository,
+      encrypter
+    });
 
     await expect(updatePassword.run(PAYLOAD, CURRENT_USER)).rejects.toThrow(
       DomainNotFoundException
@@ -59,7 +65,10 @@ describe('UpdatePasswordLocal', () => {
 
   it('should reject a weak new password before looking up the user', async () => {
     repository = new AuthRepositoryMock();
-    updatePassword = new UpdatePasswordLocal(repository, encrypter);
+    updatePassword = new UpdatePasswordLocal({
+      authRepository: repository,
+      encrypter
+    });
     const searchSpy = jest.spyOn(repository, 'search');
 
     await expect(
@@ -73,8 +82,11 @@ describe('UpdatePasswordLocal', () => {
   });
 
   it('should throw an error when the password is invalid', async () => {
-    encrypter = new CryptAdapterMock({ login: false });
-    updatePassword = new UpdatePasswordLocal(repository, encrypter);
+    encrypter = new EncrypterAdapterMock({ login: false });
+    updatePassword = new UpdatePasswordLocal({
+      authRepository: repository,
+      encrypter
+    });
 
     await expect(updatePassword.run(PAYLOAD, CURRENT_USER)).rejects.toThrow(
       DomainUnauthorizedException

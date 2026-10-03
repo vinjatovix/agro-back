@@ -19,7 +19,7 @@ describe('ListPlants', () => {
 
   beforeEach(() => {
     repository = new PlantRepositoryMock();
-    listPlants = new ListPlants(repository);
+    listPlants = new ListPlants({ plantRepository: repository });
   });
 
   it('should call repository with all plants for admin users', async () => {

@@ -9,7 +9,7 @@ import {
 } from '../../../../../src/Contexts/Auth/application/index.js';
 import {
   AuthRepositoryMock,
-  CryptAdapterMock
+  EncrypterAdapterMock
 } from '../../../../Contexts/Auth/__mocks__/index.js';
 import { UserMother } from '../../../../Contexts/Auth/domain/mothers/UserMother.js';
 
@@ -23,7 +23,7 @@ import {
 import { buildUpdatePasswordBody } from './fixtures/authBodies.js';
 
 describe('UpdatePasswordLocalController', () => {
-  let updatePassword: UpdatePasswordLocal;
+  let updatePasswordLocal: UpdatePasswordLocal;
   let controller: UpdatePasswordLocalController;
   let user: UserSessionInfo;
 
@@ -37,15 +37,15 @@ describe('UpdatePasswordLocalController', () => {
       email: storedUser.email.value,
       roles: []
     };
-    updatePassword = new UpdatePasswordLocal(
-      repository,
-      new CryptAdapterMock({ login: true })
-    );
-    controller = new UpdatePasswordLocalController({ updatePassword });
+    updatePasswordLocal = new UpdatePasswordLocal({
+      authRepository: repository,
+      encrypter: new EncrypterAdapterMock({ login: true })
+    });
+    controller = new UpdatePasswordLocalController({ updatePasswordLocal });
   });
 
   it('passes the validated body and the session user to the use case', async () => {
-    const runSpy = jest.spyOn(updatePassword, 'run');
+    const runSpy = jest.spyOn(updatePasswordLocal, 'run');
     const body = buildUpdatePasswordBody();
     const req = buildRequest({ body });
     const { res, status } = buildResponse({ user });

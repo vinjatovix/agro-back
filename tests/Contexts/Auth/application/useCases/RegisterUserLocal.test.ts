@@ -7,18 +7,24 @@ import { Username } from '../../../../../src/Contexts/Auth/domain/value-objects/
 import { UserRoles } from '../../../../../src/Contexts/Auth/domain/value-objects/UserRoles.js';
 import { InvalidArgumentException } from '../../../../../src/Contexts/shared/domain/errors/index.js';
 import { Email } from '../../../../../src/Contexts/shared/domain/valueObject/Email.js';
-import { AuthRepositoryMock, CryptAdapterMock } from '../../__mocks__/index.js';
+import {
+  AuthRepositoryMock,
+  EncrypterAdapterMock
+} from '../../__mocks__/index.js';
 import { RegisterUserRequestMother } from '../mothers/RegisterUserRequestMother.js';
 
 describe('RegisterUserLocal', () => {
-  let encrypter: CryptAdapterMock;
+  let encrypter: EncrypterAdapterMock;
   let repository: AuthRepositoryMock;
   let registerUser: RegisterUserLocal;
 
   beforeEach(() => {
-    encrypter = new CryptAdapterMock({ login: false });
+    encrypter = new EncrypterAdapterMock({ login: false });
     repository = new AuthRepositoryMock({ find: false });
-    registerUser = new RegisterUserLocal(repository, encrypter);
+    registerUser = new RegisterUserLocal({
+      authRepository: repository,
+      encrypter
+    });
   });
 
   it('should register a valid user', async () => {
@@ -50,7 +56,10 @@ describe('RegisterUserLocal', () => {
   it('should throw an error when the user already exists', async () => {
     const request = RegisterUserRequestMother.random();
     repository = new AuthRepositoryMock({ find: true });
-    registerUser = new RegisterUserLocal(repository, encrypter);
+    registerUser = new RegisterUserLocal({
+      authRepository: repository,
+      encrypter
+    });
 
     await expect(registerUser.run(request)).rejects.toThrow(
       `User with id ${request.id} already exists`
@@ -59,7 +68,10 @@ describe('RegisterUserLocal', () => {
 
   it('should reject a weak password before looking up the user', async () => {
     repository = new AuthRepositoryMock({ find: true });
-    registerUser = new RegisterUserLocal(repository, encrypter);
+    registerUser = new RegisterUserLocal({
+      authRepository: repository,
+      encrypter
+    });
     const lookupSpy = jest.spyOn(repository, 'findByQuery');
 
     await expect(

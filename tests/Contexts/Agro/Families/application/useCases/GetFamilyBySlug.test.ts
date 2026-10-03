@@ -10,7 +10,7 @@ describe('GetFamilyBySlug', () => {
 
   beforeEach(() => {
     repository = new FamilyRepositoryMock();
-    useCase = new GetFamilyBySlug(repository);
+    useCase = new GetFamilyBySlug({ familyRepository: repository });
   });
 
   afterEach(() => {

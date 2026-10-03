@@ -252,6 +252,40 @@ class CreatePlant {}
 type PlantId = string;
 ```
 
+### Auto-Wiring & Component Naming Conventions by Role
+
+Every container-resolved class follows strict auto-wiring rules scanned by Awilix (in PROXY mode) as documented in [docs/spec/modules/api-layer.md §12](docs/spec/modules/api-layer.md#12-dependency-injection--auto-wiring).
+
+#### Scanned Locations, Roles & Lifetime Rules
+
+| Role                  | Location                                                              | Class rule                  | Registration name         | Lifetime               |
+| :-------------------- | :-------------------------------------------------------------------- | :-------------------------- | :------------------------ | :--------------------- |
+| `useCase`             | `Contexts/**/application/useCases/`                                   | PascalCase, no role suffix¹ | camelCase                 | per request (`SCOPED`) |
+| `controller`          | `apps/agroApi/controllers/**/`                                        | `…Controller`               | camelCase                 | per request (`SCOPED`) |
+| `repository`          | `Contexts/**/infrastructure/persistence/**/` (not `Contexts/shared/`) | `Mongo…Repository`          | drop `Mongo`, camelCase   | process (`SINGLETON`)  |
+| `queryMapper`         | same as `repository`                                                  | `…QueryMapper`              | camelCase                 | process (`SINGLETON`)  |
+| `adapter`             | `Contexts/shared/plugins/`                                            | `…Adapter`                  | drop `Adapter`, camelCase | process (`SINGLETON`)  |
+| `environmentArranger` | `shared/infrastructure/persistence/**/…EnvironmentArranger.*`         | `Mongo…EnvironmentArranger` | drop `Mongo`, camelCase   | process (`SINGLETON`)  |
+
+¹ Prohibited role suffixes in use-case folders: `Controller`, `Repository`, `QueryMapper`, `Adapter`, `EnvironmentArranger`. A class ending in one of them inside `application/useCases/` is misplaced and fails container wiring.
+
+#### Port-Name Derivation Rule
+
+Only two affixes are ever stripped when computing registration names:
+
+- The `Mongo` prefix is dropped: `MongoBedRepository` → `bedRepository`, `MongoEnvironmentArranger` → `environmentArranger`.
+- The `Adapter` suffix is dropped: `EncrypterAdapter` → `encrypter`, `GoogleIdTokenVerifierAdapter` → `googleIdTokenVerifier`.
+
+If an implementation's name does not yield its port name this way, rename the class to match.
+
+Write acronyms as regular words in scanned class names (`HttpAdapter`, not `HTTPAdapter`): only the first letter is lowercased, so `HTTPAdapter` would register as `hTTP` instead of `http`.
+
+#### File Scanning Conventions
+
+- **PascalCase files only**: The scanner only inspects files whose filename starts with an uppercase letter (`^[A-Z]`). Helper files in camelCase are ignored.
+- **Single component per file**: Each scanned file MUST export exactly one primary component class matching the PascalCase file name.
+- **Ignored paths**: `index.*`, `requestSchemas.*`, `*.test.*`, `*.d.ts`, `**/interfaces/**`, and `**/types/**` are never scanned.
+
 ---
 
 ### Variables & Functions
@@ -286,6 +320,119 @@ Dependencies are split into:
 - Do not include dev tools in production dependencies
 - Always commit `package-lock.json`
 - Prefer minimal dependencies
+
+### Container-Resolved Component Shape & Dependencies Types
+
+Every container-resolved class MUST accept a single object parameter destructured in its constructor, typed by an exported `<ClassName>Dependencies` type:
+
+```ts
+export type CreateBedDependencies = {
+  bedRepository: BedRepository; // key = registration name in cradle, type = port/interface
+};
+
+export class CreateBed {
+  private readonly bedRepository: BedRepository;
+
+  constructor({ bedRepository }: CreateBedDependencies) {
+    this.bedRepository = bedRepository;
+  }
+}
+```
+
+#### Exact Rules for `<ClassName>Dependencies` Types
+
+1. **Type Name**: MUST be exported and named exactly `<ClassName>Dependencies`.
+2. **Property Keys**: MUST match the exact camelCase registration name in `ContainerCradle` (e.g., `bedRepository`, `plantQueryMapper`, `encrypter`).
+3. **Property Values**: MUST be typed using the port / abstraction interface (e.g. `BedRepository`, `PlantRepository`, `EncrypterTool`), never concrete infrastructure classes unless no interface exists.
+4. **Destructuring**: MUST destructure all dependencies directly in the constructor parameter `{ dep1, dep2 }: <ClassName>Dependencies`.
+5. **No Positional Parameters**: Positional constructor arguments are strictly prohibited for container components.
+6. **Lifetime Boundary**: Singletons (`process` lifetime) MUST NOT depend on scoped (`per-request` lifetime) components.
+7. **Cradle Synchronization**: Every newly registered component must be declared in `src/apps/agroApi/wiring/ContainerCradle.ts`.
+
+#### Common Errors and How to Avoid Them
+
+##### 1. Class or File Naming Typos
+
+- **Problematic Pattern**:
+  ```ts
+  // File: createBed.ts (lowercase filename)
+  export class CreateBedXX {} // Typo in class name
+  ```
+- **Consequence**: Files starting with lowercase are ignored by the Awilix scanner. Classes not matching role rules throw `ContainerWiringError.unrecognizedClass` at startup, or mismatch `ContainerCradle.ts`, failing the container wiring test.
+- **Fix**: Name the file and class identically in PascalCase (e.g. `CreateBed.ts` and `export class CreateBed`), follow the role naming convention, and declare it in `ContainerCradle.ts`.
+
+##### 2. Property Name Mismatch in Dependencies (Awilix Proxy Resolution)
+
+- **Problematic Pattern**:
+  ```ts
+  // ❌ Fails at runtime
+  export type CreateBedDependencies = {
+    repository: BedRepository; // Should be 'bedRepository'
+  };
+
+  export class CreateBed {
+    constructor({ repository }: CreateBedDependencies) {
+      // repository is undefined at runtime!
+    }
+  }
+  ```
+- **Consequence**: Awilix PROXY mode resolves dependencies by looking up the exact property name on the container cradle. Since `repository` does not exist (it is registered as `bedRepository`), it injects `undefined` and fails when called.
+- **Fix**: Ensure property names in `<ClassName>Dependencies` exactly match the cradle registration name:
+  ```ts
+  // ✅ Correct
+  export type CreateBedDependencies = {
+    bedRepository: BedRepository;
+  };
+
+  export class CreateBed {
+    private readonly bedRepository: BedRepository;
+
+    constructor({ bedRepository }: CreateBedDependencies) {
+      this.bedRepository = bedRepository;
+    }
+  }
+  ```
+
+##### 3. Lifetime Violations (Singleton depending on Scoped)
+
+- **Problematic Pattern**:
+  ```ts
+  // ❌ Fails container lifetime verification
+  export type MongoBedRepositoryDependencies = {
+    db: Db;
+    bedPersistenceMapper: BedPersistenceMapper;
+    createBed: CreateBed; // Scoped component inside Singleton!
+  };
+  ```
+- **Consequence**: A `SINGLETON` lives for the entire application process. Capturing a `SCOPED` (per-request) component leaks request state across requests and violates Awilix strict lifetime checks.
+- **Fix**: Repositories, adapters, and environment arrangers (`SINGLETON`) may only depend on other singletons or explicit process-wide instances (`db`, `logger`, `DBClient`).
+
+##### 4. Positional Constructor Parameters
+
+- **Problematic Pattern**:
+  ```ts
+  // ❌ Fails with Awilix PROXY mode
+  export class CreateBed {
+    constructor(private bedRepository: BedRepository) {}
+  }
+  ```
+- **Consequence**: Awilix passes a single proxy object representing the cradle. With positional parameters, `bedRepository` receives the entire cradle proxy, and subsequent parameters receive `undefined`.
+- **Fix**: Always use single-parameter object destructuring: `constructor({ bedRepository }: CreateBedDependencies)`.
+
+##### 5. Non-Exported Dependencies Type
+
+- **Problematic Pattern**:
+  ```ts
+  // ❌ Type is private to the file
+  type CreateBedDependencies = { bedRepository: BedRepository };
+  ```
+- **Consequence**: Unit tests and factory helpers cannot reference the dependencies type to construct clean mocks.
+- **Fix**: Always prefix with `export`: `export type CreateBedDependencies = { ... };`.
+
+##### 6. Missing Declaration in `ContainerCradle.ts`
+
+- **Consequence**: `tests/apps/agroApi/container.test.ts` statically compares the AST properties of `ContainerCradle` against runtime scanned registrations. If a component is created but omitted from `ContainerCradle`, tests fail immediately.
+- **Fix**: Whenever a new component is added, add its camelCase name and type to `ContainerCradle.ts`.
 
 ---
 

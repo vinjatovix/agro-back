@@ -6,7 +6,7 @@ import { ValidateMailController } from '../../../../../src/apps/agroApi/controll
 import { ValidateMail } from '../../../../../src/Contexts/Auth/application/index.js';
 import {
   AuthRepositoryMock,
-  CryptAdapterMock
+  EncrypterAdapterMock
 } from '../../../../Contexts/Auth/__mocks__/index.js';
 import { UserMother } from '../../../../Contexts/Auth/domain/mothers/UserMother.js';
 
@@ -27,10 +27,10 @@ describe('ValidateMailController', () => {
   beforeEach(() => {
     const repository = new AuthRepositoryMock({ find: true });
     repository.setSearchResult(UserMother.create({ emailValidated: false }));
-    validateMail = new ValidateMail(
-      repository,
-      new CryptAdapterMock({ token: true })
-    );
+    validateMail = new ValidateMail({
+      authRepository: repository,
+      encrypter: new EncrypterAdapterMock({ token: true })
+    });
     controller = new ValidateMailController({ validateMail });
   });
 

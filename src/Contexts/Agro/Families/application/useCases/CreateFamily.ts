@@ -4,8 +4,16 @@ import type { FamilyRepository } from '../../domain/repositories/interfaces/Fami
 import { familyInputMapper } from '../../mappers/familyInputMapper.js';
 import type { CreateFamilyDto } from './interfaces/CreateFamilyDto.js';
 
+export type CreateFamilyDependencies = {
+  familyRepository: FamilyRepository;
+};
+
 export class CreateFamily {
-  constructor(private readonly familyRepository: FamilyRepository) {}
+  private readonly familyRepository: FamilyRepository;
+
+  constructor({ familyRepository }: CreateFamilyDependencies) {
+    this.familyRepository = familyRepository;
+  }
 
   async execute(dto: CreateFamilyDto, user: string): Promise<Family> {
     const exists = await this.familyRepository.exists(dto.id);

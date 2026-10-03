@@ -6,8 +6,16 @@ import { familyDomainMapper } from '../../mappers/familyDomainMapper.js';
 import { familyInputMapper } from '../../mappers/familyInputMapper.js';
 import type { UpdateFamilyInput } from './interfaces/UpdateFamilyInput.js';
 
+export type UpdateFamilyDependencies = {
+  familyRepository: FamilyRepository;
+};
+
 export class UpdateFamily {
-  constructor(private readonly familyRepository: FamilyRepository) {}
+  private readonly familyRepository: FamilyRepository;
+
+  constructor({ familyRepository }: UpdateFamilyDependencies) {
+    this.familyRepository = familyRepository;
+  }
 
   async execute(
     input: UpdateFamilyInput,

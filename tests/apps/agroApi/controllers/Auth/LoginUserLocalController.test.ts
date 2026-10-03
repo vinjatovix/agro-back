@@ -6,7 +6,7 @@ import { loginRequest } from '../../../../../src/apps/agroApi/controllers/Auth/r
 import { LoginUserLocal } from '../../../../../src/Contexts/Auth/application/index.js';
 import {
   AuthRepositoryMock,
-  CryptAdapterMock
+  EncrypterAdapterMock
 } from '../../../../Contexts/Auth/__mocks__/index.js';
 
 import {
@@ -19,19 +19,19 @@ import {
 import { buildLoginBody } from './fixtures/authBodies.js';
 
 describe('LoginUserLocalController', () => {
-  let loginUser: LoginUserLocal;
+  let loginUserLocal: LoginUserLocal;
   let controller: LoginUserLocalController;
 
   beforeEach(() => {
-    loginUser = new LoginUserLocal(
-      new AuthRepositoryMock({ find: true }),
-      new CryptAdapterMock({ login: true })
-    );
-    controller = new LoginUserLocalController({ loginUser });
+    loginUserLocal = new LoginUserLocal({
+      authRepository: new AuthRepositoryMock({ find: true }),
+      encrypter: new EncrypterAdapterMock({ login: true })
+    });
+    controller = new LoginUserLocalController({ loginUserLocal });
   });
 
   it('passes the validated body to the use case', async () => {
-    const runSpy = jest.spyOn(loginUser, 'run');
+    const runSpy = jest.spyOn(loginUserLocal, 'run');
     const body = buildLoginBody();
     const req = buildRequest({ body });
     const { res, status, json } = buildResponse();
