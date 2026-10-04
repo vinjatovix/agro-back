@@ -61,19 +61,21 @@ const singleWithoutComma = <T>(item: ItemSchema<T>, hint: string) =>
     .refine((value) => !value.includes(','), { message: hint })
     .pipe(item);
 
+// A comma-separated string or a repeated key, as trimmed non-blank entries.
+const listEntries = z
+  .union([z.string(), z.array(z.string())])
+  .transform((value) =>
+    [value]
+      .flat()
+      .flatMap((entry) => entry.split(','))
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length > 0)
+  );
+
 // List operators take a comma-separated string or a repeated key. Entries are
 // trimmed and blanks dropped; an invalid entry is reported at its index.
 const list = <T>(item: ItemSchema<T>) =>
-  z
-    .union([z.string(), z.array(z.string())])
-    .transform((value) =>
-      [value]
-        .flat()
-        .flatMap((entry) => entry.split(','))
-        .map((entry) => entry.trim())
-        .filter((entry) => entry.length > 0)
-    )
-    .pipe(z.array(item).min(1).max(REQUEST_LIMITS.listItems));
+  listEntries.pipe(z.array(item).min(1).max(REQUEST_LIMITS.listItems));
 
 // An operator of the wrong kind for the field: always rejected with a hint.
 const hint = (message: string) => z.never({ error: message }).exactOptional();
@@ -165,38 +167,135 @@ const paginationSchema = z
   })
   .prefault({});
 
+type Names = readonly [string, ...string[]];
+
+// A selection of declared names (fields, relations): same list syntax as the
+// list operators. Names are case-sensitive and checked as a whole list, so the
+// issue is reported at the parameter; the output holds each name once, in
+// declared order, whatever the request order or repetition.
+const selection = <const T extends Names>(names: T) => {
+  const known = new Set<string>(names);
+
+  return listEntries
+    .pipe(z.array(z.string()).min(1).max(REQUEST_LIMITS.listItems))
+    .refine((entries) => entries.every((entry) => known.has(entry)), {
+      message: `Expected a comma-separated list of: ${names.join(', ')}`
+    })
+    .transform((entries): readonly T[number][] => {
+      const selected = new Set(entries);
+
+      return names.filter((name) => selected.has(name));
+    });
+};
+
+/**
+ * JSON:API sparse fieldset of the route's own resource type:
+ * `fields[<type>]=a,b` → `['a', 'b']`. `id` is accepted and dropped (it is
+ * always sent), so `fields[<type>]=id` gives `[]`. Any other type is an
+ * unknown field once the schema is made strict.
+ */
+export const fieldsetSchema = <
+  const Type extends string,
+  const T extends Names
+>(
+  type: Type,
+  names: T
+) => {
+  type Fields = readonly Exclude<T[number], 'id'>[];
+
+  const fields = selection(names).transform((selected): Fields =>
+    selected.filter((name): name is Exclude<T[number], 'id'> => name !== 'id')
+  );
+
+  return z
+    .object({ [type]: fields } as Record<Type, typeof fields>)
+    .transform((fieldset): Fields => (fieldset as Record<Type, Fields>)[type]);
+};
+
+/** JSON:API include: `include=a,b` → the declared relations named. */
+export const includeSchema = <const T extends Names>(relations: T) =>
+  selection(relations);
+
+type SelectionCapabilities<F extends z.ZodType, I extends z.ZodType> = {
+  fields?: F;
+  include?: I;
+};
+
+type NoKeys = Record<never, never>;
+
+type SelectionShape<F extends z.ZodType, I extends z.ZodType> = ([F] extends [
+  never
+]
+  ? NoKeys
+  : { fields: z.ZodExactOptional<F> }) &
+  ([I] extends [never] ? NoKeys : { include: z.ZodExactOptional<I> });
+
+// Only the declared parameters become keys: an undeclared `fields` or
+// `include` stays an unknown field.
+const selectionShape = <F extends z.ZodType, I extends z.ZodType>({
+  fields,
+  include
+}: SelectionCapabilities<F, I>): SelectionShape<F, I> =>
+  ({
+    ...(fields && { fields: fields.exactOptional() }),
+    ...(include && { include: include.exactOptional() })
+  }) as SelectionShape<F, I>;
+
+/**
+ * `query` schema of a single read: only the declared `fields` / `include`.
+ */
+export const readQuerySchema = <
+  F extends z.ZodType = never,
+  I extends z.ZodType = never
+>(
+  capabilities: SelectionCapabilities<F, I>
+) => z.object(selectionShape(capabilities));
+
 type FilterShape = Record<string, z.ZodType>;
+
+// `sort` with no key sorts nothing: it is left out of the output.
+const withoutEmptySort = <Q>(query: Q): Q => {
+  const { sort, ...rest } = query as { sort?: object };
+
+  return sort === undefined || Object.keys(sort).length > 0
+    ? query
+    : (rest as Q);
+};
 
 type ListQueryCapabilities<
   F extends FilterShape,
-  K extends readonly [string, ...string[]]
-> = {
+  K extends readonly [string, ...string[]],
+  FS extends z.ZodType,
+  IS extends z.ZodType
+> = SelectionCapabilities<FS, IS> & {
   filter: F;
   sortableKeys: K;
 };
 
 /**
  * Builds the `query` schema of a listing from the resource's filter fields
- * (built with the field helpers above) and its sortable keys. The output is
- * `{ filter?, sort?, pagination }`; an empty `sort` is left out.
+ * (built with the field helpers above), its sortable keys and, when declared,
+ * its `fields` / `include` parameters. The output is
+ * `{ filter?, sort?, pagination, fields?, include? }`; an empty `sort` is left
+ * out.
  */
 export const listQuerySchema = <
   F extends FilterShape,
-  const K extends readonly [string, ...string[]]
+  const K extends readonly [string, ...string[]],
+  FS extends z.ZodType = never,
+  IS extends z.ZodType = never
 >({
   filter,
-  sortableKeys
-}: ListQueryCapabilities<F, K>) =>
+  sortableKeys,
+  ...capabilities
+}: ListQueryCapabilities<F, K, FS, IS>) =>
   z
     .object({
       filter: z.object(filter).exactOptional(),
       sort: z
         .partialRecord(z.enum(sortableKeys), sortDirectionSchema)
         .exactOptional(),
-      pagination: paginationSchema
+      pagination: paginationSchema,
+      ...selectionShape(capabilities)
     })
-    .transform(({ filter: filters, sort, pagination }) => ({
-      ...(filters !== undefined && { filter: filters }),
-      ...(sort !== undefined && Object.keys(sort).length > 0 && { sort }),
-      pagination
-    }));
+    .transform(withoutEmptySort);

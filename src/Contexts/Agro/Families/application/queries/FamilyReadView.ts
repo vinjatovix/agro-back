@@ -18,3 +18,23 @@ export type FamilyReadView = {
   readonly extra?: FamilyExtraPrimitives;
   readonly metadata: MetadataPrimitives;
 };
+
+/** Fields of a family that `fields[families]` can select; declared order is canonical. */
+export const FAMILY_FIELDS = [
+  'id',
+  'slug',
+  'name',
+  'aliases',
+  'scientificName',
+  'shortDescription',
+  'highlights',
+  'extra',
+  'metadata',
+  'version'
+] as const satisfies readonly (keyof FamilyReadView)[];
+
+export type FamilyField = (typeof FAMILY_FIELDS)[number];
+
+/** What a read with a fieldset returns: `id` plus any subset of the fields. */
+export type FamilySparseView = Pick<FamilyReadView, 'id'> &
+  Partial<Omit<FamilyReadView, 'id'>>;

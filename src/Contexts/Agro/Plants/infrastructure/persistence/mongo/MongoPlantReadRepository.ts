@@ -1,16 +1,20 @@
 import type { CollationOptions, Db } from 'mongodb';
+import type { ReadOptions } from '../../../../../../shared/domain/query/interfaces/QueryOptions.js';
 import type { Nullable } from '../../../../../../shared/domain/types/Nullable.js';
 import type { UnknownRecord } from '../../../../../../shared/domain/types/UnknownRecord.js';
 import { toMongoId } from '../../../../../shared/infrastructure/persistence/mongo/MongoId.js';
 import { MongoReadRepository } from '../../../../../shared/infrastructure/persistence/mongo/MongoReadRepository.js';
 import type {
+  PlantField,
   PlantReadRepository,
-  PlantReadView
+  PlantReadView,
+  PlantSparseView
 } from '../../../application/queries/index.js';
 import type { PlantFilter } from '../../../domain/entities/types/PlantFilter.js';
 import type { PlantQueryMapper } from './mappers/PlantQueryMapper.js';
 import {
   toPlantReadView,
+  toPlantSparseView,
   type StoredPlantDocument
 } from './plantReadViewMapper.js';
 import { toPlantSortField } from './plantSortFields.js';
@@ -37,7 +41,12 @@ const PLANT_PROJECTION = {
 const DELETED_STATUS: PlantReadView['status'] = 'DELETED';
 
 export class MongoPlantReadRepository
-  extends MongoReadRepository<StoredPlantDocument, PlantFilter, PlantReadView>
+  extends MongoReadRepository<
+    StoredPlantDocument,
+    PlantFilter,
+    PlantSparseView,
+    PlantField
+  >
   implements PlantReadRepository
 {
   private readonly plantQueryMapper: PlantQueryMapper;
@@ -55,8 +64,13 @@ export class MongoPlantReadRepository
     return PLANT_PROJECTION;
   }
 
-  protected toView(document: StoredPlantDocument): PlantReadView {
-    return toPlantReadView(document);
+  protected toView(
+    document: StoredPlantDocument,
+    fields?: readonly PlantField[]
+  ): PlantSparseView {
+    return fields === undefined
+      ? toPlantReadView(document)
+      : toPlantSparseView(document, fields);
   }
 
   /** Soft-deleted plants are hidden from non-privileged readers. */
@@ -76,7 +90,13 @@ export class MongoPlantReadRepository
     return filter ? this.plantQueryMapper.toMongo(filter) : {};
   }
 
-  async findActiveById(id: string): Promise<Nullable<PlantReadView>> {
-    return this.findOneView({ _id: toMongoId(id), ...this.activeFilter() });
+  async findActiveById(
+    id: string,
+    options: ReadOptions<PlantField> = {}
+  ): Promise<Nullable<PlantSparseView>> {
+    return this.findOneView(
+      { _id: toMongoId(id), ...this.activeFilter() },
+      options
+    );
   }
 }

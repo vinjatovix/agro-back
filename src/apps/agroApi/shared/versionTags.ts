@@ -56,6 +56,16 @@ export const ifMatchSchema = z
   })
   .transform((tags): readonly number[] => tags.flatMap(toVersion));
 
+/**
+ * Whether a read sends the full resource: neither `fields` nor `include`. Only
+ * then does the version tag name the body, so only then is `ETag` sent (and a
+ * matching `If-None-Match` answered with `304`).
+ */
+export const isFullRepresentation = (query: {
+  fields?: readonly string[];
+  include?: readonly string[];
+}): boolean => query.fields === undefined && query.include === undefined;
+
 export const setVersionETag = (res: Response, version: number): void => {
   res.set('ETag', `"${version}"`);
 };

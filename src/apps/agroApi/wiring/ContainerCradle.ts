@@ -20,7 +20,10 @@ import type {
 } from '../../../Contexts/Agro/Families/application/useCases/index.js';
 import type { MongoFamilyRepository } from '../../../Contexts/Agro/Families/infrastructure/persistence/MongoFamilyRepository.js';
 import type { FamilyPersistenceMapper } from '../../../Contexts/Agro/Families/mappers/interfaces/FamilyPersistenceMapper.js';
-import type { PlantReadRepository } from '../../../Contexts/Agro/Plants/application/queries/index.js';
+import type {
+  FamilySummaryReader,
+  PlantReadRepository
+} from '../../../Contexts/Agro/Plants/application/queries/index.js';
 import type {
   CreatePlant,
   DeletePlant,
@@ -86,6 +89,7 @@ export type ContainerCradle = {
   bedPersistenceMapper: BedPersistenceMapper;
   familyPersistenceMapper: FamilyPersistenceMapper;
   plantPersistenceMapper: PlantPersistenceMapper;
+  familySummaryReader: FamilySummaryReader;
 
   // Singletons
   environmentArranger: DBEnvironmentArranger;

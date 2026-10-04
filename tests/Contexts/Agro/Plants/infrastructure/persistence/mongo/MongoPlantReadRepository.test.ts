@@ -3,7 +3,10 @@ import {
   type AppContainer,
   createAppContainer
 } from '../../../../../../../src/apps/agroApi/container.js';
-import type { PlantReadRepository } from '../../../../../../../src/Contexts/Agro/Plants/application/queries/index.js';
+import type {
+  PlantField,
+  PlantReadRepository
+} from '../../../../../../../src/Contexts/Agro/Plants/application/queries/index.js';
 import type { Plant } from '../../../../../../../src/Contexts/Agro/Plants/domain/entities/Plant.js';
 import type { PlantFilter } from '../../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantFilter.js';
 import { PlantStatus } from '../../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantStatus.js';
@@ -18,6 +21,8 @@ import { random } from '../../../../../shared/fixtures/random.js';
 import { PlantReadViewMother } from '../../../application/queries/PlantReadViewMother.js';
 import { PlantFactory } from '../../../domain/mothers/PlantFactory.js';
 import { PlantIdentityBuilder } from '../../../domain/mothers/PlantIdentityBuilder.js';
+
+type PlantQuery = QueryOptions<PlantFilter, PlantField, never>;
 
 let container: AppContainer;
 let readRepository: PlantReadRepository;
@@ -116,6 +121,50 @@ describe('MongoPlantReadRepository', () => {
     });
   });
 
+  describe('reads with a fieldset', () => {
+    it.each(['findById', 'findActiveById'] as const)(
+      '%s reads only id and the selected fields',
+      async (method) => {
+        const plant = PlantFactory.full();
+        await saveAll([plant]);
+
+        const view = await readRepository[method](plant.id, {
+          fields: ['identity']
+        });
+        const full = PlantReadViewMother.from(plant);
+
+        expect(view).toStrictEqual({ id: full.id, identity: full.identity });
+      }
+    );
+
+    it('reads only id for an empty fieldset', async () => {
+      const plant = PlantFactory.tomato();
+      await saveAll([plant]);
+
+      await expect(
+        readRepository.findById(plant.id, { fields: [] })
+      ).resolves.toStrictEqual({ id: plant.id });
+    });
+
+    it('never reads a stored field outside the contract', async () => {
+      const plant = PlantFactory.tomato();
+      await saveAll([plant]);
+      await client
+        .db()
+        .collection<StoredId>('plants')
+        .updateOne(
+          { _id: toMongoId(plant.id) },
+          { $set: { internalNote: 'not for clients' } }
+        );
+
+      const view = await readRepository.findById(plant.id, {
+        fields: ['status']
+      });
+
+      expect(view).toStrictEqual({ id: plant.id, status: 'ACTIVE' });
+    });
+  });
+
   describe('findActiveById', () => {
     it('returns an active plant', async () => {
       const plant = PlantFactory.random();
@@ -139,7 +188,7 @@ describe('MongoPlantReadRepository', () => {
       items.map(({ id }) => id);
 
     const expectSameAsWriteRepository = async (
-      options: QueryOptions<PlantFilter>
+      options: PlantQuery
     ): Promise<void> => {
       const read = await readRepository.findAll(options);
       const write = await writeRepository.findAll(options);
@@ -158,7 +207,7 @@ describe('MongoPlantReadRepository', () => {
       ]);
     });
 
-    it.each<[string, QueryOptions<PlantFilter>]>([
+    it.each<[string, PlantQuery]>([
       ['no options', {}],
       ['sort by name', { sort: { name: 'asc' } }],
       ['sort by name in reverse', { sort: { name: 'desc' } }],
@@ -181,6 +230,25 @@ describe('MongoPlantReadRepository', () => {
       ]
     ])('answers like the write repository for %s', async (_case, options) => {
       await expectSameAsWriteRepository(options);
+    });
+
+    it('reads only id and the selected fields, keeping items, order and paging', async () => {
+      const options: PlantQuery = {
+        sort: { name: 'asc' },
+        pagination: { page: 1, limit: 2 }
+      };
+
+      const full = await readRepository.findAll(options);
+      const sparse = await readRepository.findAll({
+        ...options,
+        fields: ['identity']
+      });
+
+      expect(idsOf(sparse.data)).toEqual(idsOf(full.data));
+      expect(sparse.pagination).toEqual(full.pagination);
+      expect(sparse.data).toEqual(
+        full.data.map(({ id, identity }) => ({ id, identity }))
+      );
     });
 
     it('filters out deleted plants when asked', async () => {

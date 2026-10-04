@@ -227,3 +227,4 @@ Feature: Delete a plant
     When I send a DELETE admin request to "/api/v1/plants/<plantId>"
     Then the response status code should be 204
     And the stored plant should record the admin as deleter at version 1
+    And response matches OpenAPI contract

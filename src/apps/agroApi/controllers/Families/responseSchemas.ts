@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import type { FamilyField } from '../../../../Contexts/Agro/Families/application/queries/index.js';
 import {
   listSchema,
   longTextSchema,
@@ -7,6 +8,7 @@ import {
   shortTextSchema
 } from '../../shared/requestSchemas.js';
 import {
+  fieldsetMask,
   metadataResponseSchema,
   requiredLongTextResponseSchema,
   requiredShortTextResponseSchema
@@ -38,3 +40,18 @@ export const familyResponseSchema = z.object({
 });
 
 export type FamilyResponse = z.output<typeof familyResponseSchema>;
+
+/** A family read with `fields[families]`: `id` plus any requested fields. */
+export type FamilyFieldsetResponse = Pick<FamilyResponse, 'id'> &
+  Partial<Omit<FamilyResponse, 'id'>>;
+
+/**
+ * Output check of a family read: the full schema without a fieldset, or only
+ * `id` and the requested fields, each with its full contract shape.
+ */
+export const familyFieldsetResponseSchema = (
+  fields?: readonly FamilyField[]
+): z.ZodType<FamilyFieldsetResponse> =>
+  fields === undefined
+    ? familyResponseSchema
+    : familyResponseSchema.pick(fieldsetMask(fields));

@@ -69,8 +69,9 @@ OpenAPI is an **external mapping of the Query DSL**, not its definition.
       - $ref: '#/components/schemas/RequiredShortText' # the family id
       - $ref: '#/components/schemas/FamilySummary' # id, name, slug only
   ```
-- **Published (Iteration 18)**: `FamilySummary` (`additionalProperties: false`, required `id`, `name`, `slug`) and the response-only `PlantIdentityView` are in `openapi.yaml`; `Plant.identity` points at `PlantIdentityView`, so requests still accept only a plain id. Populating the relation is pending [Iteration 19](../../roadmap.md#iteration-19-support-jsonapi-sparse-fields-in-query-parser): until then the API always sends the id.
+- **Published (Iteration 18)**: `FamilySummary` (`additionalProperties: false`, required `id`, `name`, `slug`) and the response-only `PlantIdentityView` are in `openapi.yaml`; `Plant.identity` points at `PlantIdentityView`, so requests still accept only a plain id. Since [Iteration 19](../../roadmap.md#iteration-19-support-jsonapi-sparse-fields-in-query-parser) the summary is sent with `include=family`; otherwise the plain id.
 - **Read-only response fields (Iteration 18)**: `Plant` and `Family` now declare `metadata` (and plant `status`, `deletedAt`) as `readOnly`. The API already sent them; declaring them lets the strict output check keep them.
+- **`500` declared on every operation**: the shared `InternalServerError` response (`{ message }`, always a generic message) covers unexpected failures and stored data that breaks the contract (the output check fails closed). Every acceptance scenario that answers `500` asserts it against the contract.
 - This directly aligns with the Zod Union implementation strategy (`z.union`) in the validation layer.
 
 ---
@@ -144,31 +145,12 @@ _(Note: In Phase 2 - Social Catalog, we introduce the collaborator role)_
 
 `filter`, `sort` and `pagination` are `deepObject` parameters referencing per-resource components (since [Iteration 14](../../roadmap.md#iteration-14-migrate-beds-and-query-dsl-to-zod)): `PlantListFilter` (every plant field with the operators of its type, one operator per field), `PlantListSort` (`name`, `scientificName`) and the shared `ListPagination` (`page` ≥ 1, `1 ≤ limit ≤ 100`, defaults 1 / 25). Shared operator shapes: `TextFieldFilter`, `TextListFieldFilter`, `RangeFieldFilter`, `FilterText`, `FilterTextList`. Any other query key → `400`. Semantic rules are defined in Query DSL Contract v1.5.0.
 
+Sparse fields and includes `[CURRENT STATE (Done in [Iteration 19](../../roadmap.md#iteration-19-support-jsonapi-sparse-fields-in-query-parser))]`: reusable parameters `PlantFields` / `FamilyFields` (`fields`, `deepObject`, one property for the route's own type, `additionalProperties: false`) on the four catalog `GET` routes, and `PlantInclude` (`include`, `form`, `explode: false`, `enum: [family]`) on the two plant `GET` routes. Tailored bodies are described by `PlantFieldset` / `FamilyFieldset` (same properties as `Plant` / `Family`, only `id` required); the `200` bodies and page items are `anyOf: [Plant, PlantFieldset]` / `anyOf: [Family, FamilyFieldset]`, full schema first (`oneOf` cannot be used: a full body matches both). `Plant.phenology` is the `PlantPhenology` component, shared by both. The single reads reference the `ReadETag` header (absent with `fields` or `include`). Semantic rules are defined in Query DSL Contract §7.
+
 Not yet accepted:
 
 ```yaml
 parameters:
-  - name: include
-    in: query
-    required: false
-    schema:
-      type: array
-      items:
-        type: string
-    description: |
-      `[TARGET STATE (Pending [Iteration 19](../../roadmap.md#iteration-19-support-jsonapi-sparse-fields-in-query-parser))]` Transport representation of JSON:API include parameter.
-      Semantic rules are defined in Query DSL Contract v1.5.0.
-
-  - name: fields
-    in: query
-    required: false
-    schema:
-      type: object
-      additionalProperties: true
-    description: |
-      `[TARGET STATE (Pending [Iteration 19](../../roadmap.md#iteration-19-support-jsonapi-sparse-fields-in-query-parser))]` Transport representation of JSON:API sparse fields parameter.
-      Semantic rules are defined in Query DSL Contract v1.5.0.
-
   - name: Idempotency-Key
     in: header
     required: false # (Mandatory for critical POST requests)

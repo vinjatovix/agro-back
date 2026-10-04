@@ -1,4 +1,12 @@
-import { toFamilyReadView } from '../../../../../../../src/Contexts/Agro/Families/infrastructure/persistence/familyReadViewMapper.js';
+import {
+  FAMILY_FIELDS,
+  type FamilyField
+} from '../../../../../../../src/Contexts/Agro/Families/application/queries/index.js';
+import {
+  toFamilyReadView,
+  toFamilySparseView,
+  type StoredFamilyDocument
+} from '../../../../../../../src/Contexts/Agro/Families/infrastructure/persistence/familyReadViewMapper.js';
 import type { MongoFamilyDocument } from '../../../../../../../src/Contexts/Agro/Families/infrastructure/persistence/types/MongoFamilyDocument.js';
 import { familyDomainMapper } from '../../../../../../../src/Contexts/Agro/Families/mappers/familyDomainMapper.js';
 import { familyPersistenceMapper } from '../../../../../../../src/Contexts/Agro/Families/mappers/familyPersistenceMapper.js';
@@ -79,4 +87,58 @@ describe('toFamilyReadView', () => {
     expect(toFamilyReadView(document).id).toBe(id);
     expect(toFamilyReadView(document)).toEqual(domainRoundTrip(document));
   });
+});
+
+// What a read with a narrowed projection gets back: `_id` and the fields.
+const projected = (
+  document: StoredFamilyDocument,
+  fields: readonly FamilyField[]
+): StoredFamilyDocument =>
+  Object.fromEntries(
+    Object.entries(document).filter(
+      ([key]) => key === '_id' || fields.includes(key as FamilyField)
+    )
+  ) as StoredFamilyDocument;
+
+describe('toFamilySparseView', () => {
+  it('returns id and only the selected fields', () => {
+    const document = FamilyScenarios.mongoBaseWithExtra();
+    const fields: FamilyField[] = ['name', 'slug'];
+
+    const view = toFamilySparseView(projected(document, fields), fields);
+    const full = toFamilyReadView(document);
+
+    expect(view).toEqual({ id: full.id, name: full.name, slug: full.slug });
+  });
+
+  it('leaves extra out when the family has none', () => {
+    const document = FamilyScenarios.mongoBase();
+    const fields: FamilyField[] = ['name', 'extra'];
+
+    const view = toFamilySparseView(projected(document, fields), fields);
+
+    expect(view).not.toHaveProperty('extra');
+    expect(view).toHaveProperty('name');
+  });
+
+  it('reads a missing version as 0, like the full view', () => {
+    const { version: _version, ...document } = FamilyScenarios.mongoBase();
+
+    expect(toFamilySparseView(document, ['version']).version).toBe(0);
+  });
+
+  it.each([
+    ['a base family', () => FamilyScenarios.mongoBase()],
+    ['a family with extra', () => FamilyScenarios.mongoBaseWithExtra()]
+  ])(
+    'equals the full view when every field is selected for %s',
+    (_case, build) => {
+      const document = build();
+      const fields = FAMILY_FIELDS.filter((field) => field !== 'id');
+
+      expect(toFamilySparseView(document, fields)).toStrictEqual(
+        toFamilyReadView(document)
+      );
+    }
+  );
 });

@@ -40,6 +40,8 @@ paths:
                 properties:
                   status:
                     type: string
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /api/v1/auth/register:
     post:
@@ -63,6 +65,8 @@ paths:
           $ref: '#/components/responses/ConflictError'
         '400':
           $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /api/v1/auth/login:
     post:
@@ -89,6 +93,8 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /api/v1/auth/google:
     post:
@@ -115,6 +121,8 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /api/v1/auth/validate/{token}:
     get:
@@ -141,6 +149,8 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /api/v1/auth/refresh:
     post:
@@ -161,6 +171,8 @@ paths:
                     type: string
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /api/v1/auth/update:
     post:
@@ -190,6 +202,8 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '404':
           $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /api/v1/families:
     get:
@@ -219,6 +233,7 @@ paths:
           explode: true
           schema:
             $ref: '#/components/schemas/ListPagination'
+        - $ref: '#/components/parameters/FamilyFields'
 
       responses:
         '200':
@@ -231,11 +246,15 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Family'
+                      anyOf:
+                        - $ref: '#/components/schemas/Family'
+                        - $ref: '#/components/schemas/FamilyFieldset'
                   pagination:
                     $ref: '#/components/schemas/PaginationResponse'
         '400':
           $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
     post:
       tags: [Families]
@@ -272,6 +291,8 @@ paths:
 
         '409':
           $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /api/v1/families/{idOrSlug}:
     get:
@@ -279,22 +300,28 @@ paths:
       summary: Get family by id or slug
       parameters:
         - $ref: '#/components/parameters/FamilyIdOrSlug'
+        - $ref: '#/components/parameters/FamilyFields'
       responses:
         '200':
           description: OK
           headers:
             ETag:
-              $ref: '#/components/headers/ETag'
+              $ref: '#/components/headers/ReadETag'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Family'
+                anyOf:
+                  - $ref: '#/components/schemas/Family'
+                  - $ref: '#/components/schemas/FamilyFieldset'
         '304':
+          # Only for a read without `fields`.
           $ref: '#/components/responses/NotModified'
         '400':
           $ref: '#/components/responses/ValidationError'
         '404':
           $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
     patch:
       tags: [Families]
       summary: Update family
@@ -333,6 +360,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailedError'
         '428':
           $ref: '#/components/responses/PreconditionRequiredError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /api/v1/plants:
     get:
@@ -362,6 +391,8 @@ paths:
           explode: true
           schema:
             $ref: '#/components/schemas/ListPagination'
+        - $ref: '#/components/parameters/PlantFields'
+        - $ref: '#/components/parameters/PlantInclude'
 
       responses:
         '200':
@@ -374,12 +405,16 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Plant'
+                      anyOf:
+                        - $ref: '#/components/schemas/Plant'
+                        - $ref: '#/components/schemas/PlantFieldset'
                   pagination:
                     $ref: '#/components/schemas/PaginationResponse'
 
         '400':
           $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
     post:
       tags: [Plants]
@@ -410,6 +445,8 @@ paths:
           $ref: '#/components/responses/ForbiddenError'
         '409':
           $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /api/v1/plants/{id}:
     get:
@@ -421,22 +458,29 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/PlantFields'
+        - $ref: '#/components/parameters/PlantInclude'
       responses:
         '200':
           description: OK
           headers:
             ETag:
-              $ref: '#/components/headers/ETag'
+              $ref: '#/components/headers/ReadETag'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Plant'
+                anyOf:
+                  - $ref: '#/components/schemas/Plant'
+                  - $ref: '#/components/schemas/PlantFieldset'
         '304':
+          # Only for a read without `fields` or `include`.
           $ref: '#/components/responses/NotModified'
         '400':
           $ref: '#/components/responses/ValidationError'
         '404':
           $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
     patch:
       tags: [Plants]
@@ -480,6 +524,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailedError'
         '428':
           $ref: '#/components/responses/PreconditionRequiredError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
     delete:
       tags: [Plants]
@@ -510,6 +556,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailedError'
         '428':
           $ref: '#/components/responses/PreconditionRequiredError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /api/v1/beds:
     get:
@@ -531,6 +579,8 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
     post:
       tags: [Beds]
@@ -562,6 +612,8 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '409':
           $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /api/v1/beds/{id}:
     get:
@@ -589,6 +641,8 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '404':
           $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
     patch:
       tags: [Beds]
@@ -627,6 +681,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailedError'
         '428':
           $ref: '#/components/responses/PreconditionRequiredError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
     delete:
       tags: [Beds]
@@ -654,6 +710,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailedError'
         '428':
           $ref: '#/components/responses/PreconditionRequiredError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
 components:
   headers:
@@ -667,7 +725,76 @@ components:
         pattern: '^"(0|[1-9][0-9]*)"$'
         example: '"4"'
 
+    ReadETag:
+      description: >
+        Version of the full resource, as in `ETag`. Sent only when the read
+        uses neither `fields` nor `include`: a tailored body is not the
+        representation the version names, so it carries no tag and
+        `If-None-Match` is ignored.
+      required: false
+      schema:
+        type: string
+        pattern: '^"(0|[1-9][0-9]*)"$'
+        example: '"4"'
+
   parameters:
+    PlantFields:
+      in: query
+      name: fields
+      description: >
+        JSON:API sparse fieldset. `fields[plants]` is a comma-separated list
+        of top-level fields: `id`, `identity`, `traits`, `phenology`,
+        `knowledge`, `metadata`, `status`, `deletedAt`, `version`. Entries are
+        trimmed, blanks and repeats dropped, and the order does not matter;
+        `id` is always sent. Any other resource type, an unknown or nested
+        name (names are case-sensitive), or an empty list → 400. The response
+        then holds `id` and the requested fields only, and carries no `ETag`.
+      style: deepObject
+      explode: true
+      schema:
+        type: object
+        additionalProperties: false
+        properties:
+          plants:
+            type: string
+            example: identity,traits
+
+    FamilyFields:
+      in: query
+      name: fields
+      description: >
+        JSON:API sparse fieldset. `fields[families]` is a comma-separated list
+        of top-level fields: `id`, `slug`, `name`, `aliases`, `scientificName`,
+        `shortDescription`, `highlights`, `extra`, `metadata`, `version`. Same
+        rules as for plants.
+      style: deepObject
+      explode: true
+      schema:
+        type: object
+        additionalProperties: false
+        properties:
+          families:
+            type: string
+            example: name,slug
+
+    PlantInclude:
+      in: query
+      name: include
+      description: >
+        JSON:API include, comma-separated. `family` sends `identity.family`
+        as a `FamilySummary`, reading every family of the page at once; a
+        plant whose family is not found keeps the plain id. Skipped when
+        `fields[plants]` leaves out `identity`. Any other relation or an empty
+        list → 400. The response carries no `ETag`.
+      style: form
+      explode: false
+      schema:
+        type: array
+        minItems: 1
+        items:
+          type: string
+          enum: [family]
+
     FamilyIdOrSlug:
       name: idOrSlug
       in: path
@@ -1121,8 +1248,8 @@ components:
 
     FamilySummary:
       description: >
-        Embedded family relation: only id, name and slug. Returned in place of
-        the family id once a client asks for it (Iteration 19, `include`).
+        Embedded family relation: only id, name and slug. Sent in place of the
+        family id with `include=family`.
       type: object
       additionalProperties: false
       required: [id, name, slug]
@@ -1183,6 +1310,41 @@ components:
     # Shared pieces are published once and reused by the response, create and
     # update schemas. Size limits mirror the request validation.
 
+    FamilyFieldset:
+      description: >
+        A family read with `fields[families]`: `id` plus the requested fields,
+        each with the same shape as in `Family`. Any field but `id` may be
+        missing.
+      type: object
+      additionalProperties: false
+      required: [id]
+      properties:
+        id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 0
+          readOnly: true
+        slug:
+          $ref: '#/components/schemas/RequiredShortText'
+        name:
+          $ref: '#/components/schemas/RequiredShortText'
+        scientificName:
+          $ref: '#/components/schemas/RequiredShortText'
+        shortDescription:
+          $ref: '#/components/schemas/RequiredLongText'
+        aliases:
+          $ref: '#/components/schemas/FamilyTextList'
+        highlights:
+          $ref: '#/components/schemas/FamilyHighlights'
+        extra:
+          $ref: '#/components/schemas/FamilyExtra'
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          readOnly: true
+
     Plant:
       type: object
       required: [id, identity, traits, phenology]
@@ -1202,15 +1364,7 @@ components:
           $ref: '#/components/schemas/PlantTraits'
 
         phenology:
-          type: object
-          required: [sowing, flowering, harvest]
-          properties:
-            sowing:
-              $ref: '#/components/schemas/PlantSowing'
-            flowering:
-              $ref: '#/components/schemas/PlantFlowering'
-            harvest:
-              $ref: '#/components/schemas/PlantHarvest'
+          $ref: '#/components/schemas/PlantPhenology'
 
         knowledge:
           $ref: '#/components/schemas/PlantKnowledge'
@@ -1231,6 +1385,54 @@ components:
           nullable: true
           readOnly: true
           description: Set when the plant is deleted; `null` otherwise.
+
+    PlantPhenology:
+      type: object
+      required: [sowing, flowering, harvest]
+      properties:
+        sowing:
+          $ref: '#/components/schemas/PlantSowing'
+        flowering:
+          $ref: '#/components/schemas/PlantFlowering'
+        harvest:
+          $ref: '#/components/schemas/PlantHarvest'
+
+    PlantFieldset:
+      description: >
+        A plant read with `fields[plants]`: `id` plus the requested fields,
+        each with the same shape as in `Plant`. Any field but `id` may be
+        missing.
+      type: object
+      additionalProperties: false
+      required: [id]
+      properties:
+        id:
+          type: string
+        version:
+          type: integer
+          minimum: 0
+          readOnly: true
+        identity:
+          $ref: '#/components/schemas/PlantIdentityView'
+        traits:
+          $ref: '#/components/schemas/PlantTraits'
+        phenology:
+          $ref: '#/components/schemas/PlantPhenology'
+        knowledge:
+          $ref: '#/components/schemas/PlantKnowledge'
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/PlantStatus'
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          readOnly: true
 
     PlantStatus:
       type: string
@@ -1514,7 +1716,7 @@ components:
     PlantIdentityView:
       description: >
         Plant identity as returned by the API. `family` is the family id, or
-        the family summary once the relation can be included (Iteration 19).
+        the family summary with `include=family`.
       type: object
       required: [name, scientificName, family]
       properties:
@@ -1529,7 +1731,9 @@ components:
         scientificName:
           $ref: '#/components/schemas/RequiredShortText'
         family:
-          description: Always the id until Iteration 19.
+          description: >
+            The family id; with `include=family`, the family summary (or the
+            id when the family is not found).
           oneOf:
             - $ref: '#/components/schemas/RequiredShortText'
             - $ref: '#/components/schemas/FamilySummary'
@@ -2064,6 +2268,21 @@ components:
             properties:
               message:
                 type: string
+
+    InternalServerError:
+      description: >-
+        Unexpected server failure, or stored data that breaks this contract:
+        the body is never sent then (fail closed) and the failure is logged.
+        The message is always generic.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [message]
+            properties:
+              message:
+                type: string
+                example: Internal server error
 
     NotModified:
       description: >-

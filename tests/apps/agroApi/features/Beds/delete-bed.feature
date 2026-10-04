@@ -189,3 +189,4 @@ Feature: Delete a bed
         When I send a DELETE user request to "/api/v1/beds/<bedId>"
         Then the response status code should be 204
         And the stored bed should record the user as deleter at version 3
+        And response matches OpenAPI contract

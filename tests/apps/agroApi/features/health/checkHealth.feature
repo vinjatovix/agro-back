@@ -16,6 +16,8 @@ Feature: Api Health Check
     And response matches OpenAPI contract
 
 
+  # Unknown routes and the test-only error route are not part of the OpenAPI
+  # contract, so these scenarios have no contract assertion.
   Scenario: Performing a health check with wrong route
     Given a GET request to "/api/v1/whatever"
     Then the response status code should be 404

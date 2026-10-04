@@ -6,7 +6,7 @@ import { getValidatedRequest } from '../../middlewares/validateRequest.js';
 import { HttpController } from '../../shared/HttpController.js';
 import { checkPage } from '../../shared/responseValidation.js';
 import { listFamiliesRequest } from './requestSchemas.js';
-import { familyResponseSchema } from './responseSchemas.js';
+import { familyFieldsetResponseSchema } from './responseSchemas.js';
 
 export type GetAllFamiliesControllerDependencies = {
   listFamilies: ListFamilies;
@@ -33,7 +33,7 @@ export class GetAllFamiliesController extends HttpController {
       const page = await this.listFamilies.execute({ query });
 
       res.status(this.status()).json(
-        checkPage(familyResponseSchema, page, {
+        checkPage(familyFieldsetResponseSchema(query.fields), page, {
           resource: 'Family',
           logger: this.logger
         })

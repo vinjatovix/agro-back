@@ -58,9 +58,9 @@ Each field takes exactly one operator (none or several → `400`). Operators of 
 - `sort`: declared keys only, `asc` or `desc`.
 - `pagination`: `page`/`limit` as digit strings; `limit` ≤ `LIST_LIMITS.maxPageSize` (100); defaults `LIST_LIMITS.defaultPage` (1) and `LIST_LIMITS.defaultPageSize` (25) always applied.
 
-### 3.4 `include` `[TARGET STATE (Pending [Iteration 19](../../roadmap.md#iteration-19-support-jsonapi-sparse-fields-in-query-parser))]`
+### 3.4 `fields` and `include` `[CURRENT STATE (Done in [Iteration 19](../../roadmap.md#iteration-19-support-jsonapi-sparse-fields-in-query-parser))]`
 
-Not accepted today (`400 "Unknown field"`). Iteration 19 adds it to the listing schema.
+The four catalog reads accept the JSON:API sparse fieldset of their own type (`fields[plants]`, `fields[families]`); the plant reads also accept `include=family`. Listings declare them as `listQuerySchema` capabilities; single reads use `readQuerySchema`. Both decode to the typed `fields` / `include` of `QueryOptions`; normalization and errors are in Query DSL Contract §7. Families declare no `include`, so it stays an unknown field there.
 
 ---
 

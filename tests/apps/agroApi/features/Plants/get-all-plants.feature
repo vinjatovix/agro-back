@@ -166,3 +166,71 @@ Feature: Get All Plants
         "message": "Internal server error"
       }
       """
+    And response matches OpenAPI contract
+
+
+  Scenario: List plants with only their identity
+    Given a family exists
+    And the following plants exist:
+      | name    | scientificName       |
+      | Tomate  | Solanum lycopersicum |
+      | apio    | Apium graveolens     |
+      | Lechuga | Lactuca sativa       |
+    When I send a GET request to "/api/v1/plants?fields[plants]=identity&pagination[limit]=2"
+    Then the response status code should be 200
+    And each item should hold exactly the fields "id,identity"
+    And the response body should contain
+      """
+      { "pagination": { "page": 1, "limit": 2, "totalItems": 3, "totalPages": 2 } }
+      """
+    And response matches OpenAPI contract
+
+  Scenario: A filtered, sorted and paged listing keeps its plants with a fieldset
+    Given a family exists
+    And the following plants exist:
+      | name    | scientificName       | traits.lifecycle |
+      | Tomate  | Solanum lycopersicum | annual           |
+      | apio    | Apium graveolens     | biennial         |
+      | Lechuga | Lactuca sativa       | annual           |
+      | Ajo     | Allium sativum       | annual           |
+    When I send a GET request to "/api/v1/plants?filter[lifeCycle][eq]=annual&sort[name]=desc&pagination[limit]=2&fields[plants]=identity"
+    Then the response status code should be 200
+    And the listed "identity.name.primary" should be "Tomate,Lechuga"
+    And each item should hold exactly the fields "id,identity"
+    And the response body should contain
+      """
+      { "pagination": { "page": 1, "limit": 2, "totalItems": 3, "totalPages": 2 } }
+      """
+    And response matches OpenAPI contract
+
+  Scenario: Without fields every plant is sent in full
+    Given a family exists
+    And a plant exists
+    When I send a GET request to "/api/v1/plants"
+    Then the response status code should be 200
+    And each item should hold exactly the fields "id,version,identity,traits,phenology,knowledge,metadata,status,deletedAt"
+    And response matches OpenAPI contract
+
+  Scenario: List plants from several families with their family
+    Given plants exist from 3 families
+    When I send a GET request to "/api/v1/plants?include=family"
+    Then the response status code should be 200
+    And every listed plant should carry the summary of its own family
+    And response matches OpenAPI contract
+
+  Scenario Outline: A malformed fields or include on the listing answers 400 (<query>)
+    When I send a GET request to "/api/v1/plants?<query>"
+    Then the response status code should be 400
+    And the response errors should include "<path>"
+    And the response body should not echo "<value>"
+    And response matches OpenAPI contract
+
+    Examples:
+      | query                            | path            | value         |
+      | fields[plants]=identity,colour   | fields.plants   | colour        |
+      | fields[families]=highlights      | fields.families | highlights    |
+      | include=seeds                    | include         | seeds         |
+      | fields[plants]=                  | fields.plants   | fields[plants]= |
+      | fields[plants]=identity.name     | fields.plants   | identity.name |
+      | fields[plants]=Identity          | fields.plants   | Identity      |
+      | fields=traits                    | fields          | traits        |

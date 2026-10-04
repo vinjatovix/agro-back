@@ -93,6 +93,7 @@ Feature: Update a plant
       }
       """
     Then the response status code should be 400
+    And response matches OpenAPI contract
 
   Scenario: Fail to update with unknown field
     Given a family exists

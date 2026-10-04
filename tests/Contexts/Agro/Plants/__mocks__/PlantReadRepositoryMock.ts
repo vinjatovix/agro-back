@@ -1,40 +1,61 @@
 /* eslint-disable @typescript-eslint/require-await */
 import type {
+  PlantField,
   PlantReadRepository,
-  PlantReadView
+  PlantReadView,
+  PlantSparseView
 } from '../../../../../src/Contexts/Agro/Plants/application/queries/index.js';
 import type { PlantFilter } from '../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantFilter.js';
 import type { PaginatedResult } from '../../../../../src/shared/domain/query/interfaces/PaginatedResult.js';
-import type { QueryOptions } from '../../../../../src/shared/domain/query/interfaces/QueryOptions.js';
+import type {
+  QueryOptions,
+  ReadOptions
+} from '../../../../../src/shared/domain/query/interfaces/QueryOptions.js';
 import type { Nullable } from '../../../../../src/shared/domain/types/Nullable.js';
+import { PlantReadViewMother } from '../application/queries/PlantReadViewMother.js';
 
-/** In-memory read port: returns stored views as they are, like storage. */
+/**
+ * In-memory read port: returns stored views as they are, like storage, or only
+ * `id` and the requested fields when the read has a fieldset.
+ */
 export class PlantReadRepositoryMock implements PlantReadRepository {
   private readonly findByIdMock = jest.fn();
   private readonly findActiveByIdMock = jest.fn();
   private readonly findAllMock = jest.fn();
   private readonly storage = new Map<string, PlantReadView>();
 
-  async findById(id: string): Promise<Nullable<PlantReadView>> {
-    this.findByIdMock(id);
-
-    return this.storage.get(id) ?? null;
-  }
-
-  async findActiveById(id: string): Promise<Nullable<PlantReadView>> {
-    this.findActiveByIdMock(id);
+  async findById(
+    id: string,
+    options: ReadOptions<PlantField> = {}
+  ): Promise<Nullable<PlantSparseView>> {
+    this.findByIdMock(id, options);
 
     const view = this.storage.get(id);
 
-    return view && view.status !== 'DELETED' ? view : null;
+    return view ? this.select(view, options) : null;
+  }
+
+  async findActiveById(
+    id: string,
+    options: ReadOptions<PlantField> = {}
+  ): Promise<Nullable<PlantSparseView>> {
+    this.findActiveByIdMock(id, options);
+
+    const view = this.storage.get(id);
+
+    return view && view.status !== 'DELETED'
+      ? this.select(view, options)
+      : null;
   }
 
   async findAll(
-    options?: QueryOptions<PlantFilter>
-  ): Promise<PaginatedResult<PlantReadView>> {
+    options?: Omit<QueryOptions<PlantFilter, PlantField>, 'include'>
+  ): Promise<PaginatedResult<PlantSparseView>> {
     this.findAllMock(options);
 
-    const data = [...this.storage.values()];
+    const data = [...this.storage.values()].map((view) =>
+      this.select(view, options ?? {})
+    );
 
     return {
       data,
@@ -47,6 +68,15 @@ export class PlantReadRepositoryMock implements PlantReadRepository {
     };
   }
 
+  private select(
+    view: PlantReadView,
+    { fields }: ReadOptions<PlantField>
+  ): PlantSparseView {
+    return fields === undefined
+      ? view
+      : PlantReadViewMother.sparse(view, fields);
+  }
+
   /* ---------- helpers ---------- */
 
   addToStorage(view: PlantReadView): void {
@@ -55,16 +85,19 @@ export class PlantReadRepositoryMock implements PlantReadRepository {
 
   /* ---------- assertions ---------- */
 
-  assertFindByIdHasBeenCalledWith(id: string): void {
-    expect(this.findByIdMock).toHaveBeenCalledWith(id);
+  assertFindByIdHasBeenCalledWith(id: string, options: unknown = {}): void {
+    expect(this.findByIdMock).toHaveBeenCalledWith(id, options);
   }
 
   assertFindByIdNotCalled(): void {
     expect(this.findByIdMock).not.toHaveBeenCalled();
   }
 
-  assertFindActiveByIdHasBeenCalledWith(id: string): void {
-    expect(this.findActiveByIdMock).toHaveBeenCalledWith(id);
+  assertFindActiveByIdHasBeenCalledWith(
+    id: string,
+    options: unknown = {}
+  ): void {
+    expect(this.findActiveByIdMock).toHaveBeenCalledWith(id, options);
   }
 
   assertFindActiveByIdNotCalled(): void {

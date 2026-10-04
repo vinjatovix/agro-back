@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import type { PlantField } from '../../../../Contexts/Agro/Plants/application/queries/index.js';
 import {
   PollinationType,
   SEASONS
@@ -12,6 +13,7 @@ import {
   shortTextSchema
 } from '../../shared/requestSchemas.js';
 import {
+  fieldsetMask,
   metadataResponseSchema,
   requiredLongTextResponseSchema,
   requiredShortTextResponseSchema
@@ -165,3 +167,18 @@ export const plantResponseSchema = z.object({
 });
 
 export type PlantResponse = z.output<typeof plantResponseSchema>;
+
+/** A plant read with `fields[plants]`: `id` plus any requested fields. */
+export type PlantFieldsetResponse = Pick<PlantResponse, 'id'> &
+  Partial<Omit<PlantResponse, 'id'>>;
+
+/**
+ * Output check of a plant read: the full schema without a fieldset, or only
+ * `id` and the requested fields, each with its full contract shape.
+ */
+export const plantFieldsetResponseSchema = (
+  fields?: readonly PlantField[]
+): z.ZodType<PlantFieldsetResponse> =>
+  fields === undefined
+    ? plantResponseSchema
+    : plantResponseSchema.pick(fieldsetMask(fields));

@@ -34,12 +34,16 @@ Rules:
 The system supports a unified query model:
 
 ```ts
-QueryOptions<TFilter> {
+QueryOptions<TFilter, TField extends string = string, TRelation extends string = string> {
   filter?: TFilter;
   sort?: SortOptions;
   pagination?: PaginationParams;
-  include?: string[];
+  include?: readonly TRelation[];
+  fields?: readonly TField[]; // primary resource only
 }
+
+// What a single read accepts.
+ReadOptions<TField, TRelation = never> = Pick<QueryOptions<never, TField, TRelation>, 'include' | 'fields'>;
 ```
 
 ---
@@ -218,20 +222,36 @@ CursorPaginationParams {
 
 ---
 
-### 7. INCLUDE SYSTEM `[TARGET STATE (Pending [Iteration 19](../../roadmap.md#iteration-19-support-jsonapi-sparse-fields-in-query-parser))]`
+### 7. INCLUDE AND SPARSE FIELDS `[CURRENT STATE (Done in [Iteration 19](../../roadmap.md#iteration-19-support-jsonapi-sparse-fields-in-query-parser))]`
 
-Optional field expansion and sparse field selection mechanism.
+JSON:API sparse fieldsets and includes. The transport keeps the keyed form (`fields[plants]=identity,traits`, `include=family`); the route schema outputs the fieldset of the route's **own** resource type as a flat, typed list:
 
 ```ts
-include: string[]
-fields: Record<string, string[]>
+fields?: readonly PlantField[];      // e.g. ['identity', 'traits']
+include?: readonly PlantRelation[];  // ['family']
 ```
+
+Selectable names are declared once per resource next to its read view (`PLANT_FIELDS`, `FAMILY_FIELDS`, `PLANT_RELATIONS`), so the request schema, the projection, the mappers and the response check share one list.
+
+| Route                                       | `fields`           | `include` |
+| :------------------------------------------ | :----------------- | :-------- |
+| `GET /plants`, `GET /plants/{id}`           | `fields[plants]`   | `family`  |
+| `GET /families`, `GET /families/{idOrSlug}` | `fields[families]` | — (`400`) |
+
+Normalization (`fieldsetSchema`, `includeSchema` in `apps/agroApi/shared/listQuerySchema.ts`):
+
+- a string or a repeated key; split on `,`, trimmed, blanks dropped; an empty result → `400`
+- every entry must be a declared name (case-sensitive; `identity.name` is not a name) → otherwise `400` at `fields.<type>` / `include`
+- de-duplicated and ordered by the declared order, so the same input in any order gives the same options
+- `id` is accepted and dropped (always sent): `fields[plants]=id` → `[]` (only `id`), different from absent (every field)
+- another resource type (`fields[families]` on plants) → `400 "Unknown field"` at `fields.families`; `fields=identity` → `400` at `fields`
 
 Rules:
 
-- controls eager loading / projection
-- must NOT affect domain logic
-- must be safe to ignore at domain level
+- `fields` narrows the read projection: unrequested fields are never read
+- `include` is resolved by the application layer (one read per page), never by the repository
+- neither changes business rules (visibility filters still apply)
+- a single read with either parameter carries no `ETag` and never answers `304`
 
 ---
 
@@ -264,7 +284,7 @@ IMPORTANT:
 
 Enforced by the Zod listing schema (`listQuerySchema`) through `validateRequest`, with every error reported at its path in the shared `{ message, errors }` shape and without echoing the submitted value:
 
-- only `filter`, `sort` and `pagination` are accepted at the top level; any other key (`include`, `foo`) → `400 "Unknown field"`
+- only `filter`, `sort`, `pagination`, `fields` and, on plants, `include` are accepted at the top level; any other key (`foo`, `include` on families) → `400 "Unknown field"`
 - undeclared fields and operators → `400 "Unknown field"` at their path
 - values are decoded by the field's type, never guessed from the text; a value outside the type → `400`
 - blank values (`filter[name][contains]=`) → `400`; nested objects (`eq[$ne]=x`) and repeated keys on single-value operators → `400`

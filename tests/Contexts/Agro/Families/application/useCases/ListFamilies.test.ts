@@ -27,13 +27,22 @@ describe('ListFamilies', () => {
         filter: { name: { eq: 'Rosaceae' } },
         sort: { name: 'asc' },
         pagination: { page: 1, limit: 5 },
-        include: ['plants']
+        fields: ['name', 'slug']
       }
     };
 
     await useCase.execute(dto);
 
     repository.assertFindAllHasBeenCalledWith(dto.query);
+  });
+
+  it('should return only id and the selected fields', async () => {
+    const family = FamilyReadViewMother.base();
+    repository.addToStorage(family);
+
+    const { data } = await useCase.execute({ query: { fields: ['name'] } });
+
+    expect(data).toEqual([{ id: family.id, name: family.name }]);
   });
 
   it('returns stored data as is, without building a Family', async () => {

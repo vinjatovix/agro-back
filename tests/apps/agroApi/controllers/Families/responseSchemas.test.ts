@@ -1,4 +1,7 @@
-import { familyResponseSchema } from '../../../../../src/apps/agroApi/controllers/Families/responseSchemas.js';
+import {
+  familyFieldsetResponseSchema,
+  familyResponseSchema
+} from '../../../../../src/apps/agroApi/controllers/Families/responseSchemas.js';
 import {
   baseFamilyView,
   fullFamilyView,
@@ -63,5 +66,37 @@ describe('familyResponseSchema', () => {
     const view = withValueAt(baseFamilyView(), 'name', '  Rosaceae  ');
 
     expect(familyResponseSchema.parse(view).name).toBe('  Rosaceae  ');
+  });
+});
+
+describe('familyFieldsetResponseSchema', () => {
+  it('is the full schema without a fieldset', () => {
+    expect(familyFieldsetResponseSchema()).toBe(familyResponseSchema);
+  });
+
+  it('keeps id and the requested fields only', () => {
+    const view = fullFamilyView();
+
+    expect(familyFieldsetResponseSchema(['name', 'slug']).parse(view)).toEqual({
+      id: view.id,
+      name: view.name,
+      slug: view.slug
+    });
+  });
+
+  it('keeps a requested extra absent when the family has none', () => {
+    const parsed = familyFieldsetResponseSchema(['extra']).parse(
+      baseFamilyView()
+    );
+
+    expect(parsed).not.toHaveProperty('extra');
+  });
+
+  it('rejects a requested field that breaks the contract', () => {
+    const view = withValueAt(fullFamilyView(), 'name', '   ');
+
+    expect(familyFieldsetResponseSchema(['name']).safeParse(view).success).toBe(
+      false
+    );
   });
 });

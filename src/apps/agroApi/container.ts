@@ -1,6 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { asClass, asValue, createContainer, InjectionMode } from 'awilix';
+import {
+  aliasTo,
+  asClass,
+  asValue,
+  createContainer,
+  InjectionMode
+} from 'awilix';
 import type { Db, MongoClient } from 'mongodb';
 
 import { bedPersistenceMapper } from '../../Contexts/Agro/Beds/mappers/bedPersistenceMapper.js';
@@ -45,7 +51,8 @@ export async function createAppContainer(
     logger: asValue<AppLogger>(buildLogger('agroApi')), // Contextual root logger instance
     bedPersistenceMapper: asValue(bedPersistenceMapper), // Plain persistence mapper without class state
     familyPersistenceMapper: asValue(familyPersistenceMapper), // Plain persistence mapper without class state
-    plantPersistenceMapper: asValue(plantPersistenceMapper) // Plain persistence mapper without class state
+    plantPersistenceMapper: asValue(plantPersistenceMapper), // Plain persistence mapper without class state
+    familySummaryReader: aliasTo('familyReadRepository') // Plants' port, served by the family read side
   });
 
   const components = await scanComponents(deps.sourceRoot, COMPONENT_ROLES);

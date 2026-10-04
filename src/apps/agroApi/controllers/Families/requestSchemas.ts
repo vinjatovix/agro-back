@@ -1,12 +1,18 @@
 import { z } from 'zod';
 
+import {
+  FAMILY_FIELDS,
+  type FamilyField
+} from '../../../../Contexts/Agro/Families/application/queries/index.js';
 import type { FamilyFilter } from '../../../../Contexts/Agro/Families/domain/types/FamilyFilter.js';
 import type { QueryOptions } from '../../../../shared/domain/query/interfaces/QueryOptions.js';
 import type { RequestSchemas } from '../../middlewares/validateRequest.js';
 import {
+  fieldsetSchema,
   identifierField,
   listField,
   listQuerySchema,
+  readQuerySchema,
   textField,
   textItem
 } from '../../shared/listQuerySchema.js';
@@ -99,9 +105,15 @@ export const updateFamilyRequest = {
   body: updateFamilyBody
 } satisfies RequestSchemas;
 
+// JSON:API `fields[families]` on every family read; families have no
+// relations to include.
+const familySelection = {
+  fields: fieldsetSchema('families', FAMILY_FIELDS)
+};
+
 export const getFamilyByIdOrSlugRequest = {
   params: familyIdOrSlugParams,
-  query: emptyQuery,
+  query: readQuerySchema(familySelection),
   body: emptyBody
 } satisfies RequestSchemas;
 
@@ -114,8 +126,11 @@ const listFamiliesQuery = listQuerySchema({
     scientificName: textField(),
     aliases: listField(textItem)
   },
-  sortableKeys: ['name', 'scientificName', 'slug']
-}) satisfies z.ZodType<QueryOptions<FamilyFilter>>;
+  sortableKeys: ['name', 'scientificName', 'slug'],
+  ...familySelection
+}) satisfies z.ZodType<
+  Omit<QueryOptions<FamilyFilter, FamilyField>, 'include'>
+>;
 
 export const listFamiliesRequest = {
   query: listFamiliesQuery,

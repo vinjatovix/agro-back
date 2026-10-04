@@ -1,5 +1,8 @@
 import type { PaginatedResult } from '../../../../../shared/domain/query/interfaces/PaginatedResult.js';
-import type { FamilyReadRepository, FamilyReadView } from '../queries/index.js';
+import type {
+  FamilyReadRepository,
+  FamilySparseView
+} from '../queries/index.js';
 import type { ListFamiliesDto } from './interfaces/ListFamiliesDto.js';
 
 export type ListFamiliesDependencies = {
@@ -15,7 +18,7 @@ export class ListFamilies {
 
   async execute(
     dto?: ListFamiliesDto
-  ): Promise<PaginatedResult<FamilyReadView>> {
+  ): Promise<PaginatedResult<FamilySparseView>> {
     return this.familyReadRepository.findAll(dto?.query);
   }
 }

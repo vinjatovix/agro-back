@@ -874,4 +874,50 @@ describe('Plant requestSchemas', () => {
       expect(Object.values(errors)).toEqual([UNKNOWN_FIELD]);
     });
   });
+
+  describe.each([
+    ['listPlantsRequest', listPlantsRequest, {}],
+    ['getPlantByIdRequest', getPlantByIdRequest, { id: randomPlantId() }]
+  ] as const)('fields and include on %s', (_, schemas, params) => {
+    const queryOf = async (query: Record<string, unknown>) => {
+      const { res } = buildResponse();
+      const error = await runWithValidation(
+        schemas,
+        buildRequest({ params, query }),
+        res
+      );
+      expect(error).toBeUndefined();
+
+      return getValidatedRequest(res, schemas).query;
+    };
+
+    it('should output the normalized fieldset', async () => {
+      const query = await queryOf({
+        fields: { plants: 'traits, identity,traits' }
+      });
+
+      expect(query.fields).toEqual(['identity', 'traits']);
+    });
+
+    it.each([
+      ['a comma-separated string', 'family,family'],
+      ['a repeated key', ['family', 'family']]
+    ])('should output include=family from %s', async (_label, include) => {
+      const query = await queryOf({ include });
+
+      expect(query.include).toEqual(['family']);
+    });
+
+    it.each([
+      [{ fields: { plants: 'identity,colour' } }, 'fields.plants'],
+      [{ fields: { families: 'name' } }, 'fields.families'],
+      [{ fields: 'identity' }, 'fields'],
+      [{ include: 'seeds' }, 'include'],
+      [{ foo: 'bar' }, 'foo']
+    ])('should reject %j at %s', async (query, path) => {
+      const errors = await errorsOf(schemas, { params, query });
+
+      expect(errors).toHaveProperty([path]);
+    });
+  });
 });
