@@ -428,8 +428,9 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 **Spec Module(s)**: [query-dsl-contract.md](spec/modules/query-dsl-contract.md), [api-layer.md](spec/modules/api-layer.md), [openapi.md](spec/modules/openapi.md)
 
 - **Value delivered**: Reduces network payload sizes by allowing clients to request specific fields and relations.
-- **Definition of Done**: `GenericQueryParser` parses JSON:API `include` and `fields` parameters.
-- **Dependencies**: Iteration 4.
+- **Definition of Done**: The catalog read schemas (listings and single reads of Plants and Families) accept and normalize JSON:API `include` and `fields[type]` parameters into the query options, and the read paths apply them: only the requested top-level fields are read and sent, and `include=family` embeds the `FamilySummary` published in Iteration 18. (The original wording named `GenericQueryParser`, removed in Iteration 14; corrected 2026-10-04. Spec: `specs/023-jsonapi-sparse-fields/`.)
+- **Dependencies**: Iteration 14 (strict listing schemas), Iteration 18 (catalog read repositories, `FamilySummary` contract).
+- **Outcome**: The four catalog `GET` routes accept `fields[plants]` / `fields[families]`. The schemas trim the list, drop repeats and keep the declared order, and `id` is always sent. The read repositories narrow their projection, so fields that were not asked for are never read. On the plant routes, `include=family` embeds `{ id, name, slug }` with one `families` read per page, through the `FamilySummaryReader` port that Plants owns; a family that is not found keeps the plain id. A single read that uses either parameter sends no `ETag`, so it never answers `304`. The contract adds `PlantFields`, `FamilyFields`, `PlantInclude`, `PlantFieldset` and `FamilyFieldset`. Measured on 100 plants: the `fields[plants]=identity` page is 11.9% of the full page, and `include=family` takes a median of 13.3 ms.
 - **Risks**: None.
 - **Prompt for /speckit.specify**:
   ```text

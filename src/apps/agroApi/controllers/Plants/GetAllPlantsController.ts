@@ -7,7 +7,7 @@ import { getValidatedRequest } from '../../middlewares/validateRequest.js';
 import { HttpController } from '../../shared/HttpController.js';
 import { checkPage } from '../../shared/responseValidation.js';
 import { listPlantsRequest } from './requestSchemas.js';
-import { plantResponseSchema } from './responseSchemas.js';
+import { plantFieldsetResponseSchema } from './responseSchemas.js';
 
 export type GetAllPlantsControllerDependencies = {
   listPlants: ListPlants;
@@ -30,12 +30,12 @@ export class GetAllPlantsController extends HttpController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const user = res.locals.user as UserSessionInfo | null;
+      const user = res.locals.user as UserSessionInfo | undefined;
       const { query } = getValidatedRequest(res, listPlantsRequest);
       const page = await this.listPlants.execute(user, { query });
 
       res.status(this.status()).json(
-        checkPage(plantResponseSchema, page, {
+        checkPage(plantFieldsetResponseSchema(query.fields), page, {
           resource: 'Plant',
           logger: this.logger
         })

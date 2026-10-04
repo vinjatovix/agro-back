@@ -1,5 +1,13 @@
+import {
+  PLANT_FIELDS,
+  type PlantField
+} from '../../../../../../../src/Contexts/Agro/Plants/application/queries/index.js';
 import type { Plant } from '../../../../../../../src/Contexts/Agro/Plants/domain/entities/Plant.js';
-import { toPlantReadView } from '../../../../../../../src/Contexts/Agro/Plants/infrastructure/persistence/mongo/plantReadViewMapper.js';
+import {
+  toPlantReadView,
+  toPlantSparseView,
+  type StoredPlantDocument
+} from '../../../../../../../src/Contexts/Agro/Plants/infrastructure/persistence/mongo/plantReadViewMapper.js';
 import type { MongoPlantDocument } from '../../../../../../../src/Contexts/Agro/Plants/infrastructure/persistence/types/MongoPlantDocument.js';
 import { plantDomainMapper } from '../../../../../../../src/Contexts/Agro/Plants/mappers/plantDomainMapper.js';
 import { plantPersistenceMapper } from '../../../../../../../src/Contexts/Agro/Plants/mappers/plantPersistenceMapper.js';
@@ -144,4 +152,71 @@ describe('toPlantReadView', () => {
       max: 10
     });
   });
+});
+
+// What a read with a narrowed projection gets back: `_id` and the fields.
+const projected = (
+  document: StoredPlantDocument,
+  fields: readonly PlantField[]
+): StoredPlantDocument =>
+  Object.fromEntries(
+    Object.entries(document).filter(
+      ([key]) => key === '_id' || fields.includes(key as PlantField)
+    )
+  ) as StoredPlantDocument;
+
+describe('toPlantSparseView', () => {
+  it('returns id and only the selected fields', () => {
+    const document = stored(PlantFactory.tomato());
+    const fields: PlantField[] = ['identity', 'traits'];
+
+    const view = toPlantSparseView(projected(document, fields), fields);
+
+    expect(Object.keys(view).sort()).toEqual(['id', 'identity', 'traits']);
+    expect(view.identity).toEqual(toPlantReadView(document).identity);
+  });
+
+  it('returns only id for an empty fieldset', () => {
+    const document = stored(PlantFactory.random());
+
+    expect(toPlantSparseView(projected(document, []), [])).toEqual({
+      id: toPlantReadView(document).id
+    });
+  });
+
+  it('applies the same defaults as the full view', () => {
+    const {
+      version: _version,
+      status: _status,
+      knowledge: _knowledge,
+      ...legacy
+    } = stored(PlantFactory.random());
+    const document = legacy as StoredPlantDocument;
+    const fields: PlantField[] = ['version', 'status', 'knowledge'];
+
+    const view = toPlantSparseView(projected(document, fields), fields);
+    const full = toPlantReadView(document);
+
+    expect(view).toEqual({
+      id: full.id,
+      version: full.version,
+      status: full.status,
+      knowledge: full.knowledge
+    });
+  });
+
+  it.each([
+    ['a live plant', () => PlantFactory.full()],
+    ['a deleted plant', deletedPlant]
+  ])(
+    'equals the full view when every field is selected for %s',
+    (_case, build) => {
+      const document = stored(build());
+      const fields = PLANT_FIELDS.filter((field) => field !== 'id');
+
+      expect(toPlantSparseView(document, fields)).toEqual(
+        toPlantReadView(document)
+      );
+    }
+  );
 });

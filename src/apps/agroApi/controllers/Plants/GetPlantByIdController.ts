@@ -6,9 +6,15 @@ import type { AppLogger } from '../../../../Contexts/shared/plugins/logger.plugi
 import { getValidatedRequest } from '../../middlewares/validateRequest.js';
 import { HttpController } from '../../shared/HttpController.js';
 import { checkResponse } from '../../shared/responseValidation.js';
-import { setVersionETag } from '../../shared/versionTags.js';
+import {
+  isFullRepresentation,
+  setVersionETag
+} from '../../shared/versionTags.js';
 import { getPlantByIdRequest } from './requestSchemas.js';
-import { plantResponseSchema } from './responseSchemas.js';
+import {
+  plantFieldsetResponseSchema,
+  plantResponseSchema
+} from './responseSchemas.js';
 
 export type GetPlantByIdControllerDependencies = {
   getPlant: GetPlant;
@@ -31,15 +37,31 @@ export class GetPlantByIdController extends HttpController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const { params } = getValidatedRequest(res, getPlantByIdRequest);
+      const { params, query } = getValidatedRequest(res, getPlantByIdRequest);
       const user = res.locals.user as UserSessionInfo | undefined;
 
-      const plant = await this.getPlant.execute(params.id, user);
-      const body = checkResponse(plantResponseSchema, plant, {
-        resource: 'Plant',
+      const plant = await this.getPlant.execute(params.id, user, query);
+      const context = {
+        resource: 'Plant' as const,
         id: plant.id,
         logger: this.logger
-      });
+      };
+
+      // A tailored body is not the representation the version names: no ETag.
+      if (!isFullRepresentation(query)) {
+        res
+          .status(this.status())
+          .json(
+            checkResponse(
+              plantFieldsetResponseSchema(query.fields),
+              plant,
+              context
+            )
+          );
+        return;
+      }
+
+      const body = checkResponse(plantResponseSchema, plant, context);
 
       setVersionETag(res, body.version);
       res.status(this.status()).json(body);

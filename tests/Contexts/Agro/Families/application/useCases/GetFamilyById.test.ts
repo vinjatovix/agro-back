@@ -32,6 +32,20 @@ describe('GetFamilyById', () => {
     repository.assertFindByIdHasBeenCalledWith(id);
   });
 
+  it('should forward the fieldset to the repository', async () => {
+    const family = FamilyReadViewMother.base();
+    repository.addToStorage(family);
+    const options = { fields: ['name', 'slug'] as const };
+
+    await expect(useCase.execute(family.id, options)).resolves.toEqual({
+      id: family.id,
+      name: family.name,
+      slug: family.slug
+    });
+
+    repository.assertFindByIdHasBeenCalledWith(family.id, options);
+  });
+
   it('returns stored data as is, without building a Family', async () => {
     const family = FamilyReadViewMother.breakingABusinessRule();
     repository.addToStorage(family);

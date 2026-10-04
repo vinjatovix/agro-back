@@ -6,9 +6,15 @@ import type { AppLogger } from '../../../../Contexts/shared/plugins/logger.plugi
 import { getValidatedRequest } from '../../middlewares/validateRequest.js';
 import { HttpController } from '../../shared/HttpController.js';
 import { checkResponse } from '../../shared/responseValidation.js';
-import { setVersionETag } from '../../shared/versionTags.js';
+import {
+  isFullRepresentation,
+  setVersionETag
+} from '../../shared/versionTags.js';
 import { getFamilyByIdOrSlugRequest } from './requestSchemas.js';
-import { familyResponseSchema } from './responseSchemas.js';
+import {
+  familyFieldsetResponseSchema,
+  familyResponseSchema
+} from './responseSchemas.js';
 
 export type GetFamilyBySlugControllerDependencies = {
   getFamilyById: GetFamilyById;
@@ -39,18 +45,34 @@ export class GetFamilyBySlugController extends HttpController {
   ): Promise<void> => {
     try {
       const {
-        params: { idOrSlug }
+        params: { idOrSlug },
+        query
       } = getValidatedRequest(res, getFamilyByIdOrSlugRequest);
 
       const family = UuidValidator.isValid(idOrSlug)
-        ? await this.getFamilyById.execute(idOrSlug)
-        : await this.getFamilyBySlug.execute(idOrSlug);
-
-      const body = checkResponse(familyResponseSchema, family, {
-        resource: 'Family',
+        ? await this.getFamilyById.execute(idOrSlug, query)
+        : await this.getFamilyBySlug.execute(idOrSlug, query);
+      const context = {
+        resource: 'Family' as const,
         id: family.id,
         logger: this.logger
-      });
+      };
+
+      // A tailored body is not the representation the version names: no ETag.
+      if (!isFullRepresentation(query)) {
+        res
+          .status(this.status())
+          .json(
+            checkResponse(
+              familyFieldsetResponseSchema(query.fields),
+              family,
+              context
+            )
+          );
+        return;
+      }
+
+      const body = checkResponse(familyResponseSchema, family, context);
 
       setVersionETag(res, body.version);
       res.status(this.status()).json(body);

@@ -2,11 +2,14 @@ import { DataTable, Given, Then, When } from '@cucumber/cucumber';
 import { assert } from 'chai';
 
 import { PlantStatus } from '../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantStatus.js';
+import { fromMongoId } from '../../../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoId.js';
 
 import {
   assertDocumentUnchanged,
+  currentResponse,
   plantOverrides,
   prepareRequest,
+  rawCollection,
   softDeleteDocument,
   suite,
   updateStoredDocument,
@@ -64,6 +67,34 @@ Given('a plant with optional details exists', async function (this: AgroWorld) {
 
   this.plantId = plant.id;
 });
+
+// A family id that matches no stored family (not even a UUID), as legacy
+// data may hold: creating a plant checks its family, so it is stored after.
+const MISSING_FAMILY_ID = 'fam_test';
+
+Given(
+  'a plant exists whose family does not exist',
+  async function (this: AgroWorld) {
+    this.familyId = (await suite().seeders.family.create()).id;
+    await createPlants(this);
+    await updateStoredDocument('plants', this.plantId as string, {
+      $set: { 'identity.family': MISSING_FAMILY_ID }
+    });
+  }
+);
+
+Given(
+  'plants exist from {int} families',
+  async function (this: AgroWorld, count: number) {
+    const families = await suite().seeders.family.createMany(count);
+
+    for (const family of families) {
+      await suite().seeders.plant.createMany(2, {
+        'identity.family': family.id
+      });
+    }
+  }
+);
 
 Given('multiple plants exists', async function (this: AgroWorld) {
   await createPlants(this);
@@ -132,3 +163,59 @@ When('I get the plant', function (this: AgroWorld) {
 Then('the plant should be unchanged', async function (this: AgroWorld) {
   await assertDocumentUnchanged(this, 'plants', this.plantId);
 });
+
+type PlantIdentityBody = { identity?: { family?: unknown } };
+
+const familyOf = (plant: unknown): unknown =>
+  (plant as PlantIdentityBody).identity?.family;
+
+Then(
+  'the plant family should be the summary of the stored family',
+  async function (this: AgroWorld) {
+    const body: unknown = (await currentResponse(this)).body;
+
+    assert.deepStrictEqual(familyOf(body), {
+      id: this.familyId,
+      name: this.familyName,
+      slug: this.familySlug
+    });
+  }
+);
+
+Then(
+  'the plant family should be the plain id {string}',
+  async function (this: AgroWorld, familyId: string) {
+    const body: unknown = (await currentResponse(this)).body;
+    const expected = familyId.replace('<familyId>', this.familyId ?? '');
+
+    assert.strictEqual(familyOf(body), expected);
+  }
+);
+
+Then(
+  'every listed plant should carry the summary of its own family',
+  async function (this: AgroWorld) {
+    const { data } = (await currentResponse(this)).body as {
+      data: unknown[];
+    };
+    assert.isNotEmpty(data, 'The list has no plants to check');
+
+    const stored = await rawCollection('families')
+      .find({}, { projection: { name: 1, slug: 1 } })
+      .toArray();
+    const families = new Map(
+      stored.map((family) => [
+        String(fromMongoId(family._id)),
+        { name: family.name, slug: family.slug }
+      ])
+    );
+
+    for (const plant of data) {
+      const { id = '' } = (familyOf(plant) ?? {}) as { id?: string };
+      const family = families.get(id);
+
+      assert.exists(family, 'A plant was sent without its family summary');
+      assert.deepStrictEqual(familyOf(plant), { id, ...family });
+    }
+  }
+);

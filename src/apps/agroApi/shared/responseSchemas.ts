@@ -29,3 +29,14 @@ export const metadataResponseSchema = z.object({
   updatedAt: z.date(),
   updatedBy: z.string()
 });
+
+/**
+ * `pick` mask of a sparse read: `id` plus the requested fields. Picking keeps
+ * each field's contract shape and strips every other field.
+ */
+export const fieldsetMask = <K extends string>(
+  fields: readonly K[]
+): Partial<Record<K | 'id', true>> =>
+  Object.fromEntries(
+    ['id', ...fields].map((field) => [field, true] as const)
+  ) as Partial<Record<K | 'id', true>>;

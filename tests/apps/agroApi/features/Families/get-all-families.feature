@@ -222,3 +222,29 @@ Feature: Get All Families
         "message": "Internal server error"
       }
       """
+    And response matches OpenAPI contract
+
+
+  Scenario: List families with only their name
+    Given multiple families exist
+    When I send a GET request to "/api/v1/families?fields[families]=name&pagination[limit]=2"
+    Then the response status code should be 200
+    And each item should hold exactly the fields "id,name"
+    And the response body should contain
+      """
+      { "pagination": { "page": 1, "limit": 2 } }
+      """
+    And response matches OpenAPI contract
+
+  Scenario Outline: A malformed fields or include on the family listing answers 400 (<query>)
+    When I send a GET request to "/api/v1/families?<query>"
+    Then the response status code should be 400
+    And the response errors should include "<path>"
+    And the response body should not echo "<value>"
+    And response matches OpenAPI contract
+
+    Examples:
+      | query                    | path            | value    |
+      | include=plants           | include         | plants   |
+      | fields[plants]=identity  | fields.plants   | identity |
+      | fields[families]=colour  | fields.families | colour   |

@@ -1,6 +1,14 @@
 import type { MetadataPrimitives } from '../../../../shared/domain/MetadataPrimitives.js';
 import { fromMongoId } from '../../../../shared/infrastructure/persistence/mongo/MongoId.js';
-import type { FamilyReadView } from '../../application/queries/FamilyReadView.js';
+import {
+  toSparseView,
+  type ReadViewFieldMappers
+} from '../../../../shared/infrastructure/persistence/mongo/readViewFields.js';
+import type {
+  FamilyField,
+  FamilyReadView,
+  FamilySparseView
+} from '../../application/queries/FamilyReadView.js';
 import type { FamilyExtraPrimitives } from '../../domain/types/FamilyExtraPrimitives.js';
 import type { MongoFamilyDocument } from './types/MongoFamilyDocument.js';
 
@@ -35,22 +43,48 @@ const toExtra = (
   return Object.keys(known).length ? known : undefined;
 };
 
+/** How each read-view field comes from a stored family. */
+const FAMILY_VIEW_FIELDS: ReadViewFieldMappers<
+  StoredFamilyDocument,
+  FamilyReadView
+> = {
+  id: (document) => fromMongoId(document._id),
+  slug: (document) => document.slug,
+  name: (document) => document.name,
+  aliases: (document) => document.aliases,
+  scientificName: (document) => document.scientificName,
+  shortDescription: (document) => document.shortDescription,
+  highlights: (document) => document.highlights,
+  extra: (document) => toExtra(document.extra),
+  metadata: (document) => toMetadata(document.metadata),
+  version: (document) => document.version ?? 0
+};
+
 /** Stored family → read view; copies stored values, builds no aggregate. */
 export const toFamilyReadView = (
   document: StoredFamilyDocument
 ): FamilyReadView => {
-  const extra = toExtra(document.extra);
+  const extra = FAMILY_VIEW_FIELDS.extra(document);
 
   return {
-    id: fromMongoId(document._id),
-    slug: document.slug,
-    name: document.name,
-    aliases: document.aliases,
-    scientificName: document.scientificName,
-    shortDescription: document.shortDescription,
-    highlights: document.highlights,
+    id: FAMILY_VIEW_FIELDS.id(document),
+    slug: FAMILY_VIEW_FIELDS.slug(document),
+    name: FAMILY_VIEW_FIELDS.name(document),
+    aliases: FAMILY_VIEW_FIELDS.aliases(document),
+    scientificName: FAMILY_VIEW_FIELDS.scientificName(document),
+    shortDescription: FAMILY_VIEW_FIELDS.shortDescription(document),
+    highlights: FAMILY_VIEW_FIELDS.highlights(document),
     ...(extra ? { extra } : {}),
-    metadata: toMetadata(document.metadata),
-    version: document.version ?? 0
+    metadata: FAMILY_VIEW_FIELDS.metadata(document),
+    version: FAMILY_VIEW_FIELDS.version(document)
   };
 };
+
+/**
+ * Stored family read with a fieldset → `id` plus the selected fields; `extra`
+ * stays absent when the family has none.
+ */
+export const toFamilySparseView = (
+  document: StoredFamilyDocument,
+  fields: readonly FamilyField[]
+): FamilySparseView => toSparseView(FAMILY_VIEW_FIELDS, document, fields);

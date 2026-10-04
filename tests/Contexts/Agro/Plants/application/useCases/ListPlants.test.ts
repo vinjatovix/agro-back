@@ -1,11 +1,15 @@
 import { ListPlants } from '../../../../../../src/Contexts/Agro/Plants/application/useCases/ListPlants.js';
 import { PlantStatus } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantStatus.js';
 import type { UserSessionInfo } from '../../../../../../src/Contexts/Auth/application/index.js';
+import { random } from '../../../../shared/fixtures/random.js';
+import { FamilySummaryReaderMock } from '../../__mocks__/FamilySummaryReaderMock.js';
 import { PlantReadRepositoryMock } from '../../__mocks__/PlantReadRepositoryMock.js';
+import { FamilySummaryViewMother } from '../queries/FamilySummaryViewMother.js';
 import { PlantReadViewMother } from '../queries/PlantReadViewMother.js';
 
 describe('ListPlants', () => {
   let repository: PlantReadRepositoryMock;
+  let familySummaryReader: FamilySummaryReaderMock;
   let listPlants: ListPlants;
   const USER = {
     roles: ['user']
@@ -19,7 +23,11 @@ describe('ListPlants', () => {
 
   beforeEach(() => {
     repository = new PlantReadRepositoryMock();
-    listPlants = new ListPlants({ plantReadRepository: repository });
+    familySummaryReader = new FamilySummaryReaderMock();
+    listPlants = new ListPlants({
+      plantReadRepository: repository,
+      familySummaryReader
+    });
   });
 
   it('should call repository with all plants for admin users', async () => {
@@ -48,7 +56,7 @@ describe('ListPlants', () => {
   });
 
   it('should keep the user filter and add the active status for anonymous requests', async () => {
-    await listPlants.execute(null, {
+    await listPlants.execute(undefined, {
       query: { filter: { identity: { contains: 'tom' } } }
     });
 
@@ -79,5 +87,79 @@ describe('ListPlants', () => {
 
     expect(result.data).toEqual([plant]);
     expect(result.data[0]).toBe(plant);
+  });
+
+  describe('with a fieldset', () => {
+    it('should forward the fieldset with the visibility filter', async () => {
+      await listPlants.execute(USER, { query: { fields: ['identity'] } });
+
+      repository.assertFindAllHasBeenCalledWith({
+        fields: ['identity'],
+        filter: { status: { eq: PlantStatus.ACTIVE } }
+      });
+    });
+
+    it('should return only id and the selected fields', async () => {
+      const plant = PlantReadViewMother.random();
+      repository.addToStorage(plant);
+
+      const { data } = await listPlants.execute(ADMIN, {
+        query: { fields: ['identity'] }
+      });
+
+      expect(data).toEqual([{ id: plant.id, identity: plant.identity }]);
+    });
+  });
+
+  describe('including the family', () => {
+    it('should never send include to the repository', async () => {
+      await listPlants.execute(ADMIN, { query: { include: ['family'] } });
+
+      repository.assertFindAllHasBeenCalledWith({ filter: {} });
+    });
+
+    it('should embed each plant its own family with one read', async () => {
+      const [first, second] = [
+        FamilySummaryViewMother.random(),
+        FamilySummaryViewMother.random()
+      ];
+      familySummaryReader.add(first, second);
+      const plants = [
+        PlantReadViewMother.ofFamily(first.id),
+        PlantReadViewMother.ofFamily(second.id),
+        PlantReadViewMother.ofFamily(first.id)
+      ];
+      plants.forEach((plant) => repository.addToStorage(plant));
+
+      const { data } = await listPlants.execute(ADMIN, {
+        query: { include: ['family'] }
+      });
+
+      expect(data.map((plant) => plant.identity?.family)).toEqual([
+        first,
+        second,
+        first
+      ]);
+      familySummaryReader.assertCalledOnceWith([first.id, second.id]);
+    });
+
+    it('should not read families without include', async () => {
+      repository.addToStorage(PlantReadViewMother.ofFamily(random.uuid()));
+
+      await listPlants.execute(ADMIN);
+
+      familySummaryReader.assertNotCalled();
+    });
+
+    it('should not read families when the fieldset leaves out identity', async () => {
+      repository.addToStorage(PlantReadViewMother.ofFamily(random.uuid()));
+
+      const { data } = await listPlants.execute(ADMIN, {
+        query: { include: ['family'], fields: ['traits'] }
+      });
+
+      expect(data[0]).not.toHaveProperty('identity');
+      familySummaryReader.assertNotCalled();
+    });
   });
 });

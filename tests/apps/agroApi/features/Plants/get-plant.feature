@@ -113,3 +113,89 @@ Feature: Get Plant
         "message": "Internal server error"
       }
       """
+    And response matches OpenAPI contract
+
+  Scenario: Get a plant with only some fields
+    Given a family exists
+    And a plant exists
+    When I send a GET request to "/api/v1/plants/<plantId>?fields[plants]=identity,traits"
+    Then the response status code should be 200
+    And the response body should hold exactly the fields "id,identity,traits"
+    And the response should not have an ETag
+    And response matches OpenAPI contract
+
+  Scenario: Get only the id of a plant
+    Given a family exists
+    And a plant exists
+    When I send a GET request to "/api/v1/plants/<plantId>?fields[plants]=id"
+    Then the response status code should be 200
+    And the response body should hold exactly the fields "id"
+    And response matches OpenAPI contract
+
+  Scenario: Get a plant with every field listed
+    Given a family exists
+    And a plant exists
+    When I send a GET request to "/api/v1/plants/<plantId>?fields[plants]=id,identity,traits,phenology,knowledge,metadata,status,deletedAt,version"
+    Then the response status code should be 200
+    And a GET user request to "/api/v1/plants/<plantId>" should return the same body
+    And the response should not have an ETag
+    And response matches OpenAPI contract
+
+  Scenario: A tailored read ignores If-None-Match
+    Given a family exists
+    And a plant exists
+    And I use If-None-Match '"0"'
+    When I send a GET user request to "/api/v1/plants/<plantId>?fields[plants]=identity"
+    Then the response status code should be 200
+    And the response body should hold exactly the fields "id,identity"
+    And the response should not have an ETag
+    And response matches OpenAPI contract
+
+  Scenario: Get a plant with its family
+    Given a family exists
+    And a plant exists
+    When I send a GET request to "/api/v1/plants/<plantId>?include=family"
+    Then the response status code should be 200
+    And the plant family should be the summary of the stored family
+    And the response should not have an ETag
+    And response matches OpenAPI contract
+
+  Scenario: A plant whose family is not found keeps the family id
+    Given a plant exists whose family does not exist
+    When I send a GET request to "/api/v1/plants/<plantId>?include=family"
+    Then the response status code should be 200
+    And the plant family should be the plain id "fam_test"
+    And response matches OpenAPI contract
+
+  Scenario: Without include the family is the plain id
+    Given a family exists
+    And a plant exists
+    When I get the plant
+    Then the response status code should be 200
+    And the plant family should be the plain id "<familyId>"
+    And the response ETag should match the body version
+    And response matches OpenAPI contract
+
+  Scenario: Include is skipped when the fields leave out identity
+    Given a family exists
+    And a plant exists
+    When I send a GET request to "/api/v1/plants/<plantId>?include=family&fields[plants]=traits"
+    Then the response status code should be 200
+    And the response body should hold exactly the fields "id,traits"
+    And response matches OpenAPI contract
+
+  Scenario Outline: A malformed fields or include on a plant answers 400 (<query>)
+    Given a family exists
+    And a plant exists
+    When I send a GET request to "/api/v1/plants/<plantId>?<query>"
+    Then the response status code should be 400
+    And the response errors should include "<path>"
+    And the response body should not echo "<value>"
+    And response matches OpenAPI contract
+
+    Examples:
+      | query                   | path            | value  |
+      | fields[families]=name   | fields.families | name   |
+      | include=seeds           | include         | seeds  |
+      | fields[plants]=colour   | fields.plants   | colour |
+      | foo=bar                 | foo             | bar    |

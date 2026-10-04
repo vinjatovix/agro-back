@@ -1,40 +1,61 @@
 /* eslint-disable @typescript-eslint/require-await */
 import type {
+  FamilyField,
   FamilyReadRepository,
-  FamilyReadView
+  FamilyReadView,
+  FamilySparseView,
+  FamilySummary
 } from '../../../../../src/Contexts/Agro/Families/application/queries/index.js';
 import type { FamilyFilter } from '../../../../../src/Contexts/Agro/Families/domain/types/FamilyFilter.js';
 import type { PaginatedResult } from '../../../../../src/shared/domain/query/interfaces/PaginatedResult.js';
-import type { QueryOptions } from '../../../../../src/shared/domain/query/interfaces/QueryOptions.js';
+import type {
+  QueryOptions,
+  ReadOptions
+} from '../../../../../src/shared/domain/query/interfaces/QueryOptions.js';
 import type { Nullable } from '../../../../../src/shared/domain/types/Nullable.js';
+import { FamilyReadViewMother } from '../application/queries/FamilyReadViewMother.js';
 
-/** In-memory read port: returns stored views as they are, like storage. */
+/**
+ * In-memory read port: returns stored views as they are, like storage, or only
+ * `id` and the requested fields when the read has a fieldset.
+ */
 export class FamilyReadRepositoryMock implements FamilyReadRepository {
   private readonly findByIdMock = jest.fn();
   private readonly findBySlugMock = jest.fn();
   private readonly findAllMock = jest.fn();
+  private readonly findSummariesByIdsMock = jest.fn();
   private readonly storage = new Map<string, FamilyReadView>();
 
-  async findById(id: string): Promise<Nullable<FamilyReadView>> {
-    this.findByIdMock(id);
+  async findById(
+    id: string,
+    options: ReadOptions<FamilyField> = {}
+  ): Promise<Nullable<FamilySparseView>> {
+    this.findByIdMock(id, options);
 
-    return this.storage.get(id) ?? null;
+    const view = this.storage.get(id);
+
+    return view ? this.select(view, options) : null;
   }
 
-  async findBySlug(slug: string): Promise<Nullable<FamilyReadView>> {
-    this.findBySlugMock(slug);
+  async findBySlug(
+    slug: string,
+    options: ReadOptions<FamilyField> = {}
+  ): Promise<Nullable<FamilySparseView>> {
+    this.findBySlugMock(slug, options);
 
-    return (
-      [...this.storage.values()].find((view) => view.slug === slug) ?? null
-    );
+    const view = [...this.storage.values()].find((item) => item.slug === slug);
+
+    return view ? this.select(view, options) : null;
   }
 
   async findAll(
-    options?: QueryOptions<FamilyFilter>
-  ): Promise<PaginatedResult<FamilyReadView>> {
+    options?: Omit<QueryOptions<FamilyFilter, FamilyField>, 'include'>
+  ): Promise<PaginatedResult<FamilySparseView>> {
     this.findAllMock(options);
 
-    const data = [...this.storage.values()];
+    const data = [...this.storage.values()].map((view) =>
+      this.select(view, options ?? {})
+    );
 
     return {
       data,
@@ -47,6 +68,27 @@ export class FamilyReadRepositoryMock implements FamilyReadRepository {
     };
   }
 
+  async findSummariesByIds(
+    ids: readonly string[]
+  ): Promise<readonly FamilySummary[]> {
+    this.findSummariesByIdsMock(ids);
+
+    return ids.flatMap((id) => {
+      const view = this.storage.get(id);
+
+      return view ? [{ id: view.id, name: view.name, slug: view.slug }] : [];
+    });
+  }
+
+  private select(
+    view: FamilyReadView,
+    { fields }: ReadOptions<FamilyField>
+  ): FamilySparseView {
+    return fields === undefined
+      ? view
+      : FamilyReadViewMother.sparse(view, fields);
+  }
+
   /* ---------- helpers ---------- */
 
   addToStorage(view: FamilyReadView): void {
@@ -55,15 +97,19 @@ export class FamilyReadRepositoryMock implements FamilyReadRepository {
 
   /* ---------- assertions ---------- */
 
-  assertFindByIdHasBeenCalledWith(id: string): void {
-    expect(this.findByIdMock).toHaveBeenCalledWith(id);
+  assertFindByIdHasBeenCalledWith(id: string, options: unknown = {}): void {
+    expect(this.findByIdMock).toHaveBeenCalledWith(id, options);
   }
 
-  assertFindBySlugHasBeenCalledWith(slug: string): void {
-    expect(this.findBySlugMock).toHaveBeenCalledWith(slug);
+  assertFindBySlugHasBeenCalledWith(slug: string, options: unknown = {}): void {
+    expect(this.findBySlugMock).toHaveBeenCalledWith(slug, options);
   }
 
   assertFindAllHasBeenCalledWith(options: unknown): void {
     expect(this.findAllMock).toHaveBeenCalledWith(options);
+  }
+
+  assertFindSummariesByIdsHasBeenCalledWith(ids: readonly string[]): void {
+    expect(this.findSummariesByIdsMock).toHaveBeenCalledWith(ids);
   }
 }

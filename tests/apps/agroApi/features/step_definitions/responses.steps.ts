@@ -190,6 +190,31 @@ Then(
   }
 );
 
+const assertExactFields = (item: unknown, expected: string[]): void => {
+  assert.isObject(item);
+  assert.sameMembers(Object.keys(item as object), expected);
+};
+
+Then(
+  'the response body should hold exactly the fields {string}',
+  async function (this: AgroWorld, fields: string) {
+    assertExactFields((await currentResponse(this)).body, csvValues(fields));
+  }
+);
+
+Then(
+  'each item should hold exactly the fields {string}',
+  async function (this: AgroWorld, fields: string) {
+    const items = await getResponseData(this);
+
+    assert.isNotEmpty(items, 'The list has no items to check');
+
+    for (const item of items) {
+      assertExactFields(item, csvValues(fields));
+    }
+  }
+);
+
 Then(
   'the response header {string} should include {string}',
   async function (this: AgroWorld, header: string, expected: string) {

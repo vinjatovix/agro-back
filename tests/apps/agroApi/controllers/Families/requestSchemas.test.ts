@@ -409,4 +409,33 @@ describe('Family requestSchemas', () => {
       expect(query).toEqual({ pagination: { page: 1, limit: 25 } });
     });
   });
+
+  describe.each([
+    ['listFamiliesRequest', listFamiliesRequest, {}],
+    [
+      'getFamilyByIdOrSlugRequest',
+      getFamilyByIdOrSlugRequest,
+      { idOrSlug: 'rosaceae' }
+    ]
+  ] as const)('fields on %s', (_, schemas, params) => {
+    it('should output the normalized fieldset', async () => {
+      const { query } = await parsedOf(schemas, {
+        params,
+        query: { fields: { families: 'slug,name,id' } }
+      });
+
+      expect(query.fields).toEqual(['slug', 'name']);
+    });
+
+    it.each([
+      [{ include: 'plants' }, 'include'],
+      [{ fields: { plants: 'identity' } }, 'fields.plants'],
+      [{ fields: { families: 'colour' } }, 'fields.families'],
+      [{ foo: 'bar' }, 'foo']
+    ])('should reject %j at %s', async (query, path) => {
+      const errors = await errorsOf(schemas, { params, query });
+
+      expect(errors).toHaveProperty([path]);
+    });
+  });
 });

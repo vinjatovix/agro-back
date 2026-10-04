@@ -8,7 +8,8 @@ export const EXPLICIT_NAMES: ReadonlySet<string> = new Set([
   'logger',
   'bedPersistenceMapper',
   'familyPersistenceMapper',
-  'plantPersistenceMapper'
+  'plantPersistenceMapper',
+  'familySummaryReader'
 ]);
 
 export function getCradlePropertyNames(cradleFilePath: string): string[] {

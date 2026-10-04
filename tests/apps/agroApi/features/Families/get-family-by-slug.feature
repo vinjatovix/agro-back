@@ -132,3 +132,31 @@ Feature: Get Family By Slug
         "message": "Internal server error"
       }
       """
+    And response matches OpenAPI contract
+
+  Scenario Outline: Get only some fields of a family by <key>
+    Given a family exists
+    When I send a GET request to "/api/v1/families/<<key>>?fields[families]=name,slug"
+    Then the response status code should be 200
+    And the response body should hold exactly the fields "id,name,slug"
+    And the response should not have an ETag
+    And response matches OpenAPI contract
+
+    Examples:
+      | key        |
+      | familySlug |
+      | familyId   |
+
+  Scenario Outline: A malformed fields or include on a family answers 400 (<query>)
+    Given a family exists
+    When I send a GET request to "/api/v1/families/<familySlug>?<query>"
+    Then the response status code should be 400
+    And the response errors should include "<path>"
+    And the response body should not echo "<value>"
+    And response matches OpenAPI contract
+
+    Examples:
+      | query                    | path            | value  |
+      | include=plants           | include         | plants |
+      | fields[plants]=identity  | fields.plants   | identity |
+      | fields[families]=colour  | fields.families | colour |

@@ -2,11 +2,14 @@ import { GetPlant } from '../../../../../../src/Contexts/Agro/Plants/application
 import type { UserSessionInfo } from '../../../../../../src/Contexts/Auth/application/index.js';
 import { DomainNotFoundException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { random } from '../../../../shared/fixtures/random.js';
+import { FamilySummaryReaderMock } from '../../__mocks__/FamilySummaryReaderMock.js';
 import { PlantReadRepositoryMock } from '../../__mocks__/PlantReadRepositoryMock.js';
+import { FamilySummaryViewMother } from '../queries/FamilySummaryViewMother.js';
 import { PlantReadViewMother } from '../queries/PlantReadViewMother.js';
 
 describe('GetPlant', () => {
   let repository: PlantReadRepositoryMock;
+  let familySummaryReader: FamilySummaryReaderMock;
   let getPlant: GetPlant;
   const USER: UserSessionInfo = {
     username: 'user',
@@ -29,7 +32,11 @@ describe('GetPlant', () => {
 
   beforeEach(() => {
     repository = new PlantReadRepositoryMock();
-    getPlant = new GetPlant({ plantReadRepository: repository });
+    familySummaryReader = new FamilySummaryReaderMock();
+    getPlant = new GetPlant({
+      plantReadRepository: repository,
+      familySummaryReader
+    });
   });
 
   it('should search only active plants for regular users', async () => {
@@ -99,5 +106,90 @@ describe('GetPlant', () => {
     repository.addToStorage(plant);
 
     await expect(getPlant.execute(plant.id, USER)).resolves.toBe(plant);
+  });
+
+  describe('with a fieldset', () => {
+    it('should forward the fieldset to the repository', async () => {
+      const plant = PlantReadViewMother.tomato();
+      repository.addToStorage(plant);
+
+      await expect(
+        getPlant.execute(plant.id, USER, { fields: ['identity'] })
+      ).resolves.toEqual({ id: plant.id, identity: plant.identity });
+
+      repository.assertFindActiveByIdHasBeenCalledWith(plant.id, {
+        fields: ['identity']
+      });
+    });
+
+    it('should still hide a deleted plant from regular users', async () => {
+      const plant = PlantReadViewMother.deleted();
+      repository.addToStorage(plant);
+
+      await expect(
+        getPlant.execute(plant.id, USER, { fields: ['identity'] })
+      ).rejects.toBeInstanceOf(DomainNotFoundException);
+    });
+
+    it('should show a deleted plant to admins', async () => {
+      const plant = PlantReadViewMother.deleted();
+      repository.addToStorage(plant);
+
+      await expect(
+        getPlant.execute(plant.id, ADMIN, { fields: ['status'] })
+      ).resolves.toEqual({ id: plant.id, status: 'DELETED' });
+    });
+  });
+
+  describe('including the family', () => {
+    it('should embed the family summary with one read', async () => {
+      const family = FamilySummaryViewMother.random();
+      familySummaryReader.add(family);
+      const plant = PlantReadViewMother.ofFamily(family.id);
+      repository.addToStorage(plant);
+
+      const result = await getPlant.execute(plant.id, USER, {
+        include: ['family']
+      });
+
+      expect(result.identity?.family).toEqual(family);
+      familySummaryReader.assertCalledOnceWith([family.id]);
+      repository.assertFindActiveByIdHasBeenCalledWith(plant.id, {});
+    });
+
+    it('should keep the plain id when the family is not found', async () => {
+      const plant = PlantReadViewMother.ofFamily(random.uuid());
+      repository.addToStorage(plant);
+
+      const result = await getPlant.execute(plant.id, USER, {
+        include: ['family']
+      });
+
+      expect(result).toEqual(plant);
+    });
+
+    it('should not read families without include', async () => {
+      const plant = PlantReadViewMother.tomato();
+      repository.addToStorage(plant);
+
+      await getPlant.execute(plant.id, USER);
+
+      familySummaryReader.assertNotCalled();
+    });
+
+    it('should not read families when the fieldset leaves out identity', async () => {
+      const family = FamilySummaryViewMother.random();
+      familySummaryReader.add(family);
+      const plant = PlantReadViewMother.ofFamily(family.id);
+      repository.addToStorage(plant);
+
+      const result = await getPlant.execute(plant.id, USER, {
+        include: ['family'],
+        fields: ['traits']
+      });
+
+      expect(result).toEqual({ id: plant.id, traits: plant.traits });
+      familySummaryReader.assertNotCalled();
+    });
   });
 });

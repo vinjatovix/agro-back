@@ -1,6 +1,7 @@
 import {
   familySummarySchema,
   plantFamilySchema,
+  plantFieldsetResponseSchema,
   plantResponseSchema
 } from '../../../../../src/apps/agroApi/controllers/Plants/responseSchemas.js';
 import { fullFamilyView } from '../Families/fixtures/familyResponses.js';
@@ -144,5 +145,51 @@ describe('plant family relation', () => {
         familySummarySchema.safeParse({ ...summary(), name: '   ' }).success
       ).toBe(false);
     });
+  });
+});
+
+describe('plantFieldsetResponseSchema', () => {
+  it('is the full schema without a fieldset', () => {
+    expect(plantFieldsetResponseSchema()).toBe(plantResponseSchema);
+  });
+
+  it('keeps id and the requested fields with their contract shape', () => {
+    const view = fullPlantView();
+
+    expect(
+      plantFieldsetResponseSchema(['identity', 'traits']).parse(view)
+    ).toEqual({ id: view.id, identity: view.identity, traits: view.traits });
+  });
+
+  it('keeps only id for an empty fieldset', () => {
+    const view = fullPlantView();
+
+    expect(plantFieldsetResponseSchema([]).parse(view)).toEqual({
+      id: view.id
+    });
+  });
+
+  it('accepts a sparse view holding only the requested fields', () => {
+    const { id, traits } = fullPlantView();
+
+    expect(
+      plantFieldsetResponseSchema(['traits']).safeParse({ id, traits }).success
+    ).toBe(true);
+  });
+
+  it('rejects a requested field that breaks the contract', () => {
+    const view = withValueAt(fullPlantView(), 'traits.lifecycle', 'forever');
+
+    expect(
+      plantFieldsetResponseSchema(['traits']).safeParse(view).success
+    ).toBe(false);
+  });
+
+  it('ignores a broken field that was not requested', () => {
+    const view = withValueAt(fullPlantView(), 'traits.lifecycle', 'forever');
+
+    expect(
+      plantFieldsetResponseSchema(['identity']).safeParse(view).success
+    ).toBe(true);
   });
 });

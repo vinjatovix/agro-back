@@ -89,9 +89,14 @@ For detailed descriptions and concrete examples of the query string transport pa
 - Unknown filter keys or invalid operators are rejected by the Validation Layer at the boundary.
 - The Query Parser assumes validated input. Invalid or malformed structures MUST NOT reach the persistence layer.
 
-### 4.4 JSON:API Sparse Fields `[TARGET STATE (Pending [Iteration 19](../../roadmap.md#iteration-19-support-jsonapi-sparse-fields-in-query-parser))]`
+### 4.4 JSON:API Sparse Fields `[CURRENT STATE (Done in [Iteration 19](../../roadmap.md#iteration-19-support-jsonapi-sparse-fields-in-query-parser))]`
 
-The Query Parser extracts JSON:API options to dynamically limit fields and preload relations.
+The route query schemas decode `fields[<type>]` and `include` into typed `QueryOptions` (Query DSL Contract §7). Along the catalog read path:
+
+- the read repository narrows its inclusion projection to `_id` plus the requested fields, and per-field mappers apply the same defaults as the full view;
+- `include=family` on plants is resolved by `ListPlants` / `GetPlant` through the Plants-owned `FamilySummaryReader` port (served by the family read repository, registered as `familySummaryReader`): one `$in` read per page; a family that is not found keeps the plain id; skipped when the fieldset leaves out `identity`;
+- the controller checks a tailored body with `schema.pick({ id, ...requested })`, so each sent field keeps its contract shape;
+- `ETag` (and so `304`) is sent only when the read uses neither parameter (`isFullRepresentation`).
 
 ---
 

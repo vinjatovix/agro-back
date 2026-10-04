@@ -1,6 +1,12 @@
 import { z } from 'zod';
 
 import {
+  PLANT_FIELDS,
+  PLANT_RELATIONS,
+  type PlantField,
+  type PlantRelation
+} from '../../../../Contexts/Agro/Plants/application/queries/index.js';
+import {
   PollinationType,
   SEASONS
 } from '../../../../Contexts/Agro/Plants/domain/entities/types/index.js';
@@ -9,11 +15,14 @@ import type { QueryOptions } from '../../../../shared/domain/query/interfaces/Qu
 import type { RequestSchemas } from '../../middlewares/validateRequest.js';
 import {
   enumField,
+  fieldsetSchema,
   identifierField,
+  includeSchema,
   listField,
   listQuerySchema,
   monthItem,
   rangeField,
+  readQuerySchema,
   textField
 } from '../../shared/listQuerySchema.js';
 import {
@@ -317,9 +326,15 @@ export const updatePlantRequest = {
   body: updatePlantBody
 } satisfies RequestSchemas;
 
+// JSON:API `fields[plants]` and `include=family`, on every plant read.
+const plantSelection = {
+  fields: fieldsetSchema('plants', PLANT_FIELDS),
+  include: includeSchema(PLANT_RELATIONS)
+};
+
 export const getPlantByIdRequest = {
   params: plantIdParams,
-  query: emptyQuery,
+  query: readQuerySchema(plantSelection),
   body: emptyBody
 } satisfies RequestSchemas;
 
@@ -345,8 +360,9 @@ const listPlantsQuery = listQuerySchema({
     lightHoursMin: rangeField(),
     sowingMonths: listField(monthItem)
   },
-  sortableKeys: ['name', 'scientificName']
-}) satisfies z.ZodType<QueryOptions<PlantFilter>>;
+  sortableKeys: ['name', 'scientificName'],
+  ...plantSelection
+}) satisfies z.ZodType<QueryOptions<PlantFilter, PlantField, PlantRelation>>;
 
 export const listPlantsRequest = {
   query: listPlantsQuery,

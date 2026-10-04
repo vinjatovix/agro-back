@@ -1,11 +1,16 @@
 import type { CollationOptions, Collection, Db, Document } from 'mongodb';
 import type { PaginatedResult } from '../../../../../shared/domain/query/interfaces/PaginatedResult.js';
-import type { QueryOptions } from '../../../../../shared/domain/query/interfaces/QueryOptions.js';
+import type {
+  QueryOptions,
+  ReadOptions
+} from '../../../../../shared/domain/query/interfaces/QueryOptions.js';
 import type { Nullable } from '../../../../../shared/domain/types/Nullable.js';
 import type { UnknownRecord } from '../../../../../shared/domain/types/UnknownRecord.js';
 import { toMongoId } from './MongoId.js';
 import { MongoPageQuery } from './MongoPageQuery.js';
 import { MongoQueryTranslator } from './MongoQueryTranslator.js';
+
+type Projection = Readonly<Record<string, 1>>;
 
 /**
  * Read side of a catalog (CQRS read bypass): fetches only the contract fields
@@ -13,18 +18,43 @@ import { MongoQueryTranslator } from './MongoQueryTranslator.js';
  * aggregate and has no write methods. Filtering, sorting and paging go
  * through `MongoPageQuery`, like the write repository's `findAll`, so both
  * paths answer the same query the same way.
+ *
+ * A read with `fields` fetches only those fields (and `_id`): unrequested
+ * fields are never read.
  */
 export abstract class MongoReadRepository<
   TDocument extends Document,
   TFilter,
-  TView
+  TView,
+  TField extends string = never
 > {
   constructor(protected readonly db: Db) {}
 
   protected abstract collectionName(): string;
-  protected abstract toView(document: TDocument): TView;
+  /** Maps a document read with `fields` (every field when absent). */
+  protected abstract toView(
+    document: TDocument,
+    fields?: readonly TField[]
+  ): TView;
   /** Inclusion projection of the contract fields; `_id` is always returned. */
-  protected abstract projection(): Readonly<Record<string, 1>>;
+  protected abstract projection(): Projection;
+
+  /**
+   * The contract projection narrowed to `fields`; never an exclusion
+   * projection, so unknown stored fields still never leave the database. `_id`
+   * is named so that an empty fieldset does not read the whole document.
+   */
+  protected projectionOf(fields?: readonly TField[]): Projection {
+    const projection = this.projection();
+    if (fields === undefined) return projection;
+
+    const selected = new Set<string>(fields);
+
+    return Object.fromEntries([
+      ['_id', 1],
+      ...Object.entries(projection).filter(([key]) => selected.has(key))
+    ]);
+  }
 
   /** Same default as `MongoCrudRepository`: no collation. */
   protected getCollation(): CollationOptions | undefined {
@@ -40,12 +70,15 @@ export abstract class MongoReadRepository<
     return MongoQueryTranslator.toMongo(filter as Record<string, unknown>);
   }
 
-  async findById(id: string): Promise<Nullable<TView>> {
-    return this.findOneView({ _id: toMongoId(id) });
+  async findById(
+    id: string,
+    options: ReadOptions<TField> = {}
+  ): Promise<Nullable<TView>> {
+    return this.findOneView({ _id: toMongoId(id) }, options);
   }
 
   async findAll(
-    options: Partial<QueryOptions<TFilter>> = {}
+    options: Partial<QueryOptions<TFilter, TField>> = {}
   ): Promise<PaginatedResult<TView>> {
     return this.findPage(options);
   }
@@ -54,23 +87,27 @@ export abstract class MongoReadRepository<
     return this.db.collection(this.collectionName());
   }
 
-  protected async findOneView(filter: UnknownRecord): Promise<Nullable<TView>> {
+  protected async findOneView(
+    filter: UnknownRecord,
+    { fields }: ReadOptions<TField> = {}
+  ): Promise<Nullable<TView>> {
     const document = await this.collection().findOne<TDocument>(filter, {
-      projection: this.projection()
+      projection: this.projectionOf(fields)
     });
 
-    return document === null ? null : this.toView(document);
+    return document === null ? null : this.toView(document, fields);
   }
 
   protected async findPage(
-    options: Partial<QueryOptions<TFilter>>
+    options: Partial<QueryOptions<TFilter, TField>>
   ): Promise<PaginatedResult<TView>> {
+    const { fields } = options;
     const collation = this.getCollation();
     const { documents, pagination } = await MongoPageQuery.find<TDocument>(
       this.collection(),
       {
         filter: this.toMongoFilter(options.filter),
-        projection: this.projection(),
+        projection: this.projectionOf(fields),
         toSortField: (key) => this.toMongoSortField(key),
         ...(options.sort && { sort: options.sort }),
         ...(options.pagination && { pagination: options.pagination }),
@@ -79,7 +116,7 @@ export abstract class MongoReadRepository<
     );
 
     return {
-      data: documents.map((document) => this.toView(document)),
+      data: documents.map((document) => this.toView(document, fields)),
       pagination
     };
   }

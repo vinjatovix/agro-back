@@ -6,12 +6,15 @@ import {
 } from '../../../../src/apps/agroApi/middlewares/validateRequest.js';
 import {
   enumField,
+  fieldsetSchema,
   identifierField,
+  includeSchema,
   LIST_LIMITS,
   listField,
   listQuerySchema,
   monthItem,
   rangeField,
+  readQuerySchema,
   textField,
   textItem
 } from '../../../../src/apps/agroApi/shared/listQuerySchema.js';
@@ -443,4 +446,185 @@ describe('listQuerySchema', () => {
       expect(errors['filter.lifeCycle.eq']).toContain('perennial');
     });
   });
+});
+
+const THING_FIELDS = ['id', 'identity', 'traits', 'status'] as const;
+const THING_RELATIONS = ['family', 'owner'] as const;
+
+// A listing and a single read that declare `fields[things]` and `include`.
+const selectingRequests = {
+  list: {
+    query: listQuerySchema({
+      filter: { name: textField() },
+      sortableKeys: ['name'],
+      fields: fieldsetSchema('things', THING_FIELDS),
+      include: includeSchema(THING_RELATIONS)
+    })
+  },
+  read: {
+    query: readQuerySchema({
+      fields: fieldsetSchema('things', THING_FIELDS),
+      include: includeSchema(THING_RELATIONS)
+    })
+  }
+} satisfies Record<string, RequestSchemas>;
+
+type SelectingRoute = keyof typeof selectingRequests;
+
+const selectionErrorsOf = async (
+  route: SelectingRoute,
+  query: Query
+): Promise<Record<string, string>> => {
+  const error = await runWithValidation(
+    selectingRequests[route],
+    buildRequest({ query }),
+    buildResponse().res
+  );
+
+  expect(error).toBeInstanceOf(HttpError);
+  expect((error as HttpError).statusCode).toBe(httpStatus.BAD_REQUEST);
+
+  return (error as HttpError).errors ?? {};
+};
+
+const selectionOf = async (route: SelectingRoute, query: Query) => {
+  const { res } = buildResponse();
+  const error = await runWithValidation(
+    selectingRequests[route],
+    buildRequest({ query }),
+    res
+  );
+  expect(error).toBeUndefined();
+
+  return getValidatedRequest(res, selectingRequests[route]).query;
+};
+
+describe.each<SelectingRoute>(['list', 'read'])(
+  'fields and include (%s query)',
+  (route) => {
+    describe('fields', () => {
+      it('should leave fields out when absent', async () => {
+        const query = await selectionOf(route, {});
+
+        expect(query).not.toHaveProperty('fields');
+        expect(query).not.toHaveProperty('include');
+      });
+
+      it.each([
+        ['a comma-separated string', ' identity , traits '],
+        ['a repeated key', ['identity', ' ', 'traits']],
+        ['repeated names', 'identity,traits,identity'],
+        ['any order', 'traits,identity']
+      ])('should normalize %s', async (_label, value) => {
+        const query = await selectionOf(route, { fields: { things: value } });
+
+        expect(query.fields).toEqual(['identity', 'traits']);
+      });
+
+      it('should drop id, which is always sent', async () => {
+        const query = await selectionOf(route, {
+          fields: { things: 'id,status' }
+        });
+
+        expect(query.fields).toEqual(['status']);
+      });
+
+      it('should read only id as an empty fieldset', async () => {
+        const query = await selectionOf(route, { fields: { things: 'id' } });
+
+        expect(query.fields).toEqual([]);
+      });
+
+      it.each([
+        ['an unknown name', 'identity,colour'],
+        ['a name in the wrong case', 'Identity'],
+        ['a nested path', 'identity.name'],
+        ['an empty list', ''],
+        ['a list of blanks', ' , '],
+        ['a nested object', { $ne: 'x' }]
+      ])('should reject %s at the fieldset', async (_label, value) => {
+        const errors = await selectionErrorsOf(route, {
+          fields: { things: value }
+        });
+
+        expect(Object.keys(errors)).toEqual(['fields.things']);
+      });
+
+      it('should reject fields sent as text', async () => {
+        const errors = await selectionErrorsOf(route, { fields: 'identity' });
+
+        expect(Object.keys(errors)).toEqual(['fields']);
+      });
+
+      it('should reject the fieldset of another resource type', async () => {
+        const errors = await selectionErrorsOf(route, {
+          fields: { others: 'name' }
+        });
+
+        expect(errors).toHaveProperty(['fields.others'], UNKNOWN_FIELD);
+      });
+    });
+
+    describe('include', () => {
+      it.each([
+        ['a comma-separated string', ' owner , family '],
+        ['a repeated key', ['owner', 'family']],
+        ['repeated relations', 'family,owner,family']
+      ])('should normalize %s', async (_label, value) => {
+        const query = await selectionOf(route, { include: value });
+
+        expect(query.include).toEqual(['family', 'owner']);
+      });
+
+      it('should keep one relation once', async () => {
+        const query = await selectionOf(route, { include: 'family,family' });
+
+        expect(query.include).toEqual(['family']);
+      });
+
+      it.each([
+        ['an unknown relation', 'seeds'],
+        ['a relation in the wrong case', 'Family'],
+        ['an empty list', ''],
+        ['a nested object', { family: 'x' }]
+      ])('should reject %s at include', async (_label, value) => {
+        const errors = await selectionErrorsOf(route, { include: value });
+
+        expect(Object.keys(errors)).toEqual(['include']);
+      });
+    });
+
+    describe('error messages', () => {
+      it.each([
+        ['an unknown field', { fields: { things: SENTINEL } }],
+        ['an unknown relation', { include: SENTINEL }],
+        ['a fieldset sent as text', { fields: SENTINEL }]
+      ])('should not echo the value for %s', async (_label, query) => {
+        const errors = await selectionErrorsOf(route, query);
+
+        for (const message of Object.values(errors)) {
+          expect(message).not.toContain(SENTINEL);
+        }
+      });
+    });
+  }
+);
+
+describe('readQuerySchema', () => {
+  const readOnlyFieldsRequest = {
+    query: readQuerySchema({ fields: fieldsetSchema('things', THING_FIELDS) })
+  } satisfies RequestSchemas;
+
+  it.each(['include', 'foo'])(
+    'should reject the undeclared key %s',
+    async (key) => {
+      const error = await runWithValidation(
+        readOnlyFieldsRequest,
+        buildRequest({ query: { [key]: 'family' } }),
+        buildResponse().res
+      );
+
+      expect((error as HttpError).errors).toEqual({ [key]: UNKNOWN_FIELD });
+    }
+  );
 });

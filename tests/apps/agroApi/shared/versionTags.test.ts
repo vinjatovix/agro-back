@@ -3,6 +3,7 @@ import type { Response } from 'express';
 import {
   getExpectedVersions,
   ifMatchSchema,
+  isFullRepresentation,
   setVersionETag,
   storeExpectedVersions
 } from '../../../../src/apps/agroApi/shared/versionTags.js';
@@ -107,5 +108,20 @@ describe('versionTags', () => {
         expect(read).toThrow(HttpError);
       }
     );
+  });
+
+  describe('isFullRepresentation', () => {
+    it('is true without fields or include', () => {
+      expect(isFullRepresentation({})).toBe(true);
+    });
+
+    it.each([
+      ['only id', { fields: [] }],
+      ['a fieldset', { fields: ['identity'] }],
+      ['include', { include: ['family'] }],
+      ['both', { fields: ['identity'], include: ['family'] }]
+    ])('is false with %s', (_label, query) => {
+      expect(isFullRepresentation(query)).toBe(false);
+    });
   });
 });

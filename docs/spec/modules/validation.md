@@ -174,7 +174,8 @@ To support dynamic JSON:API relation population (e.g., `?include=family` resolvi
 
 - A `Plant` response schema's `family` field is strictly validated as either the plain family id (required short text, as the contract's `RequiredShortText`; stored ids are not always UUIDs, e.g. `fam_test`) OR a picked subset of the `Family` response schema:
   `family: z.union([familyIdSchema, familyResponseSchema.pick({ id: true, name: true, slug: true })])`
-  (`apps/agroApi/controllers/Plants/responseSchemas.ts`). Responses keep sending the plain id until `include` exists (Iteration 19).
+  (`apps/agroApi/controllers/Plants/responseSchemas.ts`). The summary is sent with `include=family` (Iteration 19); otherwise the plain id.
+- **Sparse reads (Iteration 19)**: a read with `fields` is checked with `plantFieldsetResponseSchema(fields)` / `familyFieldsetResponseSchema(fields)`, which `pick` `id` plus the requested fields from the full schema: each sent field keeps its full contract shape, everything else is stripped. Without `fields` the full schema is used unchanged.
 - **Output check (current)**: every body of the catalog `GET` routes goes through `checkResponse` / `checkPage` (`apps/agroApi/shared/responseValidation.ts`) before it is sent. Response schemas use `z.object` (strip mode): unknown keys are removed at any depth; a missing or mistyped contract field fails. They reuse `REQUEST_LIMITS` and only non-transforming building blocks (`apps/agroApi/shared/responseSchemas.ts`); the `trimmed*`/`required*` request schemas are never reused, because trimming would rewrite stored values. A failure logs one `error` entry with the resource, every failing id and the issue paths (never stored values) and answers `500`; a page with any failing item sends no data.
 - This ensures output schemas remain strictly typed, statically checked by TypeScript, and correctly defined in OpenAPI, without having to make the entire schema loose or optional.
 

@@ -3,7 +3,10 @@ import {
   type AppContainer,
   createAppContainer
 } from '../../../../../../../src/apps/agroApi/container.js';
-import type { FamilyReadRepository } from '../../../../../../../src/Contexts/Agro/Families/application/queries/index.js';
+import type {
+  FamilyField,
+  FamilyReadRepository
+} from '../../../../../../../src/Contexts/Agro/Families/application/queries/index.js';
 import type { Family } from '../../../../../../../src/Contexts/Agro/Families/domain/entities/Family.js';
 import type { FamilyRepository } from '../../../../../../../src/Contexts/Agro/Families/domain/repositories/interfaces/FamilyRepository.js';
 import type { FamilyFilter } from '../../../../../../../src/Contexts/Agro/Families/domain/types/FamilyFilter.js';
@@ -106,6 +109,87 @@ describe('MongoFamilyReadRepository', () => {
     });
   });
 
+  describe('reads with a fieldset', () => {
+    it.each([
+      {
+        method: 'findById',
+        read: (family: Family) =>
+          readRepository.findById(family.idValue, { fields: ['name', 'slug'] })
+      },
+      {
+        method: 'findBySlug',
+        read: (family: Family) =>
+          readRepository.findBySlug(family.slug, { fields: ['name', 'slug'] })
+      }
+    ])('$method reads only id and the selected fields', async ({ read }) => {
+      const family = FamilyScenarios.domainBaseWithExtra();
+      await saveAll([family]);
+      const full = viewOf(family);
+
+      const view = await read(family);
+
+      expect(view).toStrictEqual({
+        id: full.id,
+        name: full.name,
+        slug: full.slug
+      });
+    });
+
+    it('findAll keeps items, order and paging', async () => {
+      await saveAll([
+        FamilyScenarios.domainRandom({
+          name: 'Solanaceae',
+          slug: 'solanaceae'
+        }),
+        FamilyScenarios.domainRandom({ name: 'Rosaceae', slug: 'rosaceae' }),
+        FamilyScenarios.domainRandom({ name: 'Apiaceae', slug: 'apiaceae' })
+      ]);
+      const options = {
+        sort: { name: 'asc' as const },
+        pagination: { page: 1, limit: 2 }
+      };
+
+      const full = await readRepository.findAll(options);
+      const sparse = await readRepository.findAll({
+        ...options,
+        fields: ['name', 'slug']
+      });
+
+      expect(sparse.pagination).toEqual(full.pagination);
+      expect(sparse.data).toEqual(
+        full.data.map(({ id, name, slug }) => ({ id, name, slug }))
+      );
+    });
+  });
+
+  describe('findSummariesByIds', () => {
+    it('returns id, name and slug of the stored families only', async () => {
+      const first = FamilyScenarios.domainBaseWithExtra();
+      const second = FamilyScenarios.domainRandom();
+      await saveAll([first, second, FamilyScenarios.domainRandom()]);
+
+      const summaries = await readRepository.findSummariesByIds([
+        first.idValue,
+        second.idValue,
+        random.uuid(),
+        'fam_test'
+      ]);
+
+      expect(
+        [...summaries].sort((a, b) => a.id.localeCompare(b.id))
+      ).toStrictEqual(
+        [first, second]
+          .map(viewOf)
+          .map(({ id, name, slug }) => ({ id, name, slug }))
+          .sort((a, b) => a.id.localeCompare(b.id))
+      );
+    });
+
+    it('returns nothing for no ids', async () => {
+      await expect(readRepository.findSummariesByIds([])).resolves.toEqual([]);
+    });
+  });
+
   describe('findAll', () => {
     const idsOf = (items: Array<{ id: string }>): string[] =>
       items.map(({ id }) => id);
@@ -120,7 +204,7 @@ describe('MongoFamilyReadRepository', () => {
       await saveAll(families);
     });
 
-    it.each<[string, QueryOptions<FamilyFilter>]>([
+    it.each<[string, QueryOptions<FamilyFilter, FamilyField, never>]>([
       ['no options', {}],
       ['sort by name', { sort: { name: 'asc' } }],
       ['sort by name in reverse', { sort: { name: 'desc' } }],

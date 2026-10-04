@@ -1,4 +1,8 @@
-import type { PlantReadView } from '../../../../../../src/Contexts/Agro/Plants/application/queries/index.js';
+import type {
+  PlantField,
+  PlantReadView,
+  PlantSparseView
+} from '../../../../../../src/Contexts/Agro/Plants/application/queries/index.js';
 import type { Plant } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/Plant.js';
 import { toPlantReadView } from '../../../../../../src/Contexts/Agro/Plants/infrastructure/persistence/mongo/plantReadViewMapper.js';
 import { plantPersistenceMapper } from '../../../../../../src/Contexts/Agro/Plants/mappers/plantPersistenceMapper.js';
@@ -23,6 +27,21 @@ export const PlantReadViewMother = {
     plant.markAsDeleted('test-user');
 
     return this.from(plant);
+  },
+
+  /** `id` plus the selected fields of `view`, as a read with a fieldset. */
+  sparse(view: PlantReadView, fields: readonly PlantField[]): PlantSparseView {
+    return Object.fromEntries([
+      ['id', view.id],
+      ...fields.map((field) => [field, view[field]])
+    ]) as PlantSparseView;
+  },
+
+  /** A plant of the family `familyId`. */
+  ofFamily(familyId: string): PlantReadView {
+    const view = this.random();
+
+    return { ...view, identity: { ...view.identity, family: familyId } };
   },
 
   /** Breaks a `Range` rule (`min > max`): no `Plant` could hold it. */
