@@ -20,7 +20,7 @@ import {
 
 const extraSchema = z.object({
   order: requiredShortTextResponseSchema.exactOptional(),
-  distribution: requiredShortTextResponseSchema.exactOptional(),
+  distribution: requiredLongTextResponseSchema.exactOptional(),
   speciesCount: z.number().int().min(1).exactOptional(),
   subfamilies: listSchema(shortTextSchema).exactOptional()
 });

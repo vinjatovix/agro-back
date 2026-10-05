@@ -55,12 +55,7 @@ paths:
               $ref: '#/components/schemas/RegisterUserRequest'
       responses:
         '201':
-          description: User created
-          content:
-            application/json:
-              schema:
-                type: object
-                properties: {}
+          description: User created. No body; call `/auth/login` to get a token.
         '409':
           $ref: '#/components/responses/ConflictError'
         '400':
@@ -367,6 +362,14 @@ paths:
     get:
       tags: [Plants]
       summary: Get all plants
+      description: >
+        Public. The token is optional: anonymous callers and plain users get
+        only ACTIVE plants; with an `admin` token the list also includes
+        DELETED ones (tell them apart by `status` and `deletedAt`). There is
+        no filter by status. A malformed or expired token → 401.
+      security:
+        - {}
+        - bearerAuth: []
 
       parameters:
         - in: query
@@ -413,6 +416,8 @@ paths:
 
         '400':
           $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -452,6 +457,12 @@ paths:
     get:
       tags: [Plants]
       summary: Get plant by id
+      description: >
+        Public. The token is optional: a DELETED plant answers 404 unless the
+        caller has an `admin` token. A malformed or expired token → 401.
+      security:
+        - {}
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -477,6 +488,8 @@ paths:
           $ref: '#/components/responses/NotModified'
         '400':
           $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
         '404':
           $ref: '#/components/responses/NotFoundError'
         '500':
@@ -843,6 +856,13 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+      description: >
+        HS256 JWT returned as `{ token }` by `/auth/login`, `/auth/google`
+        and `/auth/refresh`. Payload: `id` (UUID), `email`, `username`,
+        `roles` (array of `admin` | `user`), plus the standard `iat` and
+        `exp` claims. Lifetime comes from `JWT_DEFAULT_DURATION` (2h by
+        default); read `exp` instead of assuming it. `/auth/refresh` only
+        renews a token that has not expired yet.
 
   schemas:
     Metadata:
@@ -1176,7 +1196,7 @@ components:
         order:
           $ref: '#/components/schemas/RequiredShortText'
         distribution:
-          $ref: '#/components/schemas/RequiredShortText'
+          $ref: '#/components/schemas/RequiredLongText'
         speciesCount:
           type: integer
           minimum: 1
@@ -1201,7 +1221,7 @@ components:
           type: string
           nullable: true
           minLength: 1
-          maxLength: 200
+          maxLength: 2000
           pattern: '\S'
         speciesCount:
           type: integer

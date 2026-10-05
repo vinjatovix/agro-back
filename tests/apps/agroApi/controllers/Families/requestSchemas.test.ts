@@ -73,7 +73,13 @@ describe('Family requestSchemas', () => {
     it.each([
       ['a minimal body', buildMinimalCreateFamilyBody()],
       ['a full body', buildFullCreateFamilyBody()],
-      ['an empty extra', buildMinimalCreateFamilyBody({ extra: {} })]
+      ['an empty extra', buildMinimalCreateFamilyBody({ extra: {} })],
+      [
+        'a long-text distribution',
+        buildMinimalCreateFamilyBody({
+          extra: { distribution: 'x'.repeat(REQUEST_LIMITS.longText) }
+        })
+      ]
     ])('should accept %s', async (_label, body) => {
       const error = await validate(createFamilyRequest, { body });
 
@@ -132,7 +138,12 @@ describe('Family requestSchemas', () => {
       ['extra.speciesCount', 'a decimal', 1.5],
       ['aliases', 'too many entries', tooMany()],
       ['highlights', 'too many entries', tooMany()],
-      ['extra.subfamilies', 'too many entries', tooMany()]
+      ['extra.subfamilies', 'too many entries', tooMany()],
+      [
+        'extra.distribution',
+        'over its length limit',
+        tooLong(REQUEST_LIMITS.longText)
+      ]
     ])('should reject %s set to %s', async (path, _label, value) => {
       const body = withPath(buildFullCreateFamilyBody(), path, value);
 
@@ -241,7 +252,11 @@ describe('Family requestSchemas', () => {
       ['highlights', { highlights: null }],
       ['extra.speciesCount', { extra: { speciesCount: 0 } }],
       ['extra.speciesCount', { extra: { speciesCount: 1.5 } }],
-      ['extra.subfamilies.0', { extra: { subfamilies: [1] } }]
+      ['extra.subfamilies.0', { extra: { subfamilies: [1] } }],
+      [
+        'extra.distribution',
+        { extra: { distribution: tooLong(REQUEST_LIMITS.longText) } }
+      ]
     ])('should reject an invalid %s', async (path, body) => {
       const errors = await errorsOf(updateFamilyRequest, { params, body });
 

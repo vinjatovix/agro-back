@@ -67,7 +67,7 @@ const createFamilyBody = z.object({
   extra: z
     .object({
       order: requiredShortTextSchema.exactOptional(),
-      distribution: requiredShortTextSchema.exactOptional(),
+      distribution: requiredLongTextSchema.exactOptional(),
       speciesCount: speciesCountSchema.exactOptional(),
       subfamilies: subfamiliesSchema.exactOptional()
     })
@@ -92,7 +92,7 @@ const updateFamilyBody = z.object({
   extra: clearable(
     z.object({
       order: clearable(requiredShortTextSchema),
-      distribution: clearable(requiredShortTextSchema),
+      distribution: clearable(requiredLongTextSchema),
       speciesCount: clearable(speciesCountSchema),
       subfamilies: clearable(subfamiliesSchema)
     })
