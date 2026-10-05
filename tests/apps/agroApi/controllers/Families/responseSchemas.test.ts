@@ -2,6 +2,7 @@ import {
   familyFieldsetResponseSchema,
   familyResponseSchema
 } from '../../../../../src/apps/agroApi/controllers/Families/responseSchemas.js';
+import { REQUEST_LIMITS } from '../../../../../src/apps/agroApi/shared/requestSchemas.js';
 import {
   baseFamilyView,
   fullFamilyView,
@@ -54,6 +55,29 @@ describe('familyResponseSchema', () => {
       familyResponseSchema.safeParse(withValueAt(fullFamilyView(), path, value))
         .success
     ).toBe(false);
+  });
+
+  it('accepts a distribution written as long text', () => {
+    const distribution = 'x'.repeat(REQUEST_LIMITS.longText);
+    const view = withValueAt(
+      fullFamilyView(),
+      'extra.distribution',
+      distribution
+    );
+
+    expect(familyResponseSchema.parse(view).extra?.distribution).toBe(
+      distribution
+    );
+  });
+
+  it('rejects a distribution over the long-text limit', () => {
+    const view = withValueAt(
+      fullFamilyView(),
+      'extra.distribution',
+      'x'.repeat(REQUEST_LIMITS.longText + 1)
+    );
+
+    expect(familyResponseSchema.safeParse(view).success).toBe(false);
   });
 
   it('accepts a stored id that is not a UUID', () => {
