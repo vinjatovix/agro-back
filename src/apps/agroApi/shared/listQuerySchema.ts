@@ -50,6 +50,11 @@ export const monthItem = trimmed(
     .transform(Number)
 );
 
+/** A boolean: exactly `true` or `false`. */
+export const booleanItem = trimmed(
+  z.enum(['true', 'false']).transform((value) => value === 'true')
+);
+
 // Single-value operators take one string; a repeated key (array) or a nested
 // object (`eq[$ne]=x`) is a type error. A comma in `eq`/`has` hints at the
 // list operator of the field.
@@ -147,6 +152,14 @@ export const rangeField = () =>
   oneOperator(
     z.object({
       eq: single(decimalItem).exactOptional()
+    })
+  );
+
+/** A boolean flag: `eq` only; a plant without the flag never matches. */
+export const booleanField = () =>
+  oneOperator(
+    z.object({
+      eq: single(booleanItem).exactOptional()
     })
   );
 

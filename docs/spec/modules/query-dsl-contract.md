@@ -138,6 +138,7 @@ Each resource declares its filter fields and their type; a field accepts the ope
 | enumerated | `eq`, `in`                                       | one of the declared values     |
 | list       | `has`, `hasAny`                                  | the item type of the list      |
 | range      | `eq`                                             | finite decimal number          |
+| boolean    | `eq`                                             | `true` or `false`              |
 
 - **One operator per field**: a field with no operator or with more than one operator answers `400` (`"Use one operator per field"` at `filter.<field>`).
 - **Hints**: `has`/`hasAny` on a text, identifier or enumerated field answers `"Use 'in' to match any of several values"`; `in` on a list field answers `"Use 'hasAny' to match any of several values"`; a comma in `eq` or `has` gives the same hints.
@@ -154,6 +155,9 @@ Examples:
 - identity.family
 - phenology.sowing.months
 - traits.spacingCm
+- traits.ecological.edible (public name `edible`, boolean)
+
+A boolean filter matches the exact value: a document without the field never matches `true` nor `false`.
 
 ---
 

@@ -14,6 +14,7 @@ import type { PlantFilter } from '../../../../Contexts/Agro/Plants/domain/entiti
 import type { QueryOptions } from '../../../../shared/domain/query/interfaces/QueryOptions.js';
 import type { RequestSchemas } from '../../middlewares/validateRequest.js';
 import {
+  booleanField,
   enumField,
   fieldsetSchema,
   identifierField,
@@ -97,6 +98,20 @@ const resourceItemSchema = z.object({
   tags: labelListSchema.exactOptional()
 });
 
+// Optional, but never blank when sent.
+const toxicityNotesSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(REQUEST_LIMITS.longText);
+
+// Safety facts: an absent key means "no data", so every key is optional.
+const ecologicalTraitsSchema = z.object({
+  edible: z.boolean().exactOptional(),
+  toxic: z.boolean().exactOptional(),
+  toxicityNotes: toxicityNotesSchema.exactOptional()
+});
+
 const ecologySchema = z.object({
   strategicBenefits: textListSchema.exactOptional()
 });
@@ -140,7 +155,8 @@ const createPlantBody = z.object({
       height: rangeSchema,
       spread: rangeSchema
     }),
-    spacingCm: rangeSchema
+    spacingCm: rangeSchema,
+    ecological: ecologicalTraitsSchema.exactOptional()
   }),
   phenology: z.object({
     sowing: z.object({
@@ -231,7 +247,14 @@ const updatePlantBody = z.object({
           spread: partialRangeSchema.exactOptional()
         })
         .exactOptional(),
-      spacingCm: partialRangeSchema.exactOptional()
+      spacingCm: partialRangeSchema.exactOptional(),
+      ecological: z
+        .object({
+          edible: clearable(z.boolean()),
+          toxic: clearable(z.boolean()),
+          toxicityNotes: clearable(toxicityNotesSchema)
+        })
+        .exactOptional()
     })
     .exactOptional(),
   phenology: z
@@ -358,7 +381,9 @@ const listPlantsQuery = listQuerySchema({
     soilPh: rangeField(),
     soilAvailableDepthCm: rangeField(),
     lightHoursMin: rangeField(),
-    sowingMonths: listField(monthItem)
+    sowingMonths: listField(monthItem),
+    edible: booleanField(),
+    toxic: booleanField()
   },
   sortableKeys: ['name', 'scientificName'],
   ...plantSelection

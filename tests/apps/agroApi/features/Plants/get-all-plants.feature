@@ -56,10 +56,10 @@ Feature: Get All Plants
     Given a family exists
     And another family exists
     And the following plants exist:
-      | name    | scientificName       | family | identity.name.aliases | traits.lifecycle | phenology.sowing.months | traits.spacingCm      | knowledge.light.type | knowledge.rootSystem.type | phenology.sowing.methods.starter |
-      | Tomate  | Solanum lycopersicum | first  | ["Jitomate"]          | annual           | [3,4]                   | {"min":40,"max":50}   | full_sun             | taproot                   | {"depthCm":{"min":1,"max":2}}    |
-      | Lechuga | Lactuca sativa       | other  | ["Romana"]            | biennial         | [4,9]                   | {"min":20,"max":30}   | partial_shade        | fibrous                   |                                  |
-      | Ajo     | Allium sativum       | other  | ["Garlic"]            | perennial        | [10]                    | {"min":10,"max":15}   | full_sun             | bulb                      | {"depthCm":{"min":1,"max":2}}    |
+      | name    | scientificName       | family | identity.name.aliases | traits.lifecycle | phenology.sowing.months | traits.spacingCm      | knowledge.light.type | knowledge.rootSystem.type | phenology.sowing.methods.starter | traits.ecological              |
+      | Tomate  | Solanum lycopersicum | first  | ["Jitomate"]          | annual           | [3,4]                   | {"min":40,"max":50}   | full_sun             | taproot                   | {"depthCm":{"min":1,"max":2}}    | {"edible":true,"toxic":true}  |
+      | Lechuga | Lactuca sativa       | other  | ["Romana"]            | biennial         | [4,9]                   | {"min":20,"max":30}   | partial_shade        | fibrous                   |                                  | {"edible":true,"toxic":false} |
+      | Ajo     | Allium sativum       | other  | ["Garlic"]            | perennial        | [10]                    | {"min":10,"max":15}   | full_sun             | bulb                      | {"depthCm":{"min":1,"max":2}}    |                                |
     When I send a GET request to "/api/v1/plants?<query>"
     Then the response status code should be 200
     And the listed "identity.name.primary" should be exactly "<plants>" in any order
@@ -82,6 +82,10 @@ Feature: Get All Plants
       | filter[lightType][contains]=shade                                      | Lechuga            |
       | filter[rootSystem][in]=taproot,bulb                                    | Tomate,Ajo         |
       | filter[identity][contains]=sativ&filter[sowingMethod][in]=starter      | Ajo                |
+      | filter[edible][eq]=true                                                | Tomate,Lechuga     |
+      | filter[toxic][eq]=true                                                 | Tomate             |
+      | filter[toxic][eq]=false                                                | Lechuga            |
+      | filter[edible][eq]=true&filter[toxic][eq]=false                        | Lechuga            |
 
 
   Scenario: Filter plants by family

@@ -2,6 +2,7 @@ import { PlantStatus } from '../../../../../src/Contexts/Agro/Plants/domain/enti
 import { PollinationType } from '../../../../../src/Contexts/Agro/Plants/domain/entities/types/PollinationType.js';
 import { plantPersistenceMapper } from '../../../../../src/Contexts/Agro/Plants/mappers/plantPersistenceMapper.js';
 import { PlantFactory } from '../domain/mothers/PlantFactory.js';
+import { PlantTraitsBuilder } from '../domain/mothers/PlantTraitsBuilder.js';
 
 describe('PlantPersistenceMapper', () => {
   describe('toMongoDocument', () => {
@@ -92,6 +93,18 @@ describe('PlantPersistenceMapper', () => {
 
       expect(restored.id).toBe(plant.id);
       expect(restored.identity.name.primary).toBe(plant.identity.name.primary);
+    });
+
+    it('should keep ecological traits through the document', () => {
+      const plant = PlantFactory.create({
+        traits: PlantTraitsBuilder.potato()
+      });
+
+      const doc = plantPersistenceMapper.toMongoDocument(plant);
+      const restored = plantPersistenceMapper.fromMongoDocument(doc);
+
+      expect(doc.traits.ecological).toEqual({ edible: true, toxic: true });
+      expect(restored.traits.ecological).toEqual({ edible: true, toxic: true });
     });
 
     it('should map pollination correctly', () => {

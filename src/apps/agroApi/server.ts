@@ -62,8 +62,8 @@ export class Server {
       qs.parse(str, {
         allowPrototypes: false,
         depth: 5,
-        parameterLimit: 100,
-        arrayLimit: 50
+        parameterLimit: 250,
+        arrayLimit: 200
       })
     );
 

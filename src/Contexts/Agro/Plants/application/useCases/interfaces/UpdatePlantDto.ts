@@ -1,4 +1,5 @@
 import type { PartialRange } from '../../../../../../shared/domain/value-objects/interfaces/PartialRange.js';
+import type { PlantEcologicalTraitsChanges } from '../../../domain/entities/types/PlantEcologicalTraits.js';
 import type { PlantKnowledgeChanges } from '../../../domain/entities/types/PlantKnowledgeChanges.js';
 import type { PlantLifecycleValue } from '../../../domain/entities/types/PlantLifecycleValue.js';
 import type { PollinationType } from '../../../domain/entities/types/PollinationType.js';
@@ -23,6 +24,7 @@ export interface UpdatePlantDto {
     };
 
     spacingCm?: PartialRange;
+    ecological?: PlantEcologicalTraitsChanges;
   };
 
   phenology?: {

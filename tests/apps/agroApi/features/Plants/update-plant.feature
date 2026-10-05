@@ -389,6 +389,35 @@ Feature: Update a plant
     And the response should have ETag '"1"'
     And response matches OpenAPI contract
 
+  Scenario: Mark a plant as edible and not toxic
+    Given a family exists
+    And a plant exists
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      { "traits": { "ecological": { "edible": true, "toxic": false } } }
+      """
+    Then the response status code should be 200
+    And the response body should contain
+      """
+      { "traits": { "ecological": { "edible": true, "toxic": false } } }
+      """
+    And the response should have ETag '"1"'
+    And response matches OpenAPI contract
+
+  Scenario: Removing an ecological key the plant does not have changes nothing
+    Given a family exists
+    And a plant exists
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      { "traits": { "ecological": { "toxic": null } } }
+      """
+    Then the response status code should be 200
+    And the response body matches "undefined" for field "traits.ecological"
+    And the response should have ETag '"0"'
+    And response matches OpenAPI contract
+
   Scenario Outline: Fail to update with a value the plant cannot store
     Given a family exists
     And a plant exists

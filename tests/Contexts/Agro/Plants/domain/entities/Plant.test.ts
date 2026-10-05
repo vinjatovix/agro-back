@@ -26,6 +26,7 @@ import {
   SOLANACEAE_FAMILY_ID
 } from '../mothers/PlantIdentityBuilder.js';
 import { PlantKnowledgeBuilder } from '../mothers/PlantKnowledgeBuilder.js';
+import { PlantTraitsBuilder } from '../mothers/PlantTraitsBuilder.js';
 
 const buildPlant = (version?: number) => {
   return new Plant({
@@ -210,6 +211,28 @@ describe('Plant (aggregate root)', () => {
       });
     }).toThrow(InvalidArgumentException);
   });
+
+  it('should reject blank toxicity notes on creation', () => {
+    const traits = {
+      ...PlantTraitsBuilder.generic(),
+      ecological: { toxicityNotes: '   ' }
+    };
+
+    expect(() => PlantFactory.create({ traits })).toThrow(
+      InvalidArgumentException
+    );
+  });
+
+  it('should drop ecological on creation when all flags are undefined', () => {
+    const traits = {
+      ...PlantTraitsBuilder.generic(),
+      ecological: { edible: undefined, toxic: undefined }
+    };
+
+    const plant = PlantFactory.create({ traits });
+
+    expect(plant.traits).not.toHaveProperty('ecological');
+  });
 });
 
 describe('Plant mutation methods', () => {
@@ -384,6 +407,93 @@ describe('Plant mutation methods', () => {
         plant.updateTraits({ spacingCm: { min: 100, max: 1 } }, 'test-user')
       ).toThrow(/greater/);
       assertUnchanged(plant, before);
+    });
+
+    it('should set ecological keys on a plant without them', () => {
+      const plant = PlantFactory.create();
+
+      plant.updateTraits({ ecological: { edible: true } }, 'test-user');
+
+      expect(plant.traits.ecological).toEqual({ edible: true });
+    });
+
+    it('should keep an absent ecological key and replace a sent one', () => {
+      const plant = PlantFactory.create({
+        traits: PlantTraitsBuilder.potato()
+      });
+
+      plant.updateTraits({ ecological: { toxic: false } }, 'test-user');
+
+      expect(plant.traits.ecological).toEqual({ edible: true, toxic: false });
+    });
+
+    it('should remove an ecological key sent as null', () => {
+      const plant = PlantFactory.create({
+        traits: PlantTraitsBuilder.potato()
+      });
+
+      plant.updateTraits({ ecological: { edible: null } }, 'test-user');
+
+      expect(plant.traits.ecological).toEqual({ toxic: true });
+    });
+
+    it('should drop ecological when its last key is removed', () => {
+      const plant = PlantFactory.create({
+        traits: PlantTraitsBuilder.potato()
+      });
+
+      plant.updateTraits(
+        { ecological: { edible: null, toxic: null } },
+        'test-user'
+      );
+
+      expect(plant.traits).not.toHaveProperty('ecological');
+    });
+
+    it('should not refresh audit data when ecological does not change', () => {
+      const plant = PlantFactory.create({
+        traits: PlantTraitsBuilder.potato()
+      });
+      const before = plantDomainMapper.toPrimitives(plant);
+
+      plant.updateTraits({ ecological: { edible: true } }, 'other-user');
+
+      expect(plantDomainMapper.toPrimitives(plant)).toEqual(before);
+    });
+
+    it('should trim toxicity notes and keep them with the flags', () => {
+      const plant = PlantFactory.create({
+        traits: PlantTraitsBuilder.potato()
+      });
+
+      plant.updateTraits(
+        { ecological: { toxicityNotes: '  Hojas tóxicas.  ' } },
+        'test-user'
+      );
+
+      expect(plant.traits.ecological).toEqual({
+        edible: true,
+        toxic: true,
+        toxicityNotes: 'Hojas tóxicas.'
+      });
+    });
+
+    it('should reject blank toxicity notes without changing the plant', () => {
+      const plant = PlantFactory.create();
+      const before = plantDomainMapper.toPrimitives(plant);
+
+      expect(() =>
+        plant.updateTraits({ ecological: { toxicityNotes: '   ' } }, 'u')
+      ).toThrow(InvalidArgumentException);
+      assertUnchanged(plant, before);
+    });
+
+    it('should not keep an empty ecological block on creation', () => {
+      const traits = { ...PlantTraitsBuilder.generic(), ecological: {} };
+
+      const plant = PlantFactory.create({ traits });
+
+      expect(plant.traits).not.toHaveProperty('ecological');
     });
 
     it('should throw DomainConflictException on a soft-deleted plant', () => {

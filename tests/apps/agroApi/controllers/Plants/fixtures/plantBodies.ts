@@ -81,6 +81,15 @@ export const buildFullCreatePlantBody = (overrides: Body = {}): Body => ({
     scientificName: 'Solanum lycopersicum',
     family: 'fam-solanaceae'
   },
+  traits: {
+    lifecycle: 'annual',
+    size: {
+      height: { min: 10, max: 100 },
+      spread: { min: 10, max: 30 }
+    },
+    spacingCm: { min: 10, max: 20 },
+    ecological: { edible: true, toxic: true }
+  },
   phenology: {
     sowing: {
       months: [3, 4],

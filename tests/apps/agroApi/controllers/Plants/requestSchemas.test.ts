@@ -486,6 +486,44 @@ describe('Plant requestSchemas', () => {
       expect(error).toBeUndefined();
     });
 
+    it('should accept ecological keys and null to remove them', async () => {
+      const body = { traits: { ecological: { edible: true, toxic: null } } };
+
+      const error = await validate(updatePlantRequest, { params, body });
+
+      expect(error).toBeUndefined();
+    });
+
+    it('should accept toxicity notes and null to remove them', async () => {
+      const set = {
+        traits: { ecological: { toxicityNotes: 'Hojas tóxicas' } }
+      };
+      const remove = { traits: { ecological: { toxicityNotes: null } } };
+
+      expect(
+        await validate(updatePlantRequest, { params, body: set })
+      ).toBeUndefined();
+      expect(
+        await validate(updatePlantRequest, { params, body: remove })
+      ).toBeUndefined();
+    });
+
+    it('should reject blank toxicity notes', async () => {
+      const body = { traits: { ecological: { toxicityNotes: '   ' } } };
+
+      const errors = await errorsOf(updatePlantRequest, { params, body });
+
+      expect(errors).toHaveProperty(['traits.ecological.toxicityNotes']);
+    });
+
+    it('should reject an ecological key that is not a boolean', async () => {
+      const body = { traits: { ecological: { toxic: 'yes' } } };
+
+      const errors = await errorsOf(updatePlantRequest, { params, body });
+
+      expect(errors).toHaveProperty(['traits.ecological.toxic']);
+    });
+
     it('should reject a missing body', async () => {
       const errors = await errorsOf(updatePlantRequest, { params });
 
@@ -806,7 +844,9 @@ describe('Plant requestSchemas', () => {
       ['soilAvailableDepthCm', 'eq', '20'],
       ['lightHoursMin', 'eq', '6'],
       ['sowingMonths', 'has', '3'],
-      ['sowingMonths', 'hasAny', '3,4']
+      ['sowingMonths', 'hasAny', '3,4'],
+      ['edible', 'eq', 'true'],
+      ['toxic', 'eq', 'false']
     ])('should accept %s with %s', async (field, operator, value) => {
       const query = await listQueryOf({
         filter: { [field]: { [operator]: value } }
@@ -821,7 +861,9 @@ describe('Plant requestSchemas', () => {
       ['lightHoursMin', 'gte'],
       ['soilAvailableDepthCm', 'lte'],
       ['aliases', 'has'],
-      ['strategicBenefits', 'hasAny']
+      ['strategicBenefits', 'hasAny'],
+      ['edible', 'in'],
+      ['toxic', 'contains']
     ])('should reject %s with %s', async (field, operator) => {
       const errors = await listErrorsOf({
         filter: { [field]: { [operator]: 'x' } }
@@ -835,7 +877,8 @@ describe('Plant requestSchemas', () => {
       ['lifeCycle', 'eq', 'yearly'],
       ['sowingMethod', 'eq', 'seed'],
       ['soilPh', 'eq', 'abc'],
-      ['sowingMonths', 'has', '13']
+      ['sowingMonths', 'has', '13'],
+      ['edible', 'eq', 'yes']
     ])('should reject %s.%s %j', async (field, operator, value) => {
       const errors = await listErrorsOf({
         filter: { [field]: { [operator]: value } }

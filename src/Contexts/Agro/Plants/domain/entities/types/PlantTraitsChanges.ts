@@ -1,4 +1,5 @@
 import type { PartialRange } from '../../../../../../shared/domain/value-objects/interfaces/PartialRange.js';
+import type { PlantEcologicalTraitsChanges } from './PlantEcologicalTraits.js';
 import type { PlantLifecycleValue } from './PlantLifecycleValue.js';
 
 export type PlantTraitsChanges = {
@@ -8,4 +9,5 @@ export type PlantTraitsChanges = {
     spread?: PartialRange;
   };
   spacingCm?: PartialRange;
+  ecological?: PlantEcologicalTraitsChanges;
 };

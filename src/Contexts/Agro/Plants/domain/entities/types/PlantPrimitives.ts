@@ -1,6 +1,7 @@
 import type { RangePrimitives } from '../../../../../../shared/domain/value-objects/interfaces/RangePrimitives.js';
 import type { MetadataPrimitives } from '../../../../../shared/domain/MetadataPrimitives.js';
 import type { IdentityPrimitives } from './IdentityPrimitives.js';
+import type { PlantEcologicalTraits } from './PlantEcologicalTraits.js';
 import type { PlantKnowledgePrimitives } from './PlantKnowledgePrimitives.js';
 import type { PlantLifecycleValue } from './PlantLifecycleValue.js';
 import type { PlantSowingPrimitives } from './PlantSowingPrimitives.js';
@@ -19,6 +20,7 @@ export type PlantPrimitives = {
       spread: RangePrimitives;
     };
     spacingCm: RangePrimitives;
+    ecological?: PlantEcologicalTraits;
   };
 
   phenology: {

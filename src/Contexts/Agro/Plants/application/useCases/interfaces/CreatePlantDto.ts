@@ -1,4 +1,5 @@
 import type { RangePrimitives } from '../../../../../../shared/domain/value-objects/interfaces/RangePrimitives.js';
+import type { PlantEcologicalTraits } from '../../../domain/entities/types/PlantEcologicalTraits.js';
 import type { PlantKnowledgePrimitives } from '../../../domain/entities/types/PlantKnowledgePrimitives.js';
 import type { PlantLifecycleValue } from '../../../domain/entities/types/PlantLifecycleValue.js';
 import type { PollinationType } from '../../../domain/entities/types/PollinationType.js';
@@ -31,6 +32,7 @@ export interface CreatePlantDto {
       spread: RangePrimitives;
     };
     spacingCm: RangePrimitives;
+    ecological?: PlantEcologicalTraits;
   };
 
   phenology: {

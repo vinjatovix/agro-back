@@ -17,5 +17,7 @@ export interface PlantFilter {
   lightHoursMin?: RangeFilter;
   lightType?: StringFilter;
   rootSystem?: StringFilter;
+  edible?: ExactFilter<boolean>;
+  toxic?: ExactFilter<boolean>;
   status?: ExactFilter<PlantStatus>;
 }

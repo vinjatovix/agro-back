@@ -1,5 +1,6 @@
 import { plantDomainMapper } from '../../../../../src/Contexts/Agro/Plants/mappers/plantDomainMapper.js';
 import { PlantFactory } from '../domain/mothers/PlantFactory.js';
+import { PlantTraitsBuilder } from '../domain/mothers/PlantTraitsBuilder.js';
 
 describe('PlantDomainMapper', () => {
   it('should map plant to primitives correctly (base)', () => {
@@ -80,6 +81,22 @@ describe('PlantDomainMapper', () => {
     const p = plantDomainMapper.toPrimitives(plant);
 
     expect(p.deletedAt).toBeDefined();
+  });
+
+  it('should keep ecological traits both ways', () => {
+    const plant = PlantFactory.create({ traits: PlantTraitsBuilder.potato() });
+
+    const primitives = plantDomainMapper.toPrimitives(plant);
+    const restored = plantDomainMapper.fromPrimitives(primitives);
+
+    expect(primitives.traits.ecological).toEqual({ edible: true, toxic: true });
+    expect(restored.traits.ecological).toEqual({ edible: true, toxic: true });
+  });
+
+  it('should omit ecological traits without data', () => {
+    const primitives = plantDomainMapper.toPrimitives(PlantFactory.create());
+
+    expect(primitives.traits).not.toHaveProperty('ecological');
   });
 
   it('should be reversible (full structure)', () => {

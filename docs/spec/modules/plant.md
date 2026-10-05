@@ -84,12 +84,10 @@ Rules:
     spread: Range;
   }
   spacingCm: Range;
-  // [TARGET STATE (Pending [Iteration 12](../../roadmap.md#iteration-12-migrate-plants-endpoints-to-zod))]
   ecological?: {
-    edibility: boolean;
-    toxicity: 'none' | 'low' | 'high';
-    attractsPollinators: boolean;
-    invasivePotential: boolean; // Note: Invasiveness depends heavily on local geography
+    edible?: boolean;
+    toxic?: boolean;
+    toxicityNotes?: string;
   }
   // [TARGET STATE (Pending [Iteration 63](../../roadmap.md#iteration-63-bypass-2d-collisions-for-complementary-vertical-strata))]
   stratum?: 'root' | 'ground_cover' | 'herbaceous' | 'shrub' | 'low_canopy' | 'overstory_canopy' | 'climber';
@@ -101,7 +99,14 @@ Rules:
 - lifecycle → biological growth pattern
 - size → expected physical bounds
 - spacingCm → **advisory spatial constraint (NOT enforcement)**
-- ecological → **[TARGET STATE (Pending [Iteration 12](../../roadmap.md#iteration-12-migrate-plants-endpoints-to-zod))]** optional attributes used for quick banners and ecological context
+- ecological → safety facts for quick banners and filters (decided 2026-10-05):
+  - `edible`: some part of the plant is edible; `toxic`: some part is known to be toxic or harmful. Both may be `true` (potato: edible tubers, toxic leaves).
+  - `toxicityNotes`: what the hazard is (toxic parts, doses, whether cooking or drying reduces it), trimmed and never blank (`400`). Catalog notes are written in Spanish from PFAF's "Known Hazards". It may come without `toxic` when the hazard is too vague to flag (only in large doses, a toxic genus…).
+  - Each key is optional and an absent key means **no data**, never `false`; `ecological` without keys is left out, never stored as `{}`.
+  - `PATCH` follows JSON Merge Patch per key: an absent key is kept, `null` removes it.
+  - Catalog values come from Plants For A Future (pfaf.org), loaded by the `20261005120000-plant-ecological-traits` migration.
+  - This replaces the earlier plan of `edibility: boolean` plus `toxicity: 'none' | 'low' | 'high'`: PFAF does not grade toxicity, so a three-level scale could not be filled from a source. `attractsPollinators` and `invasivePotential` stay out until there is data for them.
+  - Not to be confused with `knowledge.ecology` (agronomic benefits as free text).
 - stratum → **[TARGET STATE (Pending [Iteration 63](../../roadmap.md#iteration-63-bypass-2d-collisions-for-complementary-vertical-strata))]** optional canopy/strata classification used by the spatial system to bypass geometric 2D overlap warnings in polyculture companion planting guilds (e.g. root layers occupying the same 2D footprint as trellised climbers).
 
 #### Important boundary rule
@@ -423,6 +428,8 @@ Filterable Plant fields include:
 - identity.family
 - traits.lifecycle
 - traits.spacingCm
+- traits.ecological.edible (`filter[edible][eq]=true|false`)
+- traits.ecological.toxic (`filter[toxic][eq]=true|false`)
 - phenology.sowing.months
 - phenology.sowing.methods
 - knowledge.soil.ph
@@ -433,6 +440,8 @@ Filterable Plant fields include:
 - knowledge.rootSystem.type
 
 (Exact enforcement delegated to validation layer)
+
+`edible` and `toxic` match the exact value: `filter[toxic][eq]=false` only returns plants marked as not toxic, never plants without data, so a "safe" listing never includes an unknown plant.
 
 ---
 

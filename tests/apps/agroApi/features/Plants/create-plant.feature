@@ -485,6 +485,10 @@ Feature: Create a new plant
           "spacingCm": {
             "min": 20,
             "max": 30
+          },
+          "ecological": {
+            "edible": true,
+            "toxic": false
           }
         },
         "phenology": {
@@ -669,6 +673,8 @@ Feature: Create a new plant
       """
     Then the response status code should be 201
     And the response should have ETag '"0"'
+    And the response body matches "true" for field "traits.ecological.edible"
+    And the response body matches "false" for field "traits.ecological.toxic"
     And response matches OpenAPI contract
 
   Scenario: Fail to create a plant if family doesn't exists

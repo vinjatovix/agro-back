@@ -60,7 +60,14 @@ const identitySchema = z.object({
 const traitsSchema = z.object({
   lifecycle: z.enum(['annual', 'biennial', 'perennial']),
   size: z.object({ height: rangeSchema, spread: rangeSchema }),
-  spacingCm: rangeSchema
+  spacingCm: rangeSchema,
+  ecological: z
+    .object({
+      edible: z.boolean().exactOptional(),
+      toxic: z.boolean().exactOptional(),
+      toxicityNotes: requiredLongTextResponseSchema.exactOptional()
+    })
+    .exactOptional()
 });
 
 const phenologySchema = z.object({
