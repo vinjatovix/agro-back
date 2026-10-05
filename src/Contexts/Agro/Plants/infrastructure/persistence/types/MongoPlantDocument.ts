@@ -1,6 +1,7 @@
 import type { Binary, UUID } from 'mongodb';
 import type { RangePrimitives } from '../../../../../../shared/domain/value-objects/interfaces/RangePrimitives.js';
 import type { IdentityPrimitives } from '../../../domain/entities/types/IdentityPrimitives.js';
+import type { PlantEcologicalTraits } from '../../../domain/entities/types/PlantEcologicalTraits.js';
 import type { PlantKnowledgePrimitives } from '../../../domain/entities/types/PlantKnowledgePrimitives.js';
 import type { PlantLifecycleValue } from '../../../domain/entities/types/PlantLifecycleValue.js';
 import type { PlantPrimitives } from '../../../domain/entities/types/PlantPrimitives.js';
@@ -16,6 +17,7 @@ export type MongoPlantDocument = {
       spread: RangePrimitives;
     };
     spacingCm: RangePrimitives;
+    ecological?: PlantEcologicalTraits;
   };
 
   phenology: PlantPrimitives['phenology'];

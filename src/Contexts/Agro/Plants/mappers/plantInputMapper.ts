@@ -57,6 +57,7 @@ function buildTraitsChanges(dto: UpdatePlantDto): PlantTraitsChanges {
   if (!src) return traits;
   if (src.lifecycle) traits.lifecycle = src.lifecycle;
   if (src.spacingCm !== undefined) traits.spacingCm = src.spacingCm;
+  if (src.ecological) traits.ecological = src.ecological;
   if (src.size) {
     const size: PlantTraitsChanges['size'] = {};
     if (src.size.height) size.height = src.size.height;
@@ -158,7 +159,8 @@ export const plantInputMapper: PlantInputMapper = {
           height: Range.fromPrimitives(dto.traits.size.height),
           spread: Range.fromPrimitives(dto.traits.size.spread)
         },
-        spacingCm: Range.fromPrimitives(dto.traits.spacingCm)
+        spacingCm: Range.fromPrimitives(dto.traits.spacingCm),
+        ...(dto.traits.ecological && { ecological: dto.traits.ecological })
       },
       phenology,
       knowledge,

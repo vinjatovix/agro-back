@@ -48,6 +48,19 @@ export const PlantTraitsBuilder = {
     };
   },
 
+  // Edible tubers, toxic leaves and green parts.
+  potato(): PlantProps['traits'] {
+    return {
+      lifecycle: PlantLifecycle.from('perennial'),
+      size: {
+        height: new Range(40, 80),
+        spread: new Range(30, 60)
+      },
+      spacingCm: new Range(30, 40),
+      ecological: { edible: true, toxic: true }
+    };
+  },
+
   lettuce(): PlantProps['traits'] {
     return {
       lifecycle: PlantLifecycle.from('annual'),

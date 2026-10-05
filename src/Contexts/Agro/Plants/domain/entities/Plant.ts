@@ -1,6 +1,8 @@
 import { hasStateChanged } from '../../../../../shared/domain/diff/hasStateChanged.js';
 import type { UnknownRecord } from '../../../../../shared/domain/types/UnknownRecord.js';
 import { deepFreeze } from '../../../../../shared/domain/utils/deepFreeze.js';
+import { patchField } from '../../../../../shared/domain/utils/patchField.js';
+import { requiredText } from '../../../../../shared/domain/utils/requiredText.js';
 import { AggregateRoot } from '../../../../shared/domain/entities/AggregateRoot.js';
 import {
   DomainConflictException,
@@ -13,7 +15,12 @@ import {
 import { Metadata } from '../../../../shared/domain/valueObject/index.js';
 import type { PlantId } from '../PlantId.js';
 import { PlantLifecycle } from '../value-objects/PlantLifecycle.js';
-import { type PlantProps, PlantStatus } from './types/index.js';
+import {
+  type PlantEcologicalTraits,
+  type PlantEcologicalTraitsChanges,
+  type PlantProps,
+  PlantStatus
+} from './types/index.js';
 import type { PlantIdentityChanges } from './types/PlantIdentityChanges.js';
 import type { PlantKnowledgeChanges } from './types/PlantKnowledgeChanges.js';
 import type { PlantPhenologyChanges } from './types/PlantPhenologyChanges.js';
@@ -27,6 +34,7 @@ export class Plant extends AggregateRoot<PlantId> {
     this.validateProps(props);
     this.props = deepFreeze({
       ...props,
+      traits: Plant.withEcological(props.traits),
       status: props.status ?? PlantStatus.ACTIVE,
       version: props.version ?? 0
     });
@@ -148,7 +156,14 @@ export class Plant extends AggregateRoot<PlantId> {
       ? this.props.traits.size.spread.with(changes.size.spread)
       : this.props.traits.size.spread;
 
-    const traits = { lifecycle, spacingCm, size: { height, spread } };
+    const ecological = changes.ecological
+      ? Plant.patchEcological(this.props.traits.ecological, changes.ecological)
+      : this.props.traits.ecological;
+
+    const traits = Plant.withEcological(
+      { lifecycle, spacingCm, size: { height, spread } },
+      ecological
+    );
 
     if (
       !hasStateChanged(
@@ -166,7 +181,63 @@ export class Plant extends AggregateRoot<PlantId> {
       lifecycle: traits.lifecycle.getValue(),
       spacingCm: traits.spacingCm.toPrimitives(),
       height: traits.size.height.toPrimitives(),
-      spread: traits.size.spread.toPrimitives()
+      spread: traits.size.spread.toPrimitives(),
+      ecological: traits.ecological ?? {}
+    };
+  }
+
+  /** An absent key is kept, `null` removes it. */
+  private static patchEcological(
+    current: PlantEcologicalTraits | undefined,
+    changes: PlantEcologicalTraitsChanges
+  ): PlantEcologicalTraits {
+    const edible = patchField(changes.edible, current?.edible);
+    const toxic = patchField(changes.toxic, current?.toxic);
+    const toxicityNotes = patchField(
+      changes.toxicityNotes,
+      current?.toxicityNotes
+    );
+
+    return {
+      ...(edible !== undefined && { edible }),
+      ...(toxic !== undefined && { toxic }),
+      ...(toxicityNotes !== undefined && { toxicityNotes })
+    };
+  }
+
+  /**
+   * Sets `ecological`, leaving it out when it holds no key (never `{}`).
+   * `toxicityNotes` is trimmed and never blank.
+   */
+  private static withEcological(
+    traits: PlantProps['traits'],
+    ecological: PlantEcologicalTraits | undefined = traits.ecological
+  ): PlantProps['traits'] {
+    const { lifecycle, size, spacingCm } = traits;
+    if (!ecological) return { lifecycle, size, spacingCm };
+
+    const { toxicityNotes, ...flags } = ecological;
+    const definedFlags = Object.fromEntries(
+      Object.entries(flags).filter(([, v]) => v !== undefined)
+    );
+
+    if (Object.keys(definedFlags).length === 0 && toxicityNotes === undefined) {
+      return { lifecycle, size, spacingCm };
+    }
+
+    return {
+      lifecycle,
+      size,
+      spacingCm,
+      ecological: {
+        ...definedFlags,
+        ...(toxicityNotes !== undefined && {
+          toxicityNotes: requiredText(
+            toxicityNotes,
+            'traits.ecological.toxicityNotes'
+          )
+        })
+      }
     };
   }
 

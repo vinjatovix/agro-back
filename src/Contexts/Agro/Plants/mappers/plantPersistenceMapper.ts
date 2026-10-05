@@ -33,7 +33,10 @@ export const plantPersistenceMapper: PlantPersistenceMapper = {
           height: Range.fromPrimitives(document.traits.size.height),
           spread: Range.fromPrimitives(document.traits.size.spread)
         },
-        spacingCm: Range.fromPrimitives(document.traits.spacingCm)
+        spacingCm: Range.fromPrimitives(document.traits.spacingCm),
+        ...(document.traits.ecological && {
+          ecological: document.traits.ecological
+        })
       },
       phenology,
       knowledge: this.mapKnowledge(document.knowledge),
@@ -67,7 +70,10 @@ export const plantPersistenceMapper: PlantPersistenceMapper = {
           height: plant.traits.size.height.toPrimitives(),
           spread: plant.traits.size.spread.toPrimitives()
         },
-        spacingCm: plant.traits.spacingCm.toPrimitives()
+        spacingCm: plant.traits.spacingCm.toPrimitives(),
+        ...(plant.traits.ecological && {
+          ecological: { ...plant.traits.ecological }
+        })
       },
       phenology,
       knowledge: plantKnowledgeMapper.toPrimitives(plant.knowledge),

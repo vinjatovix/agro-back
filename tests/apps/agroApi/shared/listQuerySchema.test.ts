@@ -5,6 +5,7 @@ import {
   type RequestSchemas
 } from '../../../../src/apps/agroApi/middlewares/validateRequest.js';
 import {
+  booleanField,
   enumField,
   fieldsetSchema,
   identifierField,
@@ -45,7 +46,8 @@ const listThingsRequest = {
       lifeCycle: enumField(['annual', 'biennial', 'perennial']),
       tags: listField(textItem),
       months: listField(monthItem),
-      size: rangeField()
+      size: rangeField(),
+      flag: booleanField()
     },
     sortableKeys: ['name', 'slug']
   })
@@ -95,7 +97,8 @@ describe('listQuerySchema', () => {
       ['identifier', 'owner', 'eq', UUID_A],
       ['enumerated', 'lifeCycle', 'eq', 'annual'],
       ['list', 'tags', 'has', 'red'],
-      ['range', 'size', 'eq', '20']
+      ['range', 'size', 'eq', '20'],
+      ['boolean', 'flag', 'eq', 'true']
     ])(
       'should accept %s field %s with %s',
       async (_type, field, operator, value) => {
@@ -126,7 +129,8 @@ describe('listQuerySchema', () => {
       ['lifeCycle', 'startsWith'],
       ['tags', 'contains'],
       ['size', 'lte'],
-      ['size', 'in']
+      ['size', 'in'],
+      ['flag', 'in']
     ])(
       'should reject %s with the undeclared operator %s',
       async (field, operator) => {
@@ -238,7 +242,8 @@ describe('listQuerySchema', () => {
       ['a number that is not a number', 'size', 'eq', 'abc'],
       ['a month above 12', 'months', 'has', '13'],
       ['a month below 1', 'months', 'has', '0'],
-      ['a month that is not whole', 'months', 'has', '1.5']
+      ['a month that is not whole', 'months', 'has', '1.5'],
+      ['a boolean that is not true or false', 'flag', 'eq', 'yes']
     ])('should reject %s', async (_label, field, operator, value) => {
       const errors = await errorsOf({
         filter: { [field]: { [operator]: value } }
@@ -251,13 +256,15 @@ describe('listQuerySchema', () => {
       const filter = await filterOf({
         size: { eq: '-2.5' },
         months: { hasAny: '3,12' },
-        lifeCycle: { in: 'annual,perennial' }
+        lifeCycle: { in: 'annual,perennial' },
+        flag: { eq: ' false ' }
       });
 
       expect(filter).toEqual({
         size: { eq: -2.5 },
         months: { hasAny: [3, 12] },
-        lifeCycle: { in: ['annual', 'perennial'] }
+        lifeCycle: { in: ['annual', 'perennial'] },
+        flag: { eq: false }
       });
     });
 

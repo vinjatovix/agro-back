@@ -4,6 +4,7 @@ import {
   plantFieldsetResponseSchema,
   plantResponseSchema
 } from '../../../../../src/apps/agroApi/controllers/Plants/responseSchemas.js';
+import { REQUEST_LIMITS } from '../../../../../src/apps/agroApi/shared/requestSchemas.js';
 import { fullFamilyView } from '../Families/fixtures/familyResponses.js';
 import {
   fullPlantView,
@@ -85,6 +86,30 @@ describe('plantResponseSchema', () => {
     expect(plantResponseSchema.parse(view).identity.name.primary).toBe(
       '  Tomate  '
     );
+  });
+
+  it('accepts a plant view with the maximum allowed notes', () => {
+    const notes = Array.from(
+      { length: REQUEST_LIMITS.listItems },
+      (_, index) => `Note ${index}`
+    );
+    const view = withValueAt(fullPlantView(), 'knowledge.notes', notes);
+
+    const parsed = plantResponseSchema.parse(view);
+
+    expect(parsed.knowledge.notes).toHaveLength(REQUEST_LIMITS.listItems);
+  });
+
+  it('rejects a plant view exceeding the maximum allowed notes', () => {
+    const notes = Array.from(
+      { length: REQUEST_LIMITS.listItems + 1 },
+      (_, index) => `Note ${index}`
+    );
+    const view = withValueAt(fullPlantView(), 'knowledge.notes', notes);
+
+    const result = plantResponseSchema.safeParse(view);
+
+    expect(result.success).toBe(false);
   });
 });
 

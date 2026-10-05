@@ -37,7 +37,10 @@ export const plantDomainMapper = {
           height: plant.traits.size.height.toPrimitives(),
           spread: plant.traits.size.spread.toPrimitives()
         },
-        spacingCm: plant.traits.spacingCm.toPrimitives()
+        spacingCm: plant.traits.spacingCm.toPrimitives(),
+        ...(plant.traits.ecological && {
+          ecological: { ...plant.traits.ecological }
+        })
       },
       phenology,
       knowledge,
@@ -60,7 +63,10 @@ export const plantDomainMapper = {
           height: Range.fromPrimitives(primitives.traits.size.height),
           spread: Range.fromPrimitives(primitives.traits.size.spread)
         },
-        spacingCm: Range.fromPrimitives(primitives.traits.spacingCm)
+        spacingCm: Range.fromPrimitives(primitives.traits.spacingCm),
+        ...(primitives.traits.ecological && {
+          ecological: primitives.traits.ecological
+        })
       },
       phenology,
       knowledge: this.mapKnowledge(primitives.knowledge),

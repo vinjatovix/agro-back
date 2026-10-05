@@ -125,6 +125,14 @@ describe('PlantInputMapper', () => {
       expect(changes.traits?.spacingCm).toEqual({ min: 0, max: 10 });
     });
 
+    it('should pass ecological keys and null removals through', () => {
+      const changes = plantInputMapper.toChanges({
+        traits: { ecological: { edible: true, toxic: null } }
+      });
+
+      expect(changes.traits?.ecological).toEqual({ edible: true, toxic: null });
+    });
+
     it('should drop lifecycle when missing', () => {
       const changes = plantInputMapper.toChanges({
         traits: { spacingCm: { min: 10 } }

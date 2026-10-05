@@ -5,6 +5,7 @@ import type { PlantIdentity } from '../../value-objects/PlantIdentity.js';
 import type { PlantKnowledge } from '../../value-objects/PlantKnowledge.js';
 import type { PlantLifecycle } from '../../value-objects/PlantLifecycle.js';
 import type { PlantPhenology } from '../../value-objects/PlantPhenology.js';
+import type { PlantEcologicalTraits } from './PlantEcologicalTraits.js';
 import type { PlantStatus } from './PlantStatus.js';
 
 export type PlantProps = {
@@ -19,6 +20,7 @@ export type PlantProps = {
       spread: Range;
     };
     spacingCm: Range;
+    ecological?: PlantEcologicalTraits;
   };
 
   phenology: PlantPhenology;

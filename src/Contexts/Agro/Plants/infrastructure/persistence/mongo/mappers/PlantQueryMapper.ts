@@ -135,6 +135,19 @@ export class PlantQueryMapper {
       setTextCondition(query, 'knowledge.rootSystem.type', filter.rootSystem);
     },
 
+    // Strict: `false` matches only plants marked so, never those without data.
+    (filter, { query }) => {
+      if (filter.edible?.eq !== undefined) {
+        query['traits.ecological.edible'] = filter.edible.eq;
+      }
+    },
+
+    (filter, { query }) => {
+      if (filter.toxic?.eq !== undefined) {
+        query['traits.ecological.toxic'] = filter.toxic.eq;
+      }
+    },
+
     (filter, { query }) => {
       if (filter.status?.eq) {
         query.status = filter.status.eq;

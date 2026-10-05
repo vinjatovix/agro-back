@@ -9,6 +9,17 @@ describe('PlantQueryMapper', () => {
     expect(result).toEqual({});
   });
 
+  it.each([
+    ['edible', true],
+    ['edible', false],
+    ['toxic', true],
+    ['toxic', false]
+  ] as const)('should map %s eq %s to an exact match', (flag, value) => {
+    const result = plantQueryMapper.toMongo({ [flag]: { eq: value } });
+
+    expect(result).toEqual({ [`traits.ecological.${flag}`]: value });
+  });
+
   it('should map family to $in', () => {
     const filter: PlantFilter = {
       family: { eq: 'fam_1' }

@@ -14,6 +14,7 @@ import { plantPersistenceMapper } from '../../../../../../../src/Contexts/Agro/P
 import { PlantFactory } from '../../../domain/mothers/PlantFactory.js';
 import { PlantIdentityBuilder } from '../../../domain/mothers/PlantIdentityBuilder.js';
 import { PlantKnowledgeBuilder } from '../../../domain/mothers/PlantKnowledgeBuilder.js';
+import { PlantTraitsBuilder } from '../../../domain/mothers/PlantTraitsBuilder.js';
 
 // The body sent before the read bypass: the stored document round-tripped
 // through the aggregate. The read view must equal it for every document.
@@ -46,6 +47,10 @@ describe('toPlantReadView', () => {
   describe('matches the aggregate round-trip', () => {
     it.each([
       ['a generic plant', () => PlantFactory.create()],
+      [
+        'a plant with ecological traits',
+        () => PlantFactory.create({ traits: PlantTraitsBuilder.potato() })
+      ],
       ['a random plant', () => PlantFactory.random()],
       ['a tomato', () => PlantFactory.tomato()],
       ['a lettuce', () => PlantFactory.lettuce()],

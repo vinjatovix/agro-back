@@ -27,7 +27,7 @@ export const REQUEST_LIMITS = {
   shortText: 200,
   longText: 2000,
   url: 2048,
-  listItems: 50,
+  listItems: 200,
   recordKeys: 20,
   recordKeyLength: 50
 } as const;
