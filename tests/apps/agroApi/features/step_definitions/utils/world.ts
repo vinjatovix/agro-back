@@ -11,7 +11,8 @@ export type PlaceholderKey =
   | 'familyId'
   | 'familySlug'
   | 'familyName'
-  | 'otherFamilyId';
+  | 'otherFamilyId'
+  | 'cropId';
 
 const PLACEHOLDER_KEYS: readonly PlaceholderKey[] = [
   'bedId',
@@ -19,7 +20,8 @@ const PLACEHOLDER_KEYS: readonly PlaceholderKey[] = [
   'familyId',
   'familySlug',
   'familyName',
-  'otherFamilyId'
+  'otherFamilyId',
+  'cropId'
 ];
 
 /** Scenario context: built fresh by Cucumber for every scenario. */
@@ -30,6 +32,7 @@ export class AgroWorld extends World {
   familySlug?: string;
   familyName?: string;
   otherFamilyId?: string;
+  cropId?: string;
 
   loggedInToken?: string;
   loggedInEmail?: string;

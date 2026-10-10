@@ -36,6 +36,13 @@ Given(
   }
 );
 
+When(
+  'I send a POST {role} request to {string} with body',
+  function (this: AgroWorld, role: Role, route: string, body: string) {
+    prepareRequest(this, { method: 'POST', route, role, body });
+  }
+);
+
 Given(
   'a POST user request to {string} with query {string} and body',
   function (this: AgroWorld, route: string, query: string, body: string) {

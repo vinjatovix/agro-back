@@ -21,6 +21,16 @@ import type {
 import type { MongoFamilyRepository } from '../../../Contexts/Agro/Families/infrastructure/persistence/MongoFamilyRepository.js';
 import type { FamilyPersistenceMapper } from '../../../Contexts/Agro/Families/mappers/interfaces/FamilyPersistenceMapper.js';
 import type {
+  GetPlantInstanceById,
+  ListPlantInstances,
+  PlacePlantInstance,
+  RemovePlantInstance,
+  UpdatePlantInstance
+} from '../../../Contexts/Agro/PlantInstances/application/useCases/index.js';
+import type { CropSpatialService } from '../../../Contexts/Agro/PlantInstances/domain/services/CropSpatialService.js';
+import type { MongoPlantInstanceRepository } from '../../../Contexts/Agro/PlantInstances/infrastructure/persistence/MongoPlantInstanceRepository.js';
+import type { PlantInstancePersistenceMapper } from '../../../Contexts/Agro/PlantInstances/mappers/interfaces/PlantInstancePersistenceMapper.js';
+import type {
   FamilySummaryReader,
   PlantReadRepository
 } from '../../../Contexts/Agro/Plants/application/queries/index.js';
@@ -73,6 +83,13 @@ import type {
 } from '../controllers/Families/index.js';
 import type { HealthController } from '../controllers/health/HealthController.js';
 import type {
+  GetPlantInstanceByIdController,
+  ListPlantInstancesController,
+  PlacePlantInstanceController,
+  RemovePlantInstanceController,
+  UpdatePlantInstanceController
+} from '../controllers/PlantInstances/index.js';
+import type {
   CreatePlantController,
   DeletePlantController,
   GetAllPlantsController,
@@ -89,6 +106,8 @@ export type ContainerCradle = {
   bedPersistenceMapper: BedPersistenceMapper;
   familyPersistenceMapper: FamilyPersistenceMapper;
   plantPersistenceMapper: PlantPersistenceMapper;
+  plantInstancePersistenceMapper: PlantInstancePersistenceMapper;
+  cropSpatialService: CropSpatialService;
   familySummaryReader: FamilySummaryReader;
 
   // Singletons
@@ -101,6 +120,7 @@ export type ContainerCradle = {
   plantRepository: MongoPlantRepository;
   plantReadRepository: PlantReadRepository;
   bedRepository: MongoBedRepository;
+  plantInstanceRepository: MongoPlantInstanceRepository;
   plantQueryMapper: PlantQueryMapper;
 
   // Scoped use cases
@@ -126,6 +146,11 @@ export type ContainerCradle = {
   getBedById: GetBedById;
   updateBed: UpdateBed;
   deleteBed: DeleteBed;
+  placePlantInstance: PlacePlantInstance;
+  getPlantInstanceById: GetPlantInstanceById;
+  listPlantInstances: ListPlantInstances;
+  updatePlantInstance: UpdatePlantInstance;
+  removePlantInstance: RemovePlantInstance;
 
   // Scoped controllers
   healthController: HealthController;
@@ -149,6 +174,11 @@ export type ContainerCradle = {
   getBedByIdController: GetBedByIdController;
   updateBedController: UpdateBedController;
   deleteBedController: DeleteBedController;
+  placePlantInstanceController: PlacePlantInstanceController;
+  getPlantInstanceByIdController: GetPlantInstanceByIdController;
+  listPlantInstancesController: ListPlantInstancesController;
+  updatePlantInstanceController: UpdatePlantInstanceController;
+  removePlantInstanceController: RemovePlantInstanceController;
 };
 
 export type AppContainer = AwilixContainer<ContainerCradle>;

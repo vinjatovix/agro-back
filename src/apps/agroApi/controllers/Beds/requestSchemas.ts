@@ -32,14 +32,18 @@ export const createBedRequest = {
   body: createBedBody
 } satisfies RequestSchemas;
 
+const bedQueryWithInclude = z.object({
+  include: z.enum(['plantInstances']).exactOptional()
+});
+
 export const listBedsRequest = {
-  query: emptyQuery,
+  query: bedQueryWithInclude,
   body: emptyBody
 } satisfies RequestSchemas;
 
 export const getBedByIdRequest = {
   params: bedIdParams,
-  query: emptyQuery,
+  query: bedQueryWithInclude,
   body: emptyBody
 } satisfies RequestSchemas;
 

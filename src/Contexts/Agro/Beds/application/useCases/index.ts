@@ -1,3 +1,4 @@
+export * from './attachCrops.js';
 export * from './CreateBed.js';
 export * from './DeleteBed.js';
 export * from './GetBedById.js';

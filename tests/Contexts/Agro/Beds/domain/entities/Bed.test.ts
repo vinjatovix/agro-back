@@ -1,12 +1,7 @@
 import { randomBedId } from '../../../../../../src/Contexts/Agro/Beds/domain/BedId.js';
 import { BedName } from '../../../../../../src/Contexts/Agro/Beds/domain/BedName.js';
 import { Bed } from '../../../../../../src/Contexts/Agro/Beds/domain/entities/Bed.js';
-import type {
-  SpatialPlantModel,
-  SpatialService
-} from '../../../../../../src/Contexts/Agro/Beds/domain/services/spatial/interfaces/index.js';
 import { bedDomainMapper } from '../../../../../../src/Contexts/Agro/Beds/mappers/bedDomainMapper.js';
-import { randomPlantInstanceId } from '../../../../../../src/Contexts/Agro/PlantInstances/domain/PlantInstanceId.js';
 import { randomUserId } from '../../../../../../src/Contexts/Auth/domain/UserId.js';
 import {
   DomainConflictException,
@@ -14,276 +9,47 @@ import {
 } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { Metadata } from '../../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
 import { PositiveNumber } from '../../../../../../src/Contexts/shared/domain/valueObject/PositiveNumber.js';
-import { PlantInstanceMother } from '../../../PlantInstances/domain/mothers/PlantInstanceMother.js';
 import { BedFactory } from '../mothers/BedFactory.js';
 
 describe('Bed (unit)', () => {
-  let validatePlacement: jest.Mock;
-  let spatialService: SpatialService;
-
   let bed: Bed;
 
   const BED_DIMENSION = 200;
-  const DEFAULT_SPACING = 50;
   const BED_DEPTH = 40;
   const BED_NAME = 'Test Bed';
 
-  const POSITION_A = { x: 10, y: 10 };
-  const POSITION_B = { x: 20, y: 20 };
-  const POSITION_C = { x: 50, y: 50 };
-
-  const toSpatial = (
-    plant: ReturnType<typeof PlantInstanceMother.atPosition>
-  ): SpatialPlantModel => ({
-    id: plant.id,
-    plantId: plant.plantId,
-    position: {
-      x: plant.position.x,
-      y: plant.position.y
-    },
-    spacingCm: DEFAULT_SPACING
-  });
-
-  beforeAll(() => {
-    validatePlacement = jest.fn();
-
-    spatialService = {
-      validatePlacement
-    };
-  });
-
   beforeEach(() => {
-    jest.clearAllMocks();
-
-    bed = new Bed(
-      {
-        id: randomBedId(),
-        userId: randomUserId(),
-        name: new BedName(BED_NAME),
-        width: PositiveNumber.create(BED_DIMENSION),
-        height: PositiveNumber.create(BED_DIMENSION),
-        depth: PositiveNumber.create(BED_DEPTH),
-        plantInstances: [],
-        metadata: Metadata.create('system'),
-        deleted: false
-      },
-      spatialService
-    );
+    bed = new Bed({
+      id: randomBedId(),
+      userId: randomUserId(),
+      name: new BedName(BED_NAME),
+      width: PositiveNumber.create(BED_DIMENSION),
+      height: PositiveNumber.create(BED_DIMENSION),
+      depth: PositiveNumber.create(BED_DEPTH),
+      metadata: Metadata.create('system'),
+      deleted: false
+    });
   });
 
-  it('should expose correct dimensions and id', () => {
+  it('exposes correct dimensions and id', () => {
     expect(bed.id).toBeDefined();
     expect(bed.width.value).toBe(BED_DIMENSION);
     expect(bed.height.value).toBe(BED_DIMENSION);
     expect(bed.depth.value).toBe(BED_DEPTH);
   });
 
-  it('should start with empty plant list', () => {
-    expect(bed.plantInstances).toHaveLength(0);
-  });
-
-  it('should call spatial service before adding plant', () => {
-    const plant = PlantInstanceMother.atPosition(POSITION_A.x, POSITION_A.y);
-
-    const spatial = toSpatial(plant);
-
-    bed.addPlant(plant, spatial, [], 'test-user');
-
-    expect(validatePlacement).toHaveBeenCalledTimes(1);
-
-    expect(validatePlacement).toHaveBeenCalledWith(
-      {
-        width: bed.width,
-        height: bed.height,
-        plants: []
-      },
-      spatial
-    );
-  });
-
-  it('should not mutate state if spatial validation fails', () => {
-    validatePlacement.mockImplementationOnce(() => {
-      throw new Error('invalid');
-    });
-
-    const plant = PlantInstanceMother.atPosition(POSITION_A.x, POSITION_A.y);
-
-    expect(() =>
-      bed.addPlant(plant, toSpatial(plant), [], 'test-user')
-    ).toThrow('invalid');
-
-    expect(bed.plantInstances).toHaveLength(0);
-  });
-
-  it('should add plant when spatial service allows it', () => {
-    const plant = PlantInstanceMother.atPosition(POSITION_C.x, POSITION_C.y);
-
-    bed.addPlant(plant, toSpatial(plant), [], 'test-user');
-
-    expect(bed.plantInstances).toHaveLength(1);
-    expect(bed.plantInstances[0]).toBe(plant);
-  });
-
-  it('should not mutate the plant list it was built from', () => {
-    const plant = PlantInstanceMother.atPosition(POSITION_C.x, POSITION_C.y);
-    const before = bed.plantInstances;
-
-    bed.addPlant(plant, toSpatial(plant), [], 'test-user');
-
-    expect(before).toHaveLength(0);
-    expect(bed.plantInstances).toHaveLength(1);
-  });
-
-  it('should remove plant by id', () => {
-    const plant = PlantInstanceMother.atPosition(POSITION_C.x, POSITION_C.y);
-
-    bed = new Bed(
-      {
-        id: bed.id,
-        userId: randomUserId(),
-        name: new BedName(BED_NAME),
-        width: PositiveNumber.create(BED_DIMENSION),
-        height: PositiveNumber.create(BED_DIMENSION),
-        depth: PositiveNumber.create(BED_DEPTH),
-        plantInstances: [plant],
-        metadata: Metadata.create('system'),
-        deleted: false
-      },
-      spatialService
-    );
-
-    bed.removePlant(plant.id, 'gardener');
-
-    expect(bed.plantInstances).toHaveLength(0);
-  });
-
-  it('should do nothing when removing non-existent plant', () => {
-    bed.removePlant(randomPlantInstanceId(), 'gardener');
-
-    expect(bed.plantInstances).toHaveLength(0);
-  });
-
-  it('should serialize to primitives correctly', () => {
-    const plant = PlantInstanceMother.atPosition(POSITION_C.x, POSITION_C.y);
-
-    bed = new Bed(
-      {
-        id: bed.id,
-        userId: randomUserId(),
-        name: new BedName(BED_NAME),
-        width: PositiveNumber.create(BED_DIMENSION),
-        height: PositiveNumber.create(BED_DIMENSION),
-        depth: PositiveNumber.create(BED_DEPTH),
-        plantInstances: [plant],
-        metadata: Metadata.create('system'),
-        deleted: false
-      },
-      spatialService
-    );
-
-    const result = bedDomainMapper.toPrimitives(bed);
-
-    expect(result).toEqual(
-      expect.objectContaining({
-        id: bed.id,
-        width: BED_DIMENSION,
-        height: BED_DIMENSION,
-        plantInstances: expect.arrayContaining([
-          expect.objectContaining({
-            id: plant.id,
-            plantId: plant.plantId
-          })
-        ]) as unknown[]
-      })
-    );
-  });
-
-  it('should pass plants array to spatial service on add', () => {
-    const plant1 = PlantInstanceMother.atPosition(POSITION_A.x, POSITION_A.y);
-    const plant2 = PlantInstanceMother.atPosition(POSITION_B.x, POSITION_B.y);
-
-    const spatial1 = toSpatial(plant1);
-    const spatial2 = toSpatial(plant2);
-
-    bed.addPlant(plant1, spatial1, [], 'test-user');
-    bed.addPlant(plant2, spatial2, [spatial1], 'test-user');
-
-    expect(validatePlacement).toHaveBeenLastCalledWith(
-      {
-        width: bed.width,
-        height: bed.height,
-        plants: [spatial1]
-      },
-      spatial2
-    );
-  });
-
-  it('should call spatial service before mutating state', () => {
-    const plant = PlantInstanceMother.atPosition(POSITION_A.x, POSITION_A.y);
-
-    let capturedPlants: unknown[] = [];
-
-    validatePlacement.mockImplementation((context: { plants: unknown[] }) => {
-      capturedPlants = context.plants;
-    });
-
-    bed.addPlant(plant, toSpatial(plant), [], 'test-user');
-
-    expect(capturedPlants).toHaveLength(0);
-  });
-
-  it('should start at version 0 when no version is provided', () => {
+  it('starts at version 0 when no version is provided', () => {
     expect(bed.version).toBe(0);
   });
 
-  it('should mark bed as deleted', () => {
-    expect(bed.isDeleted).toBe(false);
-    expect(bed.deletedAt).toBeUndefined();
-
+  it('marks bed as deleted', () => {
     bed.markAsDeleted('test-user');
 
     expect(bed.isDeleted).toBe(true);
     expect(bed.deletedAt).toBeInstanceOf(Date);
   });
 
-  it('should not allow mark as deleted if there are plants in the bed', () => {
-    const plant = PlantInstanceMother.atPosition(POSITION_A.x, POSITION_A.y);
-
-    bed = new Bed(
-      {
-        id: bed.id,
-        userId: randomUserId(),
-        name: new BedName(BED_NAME),
-        width: PositiveNumber.create(BED_DIMENSION),
-        height: PositiveNumber.create(BED_DIMENSION),
-        depth: PositiveNumber.create(BED_DEPTH),
-        plantInstances: [plant],
-        metadata: Metadata.create('system'),
-        deleted: false
-      },
-      spatialService
-    );
-
-    expect(() => bed.markAsDeleted('test-user')).toThrow(
-      DomainConflictException
-    );
-
-    expect(bed.isDeleted).toBe(false);
-  });
-
-  it('should not allow adding plants to deleted bed', () => {
-    const plant = PlantInstanceMother.atPosition(POSITION_A.x, POSITION_A.y);
-
-    bed.markAsDeleted('test-user');
-
-    expect(() =>
-      bed.addPlant(plant, toSpatial(plant), [], 'test-user')
-    ).toThrow(DomainConflictException);
-
-    expect(bed.plantInstances).toHaveLength(0);
-  });
-
-  it('should not allow marking as deleted an already deleted bed', () => {
+  it('throws DomainConflictException when marking an already deleted bed as deleted', () => {
     bed.markAsDeleted('test-user');
 
     expect(() => bed.markAsDeleted('test-user')).toThrow(
@@ -294,6 +60,7 @@ describe('Bed (unit)', () => {
   describe('rename', () => {
     it('changes only name', () => {
       const original = bedDomainMapper.toPrimitives(bed);
+
       bed.rename('New Name', 'test-user');
       const result = bedDomainMapper.toPrimitives(bed);
 
@@ -308,6 +75,7 @@ describe('Bed (unit)', () => {
 
     it('throws DomainConflictException on a soft-deleted bed', () => {
       bed.markAsDeleted('test-user');
+
       expect(() => bed.rename('New Name', 'test-user')).toThrow(
         DomainConflictException
       );
@@ -329,12 +97,11 @@ describe('Bed (unit)', () => {
     );
 
     it.each([[''], ['   ']])(
-      'leaves the bed unchanged when renaming to the blank name %j fails',
+      'leaves the bed unchanged when renaming to blank name %j fails',
       (name) => {
         const original = bedDomainMapper.toPrimitives(bed);
 
         expect(() => bed.rename(name, 'test-user')).toThrow();
-
         expect(bedDomainMapper.toPrimitives(bed)).toEqual(original);
       }
     );
@@ -343,6 +110,7 @@ describe('Bed (unit)', () => {
   describe('resize', () => {
     it('changes only width when given', () => {
       const original = bedDomainMapper.toPrimitives(bed);
+
       bed.resize({ width: 150 }, 'test-user');
       const result = bedDomainMapper.toPrimitives(bed);
 
@@ -362,20 +130,23 @@ describe('Bed (unit)', () => {
 
     it('throws InvalidArgumentException naming field for zero width', () => {
       const before = bedDomainMapper.toPrimitives(bed);
+
       expect(() => bed.resize({ width: 0 }, 'test-user')).toThrow(/width/);
       expect(bedDomainMapper.toPrimitives(bed)).toEqual(before);
     });
 
     it('throws InvalidArgumentException for non-finite value', () => {
       const before = bedDomainMapper.toPrimitives(bed);
+
       expect(() => bed.resize({ width: Number.NaN }, 'test-user')).toThrow(
         InvalidArgumentException
       );
       expect(bedDomainMapper.toPrimitives(bed)).toEqual(before);
     });
 
-    it('is atomic: throws and leaves bed unchanged on invalid combined input', () => {
+    it('is atomic and leaves bed unchanged on invalid combined input', () => {
       const before = bedDomainMapper.toPrimitives(bed);
+
       expect(() =>
         bed.resize({ width: 300, height: -1 }, 'test-user')
       ).toThrow();
@@ -384,13 +155,15 @@ describe('Bed (unit)', () => {
 
     it('throws DomainConflictException on a soft-deleted bed', () => {
       bed.markAsDeleted('test-user');
+
       expect(() => bed.resize({ width: 150 }, 'test-user')).toThrow(
         DomainConflictException
       );
     });
 
-    it('does not modify id, userId, version, metadata, or plantInstances', () => {
+    it('does not modify id, userId, version, or metadata', () => {
       const original = bedDomainMapper.toPrimitives(bed);
+
       bed.resize({ width: 150 }, 'test-user');
       const result = bedDomainMapper.toPrimitives(bed);
 
@@ -404,6 +177,7 @@ describe('Bed (unit)', () => {
     it('rename does not modify a deleted bed', () => {
       const deletedBed = BedFactory.randomDeleted();
       const before = bedDomainMapper.toPrimitives(deletedBed);
+
       expect(() => deletedBed.rename('Changed', 'test-user')).toThrow(
         DomainConflictException
       );
@@ -416,25 +190,21 @@ describe('Bed (unit)', () => {
     let audited: Bed;
 
     beforeEach(() => {
-      audited = new Bed(
-        {
-          id: randomBedId(),
-          userId: randomUserId(),
-          name: new BedName(BED_NAME),
-          width: PositiveNumber.create(BED_DIMENSION),
-          height: PositiveNumber.create(BED_DIMENSION),
-          depth: PositiveNumber.create(BED_DEPTH),
-          plantInstances: [],
-          metadata: Metadata.fromPrimitives({
-            createdAt: OLD,
-            createdBy: 'creator',
-            updatedAt: OLD,
-            updatedBy: 'creator'
-          }),
-          deleted: false
-        },
-        spatialService
-      );
+      audited = new Bed({
+        id: randomBedId(),
+        userId: randomUserId(),
+        name: new BedName(BED_NAME),
+        width: PositiveNumber.create(BED_DIMENSION),
+        height: PositiveNumber.create(BED_DIMENSION),
+        depth: PositiveNumber.create(BED_DEPTH),
+        metadata: Metadata.fromPrimitives({
+          createdAt: OLD,
+          createdBy: 'creator',
+          updatedAt: OLD,
+          updatedBy: 'creator'
+        }),
+        deleted: false
+      });
     });
 
     const expectAuditedBy = (user: string): void => {
@@ -507,41 +277,6 @@ describe('Bed (unit)', () => {
 
       expectAuditedBy('deleter');
       expect(audited.metadata.updatedAt).toBe(audited.deletedAt);
-    });
-
-    it('markAsDeleted on a bed with plants leaves metadata untouched', () => {
-      const withPlants = BedFactory.random();
-      const metadata = withPlants.metadata;
-
-      expect(() => withPlants.markAsDeleted('deleter')).toThrow(
-        DomainConflictException
-      );
-      expect(withPlants.metadata).toBe(metadata);
-    });
-
-    it('addPlant refreshes audit data', () => {
-      const plant = PlantInstanceMother.atPosition(POSITION_A.x, POSITION_A.y);
-
-      audited.addPlant(plant, toSpatial(plant), [], 'planter');
-
-      expectAuditedBy('planter');
-    });
-
-    it('removePlant refreshes audit data when a plant is removed', () => {
-      const plant = PlantInstanceMother.atPosition(POSITION_A.x, POSITION_A.y);
-      audited.addPlant(plant, toSpatial(plant), [], 'planter');
-
-      audited.removePlant(plant.id, 'remover');
-
-      expectAuditedBy('remover');
-    });
-
-    it('removePlant of an unknown plant leaves metadata untouched', () => {
-      const metadata = audited.metadata;
-
-      audited.removePlant(randomPlantInstanceId(), 'remover');
-
-      expect(audited.metadata).toBe(metadata);
     });
   });
 

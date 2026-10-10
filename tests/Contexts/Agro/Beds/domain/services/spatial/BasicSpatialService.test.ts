@@ -1,5 +1,7 @@
 import { BasicSpatialService } from '../../../../../../../src/Contexts/Agro/Beds/domain/services/spatial/BasicSpatialService.js';
 import type { SpatialPlantModel } from '../../../../../../../src/Contexts/Agro/Beds/domain/services/spatial/interfaces/SpatialPlantModel.js';
+import { randomPlantInstanceId } from '../../../../../../../src/Contexts/Agro/PlantInstances/domain/PlantInstanceId.js';
+import { randomPlantId } from '../../../../../../../src/Contexts/Agro/Plants/domain/PlantId.js';
 import { PositiveNumber } from '../../../../../../../src/Contexts/shared/domain/valueObject/PositiveNumber.js';
 import { PlantInstanceMother } from '../../../../PlantInstances/domain/mothers/PlantInstanceMother.js';
 import { convertToSpatialPlant } from '../../../helpers/convertToSpatialPlant.js';
@@ -36,12 +38,12 @@ describe('BasicSpatialService', () => {
     });
 
     it('rejects out of bounds (min limit)', () => {
-      const build = SpatialTestScenarioBuilder.outOfBoundsMin();
-
-      const plant = convertToSpatialPlant(
-        build(PlantInstanceMother, CROP),
-        SPACING_CM
-      );
+      const plant: SpatialPlantModel = {
+        id: randomPlantInstanceId(),
+        plantId: randomPlantId(),
+        position: { x: -1, y: -1 },
+        spacingCm: SPACING_CM
+      };
 
       expect(() => service.validatePlacement(bed, plant)).toThrow(
         'Plant out of bounds (min limit)'

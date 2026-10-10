@@ -451,8 +451,10 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [plant-instance.md](spec/modules/plant-instance.md), [bed.md](spec/modules/bed.md), [modules-map.md](spec/modules/modules-map.md)
 
+- **Status**: Completed
 - **Value delivered**: Resolves database size limits and enables efficient spatial queries by breaking the embedded document anti-pattern.
 - **Definition of Done**: `PlantInstances` are extracted from the `Bed` aggregate into a standalone `plant_instances` collection with its own repository. Crucially, position coordinates are defined as optional/nullable from day one inside schemas, mappers, and domain entities to prevent breaking database changes when implementing Nurseries.
+- **Implementation notes**: The data migration for crops embedded in `beds.plantInstances` was dropped on purpose: when this iteration shipped (2026-10-10) no environment, dev or production, held any bed or crop, so there was nothing to move. Migration `20261005140000-create-plant-instances-collection.js` only creates the collection and its indexes, and the Bed mappers ignore the legacy field.
 - **Dependencies**: Iteration 17.
 - **Risks**: Breaking legacy spatial validation logic during extraction.
 - **Prompt for /speckit.specify**:
@@ -519,10 +521,10 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 **Spec Module(s)**: [bed.md](spec/modules/bed.md), [plant-instance.md](spec/modules/plant-instance.md)
 
 - **Value delivered**: Guarantees atomic spatial placements across decoupled collections.
-- **Definition of Done**: Standalone `PlantInstance` creations and associated `Bed` version increments execute atomically inside a MongoDB `ClientSession`.
+- **Definition of Done**: Standalone `PlantInstance` creations and associated `Bed` version increments execute atomically inside a MongoDB `ClientSession`. Deleting a bed and soft-deleting its active crops run in the same transaction: today `DeleteBed` writes the bed first and the crops second, so an infrastructure failure between them leaves active crops in a deleted bed.
 - **Dependencies**: Iteration 20, Iteration 23.
 - **Risks**: Transactions require MongoDB Replica Sets, which must be perfectly configured in development.
-- **Open question**: placing a crop bumps the `Bed` version through an internal conditional write (like `addPlantToBed` today), and a concurrent change raises `DomainStaleVersionException` (`412`). If the placement endpoint does not require `If-Match`, a `412` answers a precondition the client never sent (RFC 9110 §15.5.13). Decide when specifying this iteration: require `If-Match` with the bed version (like `PUT /beds/:id/layout`), or map internal stale writes to `409`. See persistence.md Sec. 4.3.
+- **Decided in Iteration 20**: placing, moving or removing a crop raises the `Bed` version through an internal conditional write (`BedRepository.conditionalIncrementVersion`). Those endpoints do not take the bed version in `If-Match`, so a concurrent bed change answers `409` (`DomainConflictException`) instead of `412`, which would report a precondition the client never sent (RFC 9110 §15.5.13). The raise runs after every rule has passed; a crop id already taken still fails after it, which this iteration's transaction resolves. See bed.md Sec. 7.2.1.
 - **Prompt for /speckit.specify**:
   ```text
   WRAP CROSS-AGGREGATE MUTATIONS IN ACID TRANSACTIONS

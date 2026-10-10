@@ -69,23 +69,21 @@ To drive the new system roadmap, this section contrasts the current state of eac
 - **Current State in Code:**
   - Logical container representing physical growing boundaries.
   - Holds static physical dimensions (`width`, `height`, `depth`).
-  - **Logical Coupling:** Physically embeds the array of `plantInstances` within its aggregate root (`Bed.ts`) and stores them nested inside the `beds` collection in MongoDB.
-  - Soft-deletion uses a boolean flag (`deleted: boolean`) and timestamp (`deletedAt`). A bed with plants cannot be deleted (`409`).
-  - **Optimistic Concurrency Control (OCC):** An integer `version` is checked and incremented on every update. Over HTTP the client sends it in `If-Match` (read from `ETag`); an outdated version is rejected with `412` and a missing header with `428`. Since plant instances are still embedded, this alone makes placements atomic.
+  - **Decoupled Architecture:** Plant instances are completely detached from `Bed.ts` and stored in their dedicated `plant_instances` collection. Bed read endpoints project crop UUID arrays by default, or embed full crop details when `include=plantInstances` is requested.
+  - Soft-deletion cascades to all active crops in the bed.
+  - **Optimistic Concurrency Control (OCC):** An integer `version` is checked and incremented on every update. Over HTTP the client sends it in `If-Match` (read from `ETag`); an outdated version is rejected with `412` and a missing header with `428`. Adding, moving, or removing crops increments the parent bed version.
 - **Target State (Spec v1.4.0):**
-  - **Decoupled Instances:** Completely detached from individual plant aggregates. Plant instances are persisted in their own independent `plant_instances` collection.
   - **Soft Delete Standardization:** Standardized to lowercase `status: 'active' | 'removed'` with `deletedAt: ISODate | null`.
   - **Resizing Validation Limits:** Modifying physical bed dimensions is validated against active plant instances. Resizing is strictly blocked (throwing a `DomainConflictException`) if any living crop center coordinate falls outside the proposed boundaries.
-  - **Cross-Collection Transactions:** Once plant instances are detached, placements and Bed version increments execute atomically using MongoDB ACID Multi-Document Transactions.
+  - **Cross-Collection Transactions:** Once multi-document transactions are introduced, placements and Bed version increments execute atomically using MongoDB ACID Multi-Document Transactions.
 
 ### B. PlantInstances Module
 
 - **Current State in Code:**
-  - Represented as a domain entity inside the Beds context directory structure (`src/Contexts/Agro/PlantInstances`), but has no application use cases, controllers, database collections, or repository interfaces of its own.
-  - Managed strictly as an embedded array element within the `beds` database collection.
+  - Standalone aggregate root (`PlantInstance`) with its own dedicated MongoDB collection (`plant_instances`) and `PlantInstanceRepository`.
+  - Full CRUD HTTP API at `/api/v1/plant-instances` supporting placement with spatial collision checks (409 on boundary or spacing collision), partial updates, movement, and soft-deletion (`instanceStatus: 'active' | 'removed'`).
+  - Position coordinates are optional to support future nursery establishment.
 - **Target State (Spec v1.4.0):**
-  - **Standalone Bounded Context:** Re-architected as a standalone aggregate root (`PlantInstance`) with its own dedicated MongoDB collection (`plant_instances`) and `PlantInstanceRepository`.
-  - **Soft Delete & Space Liberation:** Standardized to `status: 'active' | 'removed'` with `deletedAt`. Soft-deleted instances are excluded from spatial checks, immediately liberating physical coordinates for subsequent plantings.
   - **Nursery Sowing & Seedbed Lifecycle:** Supports direct sowing vs. nursery trays (`establishment: 'direct' | 'nursery'`). Starter tray instances have null coordinates. Sprouting events update the linked `SeedBatch` germination success logs on-the-fly.
   - **Transplant Workflow:** Seedlings are moved to physical beds via a transplant endpoint, triggering on-the-fly spatial/collision validations and recording a `'transplant'` event.
 

@@ -28,6 +28,14 @@ export class PlantRepositoryMock
     return !plant.isDeleted();
   }
 
+  // Like the Mongo repository: soft-deleted plants are returned too.
+  async findByIds(ids: string[]): Promise<Plant[]> {
+    return ids
+      .map((id) => this.storage.get(id))
+      .filter((p): p is Plant => p !== undefined)
+      .map((p) => this.toDomain(this.toPrimitives(p)));
+  }
+
   async findAll(
     options?: QueryOptions<PlantFilter>
   ): Promise<PaginatedResult<Plant>> {

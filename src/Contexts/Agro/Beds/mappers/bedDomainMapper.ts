@@ -3,7 +3,6 @@ import {
   Metadata,
   PositiveNumber
 } from '../../../shared/domain/valueObject/index.js';
-import { PlantInstance } from '../../PlantInstances/domain/entities/PlantInstance.js';
 import { createBedId } from '../domain/BedId.js';
 import { BedName } from '../domain/BedName.js';
 import { Bed } from '../domain/entities/Bed.js';
@@ -19,7 +18,6 @@ export const bedDomainMapper: BedDomainMapper = {
       width: bed.width.value,
       height: bed.height.value,
       depth: bed.depth.value,
-      plantInstances: bed.plantInstances.map((p) => p.toPrimitives()),
       metadata: bed.metadata.toPrimitives(),
       deleted: bed.isDeleted,
       ...(bed.deletedAt && { deletedAt: bed.deletedAt.toISOString() }),
@@ -35,9 +33,6 @@ export const bedDomainMapper: BedDomainMapper = {
       width: PositiveNumber.create(primitives.width),
       height: PositiveNumber.create(primitives.height),
       depth: PositiveNumber.create(primitives.depth),
-      plantInstances: primitives.plantInstances.map((p) =>
-        PlantInstance.fromPrimitives(p)
-      ),
       deleted: primitives.deleted,
       ...(primitives.deletedAt && {
         deletedAt: new Date(primitives.deletedAt)

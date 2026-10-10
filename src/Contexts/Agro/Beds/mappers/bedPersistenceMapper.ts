@@ -7,7 +7,6 @@ import {
   fromMongoId,
   toMongoId
 } from '../../../shared/infrastructure/persistence/mongo/MongoId.js';
-import { PlantInstance } from '../../PlantInstances/domain/entities/PlantInstance.js';
 import { createBedId } from '../domain/BedId.js';
 import { BedName } from '../domain/BedName.js';
 import { Bed } from '../domain/entities/Bed.js';
@@ -22,9 +21,6 @@ export const bedPersistenceMapper: BedPersistenceMapper = {
       width: PositiveNumber.create(document.width),
       height: PositiveNumber.create(document.height),
       depth: PositiveNumber.create(document.depth),
-      plantInstances: document.plantInstances
-        ? document.plantInstances.map((p) => PlantInstance.fromPrimitives(p))
-        : [],
       metadata: Metadata.fromPrimitives(document.metadata),
       deleted: document.deleted,
       ...(document.deletedAt && { deletedAt: new Date(document.deletedAt) }),
@@ -40,7 +36,6 @@ export const bedPersistenceMapper: BedPersistenceMapper = {
       width: bed.width.value,
       height: bed.height.value,
       depth: bed.depth.value,
-      plantInstances: bed.plantInstances.map((p) => p.toPrimitives()),
       metadata: bed.metadata.toPrimitives(),
       deleted: bed.isDeleted,
       ...(bed.deletedAt && { deletedAt: bed.deletedAt.toISOString() }),

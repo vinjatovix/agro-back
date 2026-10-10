@@ -11,12 +11,15 @@ import {
 } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { Metadata } from '../../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
 import { random } from '../../../../shared/fixtures/random.js';
+import { PlantInstanceRepositoryMock } from '../../../PlantInstances/__mocks__/PlantInstanceRepositoryMock.js';
+import { PlantInstanceMother } from '../../../PlantInstances/domain/mothers/PlantInstanceMother.js';
 import { BedRepositoryMock } from '../../__mocks__/BedRepositoryMock.js';
 import { BedFactory } from '../../domain/mothers/BedFactory.js';
 
 describe('UpdateBed', () => {
   const CURRENT_VERSION = 0;
   let repository: BedRepositoryMock;
+  let plantInstanceRepository: PlantInstanceRepositoryMock;
   let useCase: UpdateBed;
   const USER: UserSessionInfo = {
     username: 'test-user',
@@ -29,7 +32,11 @@ describe('UpdateBed', () => {
   beforeEach(() => {
     repository = new BedRepositoryMock();
     repository.addToStorage(bed);
-    useCase = new UpdateBed({ bedRepository: repository });
+    plantInstanceRepository = new PlantInstanceRepositoryMock();
+    useCase = new UpdateBed({
+      bedRepository: repository,
+      plantInstanceRepository
+    });
   });
 
   it('should throw not found error if bed does not exist', async () => {
@@ -50,7 +57,7 @@ describe('UpdateBed', () => {
   });
 
   it('should confirm a no-op against storage when input has only id', async () => {
-    const result = await useCase.execute({ id: bed.id }, USER, [
+    const { bed: result } = await useCase.execute({ id: bed.id }, USER, [
       CURRENT_VERSION
     ]);
 
@@ -67,7 +74,7 @@ describe('UpdateBed', () => {
       )
       .mockResolvedValueOnce(null);
 
-    const result = await useCase.execute(
+    const { bed: result } = await useCase.execute(
       {
         id: bed.id,
         width: bed.width.value + 50,
@@ -186,7 +193,9 @@ describe('UpdateBed', () => {
       repository.getStored(bed.id)?.version;
 
     it('should update and bump the stored version when expectedVersion matches', async () => {
-      const updated = await useCase.execute(resize(), USER, [bed.version]);
+      const { bed: updated } = await useCase.execute(resize(), USER, [
+        bed.version
+      ]);
 
       expect(updated.width.value).toBe(bed.width.value + 10);
       expect(storedVersion()).toBe(bed.version + 1);
@@ -309,7 +318,7 @@ describe('UpdateBed', () => {
   });
 
   it('should return the updated bed', async () => {
-    const updated = await useCase.execute(
+    const { bed: updated } = await useCase.execute(
       {
         id: bed.id,
         width: bed.width.value + 50,
@@ -340,7 +349,7 @@ describe('UpdateBed', () => {
     });
     repository.addToStorage(stored);
 
-    const updated = await useCase.execute(
+    const { bed: updated } = await useCase.execute(
       { id: stored.id, name: 'Renamed' },
       editor,
       [stored.version]
@@ -360,6 +369,22 @@ describe('UpdateBed', () => {
     repository.assertUpdateCalledTimes(1);
   });
 
+  it('should return the active crop ids of the updated bed', async () => {
+    const crop = PlantInstanceMother.create({
+      userId: createUserId(USER.id),
+      bedId: bed.id
+    });
+    plantInstanceRepository.addToStorage(crop);
+
+    const { cropIds } = await useCase.execute(
+      { id: bed.id, name: 'Renamed' },
+      USER,
+      [CURRENT_VERSION]
+    );
+
+    expect(cropIds).toEqual([crop.id]);
+  });
+
   it('should stamp every change of one request with the same time', async () => {
     const loaded = bedDomainMapper.fromPrimitives(
       bedDomainMapper.toPrimitives(bed)
@@ -368,7 +393,7 @@ describe('UpdateBed', () => {
     const rename = jest.spyOn(loaded, 'rename');
     const resize = jest.spyOn(loaded, 'resize');
 
-    const updated = await useCase.execute(
+    const { bed: updated } = await useCase.execute(
       { id: bed.id, name: 'Renamed', width: bed.width.value + 10 },
       USER,
       [CURRENT_VERSION]
@@ -396,7 +421,7 @@ describe('UpdateBed', () => {
     const storedBed = () => repository.getStored(bed.id);
 
     it('should rename only, trimming the name, and bump the version', async () => {
-      const updated = await useCase.execute(
+      const { bed: updated } = await useCase.execute(
         { id: bed.id, name: '  Raised bed  ' },
         USER,
         [bed.version]
@@ -408,7 +433,7 @@ describe('UpdateBed', () => {
     });
 
     it('should change only the depth', async () => {
-      const updated = await useCase.execute(
+      const { bed: updated } = await useCase.execute(
         { id: bed.id, depth: bed.depth.value + 5 },
         USER,
         [bed.version]
@@ -429,7 +454,9 @@ describe('UpdateBed', () => {
       const rename = jest.spyOn(loaded, 'rename');
       const resize = jest.spyOn(loaded, 'resize');
 
-      const result = await useCase.execute({ id: bed.id }, USER, [bed.version]);
+      const { bed: result } = await useCase.execute({ id: bed.id }, USER, [
+        bed.version
+      ]);
 
       expect(rename).not.toHaveBeenCalled();
       expect(resize).not.toHaveBeenCalled();
@@ -441,7 +468,7 @@ describe('UpdateBed', () => {
 
   describe('expected version lists', () => {
     it('should proceed when the list contains the current version', async () => {
-      const updated = await useCase.execute(
+      const { bed: updated } = await useCase.execute(
         { id: bed.id, name: 'Listed' },
         USER,
         [bed.version + 5, bed.version]

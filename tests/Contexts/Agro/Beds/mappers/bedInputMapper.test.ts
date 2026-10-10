@@ -22,7 +22,6 @@ describe('bedInputMapper', () => {
       expect(bed.depth.value).toBe(input.depth);
       expect(bed.isDeleted).toBe(false);
       expect(bed.deletedAt).toBeUndefined();
-      expect(bed.plantInstances).toEqual([]);
       expect(bed.metadata.createdBy).toBe('tester');
     });
 

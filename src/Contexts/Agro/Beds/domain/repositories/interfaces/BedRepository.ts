@@ -9,6 +9,10 @@ import type { BedPrimitives } from '../../entities/types/BedPrimitives.js';
 export interface BedRepository {
   findById(id: string): Promise<Nullable<Bed>>;
   findOwnedActiveById(id: string, userId: string): Promise<Nullable<Bed>>;
+  conditionalIncrementVersion(
+    id: string,
+    expectedVersion: number
+  ): Promise<void>;
   save(bed: Bed): Promise<void>;
   /**
    * Receives two complete states of the same aggregate, both produced by the
