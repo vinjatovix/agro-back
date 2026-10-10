@@ -2459,7 +2459,8 @@ components:
           allOf:
             - $ref: '#/components/schemas/Coordinates'
         growthStatus:
-          $ref: '#/components/schemas/CropGrowthStatus'
+          allOf:
+            - $ref: '#/components/schemas/CropGrowthStatus'
           default: planted
         plantedAt:
           type: string
