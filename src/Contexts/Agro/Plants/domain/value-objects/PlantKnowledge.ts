@@ -50,7 +50,7 @@ export class PlantKnowledge {
   private static withRequiredTexts(
     props: PlantKnowledgeProps
   ): PlantKnowledgeProps {
-    const { watering, light, pruning, resources } = props;
+    const { watering, light, pruning } = props;
     return {
       ...props,
       ...(watering !== undefined && {
@@ -76,12 +76,6 @@ export class PlantKnowledge {
             entry.intensity,
             `knowledge.pruning.${index}.intensity`
           )
-        }))
-      }),
-      ...(resources !== undefined && {
-        resources: resources.map((resource, index) => ({
-          ...resource,
-          type: requiredText(resource.type, `knowledge.resources.${index}.type`)
         }))
       })
     };

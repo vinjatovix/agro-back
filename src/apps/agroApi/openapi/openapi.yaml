@@ -2341,7 +2341,7 @@ components:
       required: [type, url]
       properties:
         type:
-          $ref: '#/components/schemas/RequiredShortText'
+          $ref: '#/components/schemas/PlantResourceType'
         url:
           type: string
           format: uri
@@ -2354,6 +2354,13 @@ components:
           $ref: '#/components/schemas/ShortText'
         tags:
           $ref: '#/components/schemas/ShortTextList'
+
+    PlantResourceType:
+      description: >
+        Kind of resource; exact lowercase values (`Image` → 400). Every plant
+        keeps at least one `image`.
+      type: string
+      enum: [image, article, video]
 
     PlantImage:
       description: >

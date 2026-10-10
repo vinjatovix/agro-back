@@ -12,6 +12,7 @@ export * from './PlantLightPrimitives.js';
 export * from './PlantPrimitives.js';
 export * from './PlantPropagationPrimitives.js';
 export * from './PlantProps.js';
+export * from './PlantResourceType.js';
 export * from './PlantStatus.js';
 export * from './PollinationType.js';
 export * from './PruningPrimitves.js';
