@@ -94,6 +94,7 @@ For detailed descriptions and concrete examples of the query string transport pa
 The route query schemas decode `fields[<type>]` and `include` into typed `QueryOptions` (Query DSL Contract §7). Along the catalog read path:
 
 - the read repository narrows its inclusion projection to `_id` plus the requested fields, and per-field mappers apply the same defaults as the full view;
+- the derived plant field `image` ([Iteration 19b](../../roadmap.md#iteration-19b-expose-primary-plant-image-as-a-first-level-field)) is a computed projection key, the first `knowledge.resources` entry of type `image` (`$first` of `$filter`, `limit: 1`), used whether or not `knowledge` is selected; its mapper keeps `url`, `title` and `source` (persistence.md §5.8.8). Write responses (`POST`, `PATCH`) add it through `toPlantResponse`, from `PlantKnowledge.primaryImage()`;
 - `include=family` on plants is resolved by `ListPlants` / `GetPlant` through the Plants-owned `FamilySummaryReader` port (served by the family read repository, registered as `familySummaryReader`): one `$in` read per page; a family that is not found keeps the plain id; skipped when the fieldset leaves out `identity`;
 - the controller checks a tailored body with `schema.pick({ id, ...requested })`, so each sent field keeps its contract shape;
 - `ETag` (and so `304`) is sent only when the read uses neither parameter (`isFullRepresentation`).

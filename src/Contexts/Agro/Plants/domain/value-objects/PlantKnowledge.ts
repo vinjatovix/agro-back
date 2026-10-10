@@ -9,6 +9,7 @@ import type {
 } from '../../../../../shared/domain/value-objects/interfaces/index.js';
 import { Range } from '../../../../../shared/domain/value-objects/Range.js';
 import { InvalidArgumentException } from '../../../../shared/domain/errors/index.js';
+import type { PlantImagePrimitives } from '../entities/types/PlantImagePrimitives.js';
 import type {
   PlantKnowledgeChanges,
   PropagationMethodChanges
@@ -170,6 +171,24 @@ export class PlantKnowledge {
 
   get rootSystem() {
     return this.props.rootSystem;
+  }
+
+  /**
+   * The primary image is the first entry of `resources` whose `type` is
+   * exactly `image`, in stored order; `null` when there is none. The read
+   * side computes the same rule in its MongoDB projection.
+   */
+  primaryImage(): PlantImagePrimitives | null {
+    const image = this.props.resources?.find(
+      (resource) => resource.type === 'image'
+    );
+    if (image === undefined) return null;
+
+    return {
+      url: image.url,
+      ...(image.title !== undefined && { title: image.title }),
+      ...(image.source !== undefined && { source: image.source })
+    };
   }
 
   private serializeWatering(): PlantKnowledgePrimitives['watering'] {

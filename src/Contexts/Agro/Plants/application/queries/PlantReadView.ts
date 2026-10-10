@@ -1,12 +1,18 @@
 import type { MetadataPrimitives } from '../../../../shared/domain/MetadataPrimitives.js';
-import type { IdentityPrimitives } from '../../domain/entities/types/IdentityPrimitives.js';
-import type { PlantKnowledgePrimitives } from '../../domain/entities/types/PlantKnowledgePrimitives.js';
-import type { PlantPrimitives } from '../../domain/entities/types/PlantPrimitives.js';
-import type { PlantStatus } from '../../domain/entities/types/PlantStatus.js';
+import type {
+  IdentityPrimitives,
+  PlantImagePrimitives,
+  PlantKnowledgePrimitives,
+  PlantPrimitives,
+  PlantStatus
+} from '../../domain/entities/types/index.js';
 import type { FamilySummaryView } from './FamilySummaryReader.js';
 
 /** The plain family id, or its summary when the family is included. */
 export type PlantFamilyView = string | FamilySummaryView;
+
+/** The plant's primary picture: `url`, plus `title`/`source` when stored. */
+export type PlantImageView = Readonly<PlantImagePrimitives>;
 
 /**
  * A plant as the catalog read path returns it: plain stored data shaped like
@@ -23,6 +29,12 @@ export type PlantReadView = {
   readonly traits: PlantPrimitives['traits'];
   readonly phenology: PlantPrimitives['phenology'];
   readonly knowledge: PlantKnowledgePrimitives;
+  /**
+   * First `knowledge.resources` image; never stored. Every plant has one, so
+   * `null` only comes from stored data that breaks that rule, which the
+   * response check rejects.
+   */
+  readonly image: PlantImageView | null;
   readonly metadata: MetadataPrimitives;
   /** `ACTIVE` or `DELETED`. */
   readonly status: `${PlantStatus}`;
@@ -36,6 +48,7 @@ export const PLANT_FIELDS = [
   'traits',
   'phenology',
   'knowledge',
+  'image',
   'metadata',
   'status',
   'deletedAt',

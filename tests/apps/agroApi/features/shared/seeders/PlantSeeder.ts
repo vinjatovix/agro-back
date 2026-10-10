@@ -47,7 +47,9 @@ export const PlantSeeder = (httpServer: Server, token: string) => {
             availableDepthCm: { min: 20, max: 40 }
           },
           light: { hoursMin: 6, type: 'full_sun' },
-          propagation: { methods: {} }
+          propagation: { methods: {} },
+          // Every plant has an image resource.
+          resources: [{ type: 'image', url: 'https://example.org/plant.jpg' }]
         }
       };
       const patch = buildPatch(overrides);

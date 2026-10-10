@@ -135,7 +135,7 @@ Feature: Get Plant
   Scenario: Get a plant with every field listed
     Given a family exists
     And a plant exists
-    When I send a GET request to "/api/v1/plants/<plantId>?fields[plants]=id,identity,traits,phenology,knowledge,metadata,status,deletedAt,version"
+    When I send a GET request to "/api/v1/plants/<plantId>?fields[plants]=id,identity,traits,phenology,knowledge,image,metadata,status,deletedAt,version"
     Then the response status code should be 200
     And a GET user request to "/api/v1/plants/<plantId>" should return the same body
     And the response should not have an ETag
@@ -149,6 +149,55 @@ Feature: Get Plant
     Then the response status code should be 200
     And the response body should hold exactly the fields "id,identity"
     And the response should not have an ETag
+    And response matches OpenAPI contract
+
+  Scenario: A full read sends the first image resource with the knowledge
+    Given a family exists
+    And a plant exists with the resources:
+      | type  | url                            | title  | source    |
+      | video | https://example.org/sowing.mp4 | Sow    |           |
+      | image | https://example.org/first.jpg  | First  | Wikimedia |
+      | image | https://example.org/second.jpg | Second |           |
+    When I get the plant
+    Then the response status code should be 200
+    And the plant image should be:
+      | url                           | title | source    |
+      | https://example.org/first.jpg | First | Wikimedia |
+    And the response body should contain
+      """
+      { "knowledge": { "resources": [{ "type": "video" }] } }
+      """
+    And the response ETag should match the body version
+    And response matches OpenAPI contract
+
+  Scenario: The image fieldset sends the same image without the knowledge
+    Given a family exists
+    And a plant exists with the resources:
+      | type  | url                            | title  |
+      | video | https://example.org/sowing.mp4 | Sow    |
+      | image | https://example.org/first.jpg  | First  |
+      | image | https://example.org/second.jpg | Second |
+    And I use If-None-Match '"0"'
+    When I send a GET user request to "/api/v1/plants/<plantId>?fields[plants]=image"
+    Then the response status code should be 200
+    And the response body should hold exactly the fields "id,image"
+    And the plant image should be:
+      | url                           | title |
+      | https://example.org/first.jpg | First |
+    And the response should not have an ETag
+    And response matches OpenAPI contract
+
+  Scenario: Knowledge and image can be read together
+    Given a family exists
+    And a plant exists with the resources:
+      | type  | url                           |
+      | image | https://example.org/first.jpg |
+    When I send a GET request to "/api/v1/plants/<plantId>?fields[plants]=knowledge,image"
+    Then the response status code should be 200
+    And the response body should hold exactly the fields "id,knowledge,image"
+    And the plant image should be:
+      | url                           |
+      | https://example.org/first.jpg |
     And response matches OpenAPI contract
 
   Scenario: Get a plant with its family

@@ -1,5 +1,6 @@
 import { randomFamilyId } from '../../../../../../src/Contexts/Agro/Families/domain/FamilyId.js';
 import { Plant } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/Plant.js';
+import type { PlantKnowledgeChanges } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantKnowledgeChanges.js';
 import type { PlantPhenologyChanges } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantPhenologyChanges.js';
 import { PlantStatus } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantStatus.js';
 import { PollinationType } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PollinationType.js';
@@ -10,7 +11,6 @@ import {
   PlantPhenology,
   PlantSowing
 } from '../../../../../../src/Contexts/Agro/Plants/domain/value-objects/index.js';
-import { PlantKnowledge } from '../../../../../../src/Contexts/Agro/Plants/domain/value-objects/PlantKnowledge.js';
 import { PlantLifecycle } from '../../../../../../src/Contexts/Agro/Plants/domain/value-objects/PlantLifecycle.js';
 import { plantDomainMapper } from '../../../../../../src/Contexts/Agro/Plants/mappers/plantDomainMapper.js';
 import {
@@ -26,7 +26,17 @@ import {
   SOLANACEAE_FAMILY_ID
 } from '../mothers/PlantIdentityBuilder.js';
 import { PlantKnowledgeBuilder } from '../mothers/PlantKnowledgeBuilder.js';
+import { PlantResourceBuilder } from '../mothers/PlantResourceBuilder.js';
 import { PlantTraitsBuilder } from '../mothers/PlantTraitsBuilder.js';
+
+const captureError = (run: () => void): unknown => {
+  try {
+    run();
+  } catch (error) {
+    return error;
+  }
+  return undefined;
+};
 
 const buildPlant = (version?: number) => {
   return new Plant({
@@ -55,7 +65,7 @@ const buildPlant = (version?: number) => {
       flowering: new PlantFlowering({ months: new MonthSet([6, 7]) }),
       harvest: new PlantHarvest({ months: new MonthSet([8, 9]) })
     }),
-    knowledge: PlantKnowledge.empty(),
+    knowledge: PlantKnowledgeBuilder.minimal(),
     metadata: Metadata.create('system'),
     status: PlantStatus.ACTIVE
   });
@@ -137,7 +147,7 @@ describe('Plant (aggregate root)', () => {
         spacingCm: Range.single(15)
       },
       phenology: buildPlant().phenology,
-      knowledge: PlantKnowledge.empty(),
+      knowledge: PlantKnowledgeBuilder.minimal(),
       metadata: Metadata.create('system')
     });
 
@@ -174,7 +184,7 @@ describe('Plant (aggregate root)', () => {
             spacingCm: Range.single(15)
           },
           phenology: buildPlant().phenology,
-          knowledge: PlantKnowledge.empty(),
+          knowledge: PlantKnowledgeBuilder.minimal(),
           metadata: Metadata.create('system'),
           status: PlantStatus.ACTIVE,
           deletedAt
@@ -205,7 +215,7 @@ describe('Plant (aggregate root)', () => {
           spacingCm: Range.single(15)
         },
         phenology: buildPlant().phenology,
-        knowledge: PlantKnowledge.empty(),
+        knowledge: PlantKnowledgeBuilder.minimal(),
         metadata: Metadata.create('system'),
         status: PlantStatus.DELETED
       });
@@ -845,6 +855,60 @@ describe('Plant mutation methods', () => {
         plant.updateKnowledge({ notes: ['note'] }, 'test-user')
       ).toThrow(DomainConflictException);
     });
+
+    it.each<[string, () => PlantKnowledgeChanges]>([
+      ['removes the resources', () => ({ resources: null })],
+      [
+        'leaves no image resource',
+        () => ({ resources: [PlantResourceBuilder.article()] })
+      ]
+    ])(
+      'should reject a change that %s, keeping the plant',
+      (_case, changes) => {
+        const plant = PlantFactory.create();
+        const before = plantDomainMapper.toPrimitives(plant);
+
+        const error = captureError(() =>
+          plant.updateKnowledge(changes(), 'test-user')
+        );
+
+        expect(error).toBeInstanceOf(InvalidArgumentException);
+        expect((error as InvalidArgumentException).errors).toHaveProperty([
+          'knowledge.resources'
+        ]);
+        expect(plantDomainMapper.toPrimitives(plant)).toEqual(before);
+      }
+    );
+
+    it('should take the new first image after a reorder', () => {
+      const first = PlantResourceBuilder.image();
+      const second = PlantResourceBuilder.image();
+      const plant = PlantFactory.create({
+        knowledge: PlantKnowledgeBuilder.withResources([first, second])
+      });
+
+      plant.updateKnowledge({ resources: [second, first] }, 'test-user');
+
+      expect(plant.primaryImage().url).toBe(second.url);
+    });
+  });
+});
+
+describe('Plant image rule', () => {
+  it.each([
+    ['no resources', () => PlantKnowledgeBuilder.empty()],
+    [
+      'no image resource',
+      () =>
+        PlantKnowledgeBuilder.withResources([
+          PlantResourceBuilder.video(),
+          PlantResourceBuilder.article()
+        ])
+    ]
+  ])('rejects a plant with %s', (_case, knowledge) => {
+    expect(() => PlantFactory.create({ knowledge: knowledge() })).toThrow(
+      InvalidArgumentException
+    );
   });
 });
 

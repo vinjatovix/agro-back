@@ -21,12 +21,15 @@ export type PlantKnowledgePrimitives = {
   ecology?: {
     strategicBenefits?: string[];
   };
-  resources?: Array<{
-    type: 'image' | 'article' | 'video' | (string & {});
-    url: string;
-    title?: string;
-    source?: string;
-    tags?: string[];
-  }>;
+  resources?: Array<PlantResourcePrimitives>;
   notes?: string[];
+};
+
+/** A `knowledge.resources` entry: rich media or an article attachment. */
+export type PlantResourcePrimitives = {
+  type: 'image' | 'article' | 'video' | (string & {});
+  url: string;
+  title?: string;
+  source?: string;
+  tags?: string[];
 };

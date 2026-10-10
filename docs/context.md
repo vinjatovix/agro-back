@@ -25,7 +25,7 @@ The technical stack is strictly versioned and configured for high-performance, t
 - **Dependency Injection (DI):** Awilix v13.0.5 and Awilix-Express v11.0.1 (scoped container-per-request).
 - **Database / Persistence:** MongoDB native driver v7.5.0 (binary UUID keys), pinned to `~7.5.0`: from v7.6.0 the driver loads `os` via dynamic `import()`, which fails inside Jest and breaks the connection handshake (upstream bug NODE-7832). Remove the pin once a release ships the fix.
 - **Logging & Diagnostics:** Winston v3.19.0.
-- **Testing Ecosystem:** Jest v30.5.2 (`ts-jest` v29.4.14), Cucumber v13.2.1 (BDD features), Supertest v7.3.0, `pure-openapi-assert` v1.0.3 (OpenAPI contract assertions). Coverage comes from `jest --coverage` (`coverage/lcov.info`, consumed by SonarCloud). ESM-only dependencies (currently `uuid`) are transpiled for Jest via `transformIgnorePatterns` in `jest.config.ts`.
+- **Testing Ecosystem:** Jest v30.5.2 (`ts-jest` v29.4.14), Cucumber v13.2.1 (BDD features), Supertest v7.3.0, `pure-openapi-assert` v2.0.0 (OpenAPI contract assertions; strict OpenAPI 3.0.3 `nullable`, `$ref` siblings ignored). Coverage comes from `jest --coverage` (`coverage/lcov.info`, consumed by SonarCloud). ESM-only dependencies (currently `uuid`) are transpiled for Jest via `transformIgnorePatterns` in `jest.config.ts`.
 - **Boundary Security:** Helmet v8.3.0, Cors v2.8.6, Express-Rate-Limit v8.7.0, BcryptJS v3.0.3, Google-Auth-Library v11.1.0, JSONWebToken v9.0.3.
 - **Utilities:** `uuid` v14.0.2 (UUIDv7 IDs), `js-yaml` v5.4.2 (OpenAPI spec loading), `dotenv` v18.0.4, `env-var` v7.5.0.
 

@@ -108,6 +108,70 @@ Feature: Update a plant
     Then the response status code should be 400
     And response matches OpenAPI contract
 
+  Scenario: Fail to update a plant with the read-only image
+    Given a family exists
+    And a plant exists with the resources:
+      | type  | url                           |
+      | image | https://example.org/first.jpg |
+    And I record the current plant
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "image": { "url": "https://example.org/other.jpg" }
+      }
+      """
+    Then the response status code should be 400
+    And the response errors should include "image"
+    And the plant should be unchanged
+    And response matches OpenAPI contract
+
+  Scenario Outline: Fail to update a plant so it is left without an image (<case>)
+    Given a family exists
+    And a plant exists with the resources:
+      | type  | url                           |
+      | image | https://example.org/first.jpg |
+    And I record the current plant
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      { "knowledge": { "resources": <resources> } }
+      """
+    Then the response status code should be 400
+    And the response errors should include "knowledge.resources"
+    And the plant should be unchanged
+    And response matches OpenAPI contract
+
+    Examples:
+      | case                | resources                                                  |
+      | resources removed   | null                                                       |
+      | no image left       | [{ "type": "article", "url": "https://example.org/guide" }] |
+      | empty resource list | []                                                         |
+
+  Scenario: Reordering the image resources changes the image
+    Given a family exists
+    And a plant exists with the resources:
+      | type  | url                            | title  |
+      | image | https://example.org/first.jpg  | First  |
+      | image | https://example.org/second.jpg | Second |
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "knowledge": {
+          "resources": [
+            { "type": "image", "url": "https://example.org/second.jpg", "title": "Second" },
+            { "type": "image", "url": "https://example.org/first.jpg", "title": "First" }
+          ]
+        }
+      }
+      """
+    Then the response status code should be 200
+    And the plant image should be:
+      | url                            | title  |
+      | https://example.org/second.jpg | Second |
+    And response matches OpenAPI contract
+
   Scenario: Fail to update with an id in the body
     Given a family exists
     And a plant exists

@@ -1,4 +1,6 @@
 import { Range } from '../../../../shared/domain/value-objects/Range.js';
+import { createError } from '../../../../shared/errors/index.js';
+import { DomainException } from '../../../shared/domain/errors/index.js';
 import { Metadata } from '../../../shared/domain/valueObject/Metadata.js';
 import {
   fromMongoId,
@@ -20,44 +22,65 @@ import type { MongoPlantDocument } from '../infrastructure/persistence/types/Mon
 import type { PlantPersistenceMapper } from './interfaces/PlantPersistenceMapper.js';
 import { plantKnowledgeMapper } from './plantKnowledgeMapper.js';
 
-export const plantPersistenceMapper: PlantPersistenceMapper = {
-  fromMongoDocument: function (document: MongoPlantDocument): Plant {
-    const phenology = PlantPhenology.fromPrimitives(document.phenology);
+const mapKnowledge = (
+  knowledge?: PlantKnowledgePrimitives | null
+): PlantKnowledge => {
+  if (!knowledge || Object.keys(knowledge).length === 0) {
+    return PlantKnowledge.empty();
+  }
 
-    const props: PlantProps = {
-      id: createPlantId(fromMongoId(document._id)),
-      identity: PlantIdentity.fromPrimitives(document.identity),
-      traits: {
-        lifecycle: PlantLifecycle.from(document.traits.lifecycle),
-        size: {
-          height: Range.fromPrimitives(document.traits.size.height),
-          spread: Range.fromPrimitives(document.traits.size.spread)
-        },
-        spacingCm: Range.fromPrimitives(document.traits.spacingCm),
-        ...(document.traits.ecological && {
-          ecological: document.traits.ecological
-        })
+  return plantKnowledgeMapper.fromPrimitives(knowledge);
+};
+
+const toPlant = (document: MongoPlantDocument): Plant => {
+  const phenology = PlantPhenology.fromPrimitives(document.phenology);
+
+  const props: PlantProps = {
+    id: createPlantId(fromMongoId(document._id)),
+    identity: PlantIdentity.fromPrimitives(document.identity),
+    traits: {
+      lifecycle: PlantLifecycle.from(document.traits.lifecycle),
+      size: {
+        height: Range.fromPrimitives(document.traits.size.height),
+        spread: Range.fromPrimitives(document.traits.size.spread)
       },
-      phenology,
-      knowledge: this.mapKnowledge(document.knowledge),
-      metadata: Metadata.fromPrimitives(document.metadata),
-      status: document.status,
-      version: document.version
-    };
+      spacingCm: Range.fromPrimitives(document.traits.spacingCm),
+      ...(document.traits.ecological && {
+        ecological: document.traits.ecological
+      })
+    },
+    phenology,
+    knowledge: mapKnowledge(document.knowledge),
+    metadata: Metadata.fromPrimitives(document.metadata),
+    status: document.status,
+    version: document.version
+  };
 
-    if (document.deletedAt) {
-      props.deletedAt = new Date(document.deletedAt);
+  if (document.deletedAt) {
+    props.deletedAt = new Date(document.deletedAt);
+  }
+
+  return new Plant(props);
+};
+
+export const plantPersistenceMapper: PlantPersistenceMapper = {
+  /**
+   * A stored plant that breaks a domain rule is a server fault, not a client
+   * one: it fails as a `500` instead of the rule's own `400`, whatever request
+   * loaded it (a crop placed next to it, a delete...).
+   */
+  fromMongoDocument: function (document: MongoPlantDocument): Plant {
+    try {
+      return toPlant(document);
+    } catch (error) {
+      if (!(error instanceof DomainException)) throw error;
+
+      throw createError.internal(
+        `Stored plant ${fromMongoId(document._id)} breaks a domain rule: ${error.message}`
+      );
     }
-
-    return new Plant(props);
   },
-  mapKnowledge(knowledge?: PlantKnowledgePrimitives | null): PlantKnowledge {
-    if (!knowledge || Object.keys(knowledge).length === 0) {
-      return PlantKnowledge.empty();
-    }
-
-    return plantKnowledgeMapper.fromPrimitives(knowledge);
-  },
+  mapKnowledge,
   toMongoDocument: function (plant: Plant): MongoPlantDocument {
     const phenology = plant.phenology.toPrimitives();
 

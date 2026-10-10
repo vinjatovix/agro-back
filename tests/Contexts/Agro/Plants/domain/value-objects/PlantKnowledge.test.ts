@@ -5,6 +5,7 @@ import { PlantKnowledge } from '../../../../../../src/Contexts/Agro/Plants/domai
 import { plantKnowledgeMapper } from '../../../../../../src/Contexts/Agro/Plants/mappers/plantKnowledgeMapper.js';
 import { InvalidArgumentException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { PlantKnowledgeBuilder } from '../mothers/PlantKnowledgeBuilder.js';
+import { PlantResourceBuilder } from '../mothers/PlantResourceBuilder.js';
 
 describe('PlantKnowledge', () => {
   const mockProps = {
@@ -257,6 +258,62 @@ describe('PlantKnowledge', () => {
 
       expect(knowledge.ecology).toBeUndefined();
       expect(knowledge.toPrimitives()).not.toHaveProperty('ecology');
+    });
+  });
+
+  describe('primaryImage', () => {
+    it('should return the first image resource in stored order', () => {
+      const first = PlantResourceBuilder.image();
+      const knowledge = PlantKnowledgeBuilder.withResources([
+        PlantResourceBuilder.video(),
+        first,
+        PlantResourceBuilder.image()
+      ]);
+
+      expect(knowledge.primaryImage()).toEqual({
+        url: first.url,
+        title: first.title,
+        source: first.source
+      });
+    });
+
+    it('should be null when no resource is an image', () => {
+      const knowledge = PlantKnowledgeBuilder.withResources([
+        PlantResourceBuilder.video(),
+        PlantResourceBuilder.article()
+      ]);
+
+      expect(knowledge.primaryImage()).toBeNull();
+    });
+
+    it('should be null without resources', () => {
+      expect(PlantKnowledgeBuilder.empty().primaryImage()).toBeNull();
+    });
+
+    it('should leave out the title and source the resource lacks', () => {
+      const bare = PlantResourceBuilder.bareImage();
+      const image = PlantKnowledgeBuilder.withResources([bare]).primaryImage();
+
+      expect(image).toEqual({ url: bare.url });
+      expect(image).not.toHaveProperty('title');
+      expect(image).not.toHaveProperty('source');
+    });
+
+    it('should never copy the type or the tags', () => {
+      const image = PlantKnowledgeBuilder.withResources([
+        PlantResourceBuilder.image({ tags: ['fruit'] })
+      ]).primaryImage();
+
+      expect(image).not.toHaveProperty('type');
+      expect(image).not.toHaveProperty('tags');
+    });
+
+    it('should match the type exactly', () => {
+      const knowledge = PlantKnowledgeBuilder.withResources([
+        PlantResourceBuilder.image({ type: 'Image' })
+      ]);
+
+      expect(knowledge.primaryImage()).toBeNull();
     });
   });
 

@@ -9,6 +9,7 @@ import { fullFamilyView } from '../Families/fixtures/familyResponses.js';
 import {
   fullPlantView,
   minimalPlantView,
+  plantViewWithImage,
   withoutKeyAt,
   withValueAt
 } from './fixtures/plantResponses.js';
@@ -110,6 +111,25 @@ describe('plantResponseSchema', () => {
     const result = plantResponseSchema.safeParse(view);
 
     expect(result.success).toBe(false);
+  });
+});
+
+describe('plant image', () => {
+  it('rejects a null image: every plant has one', () => {
+    expect(
+      plantResponseSchema.safeParse(
+        withValueAt(plantViewWithImage(), 'image', null)
+      ).success
+    ).toBe(false);
+  });
+
+  it('rejects a null image in the image fieldset', () => {
+    const { id } = plantViewWithImage();
+
+    expect(
+      plantFieldsetResponseSchema(['image']).safeParse({ id, image: null })
+        .success
+    ).toBe(false);
   });
 });
 

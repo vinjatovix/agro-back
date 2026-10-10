@@ -2,6 +2,7 @@ export * from './IdentityPrimitives.js';
 export * from './PlantChanges.js';
 export * from './PlantEcologicalTraits.js';
 export * from './PlantIdentityChanges.js';
+export * from './PlantImagePrimitives.js';
 export * from './PlantKnowledgeChanges.js';
 export * from './PlantPhenologyChanges.js';
 export * from './PlantTraitsChanges.js';

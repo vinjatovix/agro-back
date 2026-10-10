@@ -2,9 +2,9 @@ import { Plant } from '../../../../../../src/Contexts/Agro/Plants/domain/entitie
 import type { PlantProps } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantProps.js';
 import { PlantStatus } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantStatus.js';
 import { randomPlantId } from '../../../../../../src/Contexts/Agro/Plants/domain/PlantId.js';
-import { PlantKnowledge } from '../../../../../../src/Contexts/Agro/Plants/domain/value-objects/PlantKnowledge.js';
 import { Metadata } from '../../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
 import { PlantIdentityBuilder } from './PlantIdentityBuilder.js';
+import { PlantKnowledgeBuilder } from './PlantKnowledgeBuilder.js';
 import { PlantPhenologyBuilder } from './PlantPhenologyBuilder.js';
 import { PlantTraitsBuilder } from './PlantTraitsBuilder.js';
 
@@ -25,7 +25,7 @@ export class PlantFactory {
       identity: overrides.identity ?? defaultBuilders.identity(),
       traits: overrides.traits ?? defaultBuilders.traits(),
       phenology: overrides.phenology ?? defaultBuilders.phenology(),
-      knowledge: overrides.knowledge ?? PlantKnowledge.empty(),
+      knowledge: overrides.knowledge ?? PlantKnowledgeBuilder.minimal(),
       metadata: overrides.metadata ?? Metadata.create('test'),
       ...(status !== undefined && { status }),
       ...(overrides.deletedAt !== undefined && {

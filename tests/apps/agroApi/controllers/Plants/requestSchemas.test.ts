@@ -444,6 +444,17 @@ describe('Plant requestSchemas', () => {
       expect(errors).toHaveProperty(['extraField'], 'Unknown field');
     });
 
+    it('should reject a body without knowledge.resources', async () => {
+      const body = withoutPath(
+        buildMinimalCreatePlantBody(),
+        'knowledge.resources'
+      );
+
+      const errors = await errorsOf(createPlantRequest, { body });
+
+      expect(errors).toHaveProperty(['knowledge.resources']);
+    });
+
     it('should reject an unknown nested property', async () => {
       const body = withPath(
         buildMinimalCreatePlantBody(),

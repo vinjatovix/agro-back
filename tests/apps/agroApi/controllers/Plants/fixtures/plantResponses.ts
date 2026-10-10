@@ -3,6 +3,7 @@ import { PlantReadViewMother } from '../../../../../Contexts/Agro/Plants/applica
 import { PlantFactory } from '../../../../../Contexts/Agro/Plants/domain/mothers/PlantFactory.js';
 import { PlantIdentityBuilder } from '../../../../../Contexts/Agro/Plants/domain/mothers/PlantIdentityBuilder.js';
 import { PlantKnowledgeBuilder } from '../../../../../Contexts/Agro/Plants/domain/mothers/PlantKnowledgeBuilder.js';
+import { PlantResourceBuilder } from '../../../../../Contexts/Agro/Plants/domain/mothers/PlantResourceBuilder.js';
 import { cloneView } from '../../shared/cloneView.js';
 
 /** A read view using every optional plant field. */
@@ -17,6 +18,16 @@ export const fullPlantView = (): PlantReadView =>
 /** A read view with no optional field (no aliases, empty knowledge). */
 export const minimalPlantView = (): PlantReadView =>
   PlantReadViewMother.from(PlantFactory.create());
+
+/** A read view whose plant has an image resource with title and source. */
+export const plantViewWithImage = (): PlantReadView =>
+  PlantReadViewMother.from(
+    PlantFactory.create({
+      knowledge: PlantKnowledgeBuilder.withResources([
+        PlantResourceBuilder.image()
+      ])
+    })
+  );
 
 /** `view` with `path` (dot separated) replaced by `value`. */
 export const withValueAt = (
