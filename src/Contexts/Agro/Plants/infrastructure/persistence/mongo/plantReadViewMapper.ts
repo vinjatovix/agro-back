@@ -6,19 +6,28 @@ import {
 } from '../../../../../shared/infrastructure/persistence/mongo/readViewFields.js';
 import type {
   PlantField,
+  PlantImageView,
   PlantReadView,
   PlantSparseView
-} from '../../../application/queries/PlantReadView.js';
-import type { PlantStatus } from '../../../domain/entities/types/PlantStatus.js';
+} from '../../../application/queries/index.js';
+import type {
+  PlantResourcePrimitives,
+  PlantStatus
+} from '../../../domain/entities/types/index.js';
 import type { MongoPlantDocument } from '../types/MongoPlantDocument.js';
 
-/** A stored plant as it may be found: legacy documents miss some fields. */
+/**
+ * A stored plant as it may be found: legacy documents miss some fields.
+ * `image` is not stored: the read projection computes it (the first image
+ * resource), and it is missing or `null` when there is none.
+ */
 export type StoredPlantDocument = Omit<
   MongoPlantDocument,
   'version' | 'status'
 > & {
   version?: number;
   status?: PlantStatus;
+  image?: PlantResourcePrimitives | null;
 };
 
 // Defaults reproduce what the aggregate round-trip sent before the read
@@ -39,6 +48,24 @@ const toDeletedAt = (deletedAt: unknown): string | null => {
   return typeof deletedAt === 'string' && deletedAt !== '' ? deletedAt : null;
 };
 
+/**
+ * The projected image resource → `{ url, title?, source? }`; `type` and
+ * `tags` are dropped. A missing resource, or a malformed one without a string
+ * `url`, gives `null`, never `undefined`, so a sparse view keeps the key; a
+ * `title` or `source` that is not a string is left out.
+ */
+export const toPlantImage = (
+  stored: PlantResourcePrimitives | null | undefined
+): PlantImageView | null => {
+  if (typeof stored?.url !== 'string') return null;
+
+  return {
+    url: stored.url,
+    ...(typeof stored.title === 'string' && { title: stored.title }),
+    ...(typeof stored.source === 'string' && { source: stored.source })
+  };
+};
+
 /** How each read-view field comes from a stored plant. */
 const PLANT_VIEW_FIELDS: ReadViewFieldMappers<
   StoredPlantDocument,
@@ -49,6 +76,7 @@ const PLANT_VIEW_FIELDS: ReadViewFieldMappers<
   traits: (document) => document.traits,
   phenology: (document) => document.phenology,
   knowledge: (document) => document.knowledge ?? {},
+  image: (document) => toPlantImage(document.image),
   metadata: (document) => toMetadata(document.metadata),
   status: (document) => document.status ?? DEFAULT_STATUS,
   deletedAt: (document) => toDeletedAt(document.deletedAt),
@@ -65,6 +93,7 @@ export const toPlantReadView = (
   traits: PLANT_VIEW_FIELDS.traits(document),
   phenology: PLANT_VIEW_FIELDS.phenology(document),
   knowledge: PLANT_VIEW_FIELDS.knowledge(document),
+  image: PLANT_VIEW_FIELDS.image(document),
   metadata: PLANT_VIEW_FIELDS.metadata(document),
   status: PLANT_VIEW_FIELDS.status(document),
   deletedAt: PLANT_VIEW_FIELDS.deletedAt(document)

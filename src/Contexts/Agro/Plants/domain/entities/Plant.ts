@@ -14,10 +14,12 @@ import {
 } from '../../../../shared/domain/repositories/WriteOutcome.js';
 import { Metadata } from '../../../../shared/domain/valueObject/index.js';
 import type { PlantId } from '../PlantId.js';
+import type { PlantKnowledge } from '../value-objects/PlantKnowledge.js';
 import { PlantLifecycle } from '../value-objects/PlantLifecycle.js';
 import {
   type PlantEcologicalTraits,
   type PlantEcologicalTraitsChanges,
+  type PlantImagePrimitives,
   type PlantProps,
   PlantStatus
 } from './types/index.js';
@@ -47,6 +49,18 @@ export class Plant extends AggregateRoot<PlantId> {
     if (props.status === PlantStatus.DELETED && !props.deletedAt) {
       throw new InvalidArgumentException('Deleted plant must have deletedAt');
     }
+    Plant.requireImage(props.knowledge);
+  }
+
+  /** Every plant has at least one `knowledge.resources` entry of type `image`. */
+  private static requireImage(knowledge: PlantKnowledge): PlantImagePrimitives {
+    const image = knowledge.primaryImage();
+    if (image === null) {
+      throw new InvalidArgumentException('A plant must have an image', {
+        'knowledge.resources': 'Must include at least one image resource'
+      });
+    }
+    return image;
   }
 
   private assertActive(): void {
@@ -85,6 +99,11 @@ export class Plant extends AggregateRoot<PlantId> {
 
   get deletedAt(): Date | undefined {
     return this.props.deletedAt;
+  }
+
+  /** The first image resource, in stored order; a plant always has one. */
+  primaryImage(): PlantImagePrimitives {
+    return Plant.requireImage(this.props.knowledge);
   }
 
   isDeleted(): boolean {
@@ -269,6 +288,7 @@ export class Plant extends AggregateRoot<PlantId> {
     this.assertActive();
 
     const knowledge = this.props.knowledge.update(changes);
+    Plant.requireImage(knowledge);
 
     if (
       !hasStateChanged(

@@ -1,3 +1,4 @@
+import type { PlantKnowledgePrimitives } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantKnowledgePrimitives.js';
 import type { PlantLightPrimitives } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantLightPrimitives.js';
 import type { PruningTypePrimitives } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PruningPrimitves.js';
 import {
@@ -9,6 +10,8 @@ import { PlantKnowledge } from '../../../../../../src/Contexts/Agro/Plants/domai
 import { RootSystem } from '../../../../../../src/Contexts/Agro/Plants/domain/value-objects/RootSystem.js';
 import { SoilProfile } from '../../../../../../src/Contexts/Agro/Plants/domain/value-objects/SoilProfile.js';
 import { random } from '../../../../shared/fixtures/random.js';
+
+type PlantResources = NonNullable<PlantKnowledgePrimitives['resources']>;
 
 const baseSoil = (
   phMin: number,
@@ -75,6 +78,11 @@ const baseTomatoLikeKnowledge = () => ({
 
   resources: [
     {
+      type: 'image',
+      url: 'https://example.com/tomato.jpg',
+      title: 'Tomato plant'
+    },
+    {
       type: 'article',
       url: 'https://example.com',
       title: 'Growing guide'
@@ -89,12 +97,20 @@ export const PlantKnowledgeBuilder = {
     return PlantKnowledge.empty();
   },
 
+  /** Only the one image resource every plant needs. */
   minimal(): PlantKnowledge {
-    return new PlantKnowledge({});
+    return new PlantKnowledge({
+      resources: [{ type: 'image', url: 'https://example.com/plant.jpg' }]
+    });
   },
 
   full(): PlantKnowledge {
     return new PlantKnowledge(baseTomatoLikeKnowledge());
+  },
+
+  /** Only `resources`, in the given order. */
+  withResources(resources: PlantResources): PlantKnowledge {
+    return new PlantKnowledge({ resources });
   },
 
   random(): PlantKnowledge {
@@ -207,13 +223,13 @@ export const PlantKnowledgeBuilder = {
       strategicBenefits: [random.word({ min: 3, max: 8 })]
     }));
 
-    const resources = maybe(() => [
-      {
-        type: 'article',
-        url: random.url(),
-        title: random.description()
-      }
-    ]);
+    // Every plant has an image resource; an article sometimes follows it.
+    const resources = [
+      { type: 'image', url: random.url() },
+      ...(random.boolean()
+        ? [{ type: 'article', url: random.url(), title: random.description() }]
+        : [])
+    ];
 
     const notes = maybe(() => [random.description()]);
 
@@ -225,7 +241,7 @@ export const PlantKnowledgeBuilder = {
       ...(pruning && { pruning }),
       ...(propagation && { propagation }),
       ...(ecology && { ecology }),
-      ...(resources && { resources }),
+      resources,
       ...(notes && { notes })
     });
   },
@@ -264,6 +280,11 @@ export const PlantKnowledgeBuilder = {
       },
 
       resources: [
+        {
+          type: 'image',
+          url: 'https://example.com/lettuce.jpg',
+          title: 'Lettuce'
+        },
         {
           type: 'article',
           url: 'https://example.com/lettuce',

@@ -253,6 +253,7 @@ Normalization (`fieldsetSchema`, `includeSchema` in `apps/agroApi/shared/listQue
 Rules:
 
 - `fields` narrows the read projection: unrequested fields are never read
+- derived fields `[CURRENT STATE (Done in [Iteration 19b](../../roadmap.md#iteration-19b-expose-primary-plant-image-as-a-first-level-field))]`: `fields[plants]=image` selects the plant's primary image (plant.md §4.4.2). It is a declared name like any other (same normalization and errors). The projection computes it with one expression (the first image resource, persistence.md §5.8.8), so selected without `knowledge` it never fetches the rest of `knowledge`; with `knowledge`, or without `fields`, `knowledge` is read whole next to the same computed `image`
 - `include` is resolved by the application layer (one read per page), never by the repository
 - neither changes business rules (visibility filters still apply)
 - a single read with either parameter carries no `ETag` and never answers `304`

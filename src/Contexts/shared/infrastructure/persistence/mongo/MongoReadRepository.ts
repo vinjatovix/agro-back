@@ -10,7 +10,11 @@ import { toMongoId } from './MongoId.js';
 import { MongoPageQuery } from './MongoPageQuery.js';
 import { MongoQueryTranslator } from './MongoQueryTranslator.js';
 
-type Projection = Readonly<Record<string, 1>>;
+/** A computed projection key: an aggregation operator such as `$first`. */
+export type ProjectionExpression = Readonly<Record<`$${string}`, unknown>>;
+
+/** Stored fields (`1`) and computed keys (an expression), never exclusions. */
+export type ReadProjection = Readonly<Record<string, 1 | ProjectionExpression>>;
 
 /**
  * Read side of a catalog (CQRS read bypass): fetches only the contract fields
@@ -37,14 +41,14 @@ export abstract class MongoReadRepository<
     fields?: readonly TField[]
   ): TView;
   /** Inclusion projection of the contract fields; `_id` is always returned. */
-  protected abstract projection(): Projection;
+  protected abstract projection(): ReadProjection;
 
   /**
    * The contract projection narrowed to `fields`; never an exclusion
    * projection, so unknown stored fields still never leave the database. `_id`
    * is named so that an empty fieldset does not read the whole document.
    */
-  protected projectionOf(fields?: readonly TField[]): Projection {
+  protected projectionOf(fields?: readonly TField[]): ReadProjection {
     const projection = this.projection();
     if (fields === undefined) return projection;
 

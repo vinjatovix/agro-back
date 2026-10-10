@@ -182,6 +182,7 @@ Feature: Create a new plant
           }
         },
         "knowledge": {
+          "resources": [{ "type": "image", "url": "https://example.org/plant.jpg" }],
           "rootSystem": { "type": "fibrous", "depthCm": { "min": 10, "max": 30 }, "spreadCm": { "min": 10, "max": 20 } },
           "soil": {
             "ph": {
@@ -280,6 +281,7 @@ Feature: Create a new plant
           }
         },
         "knowledge": {
+          "resources": [{ "type": "image", "url": "https://example.org/plant.jpg" }],
           "rootSystem": { "type": "fibrous", "depthCm": { "min": 10, "max": 30 }, "spreadCm": { "min": 10, "max": 20 } },
           "soil": {
             "ph": {
@@ -377,6 +379,7 @@ Feature: Create a new plant
           }
         },
         "knowledge": {
+          "resources": [{ "type": "image", "url": "https://example.org/plant.jpg" }],
           "rootSystem": { "type": "fibrous", "depthCm": { "min": 10, "max": 30 }, "spreadCm": { "min": 10, "max": 20 } },
           "soil": {
             "ph": {
@@ -432,6 +435,7 @@ Feature: Create a new plant
           }
         },
         "knowledge": {
+          "resources": [{ "type": "image", "url": "https://example.org/plant.jpg" }],
           "rootSystem": { "type": "rhizome", "depthCm": { "min": 10, "max": 60 }, "spreadCm": { "min": 10, "max": 80 } },
           "soil": {
             "ph": { "min": 5, "max": 7 },
@@ -677,6 +681,195 @@ Feature: Create a new plant
     And the response body matches "false" for field "traits.ecological.toxic"
     And response matches OpenAPI contract
 
+  Scenario: Fail to create a plant that sends the read-only image
+    Given a family exists
+    And a POST admin request to "/api/v1/plants" with body
+      """
+      {
+        "id": "3c9e1a52-7d4b-4f6e-9a21-5b8c0d7e4f13",
+        "identity": {
+          "name": { "primary": "Tomato" },
+          "scientificName": "Solanum imaginis",
+          "family": "<familyId>"
+        },
+        "traits": {
+          "lifecycle": "annual",
+          "size": {
+            "height": { "min": 30, "max": 200 },
+            "spread": { "min": 30, "max": 80 }
+          },
+          "spacingCm": { "min": 40, "max": 60 }
+        },
+        "phenology": {
+          "sowing": {
+            "months": [3, 4],
+            "seedsPerHole": { "min": 1, "max": 2 },
+            "germinationDays": { "min": 5, "max": 10 },
+            "methods": { "direct": { "depthCm": { "min": 1, "max": 2 } } }
+          }
+        },
+        "knowledge": {
+          "resources": [{ "type": "image", "url": "https://example.org/plant.jpg" }],
+          "rootSystem": { "type": "fibrous", "depthCm": { "min": 20, "max": 60 }, "spreadCm": { "min": 30, "max": 80 } },
+          "soil": {
+            "ph": { "min": 6, "max": 7 },
+            "availableDepthCm": { "min": 30, "max": 60 }
+          },
+          "light": { "hoursMin": 6, "type": "full_sun" },
+          "propagation": { "methods": {} }
+        },
+        "image": { "url": "https://example.org/tomato.jpg" }
+      }
+      """
+    Then the response status code should be 400
+    And the response errors should include "image"
+    And no plant should be stored with id "3c9e1a52-7d4b-4f6e-9a21-5b8c0d7e4f13"
+    And response matches OpenAPI contract
+
+  Scenario Outline: Fail to create a plant without an image resource (<case>)
+    Given a family exists
+    And a POST admin request to "/api/v1/plants" with body
+      """
+      {
+        "id": "6d2b8f4a-9c1e-4b7d-a3f5-2e8c0b9d7a14",
+        "identity": {
+          "name": { "primary": "Tomato" },
+          "scientificName": "Solanum sine imagine",
+          "family": "<familyId>"
+        },
+        "traits": {
+          "lifecycle": "annual",
+          "size": {
+            "height": { "min": 30, "max": 200 },
+            "spread": { "min": 30, "max": 80 }
+          },
+          "spacingCm": { "min": 40, "max": 60 }
+        },
+        "phenology": {
+          "sowing": {
+            "months": [3, 4],
+            "seedsPerHole": { "min": 1, "max": 2 },
+            "germinationDays": { "min": 5, "max": 10 },
+            "methods": { "direct": { "depthCm": { "min": 1, "max": 2 } } }
+          }
+        },
+        "knowledge": {
+          "rootSystem": { "type": "fibrous", "depthCm": { "min": 20, "max": 60 }, "spreadCm": { "min": 30, "max": 80 } },
+          "soil": {
+            "ph": { "min": 6, "max": 7 },
+            "availableDepthCm": { "min": 30, "max": 60 }
+          },
+          "light": { "hoursMin": 6, "type": "full_sun" },
+          "propagation": { "methods": {} }<resources>
+        }
+      }
+      """
+    Then the response status code should be 400
+    And the response errors should include "knowledge.resources"
+    And no plant should be stored with id "6d2b8f4a-9c1e-4b7d-a3f5-2e8c0b9d7a14"
+    And response matches OpenAPI contract
+
+    Examples:
+      | case                | resources                                                                |
+      | no resources        |                                                                          |
+      | empty resource list | , "resources": []                                                        |
+      | no image resource   | , "resources": [{ "type": "video", "url": "https://example.org/a.mp4" }] |
+
+  Scenario: A created plant sends the image derived from its first image resource
+    Given a family exists
+    And a POST admin request to "/api/v1/plants" with body
+      """
+      {
+        "id": "8a1d4c6e-2b3f-4a5d-8e9f-0c1b2a3d4e5f",
+        "identity": {
+          "name": { "primary": "Tomato" },
+          "scientificName": "Solanum pictum",
+          "family": "<familyId>"
+        },
+        "traits": {
+          "lifecycle": "annual",
+          "size": {
+            "height": { "min": 30, "max": 200 },
+            "spread": { "min": 30, "max": 80 }
+          },
+          "spacingCm": { "min": 40, "max": 60 }
+        },
+        "phenology": {
+          "sowing": {
+            "months": [3, 4],
+            "seedsPerHole": { "min": 1, "max": 2 },
+            "germinationDays": { "min": 5, "max": 10 },
+            "methods": { "direct": { "depthCm": { "min": 1, "max": 2 } } }
+          }
+        },
+        "knowledge": {
+          "rootSystem": { "type": "fibrous", "depthCm": { "min": 20, "max": 60 }, "spreadCm": { "min": 30, "max": 80 } },
+          "soil": {
+            "ph": { "min": 6, "max": 7 },
+            "availableDepthCm": { "min": 30, "max": 60 }
+          },
+          "light": { "hoursMin": 6, "type": "full_sun" },
+          "propagation": { "methods": {} },
+          "resources": [
+            { "type": "video", "url": "https://example.org/sowing.mp4" },
+            { "type": "image", "url": "https://example.org/tomato.jpg", "title": "Tomato plant", "source": "Wikimedia" }
+          ]
+        }
+      }
+      """
+    Then the response status code should be 201
+    And the plant image should be:
+      | url                            | title        | source    |
+      | https://example.org/tomato.jpg | Tomato plant | Wikimedia |
+    And response matches OpenAPI contract
+
+  Scenario: A created plant whose first image has no title nor source sends only its url
+    Given a family exists
+    And a POST admin request to "/api/v1/plants" with body
+      """
+      {
+        "id": "5e7f9a1b-3c4d-4e6f-8a0b-1c2d3e4f5a6b",
+        "identity": {
+          "name": { "primary": "Tomato" },
+          "scientificName": "Solanum nudum",
+          "family": "<familyId>"
+        },
+        "traits": {
+          "lifecycle": "annual",
+          "size": {
+            "height": { "min": 30, "max": 200 },
+            "spread": { "min": 30, "max": 80 }
+          },
+          "spacingCm": { "min": 40, "max": 60 }
+        },
+        "phenology": {
+          "sowing": {
+            "months": [3, 4],
+            "seedsPerHole": { "min": 1, "max": 2 },
+            "germinationDays": { "min": 5, "max": 10 },
+            "methods": { "direct": { "depthCm": { "min": 1, "max": 2 } } }
+          }
+        },
+        "knowledge": {
+          "rootSystem": { "type": "fibrous", "depthCm": { "min": 20, "max": 60 }, "spreadCm": { "min": 30, "max": 80 } },
+          "soil": {
+            "ph": { "min": 6, "max": 7 },
+            "availableDepthCm": { "min": 30, "max": 60 }
+          },
+          "light": { "hoursMin": 6, "type": "full_sun" },
+          "propagation": { "methods": {} },
+          "resources": [
+            { "type": "image", "url": "https://example.org/bare.jpg" }
+          ]
+        }
+      }
+      """
+    Then the response status code should be 201
+    And the plant image should be:
+      | url                          |
+      | https://example.org/bare.jpg |
+    And response matches OpenAPI contract
+
   Scenario: Fail to create a plant if family doesn't exists
     And a POST admin request to "/api/v1/plants" with body
       """
@@ -746,6 +939,7 @@ Feature: Create a new plant
           }
         },
         "knowledge": {
+          "resources": [{ "type": "image", "url": "https://example.org/plant.jpg" }],
           "rootSystem": { "type": "fibrous", "depthCm": { "min": 10, "max": 30 }, "spreadCm": { "min": 10, "max": 20 } },
           "soil": {
             "ph": {
@@ -870,6 +1064,7 @@ Feature: Create a new plant
           }
         },
         "knowledge": {
+          "resources": [{ "type": "image", "url": "https://example.org/plant.jpg" }],
           "rootSystem": { "type": "fibrous", "depthCm": { "min": 10, "max": 30 }, "spreadCm": { "min": 10, "max": 20 } },
           "soil": {
             "ph": {
@@ -927,6 +1122,7 @@ Feature: Create a new plant
           }
         },
         "knowledge": {
+          "resources": [{ "type": "image", "url": "https://example.org/plant.jpg" }],
           "rootSystem": { "type": "rhizome", "depthCm": { "min": 10, "max": 60 }, "spreadCm": { "min": 10, "max": 80 } },
           "soil": {
             "ph": { "min": 5, "max": 7 },
@@ -970,6 +1166,7 @@ Feature: Create a new plant
           }
         },
         "knowledge": {
+          "resources": [{ "type": "image", "url": "https://example.org/plant.jpg" }],
           "rootSystem": { "type": "rhizome", "depthCm": { "min": 10, "max": 60 }, "spreadCm": { "min": 10, "max": 80 } },
           "soil": {
             "ph": { "min": 5, "max": 7 },
@@ -1048,6 +1245,7 @@ Feature: Create a new plant
           }
         },
         "knowledge": {
+          "resources": [{ "type": "image", "url": "https://example.org/plant.jpg" }],
           "rootSystem": { "type": "fibrous", "depthCm": { "min": 10, "max": 30 }, "spreadCm": { "min": 10, "max": 20 } },
           "soil": {
             "ph": {
@@ -1139,6 +1337,7 @@ Feature: Create a new plant
           }
         },
         "knowledge": {
+          "resources": [{ "type": "image", "url": "https://example.org/plant.jpg" }],
           "rootSystem": { "type": "fibrous", "depthCm": { "min": 10, "max": 30 }, "spreadCm": { "min": 10, "max": 20 } },
           "soil": {
             "ph": {

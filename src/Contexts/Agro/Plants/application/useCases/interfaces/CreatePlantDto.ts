@@ -9,7 +9,7 @@ type CreatePlantKnowledgeDto = PlantKnowledgePrimitives &
   Required<
     Pick<
       PlantKnowledgePrimitives,
-      'rootSystem' | 'soil' | 'light' | 'propagation'
+      'rootSystem' | 'soil' | 'light' | 'propagation' | 'resources'
     >
   >;
 

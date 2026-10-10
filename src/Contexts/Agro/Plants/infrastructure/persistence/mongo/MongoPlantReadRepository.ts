@@ -3,7 +3,11 @@ import type { ReadOptions } from '../../../../../../shared/domain/query/interfac
 import type { Nullable } from '../../../../../../shared/domain/types/Nullable.js';
 import type { UnknownRecord } from '../../../../../../shared/domain/types/UnknownRecord.js';
 import { toMongoId } from '../../../../../shared/infrastructure/persistence/mongo/MongoId.js';
-import { MongoReadRepository } from '../../../../../shared/infrastructure/persistence/mongo/MongoReadRepository.js';
+import {
+  MongoReadRepository,
+  type ProjectionExpression,
+  type ReadProjection
+} from '../../../../../shared/infrastructure/persistence/mongo/MongoReadRepository.js';
 import type {
   PlantField,
   PlantReadRepository,
@@ -24,17 +28,41 @@ export type MongoPlantReadRepositoryDependencies = {
   plantQueryMapper: PlantQueryMapper;
 };
 
+// The primary image: the first `knowledge.resources` entry whose `type` is
+// exactly `image`, in stored order (`PlantKnowledge.primaryImage()` on the
+// write side). Computed here, so a read of `image` without `knowledge` never
+// fetches the rest of `knowledge`. `$elemMatch` cannot be used: MongoDB
+// rejects it on a nested field. The type is matched with a regex, not `$eq`:
+// the listing runs with the case-insensitive plant collation, under which
+// `$eq` would also take `Image`; a regex ignores the collation.
+const PRIMARY_IMAGE: ProjectionExpression = {
+  $first: {
+    $filter: {
+      input: '$knowledge.resources',
+      as: 'resource',
+      cond: {
+        $and: [
+          { $eq: [{ $type: '$$resource.type' }, 'string'] },
+          { $regexMatch: { input: '$$resource.type', regex: '^image$' } }
+        ]
+      },
+      limit: 1
+    }
+  }
+};
+
 // Contract fields only: unknown stored fields never leave the database.
-const PLANT_PROJECTION = {
+const PLANT_PROJECTION: ReadProjection = {
   identity: 1,
   traits: 1,
   phenology: 1,
   knowledge: 1,
+  image: PRIMARY_IMAGE,
   metadata: 1,
   status: 1,
   deletedAt: 1,
   version: 1
-} as const;
+};
 
 // Same value as `PlantStatus.DELETED`; a type-only import keeps the read side
 // free of domain values.
@@ -60,7 +88,7 @@ export class MongoPlantReadRepository
     return 'plants';
   }
 
-  protected projection(): Readonly<Record<string, 1>> {
+  protected projection(): ReadProjection {
     return PLANT_PROJECTION;
   }
 

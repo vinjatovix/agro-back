@@ -51,7 +51,8 @@ export const buildMinimalCreatePlantBody = (overrides: Body = {}): Body => ({
       methods: {
         seed: { seasons: ['spring'] }
       }
-    }
+    },
+    resources: [{ type: 'image', url: 'https://example.com/tomato.jpg' }]
   },
   ...overrides
 });
@@ -145,7 +146,13 @@ export const buildFullCreatePlantBody = (overrides: Body = {}): Body => ({
     ecology: {
       strategicBenefits: ['attracts pollinators']
     },
-    resources: [buildResourceBody()],
+    resources: [
+      buildResourceBody({
+        type: 'image',
+        url: 'https://example.com/tomato.jpg'
+      }),
+      buildResourceBody()
+    ],
     notes: ['Stake early for best yields']
   },
   ...overrides

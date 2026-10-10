@@ -1,27 +1,35 @@
 import {
   PLANT_FIELDS,
-  type PlantField
+  type PlantField,
+  type PlantReadView
 } from '../../../../../../../src/Contexts/Agro/Plants/application/queries/index.js';
 import type { Plant } from '../../../../../../../src/Contexts/Agro/Plants/domain/entities/Plant.js';
 import {
+  toPlantImage,
   toPlantReadView,
   toPlantSparseView,
   type StoredPlantDocument
 } from '../../../../../../../src/Contexts/Agro/Plants/infrastructure/persistence/mongo/plantReadViewMapper.js';
 import type { MongoPlantDocument } from '../../../../../../../src/Contexts/Agro/Plants/infrastructure/persistence/types/MongoPlantDocument.js';
-import { plantDomainMapper } from '../../../../../../../src/Contexts/Agro/Plants/mappers/plantDomainMapper.js';
-import { plantPersistenceMapper } from '../../../../../../../src/Contexts/Agro/Plants/mappers/plantPersistenceMapper.js';
+import {
+  plantPersistenceMapper,
+  toPlantResponse
+} from '../../../../../../../src/Contexts/Agro/Plants/mappers/index.js';
 import { PlantFactory } from '../../../domain/mothers/PlantFactory.js';
 import { PlantIdentityBuilder } from '../../../domain/mothers/PlantIdentityBuilder.js';
 import { PlantKnowledgeBuilder } from '../../../domain/mothers/PlantKnowledgeBuilder.js';
+import { PlantResourceBuilder } from '../../../domain/mothers/PlantResourceBuilder.js';
 import { PlantTraitsBuilder } from '../../../domain/mothers/PlantTraitsBuilder.js';
+import { projectedPlantDocument } from './projectedPlantDocument.js';
 
-// The body sent before the read bypass: the stored document round-tripped
-// through the aggregate. The read view must equal it for every document.
+// The body a write sends: the stored document round-tripped through the
+// aggregate. The read view must equal it for every document.
 const domainRoundTrip = (document: MongoPlantDocument): unknown =>
-  plantDomainMapper.toPrimitives(
-    plantPersistenceMapper.fromMongoDocument(document)
-  );
+  toPlantResponse(plantPersistenceMapper.fromMongoDocument(document));
+
+// The read view of a stored document, read through the contract projection.
+const readView = (document: MongoPlantDocument): PlantReadView =>
+  toPlantReadView(projectedPlantDocument(document));
 
 const stored = (plant: Plant): MongoPlantDocument =>
   plantPersistenceMapper.toMongoDocument(plant);
@@ -64,17 +72,28 @@ describe('toPlantReadView', () => {
         () =>
           PlantFactory.random({ identity: PlantIdentityBuilder.withAliases() })
       ],
+      [
+        'a plant with image resources',
+        () =>
+          PlantFactory.random({
+            knowledge: PlantKnowledgeBuilder.withResources([
+              PlantResourceBuilder.video(),
+              PlantResourceBuilder.image(),
+              PlantResourceBuilder.image()
+            ])
+          })
+      ],
       ['a deleted plant', deletedPlant]
     ])('for %s', (_case, build) => {
       const document = stored(build());
 
-      expect(toPlantReadView(document)).toEqual(domainRoundTrip(document));
+      expect(readView(document)).toEqual(domainRoundTrip(document));
     });
 
     it('when the stored version is missing (read as 0)', () => {
       const document = without(stored(PlantFactory.tomato()), 'version');
 
-      const view = toPlantReadView(document);
+      const view = readView(document);
 
       expect(view.version).toBe(0);
       expect(view).toEqual(domainRoundTrip(document));
@@ -83,25 +102,27 @@ describe('toPlantReadView', () => {
     it('when the stored deletedAt is missing (sent as null)', () => {
       const document = without(stored(PlantFactory.tomato()), 'deletedAt');
 
-      const view = toPlantReadView(document);
+      const view = readView(document);
 
       expect(view.deletedAt).toBeNull();
       expect(view).toEqual(domainRoundTrip(document));
     });
 
-    it('when the stored knowledge is missing (sent as {})', () => {
+    // No `Plant` can hold it (every plant has an image), so there is no
+    // round trip to compare with: the read view copies what is stored.
+    it('when the stored knowledge is missing (sent as {}, image null)', () => {
       const document = without(stored(PlantFactory.tomato()), 'knowledge');
 
-      const view = toPlantReadView(document);
+      const view = readView(document);
 
       expect(view.knowledge).toEqual({});
-      expect(view).toEqual(domainRoundTrip(document));
+      expect(view.image).toBeNull();
     });
 
     it('when the stored aliases are missing (key left out, never null)', () => {
       const document = stored(PlantFactory.tomato());
 
-      const view = toPlantReadView(document);
+      const view = readView(document);
 
       expect(view.identity.name).not.toHaveProperty('aliases');
       expect(view).toEqual(domainRoundTrip(document));
@@ -110,7 +131,7 @@ describe('toPlantReadView', () => {
     it('for a deleted plant, keeping its status and deletion date', () => {
       const document = stored(deletedPlant());
 
-      const view = toPlantReadView(document);
+      const view = readView(document);
 
       expect(view.status).toBe('DELETED');
       expect(view.deletedAt).toEqual(expect.any(String));
@@ -122,24 +143,22 @@ describe('toPlantReadView', () => {
     it('reads a Binary UUID _id as its string form', () => {
       const plant = PlantFactory.tomato();
 
-      expect(toPlantReadView(stored(plant)).id).toBe(plant.id);
+      expect(readView(stored(plant)).id).toBe(plant.id);
     });
 
     it('reads a string _id as is', () => {
       const plant = PlantFactory.tomato();
       const document = { ...stored(plant), _id: plant.id };
 
-      expect(toPlantReadView(document).id).toBe(plant.id);
-      expect(toPlantReadView(document)).toEqual(domainRoundTrip(document));
+      expect(readView(document).id).toBe(plant.id);
+      expect(readView(document)).toEqual(domainRoundTrip(document));
     });
   });
 
   it('keeps the family as the stored plain id', () => {
     const plant = PlantFactory.tomato();
 
-    expect(toPlantReadView(stored(plant)).identity.family).toBe(
-      plant.identity.family
-    );
+    expect(readView(stored(plant)).identity.family).toBe(plant.identity.family);
   });
 
   it('builds no aggregate: a document breaking a business rule is copied', () => {
@@ -152,7 +171,7 @@ describe('toPlantReadView', () => {
       }
     };
 
-    expect(toPlantReadView(broken).traits.size.height).toEqual({
+    expect(readView(broken).traits.size.height).toEqual({
       min: 50,
       max: 10
     });
@@ -224,4 +243,62 @@ describe('toPlantSparseView', () => {
       );
     }
   );
+});
+
+describe('toPlantImage', () => {
+  it.each([
+    ['missing', undefined],
+    ['null', null]
+  ])('is null when the projected image is %s', (_case, image) => {
+    expect(toPlantImage(image)).toBeNull();
+  });
+
+  it('is null when the url is not a string', () => {
+    const malformed = {
+      ...PlantResourceBuilder.image(),
+      url: 42
+    } as unknown as StoredPlantDocument['image'];
+
+    expect(toPlantImage(malformed)).toBeNull();
+  });
+
+  it('leaves out a title or source that is not a string', () => {
+    const malformed = {
+      ...PlantResourceBuilder.image(),
+      title: 42,
+      source: null
+    } as unknown as StoredPlantDocument['image'];
+
+    expect(toPlantImage(malformed)).toStrictEqual({ url: malformed?.url });
+  });
+
+  it('keeps url, title and source, dropping type and tags', () => {
+    const resource = PlantResourceBuilder.image({ tags: ['fruit'] });
+
+    expect(toPlantImage(resource)).toEqual({
+      url: resource.url,
+      title: resource.title,
+      source: resource.source
+    });
+  });
+
+  it('leaves out the title and source the resource lacks', () => {
+    const resource = PlantResourceBuilder.bareImage();
+
+    const image = toPlantImage(resource);
+
+    expect(image).toEqual({ url: resource.url });
+    expect(image).not.toHaveProperty('title');
+    expect(image).not.toHaveProperty('source');
+  });
+
+  it('keeps image as null in a sparse view, never dropping the key', () => {
+    const document = projectedPlantDocument(
+      without(stored(PlantFactory.create()), 'knowledge')
+    );
+
+    expect(
+      toPlantSparseView(projected(document, ['image']), ['image'])
+    ).toEqual({ id: toPlantReadView(document).id, image: null });
+  });
 });

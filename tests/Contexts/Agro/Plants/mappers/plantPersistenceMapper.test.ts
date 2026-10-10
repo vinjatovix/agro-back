@@ -1,7 +1,9 @@
 import { PlantStatus } from '../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantStatus.js';
 import { PollinationType } from '../../../../../src/Contexts/Agro/Plants/domain/entities/types/PollinationType.js';
 import { plantPersistenceMapper } from '../../../../../src/Contexts/Agro/Plants/mappers/plantPersistenceMapper.js';
+import { InternalServerError } from '../../../../../src/shared/errors/index.js';
 import { PlantFactory } from '../domain/mothers/PlantFactory.js';
+import { PlantResourceBuilder } from '../domain/mothers/PlantResourceBuilder.js';
 import { PlantTraitsBuilder } from '../domain/mothers/PlantTraitsBuilder.js';
 
 describe('PlantPersistenceMapper', () => {
@@ -57,12 +59,14 @@ describe('PlantPersistenceMapper', () => {
       expect(doc.phenology.harvest.description).toBeDefined();
     });
 
-    it('should omit knowledge when empty', () => {
+    it('should store only the image resource of a minimal knowledge', () => {
       const plant = PlantFactory.create();
 
       const doc = plantPersistenceMapper.toMongoDocument(plant);
 
-      expect(doc.knowledge).toEqual({});
+      expect(doc.knowledge).toEqual({
+        resources: plant.knowledge.resources
+      });
     });
 
     it('should include knowledge when present', () => {
@@ -149,6 +153,26 @@ describe('PlantPersistenceMapper', () => {
 
       expect(restored.knowledge).toBeDefined();
     });
+
+    it.each([
+      ['has no knowledge', { knowledge: {} }],
+      [
+        'has no image resource',
+        { knowledge: { resources: [PlantResourceBuilder.article()] } }
+      ]
+    ])(
+      'should fail as a server error, not a client one, when the stored plant %s',
+      (_case, broken) => {
+        const document = {
+          ...plantPersistenceMapper.toMongoDocument(PlantFactory.create()),
+          ...broken
+        };
+
+        expect(() =>
+          plantPersistenceMapper.fromMongoDocument(document)
+        ).toThrow(InternalServerError);
+      }
+    );
   });
 
   describe('reversibility', () => {

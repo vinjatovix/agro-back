@@ -2,7 +2,10 @@ import { DataTable, Given, Then, When } from '@cucumber/cucumber';
 import { assert } from 'chai';
 
 import { PlantStatus } from '../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantStatus.js';
-import { fromMongoId } from '../../../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoId.js';
+import {
+  fromMongoId,
+  toMongoId
+} from '../../../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoId.js';
 
 import {
   assertDocumentUnchanged,
@@ -219,3 +222,70 @@ Then(
     }
   }
 );
+
+// Columns `type`, `url`, `title`, `source`; an empty cell leaves the key out.
+const tableRecords = (dataTable: DataTable): Record<string, string>[] =>
+  dataTable
+    .hashes()
+    .map((row) =>
+      Object.fromEntries(Object.entries(row).filter(([, cell]) => cell !== ''))
+    );
+
+Given(
+  'a plant exists with the resources:',
+  async function (this: AgroWorld, dataTable: DataTable) {
+    const plant = await suite().seeders.plant.create({
+      'identity.family': this.familyId,
+      'knowledge.resources': tableRecords(dataTable)
+    });
+    assert.exists(plant.id, 'PlantSeeder created no plant');
+
+    this.plantId = plant.id;
+  }
+);
+
+const imageOf = (plant: unknown): unknown =>
+  (plant as { image?: unknown }).image;
+
+const listedImages = async (world: AgroWorld): Promise<unknown[]> => {
+  const { data } = (await currentResponse(world)).body as { data: unknown[] };
+  assert.isNotEmpty(data, 'The list has no plants to check');
+
+  return data.map(imageOf);
+};
+
+// A single row `url`, `title`, `source`; an empty cell means the key is absent.
+const expectedImage = (dataTable: DataTable): Record<string, string> => {
+  const [image] = tableRecords(dataTable);
+  assert.exists(image, 'The table has no image row');
+
+  return image;
+};
+
+Then(
+  'the plant image should be:',
+  async function (this: AgroWorld, dataTable: DataTable) {
+    const body: unknown = (await currentResponse(this)).body;
+
+    assert.deepStrictEqual(imageOf(body), expectedImage(dataTable));
+  }
+);
+
+Then(
+  'every listed plant image should be:',
+  async function (this: AgroWorld, dataTable: DataTable) {
+    const expected = expectedImage(dataTable);
+
+    for (const image of await listedImages(this)) {
+      assert.deepStrictEqual(image, expected);
+    }
+  }
+);
+
+Then('no plant should be stored with id {string}', async function (id: string) {
+  const stored = await rawCollection('plants').countDocuments({
+    _id: toMongoId(id)
+  });
+
+  assert.strictEqual(stored, 0, `A plant ${id} was stored`);
+});

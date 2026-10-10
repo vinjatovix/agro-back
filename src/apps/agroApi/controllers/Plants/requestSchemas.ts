@@ -214,7 +214,8 @@ const createPlantBody = z.object({
       .exactOptional(),
     pruning: listSchema(pruningItemSchema).exactOptional(),
     ecology: ecologySchema.exactOptional(),
-    resources: listSchema(resourceItemSchema).exactOptional(),
+    // Required: every plant has an image resource (checked by `Plant`).
+    resources: listSchema(resourceItemSchema),
     notes: textListSchema.exactOptional()
   })
 });

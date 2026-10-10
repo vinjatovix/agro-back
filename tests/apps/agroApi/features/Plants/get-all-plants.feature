@@ -212,7 +212,44 @@ Feature: Get All Plants
     And a plant exists
     When I send a GET request to "/api/v1/plants"
     Then the response status code should be 200
-    And each item should hold exactly the fields "id,version,identity,traits,phenology,knowledge,metadata,status,deletedAt"
+    And each item should hold exactly the fields "id,version,identity,traits,phenology,knowledge,image,metadata,status,deletedAt"
+    And response matches OpenAPI contract
+
+  Scenario: List plants with their image and without their knowledge
+    Given a family exists
+    And a plant exists with the resources:
+      | type  | url                             | title        | source    |
+      | image | https://example.org/tomato.jpg  | Tomato plant | Wikimedia |
+    When I send a GET request to "/api/v1/plants?fields[plants]=identity,image"
+    Then the response status code should be 200
+    And each item should hold exactly the fields "id,identity,image"
+    And every listed plant image should be:
+      | url                            | title        | source    |
+      | https://example.org/tomato.jpg | Tomato plant | Wikimedia |
+    And response matches OpenAPI contract
+
+  Scenario: The catalog listing fieldset sends exactly its fields
+    Given a family exists
+    And a plant exists with the resources:
+      | type  | url                            |
+      | image | https://example.org/tomato.jpg |
+    When I send a GET request to "/api/v1/plants?fields[plants]=identity,traits,image,status"
+    Then the response status code should be 200
+    And each item should hold exactly the fields "id,identity,traits,image,status"
+    And response matches OpenAPI contract
+
+  Scenario: The listing sends the first image resource in stored order
+    Given a family exists
+    And a plant exists with the resources:
+      | type  | url                            | title   |
+      | video | https://example.org/sowing.mp4 | Sow     |
+      | image | https://example.org/first.jpg  | First   |
+      | image | https://example.org/second.jpg | Second  |
+    When I send a GET request to "/api/v1/plants?fields[plants]=image"
+    Then the response status code should be 200
+    And every listed plant image should be:
+      | url                           | title |
+      | https://example.org/first.jpg | First |
     And response matches OpenAPI contract
 
   Scenario: List plants from several families with their family

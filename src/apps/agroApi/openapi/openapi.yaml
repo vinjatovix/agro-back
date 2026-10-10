@@ -978,7 +978,9 @@ components:
       description: >
         JSON:API sparse fieldset. `fields[plants]` is a comma-separated list
         of top-level fields: `id`, `identity`, `traits`, `phenology`,
-        `knowledge`, `metadata`, `status`, `deletedAt`, `version`. Entries are
+        `knowledge`, `image`, `metadata`, `status`, `deletedAt`, `version`.
+        `image` is the plant's primary picture, so a listing can show it
+        without requesting `knowledge`. Entries are
         trimmed, blanks and repeats dropped, and the order does not matter;
         `id` is always sent. Any other resource type, an unknown or nested
         name (names are case-sensitive), or an empty list → 400. The response
@@ -1625,7 +1627,7 @@ components:
 
     Plant:
       type: object
-      required: [id, identity, traits, phenology]
+      required: [id, identity, traits, phenology, image]
       properties:
         id:
           type: string
@@ -1646,6 +1648,9 @@ components:
 
         knowledge:
           $ref: '#/components/schemas/PlantKnowledge'
+
+        image:
+          $ref: '#/components/schemas/PlantImage'
 
         metadata:
           allOf:
@@ -1698,6 +1703,8 @@ components:
           $ref: '#/components/schemas/PlantPhenology'
         knowledge:
           $ref: '#/components/schemas/PlantKnowledge'
+        image:
+          $ref: '#/components/schemas/PlantImage'
         metadata:
           allOf:
             - $ref: '#/components/schemas/Metadata'
@@ -1741,10 +1748,14 @@ components:
             harvest:
               $ref: '#/components/schemas/PlantHarvest'
         knowledge:
+          description: >
+            `resources` must include at least one entry of type `image`
+            (every plant has a picture); otherwise → 400 at
+            `knowledge.resources`.
           allOf:
             - $ref: '#/components/schemas/PlantKnowledge'
             - type: object
-              required: [rootSystem, soil, light, propagation]
+              required: [rootSystem, soil, light, propagation, resources]
 
     # Nullable fields declare their own `type` instead of reusing a shared
     # schema: OpenAPI 3.0.3 ignores `nullable` without `type` in the same
@@ -1756,6 +1767,8 @@ components:
         field (JSON Merge Patch, RFC 7396). Required fields reject `null`.
         Ranges may carry a single bound, merged into the stored one. An
         empty body `{}` changes nothing; `If-Match` is still checked.
+        `knowledge.resources` must keep at least one entry of type `image`:
+        `null` or a list without one → 400 at `knowledge.resources`.
       properties:
         identity:
           type: object
@@ -2341,6 +2354,27 @@ components:
           $ref: '#/components/schemas/ShortText'
         tags:
           $ref: '#/components/schemas/ShortTextList'
+
+    PlantImage:
+      description: >
+        The plant's primary picture: the first `knowledge.resources` entry of
+        type `image`, in stored order. Every plant has one. Read-only: derived
+        from `knowledge.resources` and never written, so create and update
+        reject an `image` key.
+      type: object
+      additionalProperties: false
+      required: [url]
+      properties:
+        url:
+          type: string
+          format: uri
+          description: Absolute `http` or `https` URL.
+          pattern: '^https?://'
+          maxLength: 2048
+        title:
+          $ref: '#/components/schemas/ShortText'
+        source:
+          $ref: '#/components/schemas/ShortText'
 
     # ================= BEDS =================
 

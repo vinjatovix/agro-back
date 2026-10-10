@@ -98,6 +98,12 @@ const phenologySchema = z.object({
   })
 });
 
+/** Absolute `http(s)` URL of a knowledge resource or the plant image. */
+const resourceUrlSchema = z
+  .string()
+  .max(REQUEST_LIMITS.url)
+  .regex(/^https?:\/\//);
+
 const knowledgeSchema = z.object({
   soil: z
     .object({ ph: rangeSchema, availableDepthCm: rangeSchema })
@@ -149,16 +155,20 @@ const knowledgeSchema = z.object({
   resources: listSchema(
     z.object({
       type: requiredShortTextResponseSchema,
-      url: z
-        .string()
-        .max(REQUEST_LIMITS.url)
-        .regex(/^https?:\/\//),
+      url: resourceUrlSchema,
       title: shortTextSchema.exactOptional(),
       source: shortTextSchema.exactOptional(),
       tags: labelListSchema.exactOptional()
     })
   ).exactOptional(),
   notes: textListSchema.exactOptional()
+});
+
+/** The plant's primary picture, derived from its first image resource. */
+export const plantImageSchema = z.object({
+  url: resourceUrlSchema,
+  title: shortTextSchema.exactOptional(),
+  source: shortTextSchema.exactOptional()
 });
 
 export const plantResponseSchema = z.object({
@@ -168,6 +178,7 @@ export const plantResponseSchema = z.object({
   traits: traitsSchema,
   phenology: phenologySchema,
   knowledge: knowledgeSchema,
+  image: plantImageSchema,
   metadata: metadataResponseSchema,
   status: z.enum(['ACTIVE', 'DELETED']),
   deletedAt: z.iso.datetime().nullable()

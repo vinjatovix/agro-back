@@ -73,7 +73,8 @@ const base = (): CreatePlantDto => ({
       availableDepthCm: range(30, 80)
     },
     light: { hoursMin: 6, type: 'full_sun' },
-    propagation: { methods: {} }
+    propagation: { methods: {} },
+    resources: [{ type: 'image', url: 'https://example.com/tomato.jpg' }]
   }
 });
 

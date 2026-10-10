@@ -7,11 +7,14 @@ import type { Plant } from '../../../../../../src/Contexts/Agro/Plants/domain/en
 import { toPlantReadView } from '../../../../../../src/Contexts/Agro/Plants/infrastructure/persistence/mongo/plantReadViewMapper.js';
 import { plantPersistenceMapper } from '../../../../../../src/Contexts/Agro/Plants/mappers/plantPersistenceMapper.js';
 import { PlantFactory } from '../../domain/mothers/PlantFactory.js';
+import { projectedPlantDocument } from '../../infrastructure/persistence/mongo/projectedPlantDocument.js';
 
 /** Read views built from the plant factories, the way storage holds them. */
 export const PlantReadViewMother = {
   from(plant: Plant): PlantReadView {
-    return toPlantReadView(plantPersistenceMapper.toMongoDocument(plant));
+    return toPlantReadView(
+      projectedPlantDocument(plantPersistenceMapper.toMongoDocument(plant))
+    );
   },
 
   tomato(): PlantReadView {

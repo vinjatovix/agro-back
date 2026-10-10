@@ -1,7 +1,7 @@
 import { type NextFunction, type Request, type Response } from 'express';
 
 import type { UpdatePlant } from '../../../../Contexts/Agro/Plants/application/useCases/UpdatePlant.js';
-import { plantDomainMapper } from '../../../../Contexts/Agro/Plants/mappers/plantDomainMapper.js';
+import { toPlantResponse } from '../../../../Contexts/Agro/Plants/mappers/index.js';
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
 import { getValidatedRequest } from '../../middlewares/validateRequest.js';
 import { HttpController } from '../../shared/HttpController.js';
@@ -40,7 +40,7 @@ export class UpdatePlantController extends HttpController {
         user.username,
         getExpectedVersions(res)
       );
-      const mappedResult = plantDomainMapper.toPrimitives(result);
+      const mappedResult = toPlantResponse(result);
 
       setVersionETag(res, mappedResult.version);
       res.status(this.status()).json(mappedResult);

@@ -1,4 +1,10 @@
-import type { Binary, MongoClient } from 'mongodb';
+import {
+  type Binary,
+  Collection,
+  type FindOptions,
+  type MongoClient,
+  type UpdateFilter
+} from 'mongodb';
 import {
   type AppContainer,
   createAppContainer
@@ -8,9 +14,13 @@ import type {
   PlantReadRepository
 } from '../../../../../../../src/Contexts/Agro/Plants/application/queries/index.js';
 import type { Plant } from '../../../../../../../src/Contexts/Agro/Plants/domain/entities/Plant.js';
+import {
+  type PlantKnowledgePrimitives,
+  PlantStatus
+} from '../../../../../../../src/Contexts/Agro/Plants/domain/entities/types/index.js';
 import type { PlantFilter } from '../../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantFilter.js';
-import { PlantStatus } from '../../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantStatus.js';
 import type { PlantRepository } from '../../../../../../../src/Contexts/Agro/Plants/domain/repositories/interfaces/PlantRepository.js';
+import { PlantKnowledge } from '../../../../../../../src/Contexts/Agro/Plants/domain/value-objects/index.js';
 import { toMongoId } from '../../../../../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoId.js';
 import type { QueryOptions } from '../../../../../../../src/shared/domain/query/interfaces/QueryOptions.js';
 import type { EnvironmentArranger } from '../../../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
@@ -21,6 +31,11 @@ import { random } from '../../../../../shared/fixtures/random.js';
 import { PlantReadViewMother } from '../../../application/queries/PlantReadViewMother.js';
 import { PlantFactory } from '../../../domain/mothers/PlantFactory.js';
 import { PlantIdentityBuilder } from '../../../domain/mothers/PlantIdentityBuilder.js';
+import { PlantKnowledgeBuilder } from '../../../domain/mothers/PlantKnowledgeBuilder.js';
+import {
+  type PlantResource,
+  PlantResourceBuilder
+} from '../../../domain/mothers/PlantResourceBuilder.js';
 
 type PlantQuery = QueryOptions<PlantFilter, PlantField, never>;
 
@@ -259,6 +274,146 @@ describe('MongoPlantReadRepository', () => {
       expect(data.map((view) => view.status)).not.toContain('DELETED');
       expect(data).toHaveLength(4);
     });
+  });
+
+  describe('image', () => {
+    const withResources = (resources: PlantResource[]): Plant =>
+      PlantFactory.random({
+        knowledge: PlantKnowledgeBuilder.withResources(resources)
+      });
+
+    const storedKnowledge = async (
+      plant: Plant
+    ): Promise<PlantKnowledgePrimitives> => {
+      const document = await client
+        .db()
+        .collection<StoredId & { knowledge?: PlantKnowledgePrimitives }>(
+          'plants'
+        )
+        .findOne({ _id: toMongoId(plant.id) });
+
+      return document?.knowledge ?? {};
+    };
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('reads the first image resource without fetching knowledge', async () => {
+      const first = PlantResourceBuilder.image();
+      const plant = withResources([PlantResourceBuilder.video(), first]);
+      await saveAll([plant]);
+      const findOne = jest.spyOn(Collection.prototype, 'findOne');
+
+      const view = await readRepository.findById(plant.id, {
+        fields: ['image']
+      });
+
+      const [, options] = findOne.mock.calls[0] ?? [];
+      const projection = (options as FindOptions | undefined)?.projection;
+      expect(projection).toHaveProperty('image');
+      expect(projection).not.toHaveProperty('knowledge');
+      await expect(findOne.mock.results[0]?.value).resolves.not.toHaveProperty(
+        'knowledge'
+      );
+      expect(view).toStrictEqual({
+        id: plant.id,
+        image: { url: first.url, title: first.title, source: first.source }
+      });
+    });
+
+    // No `Plant` can be saved without an image, so these break stored data:
+    // the read side copies it, and the response check rejects the `null`.
+    it.each<[string, UpdateFilter<StoredId>]>([
+      [
+        'no image resource',
+        {
+          $set: {
+            'knowledge.resources': [
+              PlantResourceBuilder.video(),
+              PlantResourceBuilder.article()
+            ]
+          }
+        }
+      ],
+      ['no knowledge', { $unset: { knowledge: '' } }]
+    ])(
+      'reads image as null for a stored plant with %s',
+      async (_case, update) => {
+        const plant = withResources([PlantResourceBuilder.image()]);
+        await saveAll([plant]);
+        await client
+          .db()
+          .collection<StoredId>('plants')
+          .updateOne({ _id: toMongoId(plant.id) }, update);
+
+        await expect(
+          readRepository.findById(plant.id, { fields: ['image'] })
+        ).resolves.toStrictEqual({ id: plant.id, image: null });
+      }
+    );
+
+    it('leaves image out when the fieldset does not select it', async () => {
+      const plant = withResources([PlantResourceBuilder.image()]);
+      await saveAll([plant]);
+
+      const view = await readRepository.findById(plant.id, {
+        fields: ['identity']
+      });
+
+      expect(view).not.toHaveProperty('image');
+    });
+
+    it('reads both knowledge and image without a fieldset', async () => {
+      const plant = withResources([PlantResourceBuilder.image()]);
+      await saveAll([plant]);
+
+      const view = await readRepository.findById(plant.id);
+
+      expect(view?.knowledge).toEqual(await storedKnowledge(plant));
+      expect(view?.image).toEqual(plant.knowledge.primaryImage());
+    });
+
+    it.each<[string, () => PlantResource[]]>([
+      [
+        'a video, then two images',
+        () => [
+          PlantResourceBuilder.video(),
+          PlantResourceBuilder.image(),
+          PlantResourceBuilder.image()
+        ]
+      ],
+      [
+        'images without title or source',
+        () => [PlantResourceBuilder.bareImage(), PlantResourceBuilder.image()]
+      ],
+      [
+        'an "Image" (other case) before the image',
+        () => [
+          PlantResourceBuilder.image({ type: 'Image' }),
+          PlantResourceBuilder.image()
+        ]
+      ]
+    ])(
+      'reads the same image as the domain rule for %s',
+      async (_case, resources) => {
+        const plant = withResources(resources());
+        await saveAll([plant]);
+        const expected = PlantKnowledge.fromPrimitives(
+          await storedKnowledge(plant)
+        ).primaryImage();
+
+        const sparse = await readRepository.findById(plant.id, {
+          fields: ['image']
+        });
+        const full = await readRepository.findById(plant.id);
+        const { data } = await readRepository.findAll({ fields: ['image'] });
+
+        expect(sparse?.image).toEqual(expected);
+        expect(full?.image).toEqual(expected);
+        expect(data).toStrictEqual([{ id: plant.id, image: expected }]);
+      }
+    );
   });
 
   it('returns an empty page with correct metadata for an empty collection', async () => {
