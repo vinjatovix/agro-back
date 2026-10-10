@@ -21,7 +21,6 @@ export const bedInputMapper: BedInputMapper = {
       width: PositiveNumber.create(input.width),
       height: PositiveNumber.create(input.height),
       depth: PositiveNumber.create(input.depth),
-      plantInstances: [],
       metadata: Metadata.create(user),
       deleted: false
     });

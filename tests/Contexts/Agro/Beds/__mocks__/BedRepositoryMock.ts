@@ -4,6 +4,7 @@ import type { Bed } from '../../../../../src/Contexts/Agro/Beds/domain/entities/
 import type { BedPrimitives } from '../../../../../src/Contexts/Agro/Beds/domain/entities/types/BedPrimitives.js';
 import type { BedRepository } from '../../../../../src/Contexts/Agro/Beds/domain/repositories/interfaces/BedRepository.js';
 import { bedDomainMapper } from '../../../../../src/Contexts/Agro/Beds/mappers/bedDomainMapper.js';
+import { DomainConflictException } from '../../../../../src/Contexts/shared/domain/errors/index.js';
 import type { Nullable } from '../../../../../src/shared/domain/types/Nullable.js';
 import { BaseMongoCrudRepositoryMock } from '../../__mocks__/BaseMongoCrudRepositoryMock.js';
 
@@ -25,6 +26,19 @@ export class BedRepositoryMock
     return bed && this.isActive(bed) && bed.userId === userId
       ? this.toDomain(this.toPrimitives(bed))
       : null;
+  }
+
+  async conditionalIncrementVersion(
+    id: string,
+    expectedVersion: number
+  ): Promise<void> {
+    const bed = this.storage.get(id);
+    if (!bed || !this.isActive(bed) || bed.version !== expectedVersion) {
+      throw new DomainConflictException(`Bed was modified concurrently: ${id}`);
+    }
+    const primitives = this.toPrimitives(bed);
+    primitives.version += 1;
+    this.storage.set(id, this.toDomain(primitives));
   }
 
   findByUserId(userId: string): Promise<Bed[]> {

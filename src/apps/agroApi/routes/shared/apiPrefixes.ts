@@ -4,5 +4,6 @@ export const API_PREFIXES = {
   testError: '/api/v1/error',
   families: '/api/v1/families',
   plants: '/api/v1/plants',
-  beds: '/api/v1/beds'
+  beds: '/api/v1/beds',
+  plantInstances: '/api/v1/plant-instances'
 } as const;

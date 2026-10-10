@@ -48,9 +48,8 @@ Bed is NOT:
 ### 4.1 Bed → PlantInstances
 
 - A Bed is logically associated with multiple PlantInstances via `bedId`.
-- **`[TARGET STATE (Pending [Iteration 20](../../roadmap.md#iteration-20-extract-plantinstance-into-standalone-collection))]` Standalone collection:** PlantInstances are fully detached from the Bed aggregate and persisted in their own independent `plant_instances` collection. They are loaded dynamically using the `PlantInstanceRepository` (two queries are made to draw/render the Bed map).
-  - _Migration Note: In the current codebase, PlantInstances are physically embedded inside the Bed aggregate root (`props.plantInstances` array in `Bed.ts`) and stored inside the same document within the `beds` collection in MongoDB._
-- Spatial rules are evaluated by loading the active PlantInstances of that Bed on-the-fly and passing them to `SpatialService` during placement.
+- **Standalone collection (since [Iteration 20](../../roadmap.md#iteration-20-extract-plantinstance-into-standalone-collection)):** PlantInstances are fully detached from the Bed aggregate and persisted in their own `plant_instances` collection. Bed reads load them through the `PlantInstanceRepository` in one extra query for all the beds of the response: by default only their ids (a projection, the crops are not loaded), and the full crops only with `include=plantInstances`. Crops are listed oldest planted first.
+- Spatial rules are evaluated by loading the active PlantInstances of that Bed on-the-fly and passing them to `CropSpatialService` during placement and moves.
 
 ### 4.2 Bed → Spatial System
 
@@ -162,11 +161,11 @@ _Note: For the exact HTTP verbs, status codes, and routing parameters exposing t
 
 - To prevent race conditions during concurrent plant placements, the `Bed` aggregate root implements Optimistic Concurrency Control (OCC) using an integer `version` property (starts at `0`).
 - Every write through `updateWithDiff` only matches the document at the `version` it was read with, and atomically increments it (`$inc: { version: 1 }`). See **persistence.md Sec. 4.3**.
-- Over HTTP, `PATCH` and `DELETE` require `If-Match` with the version tag returned in `ETag` by `GET`/`POST`/`PATCH` (an entity-tag list such as `"2", "3"` is accepted; validation.md §3.1). The use case checks that the stored version is among the versions named, right after the existence check and before the "bed has plants" rule; otherwise (outdated, weak or never-emitted tag) → `DomainStaleVersionException` (HTTP `412`); a missing header → `428`.
+- Placing, moving or removing a crop raises the bed version through `BedRepository.conditionalIncrementVersion(id, version read)`. The client sends no bed version for these crop writes, so a concurrent bed change answers `409` (`DomainConflictException`), not `412`: there is no precondition of the client that failed. The raise happens after every rule has passed (spatial checks, crop invariants), so a rejected crop never invalidates the bed `ETag`. Editing only a crop's growth status, variety or notes leaves the bed version unchanged.
+- Over HTTP, `PATCH` and `DELETE` require `If-Match` with the version tag returned in `ETag` by `GET`/`POST`/`PATCH` (an entity-tag list such as `"2", "3"` is accepted; validation.md §3.1). The use case checks that the stored version is among the versions named, right after the existence check; otherwise (outdated, weak or never-emitted tag) → `DomainStaleVersionException` (HTTP `412`); a missing header → `428`.
 - A write based on a stale read is rejected with `DomainStaleVersionException` (HTTP `412`), forcing the caller to re-read and re-evaluate spatial collision rules. This covers, for example:
-  - two concurrent `addPlantToBed` calls validating spacing against the same old layout;
-  - `DeleteBed` soft-deleting a bed that received a plant after it was read.
-- While `plantInstances` remain embedded in the `beds` document, OCC alone makes each placement atomic; no transaction is required yet.
+  - `UpdateBed` or `DeleteBed` acting on a bed that received, lost or moved a crop after it was read.
+- Two concurrent placements in the same bed validate spacing against the same layout, but only one wins the conditional raise of the bed version; the other answers `409` and must be retried. The bed raise and the crop write are still two writes: see Sec. 7.2.2.
 - **`[TARGET STATE (Pending [Iteration 67](../../roadmap.md#iteration-67-implement-transactional-batch-save-layout-endpoint))]`** `PUT /api/v1/beds/:id/layout` also requires `If-Match` with the bed version and bumps it on save.
 
 #### 7.2.2 Cross-Collection Transactions `[TARGET STATE (Pending [Iteration 24](../../roadmap.md#iteration-24-wrap-cross-aggregate-mutations-in-acid-transactions))]`
@@ -207,7 +206,7 @@ _Note: For the exact HTTP verbs, status codes, and routing parameters exposing t
 
 - Bed aggregate structure
 - basic spatial anchoring concept
-- integration with SpatialService (logical)
+- integration with `CropSpatialService` (boundaries and neighbor spacing)
 - full REST lifecycle coverage (create, read, update, delete)
 - ownership enforcement in API layer
 - validation contract enforcement (OpenAPI-driven tests)
@@ -215,8 +214,8 @@ _Note: For the exact HTTP verbs, status codes, and routing parameters exposing t
 - `BedName` value object (since [Iteration 14](../../roadmap.md#iteration-14-migrate-beds-and-query-dsl-to-zod)): the name is trimmed and never blank (`InvalidArgumentException`), the same rule on create (`bedInputMapper`), rename and load (`bedDomainMapper`, `bedPersistenceMapper`)
 - `UpdateBed` accepts only `name`, `width`, `height` and `depth` (validated by `updateBedRequest`, none nullable); it calls `rename`/`resize` only for the fields sent, so `{}` changes nothing (no audit refresh, version kept) but still checks the version and confirms against storage. Plant instances are never changed by patching the bed
 - aggregate mutation methods: `Bed.rename(name, user)` and `Bed.resize(changes, user)` — both throw `DomainConflictException` on a soft-deleted bed; `resize` validates each dimension with `PositiveNumber.create` before mutating (atomic: if any dimension is invalid, nothing changes)
-- in-memory audit metadata (domain-core.md Sec. 5.2): `rename`/`resize` refresh `updatedAt`/`updatedBy` only on a real change; `markAsDeleted(user)` uses one timestamp for `deletedAt` and `updatedAt`; `addPlant(plant, spatial, existing, user)` always refreshes audit data; `removePlant(plantId, user)` refreshes audit data only when a plant is actually removed (an unknown id is a no-op). All of them accept an optional `at` timestamp; `UpdateBed` passes one `at` to `rename` and `resize`. `UpdateBed` returns the in-memory bed after `syncVersion` (1 read + 1 write, no read-back)
-- soft-deletion invariant: a bed with plants cannot be deleted (`409`, checked after the version: an outdated version returns `412` first); deleting an already deleted bed returns `404`
+- in-memory audit metadata (domain-core.md Sec. 5.2): `rename`/`resize` refresh `updatedAt`/`updatedBy` only on a real change; `markAsDeleted(user, at)` uses one timestamp for `deletedAt` and `updatedAt`. All of them accept an optional `at` timestamp; `UpdateBed` passes one `at` to `rename` and `resize`. `UpdateBed` returns the in-memory bed after `syncVersion` (1 read + 1 write, no read-back)
+- soft deletion cascades: `DeleteBed` soft-deletes the bed first (so an outdated version answers `412` before any crop is touched) and then marks every active crop of the bed as removed with the same timestamp; deleting an already deleted bed returns `404`. The two writes are not atomic yet ([Iteration 24](../../roadmap.md#iteration-24-wrap-cross-aggregate-mutations-in-acid-transactions))
 
 ### Partial
 

@@ -1,12 +1,11 @@
 import { type NextFunction, type Request, type Response } from 'express';
 
 import type { ListUserBeds } from '../../../../Contexts/Agro/Beds/application/useCases/ListUserBeds.js';
-import { bedDomainMapper } from '../../../../Contexts/Agro/Beds/mappers/bedDomainMapper.js';
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
+import { getValidatedRequest } from '../../middlewares/validateRequest.js';
 import { HttpController } from '../../shared/HttpController.js';
-
-// The request carries no input: `validateRequest(listBedsRequest)` only
-// rejects query keys and a body.
+import { toBedResponse } from './bedResponse.js';
+import { listBedsRequest } from './requestSchemas.js';
 
 export type GetUserBedsControllerDependencies = {
   listUserBeds: ListUserBeds;
@@ -14,6 +13,7 @@ export type GetUserBedsControllerDependencies = {
 
 export class GetUserBedsController extends HttpController {
   protected readonly listUserBeds: ListUserBeds;
+
   constructor({ listUserBeds }: GetUserBedsControllerDependencies) {
     super();
     this.listUserBeds = listUserBeds;
@@ -26,9 +26,12 @@ export class GetUserBedsController extends HttpController {
   ): Promise<void> => {
     try {
       const user = res.locals.user as UserSessionInfo;
-      const beds = await this.listUserBeds.execute(user.id);
+      const { query } = getValidatedRequest(res, listBedsRequest);
 
-      const response = beds.map((bed) => bedDomainMapper.toPrimitives(bed));
+      const embedCrops = query.include === 'plantInstances';
+      const beds = await this.listUserBeds.execute(user.id, { embedCrops });
+
+      const response = beds.map((bedWithCrops) => toBedResponse(bedWithCrops));
 
       res.status(this.status()).json(response);
     } catch (error) {

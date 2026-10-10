@@ -2,19 +2,26 @@ import { GetBedById } from '../../../../../../src/Contexts/Agro/Beds/application
 import { createUserId } from '../../../../../../src/Contexts/Auth/domain/UserId.js';
 import { DomainNotFoundException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { random } from '../../../../shared/fixtures/random.js';
+import { PlantInstanceRepositoryMock } from '../../../PlantInstances/__mocks__/PlantInstanceRepositoryMock.js';
+import { PlantInstanceMother } from '../../../PlantInstances/domain/mothers/PlantInstanceMother.js';
 import { BedRepositoryMock } from '../../__mocks__/BedRepositoryMock.js';
 import { BedFactory } from '../../domain/mothers/BedFactory.js';
 
 describe('GetBedById', () => {
   let repository: BedRepositoryMock;
+  let plantInstanceRepository: PlantInstanceRepositoryMock;
   let useCase: GetBedById;
 
   beforeEach(() => {
     repository = new BedRepositoryMock();
-    useCase = new GetBedById({ bedRepository: repository });
+    plantInstanceRepository = new PlantInstanceRepositoryMock();
+    useCase = new GetBedById({
+      bedRepository: repository,
+      plantInstanceRepository
+    });
   });
 
-  it('should search the active bed owned by the user', async () => {
+  it('should search the active bed owned by the user and list its crop ids', async () => {
     const bed = BedFactory.create();
     repository.addToStorage(bed);
     const user = {
@@ -24,9 +31,39 @@ describe('GetBedById', () => {
       roles: ['user']
     };
 
-    await useCase.execute(bed.id, user);
+    const crop = PlantInstanceMother.create({
+      userId: bed.userId,
+      bedId: bed.id
+    });
+    plantInstanceRepository.addToStorage(crop);
 
+    const result = await useCase.execute(bed.id, user);
+
+    expect(result.bed.id).toBe(bed.id);
+    expect(result.cropIds).toEqual([crop.id]);
+    expect(result.crops).toBeUndefined();
     repository.assertFindOwnedActiveByIdHasBeenCalledWith(bed.id, bed.userId);
+  });
+
+  it('should load the full crops when asked to embed them', async () => {
+    const bed = BedFactory.create();
+    repository.addToStorage(bed);
+    const user = {
+      username: 'test-user',
+      id: bed.userId,
+      email: 'test-user@example.com',
+      roles: ['user']
+    };
+    const crop = PlantInstanceMother.create({
+      userId: bed.userId,
+      bedId: bed.id
+    });
+    plantInstanceRepository.addToStorage(crop);
+
+    const result = await useCase.execute(bed.id, user, { embedCrops: true });
+
+    expect(result.cropIds).toEqual([crop.id]);
+    expect(result.crops?.map((c) => c.id)).toEqual([crop.id]);
   });
 
   it('should throw not found error when bed does not exist', async () => {

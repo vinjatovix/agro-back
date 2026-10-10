@@ -163,7 +163,7 @@ Feature: Delete a bed
         Then the response status code should be 428
         And response matches OpenAPI contract
 
-    Scenario: A stale version is reported before the bed-has-plants conflict
+    Scenario: A stale version is reported when deleting a bed with active crops
         Given a bed exists
         And the bed has a plant
         And the bed is stored at version 1
@@ -173,13 +173,13 @@ Feature: Delete a bed
         And the bed should be unchanged
         And response matches OpenAPI contract
 
-    Scenario: Deleting a bed with plants with the current version is a conflict
+    Scenario: Deleting a bed with active crops cascades to soft-delete the crops
         Given a bed exists
         And the bed has a plant
         And I use If-Match '"0"'
         When I send a DELETE user request to "/api/v1/beds/<bedId>"
-        Then the response status code should be 409
-        And response matches OpenAPI contract
+        Then the response status code should be 204
+        And the bed should have no active crops
 
     Scenario: A soft delete records who deleted the bed and when
         Given a bed exists

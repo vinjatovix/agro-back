@@ -8,6 +8,8 @@ import type { PlantPrimitives } from '../../entities/types/PlantPrimitives.js';
 
 export interface PlantRepository {
   findById(id: string): Promise<Nullable<Plant>>;
+  /** Soft-deleted plants are returned too; unknown ids are skipped. */
+  findByIds(ids: string[]): Promise<Plant[]>;
   findActiveById(id: string): Promise<Nullable<Plant>>;
   save(plant: Plant): Promise<void>;
   /**

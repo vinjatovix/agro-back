@@ -132,6 +132,30 @@ describe('MongoPlantRepository', () => {
     });
   });
 
+  describe('findByIds', () => {
+    it('should return the requested plants, soft-deleted ones included', async () => {
+      const active = PlantFactory.random();
+      const deleted = PlantFactory.random();
+      deleted.markAsDeleted('test-user');
+      await repository.save(active);
+      await repository.save(deleted);
+
+      const found = await repository.findByIds([
+        active.id,
+        deleted.id,
+        random.uuid()
+      ]);
+
+      expect(found.map((plant) => plant.id).sort()).toEqual(
+        [active.id, deleted.id].sort()
+      );
+    });
+
+    it('should return an empty list for no ids', async () => {
+      await expect(repository.findByIds([])).resolves.toEqual([]);
+    });
+  });
+
   describe('updateWithDiff', () => {
     it('should update plant name', async () => {
       const plant = PlantFactory.random();

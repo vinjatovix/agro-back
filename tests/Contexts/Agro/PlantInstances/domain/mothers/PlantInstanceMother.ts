@@ -1,3 +1,4 @@
+import { randomBedId } from '../../../../../../src/Contexts/Agro/Beds/domain/BedId.js';
 import { PlantInstance } from '../../../../../../src/Contexts/Agro/PlantInstances/domain/entities/PlantInstance.js';
 import {
   CropGrowthStatus,
@@ -8,6 +9,7 @@ import { randomPlantInstanceId } from '../../../../../../src/Contexts/Agro/Plant
 import type { Plant } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/Plant.js';
 import { randomPlantId } from '../../../../../../src/Contexts/Agro/Plants/domain/PlantId.js';
 import { randomUserId } from '../../../../../../src/Contexts/Auth/domain/UserId.js';
+import { Metadata } from '../../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
 import { Coordinates } from '../../../../../../src/shared/domain/value-objects/Coordinates.js';
 
 export class PlantInstanceMother {
@@ -15,11 +17,14 @@ export class PlantInstanceMother {
     return new PlantInstance({
       id: randomPlantInstanceId(),
       userId: randomUserId(),
+      bedId: randomBedId(),
       plantId: randomPlantId(),
       position: new Coordinates(50, 50),
       growthStatus: CropGrowthStatus.PLANTED,
       instanceStatus: PlantInstanceLifecycleStatus.ACTIVE,
       plantedAt: new Date(),
+      metadata: Metadata.create('test-user'),
+      version: 0,
       ...overrides
     });
   }

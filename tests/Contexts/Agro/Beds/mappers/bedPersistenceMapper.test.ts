@@ -29,18 +29,6 @@ describe('bedPersistenceMapper', () => {
       expect(document.userId).toBeDefined();
     });
 
-    it('should map plant instances', () => {
-      const bed = BedFactory.random();
-
-      const document = bedPersistenceMapper.toMongoDocument(bed);
-
-      expect(document.plantInstances).toHaveLength(bed.plantInstances.length);
-
-      expect(document.plantInstances[0]).toMatchObject(
-        bed.plantInstances[0]!.toPrimitives()
-      );
-    });
-
     it('should include deletedAt when present', () => {
       const bed = BedFactory.randomDeleted();
 
@@ -79,16 +67,6 @@ describe('bedPersistenceMapper', () => {
       expect(bed.isDeleted).toBe(original.isDeleted);
     });
 
-    it('should restore plant instances correctly', () => {
-      const original = BedFactory.random();
-
-      const document = bedPersistenceMapper.toMongoDocument(original);
-
-      const bed = bedPersistenceMapper.fromMongoDocument(document);
-
-      expect(bed.plantInstances).toHaveLength(original.plantInstances.length);
-    });
-
     it('should round-trip the version', () => {
       const original = BedFactory.create({ version: 3 });
 
@@ -108,18 +86,6 @@ describe('bedPersistenceMapper', () => {
 
       expect(bed.deletedAt).toBeInstanceOf(Date);
       expect(bed.isDeleted).toBe(true);
-    });
-
-    it('should default plantInstances to empty array when missing', () => {
-      const original = BedFactory.create();
-
-      const document = bedPersistenceMapper.toMongoDocument(original);
-
-      delete (document as Partial<typeof document>).plantInstances;
-
-      const bed = bedPersistenceMapper.fromMongoDocument(document);
-
-      expect(bed.plantInstances).toEqual([]);
     });
 
     it('should be reversible', () => {

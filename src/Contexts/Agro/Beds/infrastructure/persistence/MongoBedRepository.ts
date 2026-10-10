@@ -1,6 +1,7 @@
 import type { Db } from 'mongodb';
 import type { Nullable } from '../../../../../shared/domain/types/Nullable.js';
 import type { UnknownRecord } from '../../../../../shared/domain/types/UnknownRecord.js';
+import { DomainConflictException } from '../../../../shared/domain/errors/index.js';
 import { MongoCrudRepository } from '../../../../shared/infrastructure/persistence/mongo/MongoCrudRepository.js';
 import { toMongoId } from '../../../../shared/infrastructure/persistence/mongo/MongoId.js';
 import type { Bed } from '../../domain/entities/Bed.js';
@@ -59,6 +60,26 @@ export class MongoBedRepository
       userId: toMongoId(userId),
       ...this.activeFilter()
     });
+  }
+
+  async conditionalIncrementVersion(
+    id: string,
+    expectedVersion: number
+  ): Promise<void> {
+    // `$and` keeps both conditions even if they ever share a key, as in
+    // `updateWithDiff`.
+    const filter = {
+      _id: toMongoId(id),
+      $and: [this.activeFilter(), this.versionFilter(expectedVersion)]
+    };
+
+    const result = await this.collection().updateOne(filter, {
+      $inc: { version: 1 }
+    });
+
+    if (result.matchedCount === 0) {
+      throw new DomainConflictException(`Bed was modified concurrently: ${id}`);
+    }
   }
 
   protected activeFilter(): UnknownRecord {

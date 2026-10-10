@@ -61,10 +61,7 @@ PlantInstance is NOT:
 
 ### 4.1 Persistence Architecture & Aggregate Integration
 
-To ensure complete transparency during development, the aggregate's integration follows two distinct phases:
-
-- **Current State:** `PlantInstance` functions as an entity embedded physically inside the `Bed` aggregate root and is stored directly inside the same MongoDB document within the `beds` collection.
-- **Target State (Pending [Iteration 20](../../roadmap.md#iteration-20-extract-plantinstance-into-standalone-collection)):** `PlantInstance` will be re-architected as a standalone aggregate root (`PlantInstance` with its own `id`) with its own dedicated MongoDB collection (`plant_instances`), separate repository interface, and decoupled use cases.
+- **Architecture:** `PlantInstance` is a standalone aggregate root (`PlantInstance` extending `AggregateRoot<PlantInstanceId>`) with its own dedicated MongoDB collection (`plant_instances`), separate repository interface (`PlantInstanceRepository`), and decoupled use cases (`PlacePlantInstance`, `GetPlantInstanceById`, `ListPlantInstances`, `UpdatePlantInstance`, `RemovePlantInstance`). Position coordinates are optional to seamlessly support positionless crop representations.
 
 ---
 

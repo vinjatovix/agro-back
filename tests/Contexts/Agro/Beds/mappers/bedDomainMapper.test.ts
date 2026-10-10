@@ -21,18 +21,6 @@ describe('bedDomainMapper', () => {
       expect(primitives.metadata).toEqual(bed.metadata.toPrimitives());
     });
 
-    it('should map plant instances to primitives', () => {
-      const bed = BedFactory.random();
-
-      const primitives = bedDomainMapper.toPrimitives(bed);
-
-      expect(primitives.plantInstances).toHaveLength(bed.plantInstances.length);
-
-      expect(primitives.plantInstances[0]).toMatchObject(
-        bed.plantInstances[0]!.toPrimitives()
-      );
-    });
-
     it('should include deletedAt when present', () => {
       const bed = BedFactory.randomDeleted();
 
@@ -68,16 +56,6 @@ describe('bedDomainMapper', () => {
       expect(bed.depth.value).toBe(primitives.depth);
 
       expect(bed.isDeleted).toBe(primitives.deleted);
-    });
-
-    it('should restore plant instances correctly', () => {
-      const original = BedFactory.random();
-
-      const primitives = bedDomainMapper.toPrimitives(original);
-
-      const bed = bedDomainMapper.fromPrimitives(primitives);
-
-      expect(bed.plantInstances).toHaveLength(primitives.plantInstances.length);
     });
 
     it('should round-trip the version', () => {

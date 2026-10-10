@@ -1,6 +1,7 @@
 import type { CollationOptions, Db } from 'mongodb';
 import type { UnknownRecord } from '../../../../../../shared/domain/types/UnknownRecord.js';
 import { MongoCrudRepository } from '../../../../../shared/infrastructure/persistence/mongo/MongoCrudRepository.js';
+import { toMongoId } from '../../../../../shared/infrastructure/persistence/mongo/MongoId.js';
 import { Plant } from '../../../domain/entities/Plant.js';
 import type { PlantFilter } from '../../../domain/entities/types/PlantFilter.js';
 import type { PlantPrimitives } from '../../../domain/entities/types/PlantPrimitives.js';
@@ -69,5 +70,17 @@ export class MongoPlantRepository
 
   protected activeFilter(): UnknownRecord {
     return { status: { $ne: PlantStatus.DELETED } };
+  }
+
+  async findByIds(ids: string[]): Promise<Plant[]> {
+    if (ids.length === 0) return [];
+
+    const documents = await this.collection()
+      .find<MongoPlantDocument>({
+        _id: { $in: ids.map((id) => toMongoId(id)) }
+      })
+      .toArray();
+
+    return documents.map((doc) => this.toDomain(doc));
   }
 }

@@ -18,7 +18,6 @@ import { DBClientFactory } from '../../../../../../../src/shared/infrastructure/
 import { createTestDBConfig } from '../../../../../../shared/infrastructure/persistence/mongo/testDBConfig.js';
 import { SOURCE_ROOT } from '../../../../../../shared/sourceRoot.js';
 import { random } from '../../../../../shared/fixtures/random.js';
-import { PlantInstanceMother } from '../../../../PlantInstances/domain/mothers/PlantInstanceMother.js';
 import { BedFactory } from '../../../domain/mothers/BedFactory.js';
 
 let container: AppContainer;
@@ -77,7 +76,6 @@ describe('MongoBedRepository', () => {
       expect(found.width.value).toBe(bed.width.value);
       expect(found.height.value).toBe(bed.height.value);
       expect(found.name.value).toBe(bed.name.value);
-      expect(found.plantInstances).toEqual(bed.plantInstances);
     });
 
     it('should return the bed reconstructed as the saved one', async () => {
@@ -202,38 +200,6 @@ describe('MongoBedRepository', () => {
       expect(found.height.value).toBe(updated.height);
     });
 
-    it('should update plant instances', async () => {
-      const bed = BedFactory.create();
-      const current = bedDomainMapper.toPrimitives(bed);
-
-      await repository.save(bed);
-
-      const newPlant = PlantInstanceMother.atPosition(10, 20);
-
-      const updated = {
-        id: bed.id,
-        userId: bed.userId,
-        name: bed.name.value,
-        width: bed.width.value,
-        depth: bed.depth.value,
-        height: bed.height.value,
-        plantInstances: [...current.plantInstances, newPlant.toPrimitives()],
-        metadata: current.metadata,
-        deleted: current.deleted,
-        ...(current.deletedAt && { deletedAt: current.deletedAt }),
-        version: current.version
-      } satisfies BedPrimitives;
-
-      await repository.updateWithDiff(current, updated);
-
-      const found = await findExisting(updated.id);
-
-      expect(found.plantInstances).toHaveLength(
-        current.plantInstances.length + 1
-      );
-      expect(found.plantInstances).toContainEqual(newPlant);
-    });
-
     it('should persist deletedAt as an ISO string when soft-deleting', async () => {
       const bed = BedFactory.create();
       const current = bedDomainMapper.toPrimitives(bed);
@@ -349,14 +315,14 @@ describe('MongoBedRepository', () => {
       expect(storedBed?.name.value).toBe('First writer');
     });
 
-    it('should not soft-delete a bed that received plants after it was read', async () => {
+    it('should not soft-delete a bed that was modified concurrently', async () => {
       const bed = BedFactory.create();
       await repository.save(bed);
 
       const readByDelete = bedDomainMapper.toPrimitives(bed);
       await repository.updateWithDiff(readByDelete, {
         ...readByDelete,
-        plantInstances: [PlantInstanceMother.create().toPrimitives()]
+        name: 'Concurrent rename'
       });
 
       bed.markAsDeleted('test-user');
@@ -368,7 +334,26 @@ describe('MongoBedRepository', () => {
 
       const storedBed = await repository.findById(bed.id);
       expect(storedBed?.isDeleted).toBe(false);
-      expect(storedBed?.plantInstances).toHaveLength(1);
+      expect(storedBed?.name.value).toBe('Concurrent rename');
+    });
+
+    it('conditionally increments the bed version', async () => {
+      const bed = BedFactory.create();
+      await repository.save(bed);
+
+      await repository.conditionalIncrementVersion(bed.id, 0);
+
+      const found = await findExisting(bed.id);
+      expect(found.version).toBe(1);
+    });
+
+    it('throws DomainConflictException when conditionalIncrementVersion version does not match', async () => {
+      const bed = BedFactory.create();
+      await repository.save(bed);
+
+      await expect(
+        repository.conditionalIncrementVersion(bed.id, 99)
+      ).rejects.toThrow(DomainConflictException);
     });
 
     it('should not report a stale version as a business conflict', async () => {

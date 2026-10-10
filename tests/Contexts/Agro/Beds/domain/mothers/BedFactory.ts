@@ -10,7 +10,6 @@ import {
 import { Metadata } from '../../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
 import { PositiveNumber } from '../../../../../../src/Contexts/shared/domain/valueObject/PositiveNumber.js';
 import { random } from '../../../../shared/fixtures/random.js';
-import { PlantInstanceMother } from '../../../PlantInstances/domain/mothers/PlantInstanceMother.js';
 
 type BedOverrides = Partial<BedProps>;
 
@@ -22,7 +21,6 @@ function baseBed(overrides: BedOverrides = {}): BedProps {
     width: PositiveNumber.create(100),
     height: PositiveNumber.create(200),
     depth: PositiveNumber.create(30),
-    plantInstances: [],
     metadata: Metadata.create('test'),
     deleted: false
   };
@@ -52,7 +50,6 @@ export class BedFactory {
       ...baseBed(),
       ...randomSize(),
       name: randomName(),
-      plantInstances: [PlantInstanceMother.create()],
       metadata: Metadata.create('test-user'),
       deleted: false
     });
@@ -63,21 +60,19 @@ export class BedFactory {
       ...baseBed(),
       ...randomSize(),
       name: randomName(),
-      plantInstances: [PlantInstanceMother.create()],
       metadata: Metadata.create('test-user'),
       deleted: true,
       deletedAt: new Date()
     });
   }
 
-  static fromUser(user: UserSessionInfo, withPlants: boolean = false): Bed {
+  static fromUser(user: UserSessionInfo): Bed {
     return Bed.create({
       ...baseBed(),
       ...randomSize(),
       id: randomBedId(),
       userId: createUserId(user.id),
       name: randomName(),
-      plantInstances: withPlants ? [PlantInstanceMother.create()] : [],
       metadata: Metadata.create(user.username),
       deleted: false
     });

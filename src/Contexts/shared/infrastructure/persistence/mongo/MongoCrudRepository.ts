@@ -165,7 +165,7 @@ export abstract class MongoCrudRepository<
    * Optimistic concurrency: only match the version that was read. Documents
    * without a stored version are read as version 0.
    */
-  private versionFilter(version: number): UnknownRecord {
+  protected versionFilter(version: number): UnknownRecord {
     return version === 0
       ? { $or: [{ version: 0 }, { version: { $exists: false } }] }
       : { version };

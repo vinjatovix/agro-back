@@ -1,28 +1,35 @@
 import type { UserSessionInfo } from '../../../../Auth/application/index.js';
 import { ensureFound } from '../../../../shared/application/utils/ensureFound.js';
 import { ensureVersion } from '../../../../shared/application/utils/ensureVersion.js';
-import type { Bed } from '../../domain/entities/Bed.js';
+import type { PlantInstanceRepository } from '../../../PlantInstances/domain/repositories/interfaces/PlantInstanceRepository.js';
 import type { BedRepository } from '../../domain/repositories/interfaces/BedRepository.js';
 import { bedDomainMapper } from '../../mappers/bedDomainMapper.js';
 import { bedInputMapper } from '../../mappers/bedInputMapper.js';
+import { attachCropsToBed, type BedWithCrops } from './attachCrops.js';
 import type { UpdateBedInput } from './interfaces/UpdateBedInput.js';
 
 export type UpdateBedDependencies = {
   bedRepository: BedRepository;
+  plantInstanceRepository: PlantInstanceRepository;
 };
 
 export class UpdateBed {
   private readonly bedRepository: BedRepository;
+  private readonly plantInstanceRepository: PlantInstanceRepository;
 
-  constructor({ bedRepository }: UpdateBedDependencies) {
+  constructor({
+    bedRepository,
+    plantInstanceRepository
+  }: UpdateBedDependencies) {
     this.bedRepository = bedRepository;
+    this.plantInstanceRepository = plantInstanceRepository;
   }
 
   async execute(
     input: UpdateBedInput,
     user: UserSessionInfo,
     expectedVersions: readonly number[]
-  ): Promise<Bed> {
+  ): Promise<BedWithCrops> {
     const bed = ensureFound(
       await this.bedRepository.findOwnedActiveById(input.id, user.id),
       'Bed',
@@ -49,6 +56,8 @@ export class UpdateBed {
     // Always called: an empty diff is still confirmed against storage.
     bed.syncVersion(await this.bedRepository.updateWithDiff(before, after));
 
-    return bed;
+    return attachCropsToBed(this.plantInstanceRepository, bed, user.id, {
+      embedCrops: false
+    });
   }
 }
