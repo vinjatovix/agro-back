@@ -204,7 +204,8 @@ This structured object allows the system to support diverse, multi-method cultiv
   - `hoursMin`: number (minimum sun hours needed), from 0 to 24: `PlantKnowledge` rejects any other value (`400`) and the contract publishes it (`minimum`, `maximum`) (decided 2026-10-02)
   - `type`: full_sun | partial_shade | full_shade
   - `preference`: string (e.g. `'all_day'`)
-- Required labels are all treated as `rootSystem.type` (decided 2026-10-02): `rootSystem.type`, `watering.frequency`, `light.type`, `pruning[].type`, `pruning[].intensity` and `resources[].type` are trimmed and never blank, in the Zod schema (create and `PATCH`), in `PlantKnowledge`/`RootSystem` (`400`) and in the contract (`RequiredShortText`).
+- Required labels are all treated as `rootSystem.type` (decided 2026-10-02): `rootSystem.type`, `watering.frequency`, `light.type`, `pruning[].type` and `pruning[].intensity` are trimmed and never blank, in the Zod schema (create and `PATCH`), in `PlantKnowledge`/`RootSystem` (`400`) and in the contract (`RequiredShortText`).
+- `resources[].type` is a closed enum (decided 2026-10-11, Iteration 19b review): `image` | `article` | `video`, exact lowercase values (`PLANT_RESOURCE_TYPES`). Any other value (`Image`, `link`, a blank) → `400` at `knowledge.resources.<i>.type`, in the Zod schema (create and `PATCH`) and in the contract (`PlantResourceType`); like the other enums, the domain relies on the type and no longer trims it. Before, it was an open required label, so `Image` was stored but never counted as the plant's picture.
 - `ecology`:
   - `strategicBenefits`: string[] (list of ecological advantages like "attracts pollinators")
   - An `ecology` left without fields (e.g. after `strategicBenefits: null`) is removed, not stored as `{}` (decided 2026-10-02).

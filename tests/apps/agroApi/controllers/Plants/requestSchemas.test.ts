@@ -139,6 +139,36 @@ describe('Plant requestSchemas', () => {
       }
     );
 
+    it.each(['Image', 'link'])(
+      'should reject the resource type "%s" outside the enum',
+      async (type) => {
+        const body = withPath(
+          buildFullCreatePlantBody(),
+          'knowledge.resources',
+          [buildResourceBody({ type: 'image' }), buildResourceBody({ type })]
+        );
+
+        const errors = await errorsOf(createPlantRequest, { body });
+
+        expect(errors).toHaveProperty(['knowledge.resources.1.type']);
+      }
+    );
+
+    it.each(['image', 'article', 'video'])(
+      'should accept the resource type "%s"',
+      async (type) => {
+        const body = withPath(
+          buildFullCreatePlantBody(),
+          'knowledge.resources',
+          [buildResourceBody({ type: 'image' }), buildResourceBody({ type })]
+        );
+
+        const error = await validate(createPlantRequest, { body });
+
+        expect(error).toBeUndefined();
+      }
+    );
+
     it('should reject an empty knowledge.rootSystem', async () => {
       const body = withPath(
         buildMinimalCreatePlantBody(),
@@ -662,6 +692,16 @@ describe('Plant requestSchemas', () => {
         expect(errors).toHaveProperty([fieldPath]);
       }
     );
+
+    it('should reject a resource type outside the enum', async () => {
+      const body = {
+        knowledge: { resources: [buildResourceBody({ type: 'Image' })] }
+      };
+
+      const errors = await errorsOf(updatePlantRequest, { params, body });
+
+      expect(errors).toHaveProperty(['knowledge.resources.0.type']);
+    });
 
     it.each([
       ['identity.name.primary', { identity: { name: { primary: null } } }],

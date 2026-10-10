@@ -7,6 +7,7 @@ import {
   type PlantRelation
 } from '../../../../Contexts/Agro/Plants/application/queries/index.js';
 import {
+  PLANT_RESOURCE_TYPES,
   PollinationType,
   SEASONS
 } from '../../../../Contexts/Agro/Plants/domain/entities/types/index.js';
@@ -91,7 +92,7 @@ const pruningItemSchema = z.object({
 });
 
 const resourceItemSchema = z.object({
-  type: requiredShortTextSchema,
+  type: z.enum(PLANT_RESOURCE_TYPES),
   url: httpUrlSchema,
   title: shortTextSchema.exactOptional(),
   source: shortTextSchema.exactOptional(),

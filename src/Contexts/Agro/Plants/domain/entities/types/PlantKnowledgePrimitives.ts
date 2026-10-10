@@ -1,6 +1,7 @@
 import type { RangePrimitives } from '../../../../../../shared/domain/value-objects/interfaces/RangePrimitives.js';
 import type { PlantLightPrimitives } from './PlantLightPrimitives.js';
 import type { PlantPropagationPrimitives } from './PlantPropagationPrimitives.js';
+import type { PlantResourceType } from './PlantResourceType.js';
 import type { PruningTypePrimitives } from './PruningPrimitves.js';
 import type { RootSystemPrimitives } from './RootSystemPrimitives.js';
 import type { WateringFrequency } from './WateringFrequency.js';
@@ -27,7 +28,7 @@ export type PlantKnowledgePrimitives = {
 
 /** A `knowledge.resources` entry: rich media or an article attachment. */
 export type PlantResourcePrimitives = {
-  type: 'image' | 'article' | 'video' | (string & {});
+  type: PlantResourceType;
   url: string;
   title?: string;
   source?: string;

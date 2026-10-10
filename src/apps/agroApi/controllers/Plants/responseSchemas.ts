@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import type { PlantField } from '../../../../Contexts/Agro/Plants/application/queries/index.js';
 import {
+  PLANT_RESOURCE_TYPES,
   PollinationType,
   SEASONS
 } from '../../../../Contexts/Agro/Plants/domain/entities/types/index.js';
@@ -154,7 +155,7 @@ const knowledgeSchema = z.object({
     .exactOptional(),
   resources: listSchema(
     z.object({
-      type: requiredShortTextResponseSchema,
+      type: z.enum(PLANT_RESOURCE_TYPES),
       url: resourceUrlSchema,
       title: shortTextSchema.exactOptional(),
       source: shortTextSchema.exactOptional(),

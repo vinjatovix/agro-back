@@ -503,7 +503,9 @@ Feature: Update a plant
       | { "knowledge": { "watering": { "frequency": "   " } } }                          | knowledge.watering.frequency  |
       | { "knowledge": { "pruning": [{ "type": "   ", "intensity": "light", "seasons": ["spring"], "frequencyPerYear": 1 }] } } | knowledge.pruning.0.type |
       | { "phenology": { "harvest": { "description": "   " } } }                         | phenology.harvest.description |
-      | { "knowledge": { "resources": [{ "type": "link", "url": "javascript:alert(1)" }] } } | knowledge.resources.0.url     |
+      | { "knowledge": { "resources": [{ "type": "image", "url": "javascript:alert(1)" }] } } | knowledge.resources.0.url     |
+      | { "knowledge": { "resources": [{ "type": "Image", "url": "https://example.org/a.jpg" }] } } | knowledge.resources.0.type |
+      | { "knowledge": { "resources": [{ "type": "link", "url": "https://example.org/a" }] } } | knowledge.resources.0.type    |
 
   Scenario: Fail to remove a required knowledge section with null
     Given a family exists

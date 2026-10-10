@@ -87,7 +87,7 @@ const baseTomatoLikeKnowledge = () => ({
       url: 'https://example.com',
       title: 'Growing guide'
     }
-  ],
+  ] satisfies PlantResources,
 
   notes: ['robust plant']
 });
@@ -224,12 +224,14 @@ export const PlantKnowledgeBuilder = {
     }));
 
     // Every plant has an image resource; an article sometimes follows it.
-    const resources = [
-      { type: 'image', url: random.url() },
-      ...(random.boolean()
-        ? [{ type: 'article', url: random.url(), title: random.description() }]
-        : [])
-    ];
+    const resources: PlantResources = [{ type: 'image', url: random.url() }];
+    if (random.boolean()) {
+      resources.push({
+        type: 'article',
+        url: random.url(),
+        title: random.description()
+      });
+    }
 
     const notes = maybe(() => [random.description()]);
 

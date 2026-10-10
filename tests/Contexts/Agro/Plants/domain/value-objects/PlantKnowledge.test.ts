@@ -192,14 +192,11 @@ describe('PlantKnowledge', () => {
   describe('required labels', () => {
     const withLabel = (path: string, label: string): PlantKnowledgeChanges => {
       const [entry] = PlantKnowledgeBuilder.full().toPrimitives().pruning ?? [];
-      const [resource] =
-        PlantKnowledgeBuilder.full().toPrimitives().resources ?? [];
       const changes: Record<string, PlantKnowledgeChanges> = {
         'watering.frequency': { watering: { frequency: label } },
         'light.type': { light: { type: label } },
         'pruning.0.type': { pruning: [{ ...entry!, type: label }] },
-        'pruning.0.intensity': { pruning: [{ ...entry!, intensity: label }] },
-        'resources.0.type': { resources: [{ ...resource!, type: label }] }
+        'pruning.0.intensity': { pruning: [{ ...entry!, intensity: label }] }
       };
       return changes[path]!;
     };
@@ -208,8 +205,7 @@ describe('PlantKnowledge', () => {
       'watering.frequency',
       'light.type',
       'pruning.0.type',
-      'pruning.0.intensity',
-      'resources.0.type'
+      'pruning.0.intensity'
     ];
 
     it.each(paths)('should reject a blank knowledge.%s', (path) => {
@@ -306,14 +302,6 @@ describe('PlantKnowledge', () => {
 
       expect(image).not.toHaveProperty('type');
       expect(image).not.toHaveProperty('tags');
-    });
-
-    it('should match the type exactly', () => {
-      const knowledge = PlantKnowledgeBuilder.withResources([
-        PlantResourceBuilder.image({ type: 'Image' })
-      ]);
-
-      expect(knowledge.primaryImage()).toBeNull();
     });
   });
 

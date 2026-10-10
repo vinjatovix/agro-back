@@ -386,13 +386,6 @@ describe('MongoPlantReadRepository', () => {
       [
         'images without title or source',
         () => [PlantResourceBuilder.bareImage(), PlantResourceBuilder.image()]
-      ],
-      [
-        'an "Image" (other case) before the image',
-        () => [
-          PlantResourceBuilder.image({ type: 'Image' }),
-          PlantResourceBuilder.image()
-        ]
       ]
     ])(
       'reads the same image as the domain rule for %s',
@@ -414,6 +407,42 @@ describe('MongoPlantReadRepository', () => {
         expect(data).toStrictEqual([{ id: plant.id, image: expected }]);
       }
     );
+
+    // The API only stores lowercase types, but a document written outside it
+    // could hold `Image`, which the case-insensitive listing collation must
+    // not take for an image.
+    it('never takes an "Image" (other case) written outside the API', async () => {
+      const image = PlantResourceBuilder.image();
+      const plant = withResources([image]);
+      await saveAll([plant]);
+      await client
+        .db()
+        .collection<StoredId>('plants')
+        .updateOne(
+          { _id: toMongoId(plant.id) },
+          {
+            $set: {
+              'knowledge.resources': [
+                { ...PlantResourceBuilder.image(), type: 'Image' },
+                image
+              ]
+            }
+          }
+        );
+      const expected = {
+        url: image.url,
+        title: image.title,
+        source: image.source
+      };
+
+      const sparse = await readRepository.findById(plant.id, {
+        fields: ['image']
+      });
+      const { data } = await readRepository.findAll({ fields: ['image'] });
+
+      expect(sparse?.image).toEqual(expected);
+      expect(data).toStrictEqual([{ id: plant.id, image: expected }]);
+    });
   });
 
   it('returns an empty page with correct metadata for an empty collection', async () => {
