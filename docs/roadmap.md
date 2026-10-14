@@ -537,13 +537,15 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 ## Iteration 24: Wrap Cross-Aggregate Mutations in ACID Transactions
 
-**Spec Module(s)**: [bed.md](spec/modules/bed.md), [plant-instance.md](spec/modules/plant-instance.md)
+**Spec Module(s)**: [bed.md](spec/modules/bed.md), [plant-instance.md](spec/modules/plant-instance.md), [persistence.md](spec/modules/persistence.md)
 
+- **Status**: Completed
 - **Value delivered**: Guarantees atomic spatial placements across decoupled collections.
-- **Definition of Done**: Standalone `PlantInstance` creations and associated `Bed` version increments execute atomically inside a MongoDB `ClientSession`. Deleting a bed and soft-deleting its active crops run in the same transaction: today `DeleteBed` writes the bed first and the crops second, so an infrastructure failure between them leaves active crops in a deleted bed.
+- **Definition of Done**: Standalone `PlantInstance` creations and associated `Bed` version increments execute atomically inside a MongoDB `ClientSession`. Deleting a bed and soft-deleting its active crops run in the same transaction: before this iteration `DeleteBed` wrote the bed first and the crops second, so an infrastructure failure between them could leave active crops in a deleted bed.
 - **Dependencies**: Iteration 20, Iteration 23.
 - **Risks**: Transactions require MongoDB Replica Sets, which must be perfectly configured in development.
 - **Decided in Iteration 20**: placing, moving or removing a crop raises the `Bed` version through an internal conditional write (`BedRepository.conditionalIncrementVersion`). Those endpoints do not take the bed version in `If-Match`, so a concurrent bed change answers `409` (`DomainConflictException`) instead of `412`, which would report a precondition the client never sent (RFC 9110 §15.5.13). The raise runs after every rule has passed; a crop id already taken still fails after it, which this iteration's transaction resolves. See bed.md Sec. 7.2.1.
+- **Implementation notes**: Use cases depend on a driver-free `UnitOfWork` port (`run(work)`, `Contexts/shared/application/interfaces`). They do every read and rule check first and only write inside `work`. The `MongoUnitOfWork` adapter runs `work` in a multi-document transaction (`snapshot` reads, `majority` writes, primary) and shares the session with repositories through an `AsyncLocalStorage` (`MongoSessionContext`), so repository interfaces did not change; `MongoRepository.sessionOptions()` forwards it to every driver call. Four units: placing a crop (bed raise + insert), moving a crop (bed raise + crop write; a details-only edit stays outside), removing a crop (bed raise + crop write) and deleting a bed (bed write + all crops removed). Retry budget: 3 attempts in total, shared between whole-unit retries (`TransientTransactionError`) and commit retries (`UnknownTransactionCommitResult`), no backoff; a `run` inside an active unit joins it. Exhausted write conflicts answer `409`, other exhausted transient errors `500`. The HTTP contract did not change. A taken crop id now leaves the bed `ETag` unchanged. Rollback is proven by integration tests on Docker MongoDB; the four operations are checked against the 150 ms write budget (median of 10 runs, bed deletion with 200 crops). See persistence.md Sec. 5.9.1 and bed.md Sec. 7.2.2.
 - **Prompt for /speckit.specify**:
   ```text
   WRAP CROSS-AGGREGATE MUTATIONS IN ACID TRANSACTIONS

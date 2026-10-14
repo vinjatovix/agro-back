@@ -74,7 +74,7 @@ export class MongoPlantInstanceRepository
   async save(instance: PlantInstance): Promise<void> {
     const mongoDocument = this.toMongoDocument(instance);
     await this.handleMongoError(() =>
-      this.collection().insertOne(mongoDocument)
+      this.collection().insertOne(mongoDocument, this.sessionOptions())
     );
   }
 
@@ -189,7 +189,8 @@ export class MongoPlantInstanceRepository
           'metadata.updatedBy': updatedBy
         },
         $inc: { version: 1 }
-      }
+      },
+      this.sessionOptions()
     );
 
     return result.modifiedCount;

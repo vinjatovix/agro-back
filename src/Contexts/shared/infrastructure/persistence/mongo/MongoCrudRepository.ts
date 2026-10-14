@@ -52,7 +52,10 @@ export abstract class MongoCrudRepository<
   protected async findOneDomain(
     filter: Record<string, unknown>
   ): Promise<Nullable<TDomain>> {
-    const document = await this.collection().findOne<TDocument>(filter);
+    const document = await this.collection().findOne<TDocument>(
+      filter,
+      this.sessionOptions()
+    );
 
     return document === null ? null : this.toDomain(document);
   }
@@ -91,9 +94,10 @@ export abstract class MongoCrudRepository<
   async exists(id: string): Promise<boolean> {
     const collection = this.collection();
 
-    const count = await collection.countDocuments({
-      _id: toMongoId(id)
-    });
+    const count = await collection.countDocuments(
+      { _id: toMongoId(id) },
+      this.sessionOptions()
+    );
 
     return count > 0;
   }
@@ -134,7 +138,8 @@ export abstract class MongoCrudRepository<
 
     if (!hasSet && !hasUnset) {
       const matches = await this.collection().countDocuments(writeFilter, {
-        limit: 1
+        limit: 1,
+        ...this.sessionOptions()
       });
 
       if (matches > 0) return 'unchanged';
@@ -153,7 +158,11 @@ export abstract class MongoCrudRepository<
 
     // A duplicate key (e.g. a slug already in use) answers 409, as on create.
     const result = await this.handleMongoError(() =>
-      this.collection().updateOne(writeFilter, updateQuery)
+      this.collection().updateOne(
+        writeFilter,
+        updateQuery,
+        this.sessionOptions()
+      )
     );
 
     if (result.matchedCount > 0) return 'written';
@@ -179,10 +188,10 @@ export abstract class MongoCrudRepository<
    */
   private async throwFailedWrite(id: string): Promise<never> {
     const isStale =
-      (await this.collection().countDocuments({
-        _id: toMongoId(id),
-        ...this.activeFilter()
-      })) > 0;
+      (await this.collection().countDocuments(
+        { _id: toMongoId(id), ...this.activeFilter() },
+        this.sessionOptions()
+      )) > 0;
 
     if (isStale) {
       throw new DomainStaleVersionException(

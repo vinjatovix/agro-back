@@ -1,14 +1,17 @@
 import { Coordinates } from '../../../../../shared/domain/value-objects/Coordinates.js';
 import type { UserSessionInfo } from '../../../../Auth/application/index.js';
+import type { UnitOfWork } from '../../../../shared/application/interfaces/index.js';
 import { ensureFound } from '../../../../shared/application/utils/ensureFound.js';
 import { ensureVersion } from '../../../../shared/application/utils/ensureVersion.js';
+import type { WriteOutcome } from '../../../../shared/domain/repositories/WriteOutcome.js';
 import type { Bed } from '../../../Beds/domain/entities/Bed.js';
 import type { BedRepository } from '../../../Beds/domain/repositories/interfaces/BedRepository.js';
 import type { PlantRepository } from '../../../Plants/domain/repositories/interfaces/PlantRepository.js';
 import type { PlantInstance } from '../../domain/entities/PlantInstance.js';
 import type {
   CropGrowthStatus,
-  PlantInstanceDetailChanges
+  PlantInstanceDetailChanges,
+  PlantInstancePrimitives
 } from '../../domain/entities/types/index.js';
 import type { PlantInstanceRepository } from '../../domain/repositories/interfaces/PlantInstanceRepository.js';
 import type { CropSpatialService } from '../../domain/services/CropSpatialService.js';
@@ -27,6 +30,7 @@ export type UpdatePlantInstanceDependencies = {
   plantRepository: PlantRepository;
   plantInstanceRepository: PlantInstanceRepository;
   cropSpatialService: CropSpatialService;
+  unitOfWork: UnitOfWork;
 };
 
 function extractDetailChanges(
@@ -44,17 +48,20 @@ export class UpdatePlantInstance {
   private readonly plantRepository: PlantRepository;
   private readonly plantInstanceRepository: PlantInstanceRepository;
   private readonly cropSpatialService: CropSpatialService;
+  private readonly unitOfWork: UnitOfWork;
 
   constructor({
     bedRepository,
     plantRepository,
     plantInstanceRepository,
-    cropSpatialService
+    cropSpatialService,
+    unitOfWork
   }: UpdatePlantInstanceDependencies) {
     this.bedRepository = bedRepository;
     this.plantRepository = plantRepository;
     this.plantInstanceRepository = plantInstanceRepository;
     this.cropSpatialService = cropSpatialService;
+    this.unitOfWork = unitOfWork;
   }
 
   async execute(
@@ -81,23 +88,41 @@ export class UpdatePlantInstance {
 
     const updatedPrimitives = crop.toPrimitives();
 
-    // Every rule has passed: only now is the bed version raised, so a
-    // rejected request never invalidates the bed ETag.
-    if (movedInBed !== undefined) {
+    const outcome = await this.persist(
+      currentPrimitives,
+      updatedPrimitives,
+      movedInBed
+    );
+
+    // Outside the unit: `work` may be retried, and syncing inside it would
+    // raise the in-memory version once per attempt.
+    crop.syncVersion(outcome);
+
+    return crop;
+  }
+
+  /**
+   * Every rule has passed. A move raises the bed version and writes the crop
+   * together or not at all, so a rejected request never invalidates the bed
+   * ETag; a details-only edit touches the crop alone and needs no unit.
+   */
+  private async persist(
+    current: PlantInstancePrimitives,
+    updated: PlantInstancePrimitives,
+    movedInBed: Bed | undefined
+  ): Promise<WriteOutcome> {
+    if (movedInBed === undefined) {
+      return this.plantInstanceRepository.updateWithDiff(current, updated);
+    }
+
+    return this.unitOfWork.run(async () => {
       await this.bedRepository.conditionalIncrementVersion(
         movedInBed.id,
         movedInBed.version
       );
-    }
 
-    const outcome = await this.plantInstanceRepository.updateWithDiff(
-      currentPrimitives,
-      updatedPrimitives
-    );
-
-    crop.syncVersion(outcome);
-
-    return crop;
+      return this.plantInstanceRepository.updateWithDiff(current, updated);
+    });
   }
 
   /**

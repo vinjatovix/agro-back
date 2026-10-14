@@ -1,6 +1,7 @@
 import { Coordinates } from '../../../../../shared/domain/value-objects/Coordinates.js';
 import type { UserSessionInfo } from '../../../../Auth/application/index.js';
 import { createUserId } from '../../../../Auth/domain/UserId.js';
+import type { UnitOfWork } from '../../../../shared/application/interfaces/index.js';
 import { ensureFound } from '../../../../shared/application/utils/ensureFound.js';
 import { Metadata } from '../../../../shared/domain/valueObject/Metadata.js';
 import { createBedId } from '../../../Beds/domain/BedId.js';
@@ -33,6 +34,7 @@ export type PlacePlantInstanceDependencies = {
   plantRepository: PlantRepository;
   plantInstanceRepository: PlantInstanceRepository;
   cropSpatialService: CropSpatialService;
+  unitOfWork: UnitOfWork;
 };
 
 export class PlacePlantInstance {
@@ -40,17 +42,20 @@ export class PlacePlantInstance {
   private readonly plantRepository: PlantRepository;
   private readonly plantInstanceRepository: PlantInstanceRepository;
   private readonly cropSpatialService: CropSpatialService;
+  private readonly unitOfWork: UnitOfWork;
 
   constructor({
     bedRepository,
     plantRepository,
     plantInstanceRepository,
-    cropSpatialService
+    cropSpatialService,
+    unitOfWork
   }: PlacePlantInstanceDependencies) {
     this.bedRepository = bedRepository;
     this.plantRepository = plantRepository;
     this.plantInstanceRepository = plantInstanceRepository;
     this.cropSpatialService = cropSpatialService;
+    this.unitOfWork = unitOfWork;
   }
 
   async execute(
@@ -109,11 +114,13 @@ export class PlacePlantInstance {
       version: 0
     });
 
-    // The entity is built (and its invariants checked) before the bed version
-    // is raised, so a rejected crop never invalidates the bed ETag. A taken id
-    // still fails after the raise: that needs the transaction of Iteration 24.
-    await this.bedRepository.conditionalIncrementVersion(bed.id, bed.version);
-    await this.plantInstanceRepository.save(instance);
+    // Every rule is checked before the unit opens. Inside it, the bed version
+    // raise and the insert commit together: a taken id rolls the raise back,
+    // so a rejected crop never invalidates the bed ETag.
+    await this.unitOfWork.run(async () => {
+      await this.bedRepository.conditionalIncrementVersion(bed.id, bed.version);
+      await this.plantInstanceRepository.save(instance);
+    });
 
     return instance;
   }

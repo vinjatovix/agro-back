@@ -62,6 +62,7 @@ PlantInstance is NOT:
 ### 4.1 Persistence Architecture & Aggregate Integration
 
 - **Architecture:** `PlantInstance` is a standalone aggregate root (`PlantInstance` extending `AggregateRoot<PlantInstanceId>`) with its own dedicated MongoDB collection (`plant_instances`), separate repository interface (`PlantInstanceRepository`), and decoupled use cases (`PlacePlantInstance`, `GetPlantInstanceById`, `ListPlantInstances`, `UpdatePlantInstance`, `RemovePlantInstance`). Position coordinates are optional to seamlessly support positionless crop representations.
+- **Transactional guarantee** ([Iteration 24](../../roadmap.md#iteration-24-wrap-cross-aggregate-mutations-in-acid-transactions)): placing, moving and removing a crop also raise the version of its bed. The bed raise and the crop write run in one MongoDB transaction through the `UnitOfWork` port (persistence.md Sec. 5.9.1), so they change together or not at all: a crop id already taken, or any failure of the crop write, leaves the bed version (and its `ETag`) as it was. Every rule is checked before the transaction opens. Editing only `growthStatus`, `variety` or `notes` writes the crop alone, outside any transaction, and leaves the bed version unchanged. See bed.md Sec. 7.2.2.
 
 ---
 
@@ -189,6 +190,7 @@ Spatial validation is delegated to SpatialService.
 - basic spatial representation
 - integration with SpatialService validation
 - linkage to Plant and Bed identifiers
+- place, move and remove are atomic with the bed version raise (one transaction; Sec. 4.1)
 
 ---
 

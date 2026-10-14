@@ -1,9 +1,16 @@
 import type { Binary } from 'bson';
-import { Collection, Db, MongoServerError, type Document } from 'mongodb';
+import {
+  Collection,
+  Db,
+  MongoServerError,
+  type ClientSession,
+  type Document
+} from 'mongodb';
 
 import type { UnknownRecord } from '../../../../../shared/domain/types/UnknownRecord.js';
 import { MongoErrorHandler } from './MongoErrorHandler.js';
 import { toMongoId } from './MongoId.js';
+import { currentSession } from './MongoSessionContext.js';
 
 export abstract class MongoRepository {
   constructor(protected readonly db: Db) {}
@@ -17,6 +24,17 @@ export abstract class MongoRepository {
     );
   }
 
+  /**
+   * Options that put a driver call inside the active unit of work, if any.
+   * Every write and every read a unit relies on must pass them; a call that
+   * forgets them runs outside the transaction.
+   */
+  protected sessionOptions(): { session?: ClientSession } {
+    const session = currentSession();
+
+    return session === undefined ? {} : { session };
+  }
+
   protected async persist(
     mongoDocument: Document & { _id: string | Binary }
   ): Promise<void> {
@@ -26,7 +44,7 @@ export abstract class MongoRepository {
       collection.updateOne(
         { _id: mongoDocument._id },
         { $set: mongoDocument },
-        { upsert: true }
+        { upsert: true, ...this.sessionOptions() }
       )
     );
   }
@@ -35,7 +53,9 @@ export abstract class MongoRepository {
     const collection = this.collection();
     const _id = toMongoId(id);
 
-    await this.handleMongoError(() => collection.deleteOne({ _id }));
+    await this.handleMongoError(() =>
+      collection.deleteOne({ _id }, this.sessionOptions())
+    );
   }
 
   protected async handleMongoError<T>(operation: () => Promise<T>): Promise<T> {

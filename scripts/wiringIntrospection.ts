@@ -11,6 +11,7 @@ export const EXPLICIT_NAMES: ReadonlySet<string> = new Set([
   'plantPersistenceMapper',
   'plantInstancePersistenceMapper',
   'cropSpatialService',
+  'unitOfWork',
   'familySummaryReader'
 ]);
 
