@@ -165,14 +165,20 @@ _Note: For the exact HTTP verbs, status codes, and routing parameters exposing t
 - Over HTTP, `PATCH` and `DELETE` require `If-Match` with the version tag returned in `ETag` by `GET`/`POST`/`PATCH` (an entity-tag list such as `"2", "3"` is accepted; validation.md §3.1). The use case checks that the stored version is among the versions named, right after the existence check; otherwise (outdated, weak or never-emitted tag) → `DomainStaleVersionException` (HTTP `412`); a missing header → `428`.
 - A write based on a stale read is rejected with `DomainStaleVersionException` (HTTP `412`), forcing the caller to re-read and re-evaluate spatial collision rules. This covers, for example:
   - `UpdateBed` or `DeleteBed` acting on a bed that received, lost or moved a crop after it was read.
-- Two concurrent placements in the same bed validate spacing against the same layout, but only one wins the conditional raise of the bed version; the other answers `409` and must be retried. The bed raise and the crop write are still two writes: see Sec. 7.2.2.
+- Two concurrent placements in the same bed validate spacing against the same layout, but only one wins the conditional raise of the bed version; the other answers `409` and must be retried. The bed raise and the crop write commit together: see Sec. 7.2.2.
 - **`[TARGET STATE (Pending [Iteration 67](../../roadmap.md#iteration-67-implement-transactional-batch-save-layout-endpoint))]`** `PUT /api/v1/beds/:id/layout` also requires `If-Match` with the bed version and bumps it on save.
 
-#### 7.2.2 Cross-Collection Transactions `[TARGET STATE (Pending [Iteration 24](../../roadmap.md#iteration-24-wrap-cross-aggregate-mutations-in-acid-transactions))]`
+#### 7.2.2 Cross-Collection Transactions — Implemented ([Iteration 24](../../roadmap.md#iteration-24-wrap-cross-aggregate-mutations-in-acid-transactions))
 
-- Once `PlantInstances` reside in their own MongoDB collection ([Iteration 20](../../roadmap.md#iteration-20-extract-plantinstance-into-standalone-collection)), coordinate placements and Bed version increments MUST be executed atomically using **MongoDB ACID Multi-Document Transactions**.
-- These transactions are fully supported both in production (via MongoDB Atlas) and in development (via the single-node Replica Set configured in `docker-compose.yaml`).
-- Concurrent requests targeting the same `bedId` will be rejected if the Bed's version has changed under the hood during the transaction, forcing a re-evaluation of spatial collision rules.
+- Every write that touches a bed and its crops runs as one unit of work inside a **MongoDB multi-document transaction** (persistence.md Sec. 5.9.1): all its writes are applied together or none is.
+  - Placing a crop: bed version raise + crop insert. A crop id already taken (`409`) rolls the raise back, so the bed `ETag` read before the request stays valid.
+  - Moving a crop: bed version raise + crop write. An edit of growth status, variety or notes only touches the crop and opens no transaction.
+  - Removing a crop: bed version raise + crop marked removed.
+  - Deleting a bed: bed soft delete + every active crop of the bed marked removed with the same timestamp. A failure leaves the bed active at its previous version and every crop active, so no active crop ever points to a deleted bed.
+- Every read and rule check (existence, ownership, `If-Match`, bounds, spacing, crop invariants) runs before the transaction opens, so a rejected request never opens one.
+- Transactions are supported in production (managed replica set) and in development and CI (the single-node replica set `rs0` in `docker/docker-compose.yml`).
+- Two concurrent requests on the same bed: only one commits. The other answers `409`, whether the conflict is seen by the conditional version write or by MongoDB's own write-conflict detection after the retry budget (3 attempts) runs out.
+- **Known edge**: a `DELETE /beds/{id}` that loses three write conflicts against a crop placement still in flight answers `409`, not `412`. The client's tag is not stale yet when the conflict happens (the other change has not committed), so `412` would be wrong too; `409` is already part of the delete contract.
 
 ### 7.3 Bed Resizing Boundary Constraint `[TARGET STATE (Pending [Iteration 65](../../roadmap.md#iteration-65-block-bed-resizing-if-active-crops-overflow-boundaries))]`
 
@@ -215,7 +221,8 @@ _Note: For the exact HTTP verbs, status codes, and routing parameters exposing t
 - `UpdateBed` accepts only `name`, `width`, `height` and `depth` (validated by `updateBedRequest`, none nullable); it calls `rename`/`resize` only for the fields sent, so `{}` changes nothing (no audit refresh, version kept) but still checks the version and confirms against storage. Plant instances are never changed by patching the bed
 - aggregate mutation methods: `Bed.rename(name, user)` and `Bed.resize(changes, user)` — both throw `DomainConflictException` on a soft-deleted bed; `resize` validates each dimension with `PositiveNumber.create` before mutating (atomic: if any dimension is invalid, nothing changes)
 - in-memory audit metadata (domain-core.md Sec. 5.2): `rename`/`resize` refresh `updatedAt`/`updatedBy` only on a real change; `markAsDeleted(user, at)` uses one timestamp for `deletedAt` and `updatedAt`. All of them accept an optional `at` timestamp; `UpdateBed` passes one `at` to `rename` and `resize`. `UpdateBed` returns the in-memory bed after `syncVersion` (1 read + 1 write, no read-back)
-- soft deletion cascades: `DeleteBed` soft-deletes the bed first (so an outdated version answers `412` before any crop is touched) and then marks every active crop of the bed as removed with the same timestamp; deleting an already deleted bed returns `404`. The two writes are not atomic yet ([Iteration 24](../../roadmap.md#iteration-24-wrap-cross-aggregate-mutations-in-acid-transactions))
+- soft deletion cascades: `DeleteBed` soft-deletes the bed first (so an outdated version answers `412` before any crop is touched) and then marks every active crop of the bed as removed with the same timestamp; deleting an already deleted bed returns `404`. Both writes run in one transaction (Sec. 7.2.2)
+- cross-collection transactions ([Iteration 24](../../roadmap.md#iteration-24-wrap-cross-aggregate-mutations-in-acid-transactions)): placing, moving and removing a crop, and deleting a bed, change the bed and its crops together or not at all
 
 ### Partial
 

@@ -5,6 +5,7 @@ import {
   DomainNotFoundException,
   DomainStaleVersionException
 } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
+import { UnitOfWorkMock } from '../../../../shared/__mocks__/UnitOfWorkMock.js';
 import { random } from '../../../../shared/fixtures/random.js';
 import { PlantInstanceRepositoryMock } from '../../../PlantInstances/__mocks__/PlantInstanceRepositoryMock.js';
 import { PlantInstanceMother } from '../../../PlantInstances/domain/mothers/PlantInstanceMother.js';
@@ -15,6 +16,7 @@ describe('DeleteBed', () => {
   const CURRENT_VERSION = 0;
   let bedRepository: BedRepositoryMock;
   let plantInstanceRepository: PlantInstanceRepositoryMock;
+  let unitOfWork: UnitOfWorkMock;
   let useCase: DeleteBed;
   const USER: UserSessionInfo = {
     username: 'test-user',
@@ -26,10 +28,75 @@ describe('DeleteBed', () => {
   beforeEach(() => {
     bedRepository = new BedRepositoryMock();
     plantInstanceRepository = new PlantInstanceRepositoryMock();
+    unitOfWork = new UnitOfWorkMock();
     useCase = new DeleteBed({
       bedRepository,
-      plantInstanceRepository
+      plantInstanceRepository,
+      unitOfWork
     });
+  });
+
+  function traceWrites(): void {
+    const deleteBed = unitOfWork.trace(
+      'deleteBed',
+      bedRepository.updateWithDiff.bind(bedRepository)
+    );
+    jest.spyOn(bedRepository, 'updateWithDiff').mockImplementation(deleteBed);
+    const removeCrops = unitOfWork.trace(
+      'removeCrops',
+      plantInstanceRepository.markAllInBedAsRemoved.bind(
+        plantInstanceRepository
+      )
+    );
+    jest
+      .spyOn(plantInstanceRepository, 'markAllInBedAsRemoved')
+      .mockImplementation(removeCrops);
+  }
+
+  describe('unit of work', () => {
+    it('deletes the bed and removes its crops inside one unit, bed first', async () => {
+      const bed = BedFactory.fromUser(USER);
+      bedRepository.addToStorage(bed);
+      traceWrites();
+
+      await useCase.execute(bed.id, USER, [bed.version]);
+
+      expect(unitOfWork.runCount).toBe(1);
+      expect(unitOfWork.tracedCalls).toEqual([
+        { name: 'deleteBed', insideUnit: true, unit: 1 },
+        { name: 'removeCrops', insideUnit: true, unit: 1 }
+      ]);
+    });
+
+    it('never opens a unit nor touches crops for a missing bed', async () => {
+      traceWrites();
+
+      await expect(
+        useCase.execute(random.uuid(), USER, [CURRENT_VERSION])
+      ).rejects.toBeInstanceOf(DomainNotFoundException);
+
+      expect(unitOfWork.runCount).toBe(0);
+      expect(unitOfWork.tracedCalls).toEqual([]);
+    });
+
+    it.each([
+      ['a missing If-Match', []],
+      ['a stale If-Match', [CURRENT_VERSION + 1]]
+    ])(
+      'never opens a unit nor touches crops for %s',
+      async (_case, expectedVersions: number[]) => {
+        const bed = BedFactory.fromUser(USER);
+        bedRepository.addToStorage(bed);
+        traceWrites();
+
+        await expect(
+          useCase.execute(bed.id, USER, expectedVersions)
+        ).rejects.toBeInstanceOf(DomainStaleVersionException);
+
+        expect(unitOfWork.runCount).toBe(0);
+        expect(unitOfWork.tracedCalls).toEqual([]);
+      }
+    );
   });
 
   it('should mark bed as deleted via updateWithDiff and cascade crop removal', async () => {

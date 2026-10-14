@@ -1,4 +1,5 @@
 import { UpdatePlantInstance } from '../../../../../../src/Contexts/Agro/PlantInstances/application/useCases/UpdatePlantInstance.js';
+import { PlantInstance } from '../../../../../../src/Contexts/Agro/PlantInstances/domain/entities/PlantInstance.js';
 import { CropGrowthStatus } from '../../../../../../src/Contexts/Agro/PlantInstances/domain/entities/types/CropGrowthStatus.js';
 import { CropSpatialService } from '../../../../../../src/Contexts/Agro/PlantInstances/domain/services/CropSpatialService.js';
 import type { UserSessionInfo } from '../../../../../../src/Contexts/Auth/application/index.js';
@@ -6,9 +7,11 @@ import { createUserId } from '../../../../../../src/Contexts/Auth/domain/UserId.
 import {
   DomainConflictException,
   DomainNotFoundException,
+  DomainStaleVersionException,
   InvalidArgumentException
 } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { Coordinates } from '../../../../../../src/shared/domain/value-objects/Coordinates.js';
+import { UnitOfWorkMock } from '../../../../shared/__mocks__/UnitOfWorkMock.js';
 import { random } from '../../../../shared/fixtures/random.js';
 import { BedRepositoryMock } from '../../../Beds/__mocks__/BedRepositoryMock.js';
 import { BedFactory } from '../../../Beds/domain/mothers/BedFactory.js';
@@ -22,6 +25,7 @@ describe('UpdatePlantInstance', () => {
   let plantRepository: PlantRepositoryMock;
   let plantInstanceRepository: PlantInstanceRepositoryMock;
   let spatialService: CropSpatialService;
+  let unitOfWork: UnitOfWorkMock;
   let useCase: UpdatePlantInstance;
 
   const user: UserSessionInfo = {
@@ -36,12 +40,14 @@ describe('UpdatePlantInstance', () => {
     plantRepository = new PlantRepositoryMock();
     plantInstanceRepository = new PlantInstanceRepositoryMock();
     spatialService = new CropSpatialService();
+    unitOfWork = new UnitOfWorkMock();
 
     useCase = new UpdatePlantInstance({
       bedRepository,
       plantRepository,
       plantInstanceRepository,
-      cropSpatialService: spatialService
+      cropSpatialService: spatialService,
+      unitOfWork
     });
   });
 
@@ -259,5 +265,129 @@ describe('UpdatePlantInstance', () => {
         [0]
       )
     ).rejects.toThrow(DomainNotFoundException);
+  });
+
+  describe('unit of work', () => {
+    function seedCrop(): {
+      bed: ReturnType<typeof BedFactory.fromUser>;
+      crop: PlantInstance;
+    } {
+      const bed = BedFactory.fromUser(user);
+      bedRepository.addToStorage(bed);
+      const plant = PlantFactory.random();
+      plantRepository.addToStorage(plant);
+      const crop = PlantInstanceMother.create({
+        userId: createUserId(user.id),
+        bedId: bed.id,
+        plantId: plant.id,
+        position: new Coordinates(10, 10)
+      });
+      plantInstanceRepository.addToStorage(crop);
+
+      return { bed, crop };
+    }
+
+    function traceWrites(): void {
+      const raiseBed = unitOfWork.trace(
+        'raiseBed',
+        bedRepository.conditionalIncrementVersion.bind(bedRepository)
+      );
+      jest
+        .spyOn(bedRepository, 'conditionalIncrementVersion')
+        .mockImplementation(raiseBed);
+      const writeCrop = unitOfWork.trace(
+        'writeCrop',
+        plantInstanceRepository.updateWithDiff.bind(plantInstanceRepository)
+      );
+      jest
+        .spyOn(plantInstanceRepository, 'updateWithDiff')
+        .mockImplementation(writeCrop);
+    }
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('raises the bed version and writes the moved crop inside one unit', async () => {
+      const { crop } = seedCrop();
+      const initialVersion = crop.version;
+      traceWrites();
+
+      const result = await useCase.execute(
+        { id: crop.id, position: { x: 60, y: 60 } },
+        user,
+        [crop.version]
+      );
+
+      expect(unitOfWork.runCount).toBe(1);
+      expect(unitOfWork.tracedCalls).toEqual([
+        { name: 'raiseBed', insideUnit: true, unit: 1 },
+        { name: 'writeCrop', insideUnit: true, unit: 1 }
+      ]);
+      expect(result.version).toBe(initialVersion + 1);
+    });
+
+    it('syncs the crop version outside the unit, so a retried unit syncs it once', async () => {
+      const { crop } = seedCrop();
+      const insideUnitAtSync: boolean[] = [];
+      jest
+        .spyOn(PlantInstance.prototype, 'syncVersion')
+        .mockImplementation(() => {
+          insideUnitAtSync.push(unitOfWork.isInsideUnit());
+        });
+
+      await useCase.execute({ id: crop.id, position: { x: 60, y: 60 } }, user, [
+        crop.version
+      ]);
+
+      expect(insideUnitAtSync).toEqual([false]);
+    });
+
+    it('keeps a details-only edit out of any unit and leaves the bed version', async () => {
+      const { bed, crop } = seedCrop();
+      traceWrites();
+
+      await useCase.execute(
+        {
+          id: crop.id,
+          growthStatus: CropGrowthStatus.GROWING,
+          notes: 'Mulched'
+        },
+        user,
+        [crop.version]
+      );
+
+      expect(unitOfWork.runCount).toBe(0);
+      expect(unitOfWork.tracedCalls).toEqual([
+        { name: 'writeCrop', insideUnit: false, unit: 0 }
+      ]);
+      expect((await bedRepository.findById(bed.id))?.version).toBe(bed.version);
+    });
+
+    it('never opens a unit when the move breaks a placement rule', async () => {
+      const { bed, crop } = seedCrop();
+
+      await expect(
+        useCase.execute(
+          { id: crop.id, position: { x: bed.width.value + 50, y: 10 } },
+          user,
+          [crop.version]
+        )
+      ).rejects.toThrow(DomainConflictException);
+
+      expect(unitOfWork.runCount).toBe(0);
+    });
+
+    it('never opens a unit for a stale If-Match', async () => {
+      const { crop } = seedCrop();
+
+      await expect(
+        useCase.execute({ id: crop.id, position: { x: 60, y: 60 } }, user, [
+          crop.version + 1
+        ])
+      ).rejects.toThrow(DomainStaleVersionException);
+
+      expect(unitOfWork.runCount).toBe(0);
+    });
   });
 });

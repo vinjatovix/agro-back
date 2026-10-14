@@ -1,4 +1,5 @@
 import type { UserSessionInfo } from '../../../../Auth/application/index.js';
+import type { UnitOfWork } from '../../../../shared/application/interfaces/index.js';
 import { ensureFound } from '../../../../shared/application/utils/ensureFound.js';
 import { ensureVersion } from '../../../../shared/application/utils/ensureVersion.js';
 import type { BedRepository } from '../../../Beds/domain/repositories/interfaces/BedRepository.js';
@@ -7,18 +8,22 @@ import type { PlantInstanceRepository } from '../../domain/repositories/interfac
 export type RemovePlantInstanceDependencies = {
   bedRepository: BedRepository;
   plantInstanceRepository: PlantInstanceRepository;
+  unitOfWork: UnitOfWork;
 };
 
 export class RemovePlantInstance {
   private readonly bedRepository: BedRepository;
   private readonly plantInstanceRepository: PlantInstanceRepository;
+  private readonly unitOfWork: UnitOfWork;
 
   constructor({
     bedRepository,
-    plantInstanceRepository
+    plantInstanceRepository,
+    unitOfWork
   }: RemovePlantInstanceDependencies) {
     this.bedRepository = bedRepository;
     this.plantInstanceRepository = plantInstanceRepository;
+    this.unitOfWork = unitOfWork;
   }
 
   async execute(
@@ -43,10 +48,13 @@ export class RemovePlantInstance {
     crop.markAsRemoved(user.username, new Date());
     const updatedPrimitives = crop.toPrimitives();
 
-    await this.bedRepository.conditionalIncrementVersion(bed.id, bed.version);
-    await this.plantInstanceRepository.updateWithDiff(
-      currentPrimitives,
-      updatedPrimitives
-    );
+    // The bed version raise and the removal commit together or not at all.
+    await this.unitOfWork.run(async () => {
+      await this.bedRepository.conditionalIncrementVersion(bed.id, bed.version);
+      await this.plantInstanceRepository.updateWithDiff(
+        currentPrimitives,
+        updatedPrimitives
+      );
+    });
   }
 }

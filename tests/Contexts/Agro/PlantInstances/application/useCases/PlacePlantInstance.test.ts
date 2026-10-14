@@ -8,6 +8,7 @@ import {
   InvalidArgumentException
 } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { Coordinates } from '../../../../../../src/shared/domain/value-objects/Coordinates.js';
+import { UnitOfWorkMock } from '../../../../shared/__mocks__/UnitOfWorkMock.js';
 import { random } from '../../../../shared/fixtures/random.js';
 import { BedRepositoryMock } from '../../../Beds/__mocks__/BedRepositoryMock.js';
 import { BedFactory } from '../../../Beds/domain/mothers/BedFactory.js';
@@ -21,6 +22,7 @@ describe('PlacePlantInstance', () => {
   let plantRepository: PlantRepositoryMock;
   let plantInstanceRepository: PlantInstanceRepositoryMock;
   let spatialService: CropSpatialService;
+  let unitOfWork: UnitOfWorkMock;
   let useCase: PlacePlantInstance;
 
   const user: UserSessionInfo = {
@@ -35,12 +37,14 @@ describe('PlacePlantInstance', () => {
     plantRepository = new PlantRepositoryMock();
     plantInstanceRepository = new PlantInstanceRepositoryMock();
     spatialService = new CropSpatialService();
+    unitOfWork = new UnitOfWorkMock();
 
     useCase = new PlacePlantInstance({
       bedRepository,
       plantRepository,
       plantInstanceRepository,
-      cropSpatialService: spatialService
+      cropSpatialService: spatialService,
+      unitOfWork
     });
   });
 
@@ -80,6 +84,36 @@ describe('PlacePlantInstance', () => {
     expect(storedBed?.version).toBe(bed.version + 1);
   });
 
+  it('raises the bed version and stores the crop inside one unit of work', async () => {
+    const bed = BedFactory.fromUser(user);
+    bedRepository.addToStorage(bed);
+    const plant = PlantFactory.random();
+    plantRepository.addToStorage(plant);
+    const raiseBed = unitOfWork.trace(
+      'raiseBed',
+      bedRepository.conditionalIncrementVersion.bind(bedRepository)
+    );
+    jest
+      .spyOn(bedRepository, 'conditionalIncrementVersion')
+      .mockImplementation(raiseBed);
+    const saveCrop = unitOfWork.trace(
+      'saveCrop',
+      plantInstanceRepository.save.bind(plantInstanceRepository)
+    );
+    jest.spyOn(plantInstanceRepository, 'save').mockImplementation(saveCrop);
+
+    await useCase.execute(
+      { id: random.uuid(), bedId: bed.id, plantId: plant.id },
+      user
+    );
+
+    expect(unitOfWork.runCount).toBe(1);
+    expect(unitOfWork.tracedCalls).toEqual([
+      { name: 'raiseBed', insideUnit: true, unit: 1 },
+      { name: 'saveCrop', insideUnit: true, unit: 1 }
+    ]);
+  });
+
   it('leaves the bed version untouched when the crop breaks an invariant', async () => {
     const bed = BedFactory.fromUser(user);
     bedRepository.addToStorage(bed);
@@ -100,6 +134,7 @@ describe('PlacePlantInstance', () => {
       )
     ).rejects.toThrow(InvalidArgumentException);
 
+    expect(unitOfWork.runCount).toBe(0);
     const storedBed = await bedRepository.findById(bed.id);
     expect(storedBed?.version).toBe(bed.version);
   });
@@ -141,6 +176,7 @@ describe('PlacePlantInstance', () => {
       DomainNotFoundException
     );
     expect(plantInstanceRepository.saveCalls).toHaveLength(0);
+    expect(unitOfWork.runCount).toBe(0);
   });
 
   it('throws DomainNotFoundException when bed belongs to another user', async () => {
@@ -167,6 +203,7 @@ describe('PlacePlantInstance', () => {
       DomainNotFoundException
     );
     expect(plantInstanceRepository.saveCalls).toHaveLength(0);
+    expect(unitOfWork.runCount).toBe(0);
   });
 
   it('throws DomainNotFoundException when catalog plant does not exist', async () => {
@@ -184,6 +221,7 @@ describe('PlacePlantInstance', () => {
       DomainNotFoundException
     );
     expect(plantInstanceRepository.saveCalls).toHaveLength(0);
+    expect(unitOfWork.runCount).toBe(0);
   });
 
   it('throws DomainConflictException when placement coordinates are outside bed boundaries', async () => {
@@ -204,6 +242,7 @@ describe('PlacePlantInstance', () => {
       DomainConflictException
     );
     expect(plantInstanceRepository.saveCalls).toHaveLength(0);
+    expect(unitOfWork.runCount).toBe(0);
     const storedBed = await bedRepository.findById(bed.id);
     expect(storedBed?.version).toBe(bed.version);
   });
@@ -234,6 +273,7 @@ describe('PlacePlantInstance', () => {
       DomainConflictException
     );
     expect(plantInstanceRepository.saveCalls).toHaveLength(0);
+    expect(unitOfWork.runCount).toBe(0);
     const storedBed = await bedRepository.findById(bed.id);
     expect(storedBed?.version).toBe(bed.version);
   });

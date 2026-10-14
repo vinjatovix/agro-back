@@ -73,9 +73,11 @@ export class MongoBedRepository
       $and: [this.activeFilter(), this.versionFilter(expectedVersion)]
     };
 
-    const result = await this.collection().updateOne(filter, {
-      $inc: { version: 1 }
-    });
+    const result = await this.collection().updateOne(
+      filter,
+      { $inc: { version: 1 } },
+      this.sessionOptions()
+    );
 
     if (result.matchedCount === 0) {
       throw new DomainConflictException(`Bed was modified concurrently: ${id}`);

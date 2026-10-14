@@ -164,7 +164,7 @@ Rules:
 - `save()` is reserved for creation (upsert of the initial document at `version: 0`). It MUST NOT be used to update existing aggregates, since it bypasses the version check.
 - Restoring a soft-deleted aggregate cannot use `updateWithDiff` (it only matches active documents) and requires a dedicated method.
 - Internal writes without an HTTP precondition (e.g. `addPlantToBed`) keep the in-request check: they read, then write with the version they read, and a concurrent change surfaces as `DomainStaleVersionException`.
-  - **Open question (decide in [Iteration 24](../../roadmap.md#iteration-24-wrap-cross-aggregate-mutations-in-acid-transactions))**: once such a write is exposed over HTTP without `If-Match`, its `412` would answer a precondition the client never sent. Either the endpoint requires `If-Match`, or internal stale writes map to `409`.
+  - **Exposed over HTTP without `If-Match`** (decided in Iteration 20, confirmed in [Iteration 24](../../roadmap.md#iteration-24-wrap-cross-aggregate-mutations-in-acid-transactions)): an internal write the client did not precondition answers `409` (`DomainConflictException`), never `412`, which would report a precondition the client never sent (RFC 9110 §15.5.13). Example: the bed version raise on crop placement, move and removal (`BedRepository.conditionalIncrementVersion`; bed.md Sec. 7.2.1).
 
 ---
 
@@ -670,16 +670,21 @@ _(Note: For the architectural boundary enforcement rules governing this bypass, 
 
 ---
 
-### 5.9 ACID TRANSACTIONS & CACHING INFRASTRUCTURE `[TARGET STATE (Pending Iterations [30](../../roadmap.md#iteration-30-build-redis-cache-repository-with-memory-fallback) & [24](../../roadmap.md#iteration-24-wrap-cross-aggregate-mutations-in-acid-transactions))]`
+### 5.9 ACID TRANSACTIONS & CACHING INFRASTRUCTURE
 
-#### 5.9.1 MongoDB ACID Multi-Document Transactions `[TARGET STATE (Pending [Iteration 24](../../roadmap.md#iteration-24-wrap-cross-aggregate-mutations-in-acid-transactions))]`
+#### 5.9.1 MongoDB ACID Multi-Document Transactions — Implemented ([Iteration 24](../../roadmap.md#iteration-24-wrap-cross-aggregate-mutations-in-acid-transactions))
 
-To maintain strict data integrity across detached collections (e.g. creating a standalone `PlantInstance` while simultaneously incrementing the `version` on its associated `Bed` for Optimistic Concurrency Control, already implemented per Sec. 4.3):
+To keep data consistent across detached collections (e.g. creating a standalone `PlantInstance` while raising the `version` of its `Bed`, Sec. 4.3), use cases group cross-aggregate writes in a unit of work:
 
-- Concrete usecases MUST coordinate writes using **MongoDB ACID Transactions (`ClientSession`)**.
-- The `MongoRepository` layer must support accepting and forwarding an optional `session` object to MongoDB driver write methods.
-- Transactions are executed over the MongoDB Single-Node Replica Set configured for the local development docker-compose environment or MongoDB Atlas in production.
-- If any operation fails or a version conflict occurs, the session is aborted, guaranteeing atomic rolls.
+- **Port** (`Contexts/shared/application/interfaces/UnitOfWork.ts`, DI name `unitOfWork`): `run<T>(work: () => Promise<T>): Promise<T>`. Driver-free, so domain and application layers never import `mongodb`; unit tests use an in-memory fake (`tests/Contexts/shared/__mocks__/UnitOfWorkMock.ts`).
+- **Caller rules**: do every read and business rule check before `run`; inside `work`, only write, one `await` at a time (never `Promise.all` on one session); apply in-memory consequences such as `crop.syncVersion(outcome)` after `run` resolves. `work` may run more than once, so it must not depend on side effects of a previous attempt.
+- **Adapter** (`MongoUnitOfWork`, shared Mongo infrastructure): opens a `ClientSession` and a transaction with `readConcern: snapshot`, `writeConcern: majority` and primary reads, then commits or aborts. Not `session.withTransaction()`, which retries for up to 120 s.
+- **Session propagation**: the adapter stores the session in an `AsyncLocalStorage` (`MongoSessionContext`), scoped to one async call chain, so concurrent requests never share it. `MongoRepository.sessionOptions()` returns `{ session }` while a unit is active (`{}` otherwise), and every driver call a unit relies on passes it (`persist`, `delete`, `findOneDomain`, `exists`, `updateWithDiff` and its counts, `conditionalIncrementVersion`, crop `save` and `markAllInBedAsRemoved`). The session is still forwarded by `MongoRepository`, but it comes from this ambient context instead of a parameter, so repository interfaces did not change. Writes outside any `run` behave as before.
+- **Retries**: at most 3 attempts per unit, shared between whole-unit retries (error labelled `TransientTransactionError`) and commit retries (`UnknownTransactionCommitResult`); no backoff; one `warn` log, with the driver error, per retry and when a transient error exhausts the budget. Domain exceptions, duplicate keys and other errors abort at once and are rethrown unchanged.
+- **Error mapping when the budget runs out**: a write conflict (server code `112`) → `DomainConflictException` (`409`), since another request changed the same record; any other transient error → the last driver error, which the global handler answers with `500`.
+- **Nesting**: a `run` called inside an active unit joins it (no new transaction, no own retries), so the outer unit still commits or aborts everything.
+- **Units in use**: crop placement, crop move, crop removal and bed deletion (bed.md Sec. 7.2.2).
+- Transactions need a replica set: the single-node `rs0` in `docker/docker-compose.yml` for development and CI, a managed replica set in production.
 
 #### 5.9.1.1 Data Locality & Sharding Constraints (Future-Proofing) `[TARGET STATE]`
 

@@ -54,6 +54,7 @@ import type {
 } from '../../../Contexts/Auth/application/useCases/index.js';
 import type { MongoAuthRepository } from '../../../Contexts/Auth/infrastructure/persistence/MongoAuthRepository.js';
 import type { CheckHealth } from '../../../Contexts/health/application/useCases/CheckHealth.js';
+import type { UnitOfWork } from '../../../Contexts/shared/application/interfaces/index.js';
 import type {
   AppLogger,
   EncrypterTool,
@@ -108,6 +109,7 @@ export type ContainerCradle = {
   plantPersistenceMapper: PlantPersistenceMapper;
   plantInstancePersistenceMapper: PlantInstancePersistenceMapper;
   cropSpatialService: CropSpatialService;
+  unitOfWork: UnitOfWork;
   familySummaryReader: FamilySummaryReader;
 
   // Singletons

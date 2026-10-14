@@ -75,7 +75,7 @@ To drive the new system roadmap, this section contrasts the current state of eac
 - **Target State (Spec v1.4.0):**
   - **Soft Delete Standardization:** Standardized to lowercase `status: 'active' | 'removed'` with `deletedAt: ISODate | null`.
   - **Resizing Validation Limits:** Modifying physical bed dimensions is validated against active plant instances. Resizing is strictly blocked (throwing a `DomainConflictException`) if any living crop center coordinate falls outside the proposed boundaries.
-  - **Cross-Collection Transactions:** Once multi-document transactions are introduced, placements and Bed version increments execute atomically using MongoDB ACID Multi-Document Transactions.
+  - **Cross-Collection Transactions:** Placing, moving and removing a crop (with the Bed version raise) and deleting a Bed (with its active crops) each run atomically in one MongoDB multi-document transaction, through the driver-free `UnitOfWork` port; a failure leaves both collections as they were.
 
 ### B. PlantInstances Module
 

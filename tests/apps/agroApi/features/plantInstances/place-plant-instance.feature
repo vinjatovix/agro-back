@@ -128,6 +128,7 @@ Feature: Place a Crop in a Bed
         And a bed exists for another user
         And a crop exists in the bed at 10, 10
         And a bed exists
+        And I record the current bed
         When I send a POST user request to "/api/v1/plant-instances" with body
             """
             {
@@ -143,3 +144,4 @@ Feature: Place a Crop in a Bed
         Then the response status code should be 409
         And response matches OpenAPI contract
         And the crop should not belong to the current bed
+        And the bed should be unchanged
