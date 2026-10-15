@@ -3,6 +3,7 @@ import {
   Before,
   BeforeAll,
   defineParameterType,
+  setDefaultTimeout,
   setWorldConstructor
 } from '@cucumber/cucumber';
 
@@ -14,6 +15,8 @@ import {
   type Resource,
   type Role
 } from './utils/index.js';
+
+setDefaultTimeout(60 * 1000);
 
 setWorldConstructor(AgroWorld);
 
