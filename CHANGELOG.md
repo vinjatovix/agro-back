@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/vinjatovix/agro-back/compare/v1.0.0...v1.0.1) (2026-10-16)
+
+
+### Bug Fixes
+
+* enable trust proxy for production deployments behind Railway ([fdffe82](https://github.com/vinjatovix/agro-back/commit/fdffe82f6060a29dc5469ef15e5ba511c9ab3ec2))
+
 ## 1.0.0 (2026-10-16)
 
 
