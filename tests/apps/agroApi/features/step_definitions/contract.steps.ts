@@ -21,14 +21,16 @@ Then('response matches OpenAPI contract', async function (this: AgroWorld) {
 
   const responses = this.responses ?? [await currentResponse(this)];
 
-  for (const response of responses) {
-    await assertResponseMatchesOpenApi({
-      specPath: OPENAPI_SPEC_PATH,
-      path: route,
-      method,
-      status: response.status,
-      body: response.body,
-      headers: toHeaderRecord(response.headers)
-    });
-  }
+  await Promise.all(
+    responses.map((response) =>
+      assertResponseMatchesOpenApi({
+        specPath: OPENAPI_SPEC_PATH,
+        path: route,
+        method,
+        status: response.status,
+        body: response.body,
+        headers: toHeaderRecord(response.headers)
+      })
+    )
+  );
 });

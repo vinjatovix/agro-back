@@ -28,7 +28,7 @@ export class GetBedById {
   async execute(
     id: string,
     user: UserSessionInfo,
-    options: BedReadOptions = { embedCrops: false }
+    options?: BedReadOptions
   ): Promise<BedWithCrops> {
     const bed = ensureFound(
       await this.bedRepository.findOwnedActiveById(id, user.id),
@@ -36,11 +36,8 @@ export class GetBedById {
       id
     );
 
-    return attachCropsToBed(
-      this.plantInstanceRepository,
-      bed,
-      user.id,
-      options
-    );
+    return attachCropsToBed(this.plantInstanceRepository, bed, user.id, {
+      embedCrops: options?.embedCrops === true
+    });
   }
 }

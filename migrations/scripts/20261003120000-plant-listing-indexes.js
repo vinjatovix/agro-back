@@ -57,17 +57,19 @@ export const up = async (db) => {
     await plants.dropIndex(FAMILY_INDEX);
   }
 
-  for (const { key, name } of LISTING_INDEXES) {
-    await plants.createIndex(key, { name, collation: PLANT_COLLATION });
-  }
+  await Promise.all(
+    LISTING_INDEXES.map(({ key, name }) =>
+      plants.createIndex(key, { name, collation: PLANT_COLLATION })
+    )
+  );
 };
 
 export const down = async (db) => {
   const plants = db.collection(PLANTS);
 
-  for (const { name } of LISTING_INDEXES) {
-    await dropIndexIfExists(plants, name);
-  }
+  await Promise.all(
+    LISTING_INDEXES.map(({ name }) => dropIndexIfExists(plants, name))
+  );
 
   await plants.createIndex({ 'identity.family': 1 }, { name: FAMILY_INDEX });
 };

@@ -14,29 +14,35 @@ const UNIQUE_INDEXES = [
 const NAMESPACE_NOT_FOUND = 26;
 const INDEX_NOT_FOUND = 27;
 
-export const up = async (db) => {
-  for (const { collection, key, name } of UNIQUE_INDEXES) {
-    try {
-      await db.collection(collection).createIndex(key, { name, unique: true });
-    } catch (error) {
-      throw new Error(
-        `Cannot create index ${name} on ${collection}: ${error?.message}`,
-        { cause: error }
-      );
-    }
+const createUniqueIndex = async (db, { collection, key, name }) => {
+  try {
+    await db.collection(collection).createIndex(key, { name, unique: true });
+  } catch (error) {
+    throw new Error(
+      `Cannot create index ${name} on ${collection}: ${error?.message}`,
+      { cause: error }
+    );
   }
 };
 
-export const down = async (db) => {
-  for (const { collection, name } of UNIQUE_INDEXES) {
-    try {
-      await db.collection(collection).dropIndex(name);
-    } catch (error) {
-      if (
-        error?.code !== INDEX_NOT_FOUND &&
-        error?.code !== NAMESPACE_NOT_FOUND
-      )
-        throw error;
-    }
+const dropIndexIfExists = async (db, { collection, name }) => {
+  try {
+    await db.collection(collection).dropIndex(name);
+  } catch (error) {
+    if (error?.code !== INDEX_NOT_FOUND && error?.code !== NAMESPACE_NOT_FOUND)
+      throw error;
   }
+};
+
+// Each index is on its own key, so they are built and dropped concurrently.
+export const up = async (db) => {
+  await Promise.all(
+    UNIQUE_INDEXES.map((index) => createUniqueIndex(db, index))
+  );
+};
+
+export const down = async (db) => {
+  await Promise.all(
+    UNIQUE_INDEXES.map((index) => dropIndexIfExists(db, index))
+  );
 };

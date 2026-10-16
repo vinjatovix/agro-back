@@ -17,8 +17,12 @@ if (routeFiles.length === 0) {
   process.exit(1);
 }
 
-for (const file of routeFiles) {
-  const module = (await import(file)) as RouteModule;
+const modules = (await Promise.all(
+  routeFiles.map((file) => import(file))
+)) as RouteModule[];
+
+for (const [index, module] of modules.entries()) {
+  const file = routeFiles[index] ?? '';
 
   try {
     getRegisterRouteOrThrow(module, file);

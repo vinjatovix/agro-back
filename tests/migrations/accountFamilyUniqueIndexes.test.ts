@@ -119,6 +119,16 @@ describe('account and family unique indexes migration', () => {
       await expect(result).rejects.toThrow(/families_slug_unique.*families/);
       expect(collection('families').dropIndex).not.toHaveBeenCalled();
     });
+
+    it('should keep the original error as the cause', async () => {
+      const { db, collection } = buildDb();
+      const error = mongoError(11000);
+      collection('families').createIndex.mockRejectedValue(error);
+
+      const result = up(db);
+
+      await expect(result).rejects.toMatchObject({ cause: error });
+    });
   });
 
   describe('down', () => {

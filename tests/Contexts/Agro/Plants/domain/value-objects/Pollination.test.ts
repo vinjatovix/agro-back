@@ -2,7 +2,7 @@ import { PollinationType } from '../../../../../../src/Contexts/Agro/Plants/doma
 import { Pollination } from '../../../../../../src/Contexts/Agro/Plants/domain/value-objects/Pollination.js';
 import { InvalidArgumentException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 
-const { BAT, INSECT, SELF, WATER, WIND } = PollinationType;
+const { BAT, BIRD, INSECT, SELF, WATER, WIND } = PollinationType;
 
 // Tomato: self-pollinated, helped by bumblebees.
 const tomato = (): Pollination =>
@@ -53,11 +53,15 @@ describe('Pollination (value object)', () => {
     ).toEqual({ types: [WIND] });
   });
 
-  it('should accept agents with an animal type among others', () => {
-    expect(
-      new Pollination({ types: [WIND, BAT], agents: ['fruit bat'] }).agents
-    ).toEqual(['fruit bat']);
-  });
+  it.each([[INSECT], [BIRD], [BAT]])(
+    'should accept agents with the animal type %p among others',
+    (animalType) => {
+      expect(
+        new Pollination({ types: [WIND, animalType], agents: ['pollinator'] })
+          .agents
+      ).toEqual(['pollinator']);
+    }
+  );
 
   describe('start', () => {
     it('should require the types', () => {

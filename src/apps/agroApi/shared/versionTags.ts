@@ -12,8 +12,8 @@ const MAX_IF_MATCH_TAGS = 50;
 
 // entity-tag = [ "W/" ] DQUOTE *etagc DQUOTE
 // etagc      = %x21 / %x23-7E / %x80-FF   (a comma is a valid tag character)
-const ENTITY_TAG_SOURCE = '(W\\/)?"([\\x21\\x23-\\x7E\\x80-\\xFF]*)"';
-const OWS = '[ \\t]*';
+const ENTITY_TAG_SOURCE = String.raw`(W\/)?"([\x21\x23-\x7E\x80-\xFF]*)"`;
+const OWS = String.raw`[ \t]*`;
 
 // `#entity-tag`: comma-separated with optional whitespace; empty elements are
 // tolerated, at least one tag is required. Tags never contain a `"`, so the

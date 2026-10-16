@@ -53,10 +53,17 @@ const EVENT_SEASONS = {
   'after harvest': 'harvest'
 };
 
-const POLLINATION_TYPES = ['insect', 'wind', 'self', 'water', 'bird', 'bat'];
+const POLLINATION_TYPES = new Set([
+  'insect',
+  'wind',
+  'self',
+  'water',
+  'bird',
+  'bat'
+]);
 
 // Types carried by animals: only they have agents.
-const ANIMAL_POLLINATION_TYPES = ['insect', 'bird', 'bat'];
+const ANIMAL_POLLINATION_TYPES = new Set(['insect', 'bird', 'bat']);
 
 // What a stored agent says about the pollination: the type it adds, and
 // whether it stays as an agent (an animal) or leaves (a type or a mechanism).
@@ -76,7 +83,7 @@ const AGENT_MEANINGS = {
 };
 
 // Stored as pollination types, though they are not ways of pollinating.
-const NOT_POLLINATION = ['none', 'spore'];
+const NOT_POLLINATION = new Set(['none', 'spore']);
 
 const CAMEL_CASE = /^[a-z][a-zA-Z]*$/;
 
@@ -173,7 +180,7 @@ const normalizeMethods = (plant, methods) => {
 };
 
 // Horsetails (Equisetum) reproduce by spores.
-const SPORE_GENERA = ['equisetum'];
+const SPORE_GENERA = new Set(['equisetum']);
 
 const genusOf = (plant) =>
   (plant.identity?.scientificName ?? '').trim().toLowerCase().split(/\s+/)[0];
@@ -183,7 +190,7 @@ const checkPollination = (plant, { types, agents }) => {
     fail(plant, 'pollination without types');
   }
   for (const type of types) {
-    if (!POLLINATION_TYPES.includes(type)) {
+    if (!POLLINATION_TYPES.has(type)) {
       fail(plant, `unknown pollination "${type}"`);
     }
   }
@@ -192,7 +199,7 @@ const checkPollination = (plant, { types, agents }) => {
   }
   if (
     agents !== undefined &&
-    !types.some((type) => ANIMAL_POLLINATION_TYPES.includes(type))
+    !types.some((type) => ANIMAL_POLLINATION_TYPES.has(type))
   ) {
     fail(plant, `pollination agents without an insect, bird or bat type`);
   }
@@ -245,7 +252,7 @@ const pollinationTypesOf = (plant) => {
 };
 
 const reproducesBySpores = (plant) =>
-  SPORE_GENERA.includes(genusOf(plant)) ||
+  SPORE_GENERA.has(genusOf(plant)) ||
   pollinationTypesOf(plant).includes('spore');
 
 // `undefined`: the pollination is removed.
@@ -254,7 +261,7 @@ const normalizePollination = (plant, pollination) => {
   const next = withoutEmptyAgents(
     withAgentTypes(toPollinationTypes(plant, pollination))
   );
-  if (next.types?.some((type) => NOT_POLLINATION.includes(type))) {
+  if (next.types?.some((type) => NOT_POLLINATION.has(type))) {
     return undefined;
   }
   checkPollination(plant, next);
@@ -363,7 +370,11 @@ const checkPruningEntry = (plant, entry, index) => {
   if (new Set(seasons).size !== seasons.length) {
     fail(plant, `pruning entry ${index} repeats a season`);
   }
-  if (typeof frequencyPerYear !== 'number' || !(frequencyPerYear > 0)) {
+  if (
+    typeof frequencyPerYear !== 'number' ||
+    Number.isNaN(frequencyPerYear) ||
+    frequencyPerYear <= 0
+  ) {
     fail(
       plant,
       `pruning entry ${index} frequencyPerYear "${frequencyPerYear}" is not above zero`
@@ -378,27 +389,24 @@ const setIfChanged = (set, path, current, next) => {
   if (JSON.stringify(value) !== JSON.stringify(current)) set[path] = value;
 };
 
-const changesFor = (plant) => {
+// Each section writes the paths it rewrites into `set` and the ones it
+// removes into `unset`.
+const resourceChanges = (plant, resources, set) => {
   const storedResources = plant.knowledge?.resources;
-  const resources = Array.isArray(storedResources)
-    ? withResourceTypes(plant, storedResources)
-    : [];
-  checkInvariants(plant, resources);
-
-  const set = {};
-  const unset = {};
-
   if (Array.isArray(storedResources)) {
     setIfChanged(set, 'knowledge.resources', storedResources, resources);
   }
+};
 
+const pruningChanges = (plant, set) => {
   const pruning = plant.knowledge?.pruning;
-  if (Array.isArray(pruning)) {
-    const next = pruning.map((entry) => withSeasons(plant, entry));
-    next.forEach((entry, index) => checkPruningEntry(plant, entry, index));
-    setIfChanged(set, 'knowledge.pruning', pruning, next);
-  }
+  if (!Array.isArray(pruning)) return;
+  const next = pruning.map((entry) => withSeasons(plant, entry));
+  next.forEach((entry, index) => checkPruningEntry(plant, entry, index));
+  setIfChanged(set, 'knowledge.pruning', pruning, next);
+};
 
+const propagationChanges = (plant, set) => {
   const methods = plant.knowledge?.propagation?.methods;
   const hasMethods = methods !== null && typeof methods === 'object';
   const nextMethods = hasMethods ? normalizeMethods(plant, methods) : {};
@@ -413,17 +421,20 @@ const changesFor = (plant) => {
       nextMethods
     );
   }
+};
 
+const pollinationChanges = (plant, set, unset) => {
   const pollination = plant.phenology?.flowering?.pollination;
-  if (pollination === null) {
-    unset['phenology.flowering.pollination'] = '';
-  } else if (pollination !== undefined) {
-    const next = normalizePollination(plant, withoutNulls(pollination));
-    if (next === undefined) unset['phenology.flowering.pollination'] = '';
-    else
-      setIfChanged(set, 'phenology.flowering.pollination', pollination, next);
-  }
+  if (pollination === undefined) return;
+  const next =
+    pollination === null
+      ? undefined
+      : normalizePollination(plant, withoutNulls(pollination));
+  if (next === undefined) unset['phenology.flowering.pollination'] = '';
+  else setIfChanged(set, 'phenology.flowering.pollination', pollination, next);
+};
 
+const emptyFieldChanges = (plant, set, unset) => {
   const description = plant.phenology?.harvest?.description;
   if (description === null || isBlank(description)) {
     unset['phenology.harvest.description'] = '';
@@ -435,6 +446,23 @@ const changesFor = (plant) => {
   }
 
   if (plant.status === undefined) set.status = 'ACTIVE';
+};
+
+const changesFor = (plant) => {
+  const storedResources = plant.knowledge?.resources;
+  const resources = Array.isArray(storedResources)
+    ? withResourceTypes(plant, storedResources)
+    : [];
+  checkInvariants(plant, resources);
+
+  const set = {};
+  const unset = {};
+
+  resourceChanges(plant, resources, set);
+  pruningChanges(plant, set);
+  propagationChanges(plant, set);
+  pollinationChanges(plant, set, unset);
+  emptyFieldChanges(plant, set, unset);
 
   return { set, unset };
 };
@@ -474,9 +502,8 @@ const updateEach = async (collection, changesOf, at = new Date()) => {
 
   let matched = 0;
   for (let i = 0; i < operations.length; i += BATCH_SIZE) {
-    const result = await collection.bulkWrite(
-      operations.slice(i, i + BATCH_SIZE)
-    );
+    const batch = operations.slice(i, i + BATCH_SIZE);
+    const result = await collection.bulkWrite(batch); // NOSONAR: batches written one by one to bound memory and keep the matched-count check exact
     matched += result.matchedCount;
   }
 

@@ -164,7 +164,7 @@ describe('PlantKnowledge', () => {
   });
 
   describe('pruning frequency', () => {
-    it.each([0, -1])(
+    it.each([0, -1, Number.NaN])(
       'should reject a pruning entry with frequencyPerYear %p',
       (frequencyPerYear) => {
         const knowledge = PlantKnowledgeBuilder.full();

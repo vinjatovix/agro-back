@@ -62,6 +62,18 @@ const sameKey = (actual, expected) =>
   JSON.stringify(Object.entries(actual)) ===
   JSON.stringify(Object.entries(expected));
 
+// Each index is reconciled on its own, so they run concurrently.
+const reconcileIndex = async (collection, existing, key, name) => {
+  if (existing !== undefined && sameKey(existing.key, key)) {
+    return;
+  }
+  // Same name, older definition: rebuilt so `up` always converges to INDEXES.
+  if (existing !== undefined) {
+    await collection.dropIndex(name);
+  }
+  await collection.createIndex(key, { name });
+};
+
 export const up = async (db) => {
   if (typeof db.createCollection === 'function') {
     await createCollectionIfMissing(db, COLLECTION_NAME);
@@ -71,25 +83,19 @@ export const up = async (db) => {
   const existingIndexes = await listIndexes(collection);
   const existingByName = new Map(existingIndexes.map((idx) => [idx.name, idx]));
 
-  for (const { key, name } of INDEXES) {
-    const existing = existingByName.get(name);
-    if (existing !== undefined && sameKey(existing.key, key)) {
-      continue;
-    }
-    // Same name, older definition: rebuilt so `up` always converges to INDEXES.
-    if (existing !== undefined) {
-      await collection.dropIndex(name);
-    }
-    await collection.createIndex(key, { name });
-  }
+  await Promise.all(
+    INDEXES.map(({ key, name }) =>
+      reconcileIndex(collection, existingByName.get(name), key, name)
+    )
+  );
 };
 
 export const down = async (db) => {
   const collection = db.collection(COLLECTION_NAME);
 
-  for (const { name } of INDEXES) {
-    await dropIndexIfExists(collection, name);
-  }
+  await Promise.all(
+    INDEXES.map(({ name }) => dropIndexIfExists(collection, name))
+  );
 
   if (typeof collection.drop === 'function') {
     try {

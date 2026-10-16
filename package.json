@@ -20,7 +20,7 @@
     "build:clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "build:validate-routes": "tsx ./scripts/validate-routes.ts",
     "build:validate-wiring": "tsx ./scripts/validate-wiring.ts",
-    "build:copy-assets": "tsx ./scripts/copy-assets.ts",
+    "build:copy-assets": "tsx ./scripts/run-copy-assets.ts",
     "build:tsc": "tsc -p tsconfig.prod.json --sourceMap false",
     "start": "node ./dist/src/index.js",
     "start:local": "npm run build && node ./dist/src/index.js",

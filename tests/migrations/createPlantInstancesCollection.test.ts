@@ -94,7 +94,7 @@ const buildDb = (
     createCollection
   };
 
-  return { db, stored, createCollection, drop };
+  return { db, stored, createCollection, createIndex, dropIndex, drop };
 };
 
 describe('create plant_instances collection migration', () => {
@@ -148,6 +148,47 @@ describe('create plant_instances collection migration', () => {
       });
     });
 
+    it('skips every index already present with the same key', async () => {
+      const { db, createIndex, dropIndex } = buildDb(
+        INDEXES.map(([name, key]) => ({ name, key }))
+      );
+
+      await up(db);
+
+      expect(createIndex).not.toHaveBeenCalled();
+      expect(dropIndex).not.toHaveBeenCalled();
+    });
+
+    it('drops an index with an older key before creating it again', async () => {
+      const { db, createIndex, dropIndex } = buildDb([
+        {
+          name: 'plant_instances_user_id_idx',
+          key: { userId: 1 }
+        }
+      ]);
+
+      await up(db);
+
+      const recreated = createIndex.mock.calls.findIndex(
+        ([, options]) => options.name === 'plant_instances_user_id_idx'
+      );
+      expect(dropIndex).toHaveBeenCalledWith('plant_instances_user_id_idx');
+      expect(createIndex.mock.invocationCallOrder[recreated]).toBeGreaterThan(
+        dropIndex.mock.invocationCallOrder[0] ?? Infinity
+      );
+    });
+
+    it('rejects with the error of a failing index creation', async () => {
+      const { db, createIndex } = buildDb();
+      createIndex.mockImplementation((_key, options) =>
+        options.name === 'plant_instances_user_bed_idx'
+          ? Promise.reject(UNAUTHORIZED)
+          : Promise.resolve(options.name)
+      );
+
+      await expect(up(db)).rejects.toBe(UNAUTHORIZED);
+    });
+
     it('is idempotent when run multiple times', async () => {
       const { db, stored } = buildDb();
 
@@ -169,6 +210,28 @@ describe('create plant_instances collection migration', () => {
 
       expect(drop).toHaveBeenCalled();
       expect(stored.size).toBe(0);
+    });
+
+    it('drops every index before dropping the collection', async () => {
+      const { db, dropIndex, drop } = buildDb();
+      await up(db);
+
+      await down(db);
+
+      expect(dropIndex.mock.calls.map(([name]) => name).sort()).toEqual(
+        INDEXES.map(([name]) => name).sort()
+      );
+      expect(drop.mock.invocationCallOrder[0]).toBeGreaterThan(
+        Math.max(...dropIndex.mock.invocationCallOrder)
+      );
+    });
+
+    it('rejects with the error of a failing index drop', async () => {
+      const { db, dropIndex } = buildDb();
+      await up(db);
+      dropIndex.mockRejectedValueOnce(UNAUTHORIZED);
+
+      await expect(down(db)).rejects.toBe(UNAUTHORIZED);
     });
 
     it('does not fail when the collection does not exist', async () => {

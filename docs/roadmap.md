@@ -563,6 +563,21 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 - **Dependencies**: Iteration 24 (the transaction tests keep their 150 ms write budget under parallel runs).
 - **Risks**: `process.getActiveResourcesInfo()` is still experimental in Node 22; a type that is not a leak is ignored in one place with a comment.
 
+## Tooling: SonarCloud Issues Cleanup
+
+**Spec Module(s)**: [testing.md](spec/modules/testing.md), [persistence.md](spec/modules/persistence.md)
+
+- **Status**: Done when merged (branch `029-sonarcloud-issues-cleanup`, requested by the maintainer; not a numbered iteration because it changes no product behaviour)
+- **Value delivered**: Resolves 50 static analysis and maintainability findings across CI workflows, application use cases, value objects, test suites, and schema migrations. Standardizes intentional suppression rules in version control and eliminates implicit package install hooks in CI.
+- **Definition of Done**:
+  - CI install steps in `.github/workflows/build_matrix.yml` and `.github/workflows/sonar_check.yml` execute `npm ci --ignore-scripts` to eliminate supply-chain risk from arbitrary lifecycle scripts; any tool requiring its install hook receives an explicit, named `npm rebuild <pkg>` step.
+  - Bed query use cases (`GetBedById` and `ListUserBeds`) take an optional `options?: BedReadOptions` argument instead of a shared object literal default.
+  - Live code maintainability findings resolved: constant `Set` lookups (`Pollination`), simplified value object boolean checks (`PlantKnowledge`), optional chaining in crop coordinates (`UpdatePlantInstance`), `String.raw` for escaped regex templates (`versionTags`, `escapeRegex`), `startsWith` in component scanner (`componentRoles`), and parallel imports/asset copies (`scripts/copy-assets.ts`, `scripts/validate-routes.ts`, `registerRoutes.ts`, `scanComponents.ts`).
+  - Intentional findings are documented in version control: order-dependent loops retain sequential execution with line-scoped `// NOSONAR: <reason>` annotations, and empty component-scanner fixture shells are scoped via `sonar.issue.ignore.multicriteria` in `sonar-project.properties`. No `sonar.exclusions` or suppressions under `src/`.
+  - The five never-deployed migrations (`20260927120000-add-aggregate-version.js`, `20261002120000-normalize-plant-knowledge.js`, `20261003120000-plant-listing-indexes.js`, `20261003130000-account-family-unique-indexes.js`, `20261005140000-create-plant-instances-collection.js`) are corrected in place. Because these migrations were never released to production or staging environments, in-place corrections preserve clean migration history without violating the rule against modifying deployed historical migrations.
+- **Dependencies**: Tooling: Faster Test Suite.
+- **Risks**: Migrations that now run independent indexes or collections concurrently can leave a different partial state after a failure (other operations may still finish). Accepted because migrate-mongo does not mark a failed migration as applied and every operation is safe to repeat, so a retried `up` reaches the same final state. Behaviour was checked with the unit, migration and acceptance suites and by running the old and new migrations side by side on copies of the local database (same collections, indexes and documents after `up`, a second `up` and `down`).
+
 ---
 
 # Phase 2: Identity & Access

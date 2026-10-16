@@ -25,10 +25,12 @@ export class ListUserBeds {
 
   async execute(
     userId: string,
-    options: BedReadOptions = { embedCrops: false }
+    options?: BedReadOptions
   ): Promise<BedWithCrops[]> {
     const beds = await this.bedRepository.findByUserId(userId);
 
-    return attachCrops(this.plantInstanceRepository, beds, userId, options);
+    return attachCrops(this.plantInstanceRepository, beds, userId, {
+      embedCrops: options?.embedCrops === true
+    });
   }
 }

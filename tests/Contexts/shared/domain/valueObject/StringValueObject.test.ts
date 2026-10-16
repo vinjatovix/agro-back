@@ -38,19 +38,19 @@ describe('StringValueObject', () => {
   });
 
   describe('equals', () => {
-    it('should return true when comparing identical values', () => {
-      const vo1 = new StringValueObject('test');
-      const vo2 = new StringValueObject('test');
+    it.each([
+      ['identical values', 'test', 'test', true],
+      ['different values', 'test1', 'test2', false],
+      ['values that differ only in case', 'Test', 'test', false]
+    ])(
+      'should compare %s case-sensitively',
+      (_case, first, second, expected) => {
+        const vo1 = new StringValueObject(first);
+        const vo2 = new StringValueObject(second);
 
-      expect(vo1.equals(vo2)).toBe(true);
-    });
-
-    it('should return false when comparing different values', () => {
-      const vo1 = new StringValueObject('test1');
-      const vo2 = new StringValueObject('test2');
-
-      expect(vo1.equals(vo2)).toBe(false);
-    });
+        expect(vo1.equals(vo2)).toBe(expected);
+      }
+    );
 
     it('should be reflexive (equal to itself)', () => {
       const vo = new StringValueObject('test');
@@ -62,13 +62,6 @@ describe('StringValueObject', () => {
       const vo2 = new StringValueObject('test');
 
       expect(vo1.equals(vo2)).toBe(vo2.equals(vo1));
-    });
-
-    it('should be case-sensitive in comparison', () => {
-      const vo1 = new StringValueObject('Test');
-      const vo2 = new StringValueObject('test');
-
-      expect(vo1.equals(vo2)).toBe(false);
     });
 
     it('should compare trimmed values (whitespace stripped on constructor)', () => {

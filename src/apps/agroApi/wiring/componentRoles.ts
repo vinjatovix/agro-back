@@ -56,7 +56,7 @@ export const COMPONENT_ROLES: readonly ComponentRole[] = [
     ignore: COMMON_IGNORES,
     classRule: (className: string): boolean =>
       className.length > 0 &&
-      className.charAt(0) === className.charAt(0).toUpperCase() &&
+      className.startsWith(className.charAt(0).toUpperCase()) &&
       !ROLE_SUFFIXES.some((suffix) => className.endsWith(suffix)),
     toName: toRegistrationName,
     lifetime: Lifetime.SCOPED

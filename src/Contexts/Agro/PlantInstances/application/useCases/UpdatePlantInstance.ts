@@ -136,9 +136,7 @@ export class UpdatePlantInstance {
     at: Date
   ): Promise<Bed | undefined> {
     const isPositionChanged =
-      !crop.position ||
-      crop.position.x !== position.x ||
-      crop.position.y !== position.y;
+      crop.position?.x !== position.x || crop.position?.y !== position.y;
 
     if (!isPositionChanged) {
       return undefined;

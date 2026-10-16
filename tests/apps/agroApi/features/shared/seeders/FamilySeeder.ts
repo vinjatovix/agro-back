@@ -41,7 +41,7 @@ export const FamilySeeder = (httpServer: Server, token: string) => {
       const families: FamilyPrimitives[] = [];
 
       for (let i = 0; i < count; i++) {
-        const family = await this.create(overrides);
+        const family = await this.create(overrides); // NOSONAR: inserted one by one; unsorted listings return insertion order, which scenarios assert
         families.push(family);
       }
 
@@ -89,7 +89,7 @@ export const FamilySeeder = (httpServer: Server, token: string) => {
       const created: FamilyPrimitives[] = [];
 
       for (const family of base) {
-        const response = await request(httpServer)
+        const response = await request(httpServer) // NOSONAR: inserted one by one; unsorted listings return insertion order, which scenarios assert
           .post('/api/v1/families')
           .set('Authorization', `Bearer ${token}`)
           .send(family);
