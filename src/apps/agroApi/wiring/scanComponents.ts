@@ -78,21 +78,20 @@ export async function scanComponents(
   sourceRoot: string,
   roles: readonly ComponentRole[]
 ): Promise<ScannedComponent[]> {
-  const allComponents: ScannedComponent[] = [];
-  const processedFiles = new Set<string>();
+  // A file belongs to the first role that finds it, so roles are matched in
+  // order before any file is inspected.
+  const roleByFile = new Map<string, ComponentRole>();
 
   for (const role of roles) {
-    const files = findFilesForRole(sourceRoot, role);
-    files.sort((a, b) => a.localeCompare(b));
-
-    const pendingFiles = files.filter((file) => !processedFiles.has(file));
-    pendingFiles.forEach((file) => processedFiles.add(file));
-
-    const componentsByFile = await Promise.all(
-      pendingFiles.map((file) => inspectFileExports(file, role))
-    );
-    allComponents.push(...componentsByFile.flat());
+    for (const file of findFilesForRole(sourceRoot, role)) {
+      if (!roleByFile.has(file)) roleByFile.set(file, role);
+    }
   }
+
+  const componentsByFile = await Promise.all(
+    [...roleByFile].map(([file, role]) => inspectFileExports(file, role))
+  );
+  const allComponents = componentsByFile.flat();
 
   allComponents.sort((a, b) => a.file.localeCompare(b.file));
   detectDuplicateNames(allComponents);

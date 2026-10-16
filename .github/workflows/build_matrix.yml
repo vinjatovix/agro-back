@@ -24,7 +24,7 @@ jobs:
 
       - name: Run Shai-Hulud Integrity Scanner (Warn Only)
         run: |
-          curl -fsSL --retry 3 --retry-delay 2 https://raw.githubusercontent.com/vinjatovix/shai-hulud-integrity-scanner/refs/heads/main/scan-project.sh > /tmp/scan-project.sh
+          curl -fsSL --proto '=https' --tlsv1.2 --retry 3 --retry-delay 2 https://raw.githubusercontent.com/vinjatovix/shai-hulud-integrity-scanner/refs/heads/main/scan-project.sh > /tmp/scan-project.sh
           chmod +x /tmp/scan-project.sh
           /tmp/scan-project.sh . --warn-only --exclude-dir=".specify" | tee scan_report.txt
 

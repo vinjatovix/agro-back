@@ -36,6 +36,16 @@ const countByType = (): ResourceCounts => {
   return counts;
 };
 
+/**
+ * A piped stdio stream opens its handle on first access and keeps it, so a
+ * file that is the first to write to it would read as a leak. Reading the
+ * getters opens both before the baseline is taken.
+ */
+const openStdioHandles = (): readonly NodeJS.WriteStream[] => [
+  process.stdout,
+  process.stderr
+];
+
 const excessResources = (baseline: ResourceCounts): ResourceCounts => {
   const excess: ResourceCounts = new Map();
 
@@ -55,7 +65,7 @@ const waitForRelease = async (
   let excess = excessResources(baseline);
 
   while (excess.size > 0 && Date.now() < deadline) {
-    await sleep(RECHECK_INTERVAL_MS);
+    await sleep(RECHECK_INTERVAL_MS); // NOSONAR: polling, each check must wait for the previous one
     excess = excessResources(baseline);
   }
 
@@ -103,10 +113,7 @@ export default class LeakGuardEnvironment extends TestEnvironment {
 
   override async setup(): Promise<void> {
     await super.setup();
-    // A piped stdio stream opens its handle on first access and keeps it, so
-    // a file that is the first to write to it would read as a leak.
-    void process.stdout;
-    void process.stderr;
+    openStdioHandles();
     this.baseline = countByType();
   }
 
