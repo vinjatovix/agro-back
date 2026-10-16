@@ -8,7 +8,7 @@ status: evolving
 
 ## 1. PURPOSE
 
-This module defines the companion planting relationship system of AgroApp.
+This module defines the companion planting relationship system of MiBancal.
 
 It models botanical interactions between different plant species to support ecological garden planning, companion suggestion, and warning systems.
 

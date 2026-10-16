@@ -8,7 +8,7 @@ status: stable
 
 ## 1. PURPOSE
 
-Defines the core business entities of AgroApp.
+Defines the core business entities of MiBancal.
 
 This module is the root of all domain logic.
 
@@ -255,7 +255,7 @@ This prevents:
 
 The Domain Core is:
 
-> a pure, stable, persistence-agnostic model of AgroApp reality
+> a pure, stable, persistence-agnostic model of MiBancal reality
 
 It MUST remain unaffected by:
 

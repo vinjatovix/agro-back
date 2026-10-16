@@ -2,11 +2,11 @@ import httpStatus from 'http-status';
 import { z } from 'zod';
 
 import {
+  activateRequest,
   googleAuthRequest,
   loginRequest,
   registerRequest,
   updatePasswordRequest,
-  validateMailRequest,
   withMatchingPasswords
 } from '../../../../../src/apps/agroApi/controllers/Auth/requestSchemas.js';
 import type { RequestSchemas } from '../../../../../src/apps/agroApi/middlewares/validateRequest.js';
@@ -207,28 +207,26 @@ describe('Auth request schemas', () => {
     });
   });
 
-  describe('validateMailRequest', () => {
-    it('accepts a token without body', async () => {
+  describe('activateRequest', () => {
+    it('accepts a token', async () => {
       await expect(
-        validate(validateMailRequest, {
-          params: { token: 'token' },
-          body: undefined
-        })
+        validate(activateRequest, { body: { token: 'token' } })
       ).resolves.toBeUndefined();
     });
 
-    it('rejects an empty token', async () => {
-      const errors = await errorsOf(validateMailRequest, {
-        params: { token: '' }
-      });
+    it.each([
+      ['an empty token', ''],
+      ['a token longer than 512 characters', 'a'.repeat(513)],
+      ['a token that is not a string', 123]
+    ])('rejects %s', async (_case, token) => {
+      const errors = await errorsOf(activateRequest, { body: { token } });
 
       expect(Object.keys(errors)).toEqual(['token']);
     });
 
-    it('rejects any body field', async () => {
-      const errors = await errorsOf(validateMailRequest, {
-        params: { token: 'token' },
-        body: { a: 1 }
+    it('rejects any other body field', async () => {
+      const errors = await errorsOf(activateRequest, {
+        body: { token: 'token', a: 1 }
       });
 
       expect(errors).toEqual({ a: UNKNOWN_FIELD_MESSAGE });

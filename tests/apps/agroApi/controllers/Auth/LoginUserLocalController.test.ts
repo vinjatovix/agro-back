@@ -25,7 +25,8 @@ describe('LoginUserLocalController', () => {
   beforeEach(() => {
     loginUserLocal = new LoginUserLocal({
       authRepository: new AuthRepositoryMock({ find: true }),
-      encrypter: new EncrypterAdapterMock({ login: true })
+      encrypter: new EncrypterAdapterMock({ login: true }),
+      emailValidationRequired: true
     });
     controller = new LoginUserLocalController({ loginUserLocal });
   });

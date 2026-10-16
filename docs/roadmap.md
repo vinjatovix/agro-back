@@ -609,17 +609,64 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [auth.md](spec/modules/auth.md)
 
+- **Status**: Completed (2026-10-16, spec `specs/030-email-account-activation/`)
 - **Value delivered**: Secures user workspace access through verifiable identities.
 - **Definition of Done**: Account creation issues an activation token. Login is blocked for unverified users (except in local bypass).
-- **Proposal (from the Iteration 8 review, not yet decided)**: `User` is still anemic: use cases build a partial `UserPatch` and compute its audit metadata themselves, the pattern Iteration 7 removed from Bed, Plant and Family. Since this iteration rewrites the activation flow (a User write), give `User` mutation methods that take the acting user and refresh `updatedAt`/`updatedBy` in memory (e.g. `validateEmail(user)`, `changePassword(hash, user)`, `linkAuthMethod(method, user)`), persist the full state (as `updateWithDiff` does) and remove `UserPatch`. Decide first whether User also needs a `version` (`If-Match`); today no User endpoint uses it.
+- **Decisions taken (2026-10-16, before `/speckit.specify`)**:
+  - **Activation token**: random (at least 32 bytes from a cryptographic source), single-use, with an expiry (24 hours unless the spec finds a reason to change it), and stored only as a hash on the user (unset once used or replaced, never `null`). It replaces today's behavior, where `ValidateMail` accepts the **session JWT** as activation token: that token is reusable, travels in a URL as a full session credential, and any JWT of the user validates the email. Registration does not send any token today. [Iteration 26b](#iteration-26b-implement-password-reset-by-email) reuses this same mechanism for password reset, so build it once and generic (one purpose per token: activation or reset).
+  - **Email is sent in the background**: use cases do not wait for the `Mailer` before answering. Sending can take up to `MAIL_SEND_TIMEOUT_MS` (5 s), far above the 150 ms write budget, and registration without account enumeration needs the same response time whether or not the account exists. No queue yet: an in-process fire-and-forget call whose failures are caught and logged.
+  - **`MailDeliveryException` gets no HTTP mapping**: with background sending it never reaches the client, so it is only logged (recipient's domain and `reason`, never the token or the body), closing the question left open by Iteration 25.
+  - **`User` gets mutation methods (decided; was the Iteration 8 proposal)**: `User` is still anemic: use cases build a partial `UserPatch` and compute its audit metadata themselves, the pattern Iteration 7 removed from Bed, Plant and Family. Give `User` mutation methods that take the acting user and refresh `updatedAt`/`updatedBy` in memory (e.g. `validateEmail(user)`, `changePassword(hash, user)`, `linkAuthMethod(method, user)`, plus removing the local password when linking to an unvalidated account), persist the full state (as `updateWithDiff` does) and remove `UserPatch`. The pre-hijacking rules below become domain rules of `User`, not use-case code. User does **not** get a `version` / `If-Match`: no User endpoint needs it.
+  - **Activation link (decided 2026-10-16 in the spec)**: mail clients' link scanners open links automatically, and today the link hits `GET /auth/validate/:token` directly, so a scanner would validate an account its recipient never created. The emailed link now leads to a frontend page that confirms with a `POST` carrying the token in the body; `GET /auth/validate/:token` is removed. Activation only confirms (`204`, no session token): the user logs in afterwards, as after a password reset (Iteration 26b). Spec: `specs/030-email-account-activation/`.
 - **Proposal (from the Iteration 10 review, decided 2026-09-30 to do here)**: `POST /auth/register` reveals whether an email already has an account (`400` if the email is taken, `409` if the id is, `201` otherwise). Follow OWASP: answer every well-formed registration the same way and email the owner of an existing account instead ("someone tried to register with your email"). It needs the `Mailer` from Iteration 25, changes the register contract (OpenAPI and features), and must still reject a reused `id` without saying whether it exists. Until then `authLimiter` (5 failed attempts per IP every 15 minutes) is the only mitigation.
+- **Requirement (decided 2026-10-16): protect against account pre-hijacking.** Today an attacker can register locally with someone else's email and a password of their own. The account stays unvalidated, but when the real owner later signs in with Google, `AuthenticateWithGoogle` links Google to that account and marks it validated, and the attacker's password keeps working: both share one account, with the owner's data. `LoginUserLocal` does not check `emailValidated` yet, so the attacker can even log in before that. The rules, which also apply to every OAuth provider (Iteration 28) and are described in [auth.md §3.5](spec/modules/auth.md):
+  - Login with a password, and token refresh, are refused while `emailValidated` is false (outside the `development` bypass), so an unvalidated account never gets a session.
+  - Linking a provider to an existing account whose email is **not** validated removes its local password (the `local` auth method and the stored hash, unset rather than set to `null`) before validating the email. The provider has just proved who owns the email; the password was set by someone who never did.
+  - Linking a provider to an account whose email **is** validated keeps the password and emails the owner ("Google was linked to your account").
+  - Registering with the email of an unvalidated account whose activation token has expired replaces that account, so a squatter cannot hold someone else's email; while the token is still valid the registration is answered like any other (no account enumeration) and nothing changes.
+  - The activation email says that whoever did not create the account must not open the link.
+  - Acceptance scenarios: an unvalidated local account linked with Google can no longer log in with its old password, and the response to the provider login is the usual token; a validated account keeps its password and gets the notice; an unvalidated account cannot log in or refresh.
+- **Implementation notes**:
+  - `UserPatch` was removed. `User` keeps its state behind getters and changes it only through `register`, `issueEmailToken`, `activate`, `changePassword` and `linkProvider` (outcomes `alreadyLinked`, `securedPendingAccount`, `linkedToActiveAccount`), each refreshing `updatedAt`/`updatedBy` with one timestamp; the actor is the account's own username.
+  - Writes are a compare-and-set instead of a version: `AuthRepository.update(before, after)` writes the top-level diff (`$set`/`$unset`, never `null`) and only matches while every changed field still holds its `before` value, answering `written`, `unchanged` or `stale`. Activation answers `stale` with the uniform `400`; Google sign-in reads the account again and retries once (then `409`); password change answers `409`.
+  - Registration always answers `202` with an empty body. It hashes the password on every path and checks id and username before the email. New accounts are inserted with `create` (`insertOne`), whose duplicate email answers `emailTaken` (uniform `202`, no email) and whose duplicate username or id is a `409` that never echoes the value (the old `"Duplicate document with {…}"` text is gone from registration). Expired pending accounts are replaced in one transaction (`deleteIfReplaceable` + `create`).
+  - `POST /auth/activate` (body `token`, `204`) replaces `GET /auth/validate/:token`; any unusable token is `400 "Invalid or expired token"`. Tokens: 32 random bytes (base64url), SHA-256 stored in `emailTokens`, unique partial index `users_email_token_hash_unique` (migration `20261016120000-create-users-email-token-index`).
+  - `registrationLimiter` (5 per IP every 15 minutes, counting every request) guards `POST /auth/register`; activation, login and Google sign-in keep `authLimiter`.
+  - New required setting `FRONTEND_BASE_URL` (absolute URL of the frontend page that receives `/activate#token=…`); start-up fails without it in every mode.
+  - Emails (Spanish only) are sent through `BackgroundTasks` (`InProcessBackgroundTasks`): no request waits for the mailer, failures are logged as `Account email <kind> to <domain> failed: <reason>`, and the server stop waits for pending sends up to `MAIL_SEND_TIMEOUT_MS`. `MailDeliveryException` keeps no HTTP mapping.
+  - Login and refresh need a validated email except in `development` (`emailValidationRequired`). `RefreshToken` now loads the account of the session, so a removed account is also refused.
+  - Acceptance tests seed users straight into the database (`UserSeeder`, validated by default) and read mail through `settledMailbox()`, which waits for the background sends.
+  - Accepted risks: an email in flight is lost if the process crashes (no queue); a pending account secured by a Google link has no password until the password reset of Iteration 26b.
 - **Dependencies**: Iteration 25.
-- **Risks**: Locking out existing test users.
+- **Risks**: Locking out existing test users. A user whose password was removed when linking a provider can only sign in through that provider until the password reset of [Iteration 26b](#iteration-26b-implement-password-reset-by-email) is available.
 - **Prompt for /speckit.specify**:
   ```text
   IMPLEMENT EMAIL ACCOUNT ACTIVATION FLOW
-  WHY: Unverified registrations lead to fake accounts and spam.
-  WHAT: Update registration to send an activation token. Create a validation endpoint. Block login if emailValidated is false.
+  WHY: Unverified registrations lead to fake accounts and spam, and an unverified local account can be pre-hijacked when its owner later signs in with an OAuth provider.
+  WHAT: Update registration to send a random, single-use, expiring activation token stored only as a hash (replacing the session JWT that ValidateMail accepts today), with a mechanism reusable for password reset. Send every email in the background and only log delivery failures. Answer every well-formed registration the same way (no account enumeration) and email the owner of an existing account. Block login and token refresh if emailValidated is false. When an OAuth provider is linked to an unverified account, remove its local password; when linked to a verified one, notify the owner by email. Let a new registration replace an unverified account whose activation token expired. Give User mutation methods that own audit metadata and the pre-hijacking rules, and remove UserPatch (no version / If-Match on User).
+  ```
+
+## Iteration 26b: Implement Password Reset by Email
+
+**Spec Module(s)**: [auth.md](spec/modules/auth.md)
+
+- **Value delivered**: Users who forgot their password, or whose password was removed when they linked an OAuth provider ([Iteration 26](#iteration-26-implement-email-account-activation-flow)), can set a new one without help. Accounts that only sign in through a provider can add a password. (Added 2026-10-16 as a follow-up of Iteration 26, outside the original plan.)
+- **Definition of Done**: Two public endpoints, following the OWASP Forgot Password Cheat Sheet:
+  - `POST /auth/password/forgot` with `email`: always answers `202` with the same body, whether or not the email has an account. If it has one, the owner gets an email with a reset link. The answer does not wait for the mailer, so its timing does not reveal the account either; delivery failures are logged.
+  - `POST /auth/password/reset` with `token`, `password` and `repeatPassword`: checks the token, applies the `PlainPassword` rules (§3.3), stores the new hash (creating the `local` auth method if the account had none), and emails the owner that the password changed. It does not log the user in: they log in afterwards as usual.
+  - The reset token is random (at least 32 bytes from a cryptographic source), single-use, valid for 30 minutes, and stored only as a hash on the user in the generic `emailTokens` list built in Iteration 26 (purpose `passwordReset`; the entry is removed once used or replaced, never `null`). Requesting a new one replaces the previous one. An expired, used or unknown token gets the same `400`; a missing or malformed one is a request-shape `400`, as decided for activation in Iteration 26.
+  - Completing a reset proves the person controls the inbox, so it also sets `emailValidated: true`. On an account pre-hijacked as described in Iteration 26, the real owner's reset replaces the attacker's password and locks the attacker out.
+  - Both endpoints use `authLimiter`. Acceptance scenarios cover: unknown email (same `202`, no email sent), reset of a local account, reset of a Google-only account (adds a password), reused and expired tokens, and the notice email.
+- **Dependencies**: Iterations 25 and 26 (it reuses the one-time email token mechanism and the background sending built there).
+- **Risks**: Access tokens issued before the reset stay valid until they expire, because JWTs are stateless and cannot be revoked; their short lifetime is the only limit. Link scanners in some mail clients open links automatically, which is why the link leads to the frontend form and only `POST /auth/password/reset` uses the token.
+- **Out of scope**: revoking active sessions, security questions, SMS.
+- **Proposal (from the Iteration 26 analysis, not yet decided)**: `LoginUserLocal` answers `401` before running bcrypt when the account has no local password, so a login for a Google-only account (or one whose password was removed when a provider was linked) answers faster than one with a wrong password, and timing reveals which emails have password-less accounts. Iteration 26 makes these accounts more common. Option: compare against a fixed dummy hash when there is no password, so every login does the same password work, as registration does since Iteration 26. Fits here because this iteration changes how password-less accounts get a password.
+- **Proposal (from the Iteration 26 review, not yet decided)**: registration checks the username before the email, and an expired pending account still holds its username. So the real owner of a pending account whose activation email was lost (an accepted risk: no queue, no resend) waits 24 hours, registers again with the same username and gets `409 "Username already in use"`: they can only recover their own email by choosing another username. Option: when the account holding the username is the replaceable pending account of the same email, treat it as the account being replaced, not as a conflict (the answer still does not depend on whether the email has an account, because only that same email frees it). Changes the rule in [auth.md §3.1](spec/modules/auth.md) and the scenario "Replacing an expired account cannot reuse its username". Fits here because this iteration is about recovering access to one's own account.
+- **Prompt for /speckit.specify**:
+  ```text
+  IMPLEMENT PASSWORD RESET BY EMAIL
+  WHY: Users who forget their password, or whose password was removed when an OAuth provider was linked to an unverified account, cannot regain password access.
+  WHAT: Add POST /auth/password/forgot (always 202, no account enumeration, emails a single-use 30-minute token stored hashed) and POST /auth/password/reset (validates the token and the password rules, sets or creates the local password, validates the email, notifies the owner, does not log in).
   ```
 
 ## Iteration 27: Implement Stateless Google OAuth
@@ -627,7 +674,8 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 **Spec Module(s)**: [auth.md](spec/modules/auth.md)
 
 - **Value delivered**: Enhances sign-in security and user onboarding with single-sign-on.
-- **Definition of Done**: Google OAuth endpoint receives code, verifies it, resolves profile, and issues stateless JWT.
+- **Definition of Done**: Google OAuth endpoint receives a Google ID token (`idToken`, obtained by the client through Google Sign-In), verifies its signature and audience, requires a verified email, resolves or creates the user, and issues a stateless JWT.
+- **Implementation notes**: `POST /auth/google` takes `idToken`, not an authorization `code`: the client runs the Google Sign-In flow and the API verifies the token with `google-auth-library`, without storing any state. Since [Iteration 26](#iteration-26-implement-email-account-activation-flow), linking Google to an existing account by email follows the pre-hijacking rules (`User.linkProvider`).
 - **Dependencies**: None.
 - **Risks**: External provider changes breaking authentication.
 - **Prompt for /speckit.specify**:
@@ -642,14 +690,16 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 **Spec Module(s)**: [auth.md](spec/modules/auth.md)
 
 - **Value delivered**: Expands single-sign-on options for developer-centric users.
-- **Definition of Done**: GitHub OAuth endpoint integrated following the exact same stateless flow as Google.
-- **Dependencies**: Iteration 27.
-- **Risks**: None.
+- **Definition of Done**: GitHub OAuth endpoint receives an authorization `code` (with the PKCE `code_verifier` the client generated), exchanges it with GitHub using the `client_secret`, reads the user's id and their **primary, verified** email from `GET /user/emails`, and issues a stateless JWT. No email that is both primary and verified means `401`. Google and GitHub resolve the user through one shared step (find by provider id, then by email, then link or create) that applies the pre-hijacking rules from [Iteration 26](#iteration-26-implement-email-account-activation-flow).
+- **Implementation notes**: GitHub does not issue ID tokens (it is OAuth 2.0, not OpenID Connect), so it cannot follow Google's flow literally: the API must exchange the code server-side, and that call needs the `client_secret`. What stays common is everything after the provider has given a verified email and a stable user id. Extract that step from `AuthenticateWithGoogle` instead of copying it. Accounts are matched by GitHub's numeric user id, never by login name, which users can change.
+- **Dependencies**: Iterations 26 and 27.
+- **Risks**: Users whose GitHub email is private or unverified cannot sign in until they verify one.
+- **Proposal (from the Iteration 26 analysis, not yet decided)**: the "provider linked" notice from Iteration 26 says the account's password still works. That is true while Google is the only provider (an active account without Google always has a password), but linking GitHub to an active Google-only account would send a false statement. Option: say that the account's existing sign-in methods keep working, or name them, without assuming a password.
 - **Prompt for /speckit.specify**:
   ```text
   IMPLEMENT STATELESS GITHUB OAUTH
   WHY: Multiple OAuth providers must follow a unified stateless flow to prevent fragmentation.
-  WHAT: Integrate GitHub OAuth login, verifying codes statelessly and linking them to a unified User account.
+  WHAT: Integrate GitHub OAuth login: exchange the authorization code (with PKCE) server-side, require a primary verified email, and link it to a unified User account through a user-resolution step shared with Google that applies the account pre-hijacking rules.
   ```
 
 ## Iteration 29: Add Geographic Fields to User Profile and Bed Aggregate

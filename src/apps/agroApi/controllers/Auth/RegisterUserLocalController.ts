@@ -30,7 +30,8 @@ export class RegisterUserLocalController extends HttpController {
     }
   };
 
+  // The same answer whether or not the email already has an account.
   protected status(): number {
-    return httpStatus.CREATED;
+    return httpStatus.ACCEPTED;
   }
 }

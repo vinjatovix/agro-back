@@ -277,6 +277,6 @@ Will depend on (future):
 
 # 13. FINAL NOTE
 
-PlantInstance is the core runtime entity of AgroApp.
+PlantInstance is the core runtime entity of MiBancal.
 
 If Plant is the “species”, PlantInstance is the “life”.

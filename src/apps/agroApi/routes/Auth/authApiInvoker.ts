@@ -1,33 +1,33 @@
 import { makeInvoker } from 'awilix-express';
 import {
+  ActivateAccountController,
   AuthenticateWithGoogleController,
   LoginUserLocalController,
   RefreshTokenController,
   RegisterUserLocalController,
-  UpdatePasswordLocalController,
-  ValidateMailController
+  UpdatePasswordLocalController
 } from '../../controllers/Auth/index.js';
 
 const api = ({
   registerUserLocalController,
+  activateAccountController,
   loginUserLocalController,
   authenticateWithGoogleController,
-  validateMailController,
   refreshTokenController,
   updatePasswordLocalController
 }: {
   registerUserLocalController: RegisterUserLocalController;
+  activateAccountController: ActivateAccountController;
   loginUserLocalController: LoginUserLocalController;
   authenticateWithGoogleController: AuthenticateWithGoogleController;
-  validateMailController: ValidateMailController;
   refreshTokenController: RefreshTokenController;
   updatePasswordLocalController: UpdatePasswordLocalController;
 }) => {
   return {
     registerUser: registerUserLocalController.run,
+    activateAccount: activateAccountController.run,
     login: loginUserLocalController.run,
     authenticateWithGoogle: authenticateWithGoogleController.run,
-    validateMail: validateMailController.run,
     refreshToken: refreshTokenController.run,
     updatePassword: updatePasswordLocalController.run
   };

@@ -8,7 +8,7 @@ status: stable
 
 ## 1. PURPOSE
 
-This document defines the global architecture map of AgroApp.
+This document defines the global architecture map of MiBancal.
 
 It describes how modules interact, their boundaries, and dependency direction.
 
@@ -18,7 +18,7 @@ It is the highest-level architectural contract of the system.
 
 ## 2. ARCHITECTURAL STYLE
 
-AgroApp follows a **modular layered architecture with strict boundaries**:
+MiBancal follows a **modular layered architecture with strict boundaries**:
 
 - Domain modules are isolated
 - Application layer orchestrates use cases
@@ -611,6 +611,6 @@ Any new module MUST:
 
 ## 8. FINAL NOTE
 
-This document is the **architectural truth source of AgroApp**.
+This document is the **architectural truth source of MiBancal**.
 
 If something contradicts this map, the implementation is wrong — not the spec.

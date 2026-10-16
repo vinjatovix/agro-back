@@ -1,84 +1,203 @@
+import type { UnitOfWork } from '../../../shared/application/interfaces/index.js';
 import {
   DomainConflictException,
   InvalidArgumentException
 } from '../../../shared/domain/errors/index.js';
-import { Email, Metadata } from '../../../shared/domain/valueObject/index.js';
+import { Email } from '../../../shared/domain/valueObject/index.js';
 import {
   buildLogger,
-  type EncrypterTool
+  type EncrypterTool,
+  type OneTimeTokenTool
 } from '../../../shared/plugins/index.js';
 import { User } from '../../domain/entities/User.js';
 import type { AuthRepository } from '../../domain/repositories/interfaces/AuthRepository.js';
-import { createUserId } from '../../domain/UserId.js';
+import { createUserId, type UserId } from '../../domain/UserId.js';
 import {
+  EmailToken,
   PasswordHash,
   PlainPassword,
-  UserAuthMethod,
-  Username,
-  UserRoles
+  Username
 } from '../../domain/value-objects/index.js';
 import type { RegisterUserRequest } from '../interfaces/index.js';
-import { PASSWORDS_DO_NOT_MATCH_MESSAGE } from '../messages.js';
+import {
+  PASSWORDS_DO_NOT_MATCH_MESSAGE,
+  USERNAME_TAKEN_MESSAGE
+} from '../messages.js';
+import type { AccountNotifier } from '../notifications/index.js';
 
 const logger = buildLogger('registerUser');
+
+type Registration = { user: User; token: string };
+
+type Applicant = {
+  id: UserId;
+  email: Email;
+  username: Username;
+  password: PasswordHash;
+};
+
+/**
+ * Aborts the replacement unit when another registration stored the email
+ * after the delete. Internal: the request still gets the uniform answer.
+ */
+class ReplacementLostRaceSignal extends Error {}
 
 export type RegisterUserLocalDependencies = {
   authRepository: AuthRepository;
   encrypter: EncrypterTool;
+  oneTimeToken: OneTimeTokenTool;
+  accountNotifier: AccountNotifier;
+  unitOfWork: UnitOfWork;
 };
 
+/**
+ * Resolves the same way for every well-formed registration, whether or not
+ * the email has an account: only the id and the username can be refused.
+ * Emails leave in the background.
+ */
 export class RegisterUserLocal {
   private readonly authRepository: AuthRepository;
   private readonly encrypter: EncrypterTool;
+  private readonly oneTimeToken: OneTimeTokenTool;
+  private readonly accountNotifier: AccountNotifier;
+  private readonly unitOfWork: UnitOfWork;
 
-  constructor({ authRepository, encrypter }: RegisterUserLocalDependencies) {
+  constructor({
+    authRepository,
+    encrypter,
+    oneTimeToken,
+    accountNotifier,
+    unitOfWork
+  }: RegisterUserLocalDependencies) {
     this.authRepository = authRepository;
     this.encrypter = encrypter;
+    this.oneTimeToken = oneTimeToken;
+    this.accountNotifier = accountNotifier;
+    this.unitOfWork = unitOfWork;
   }
 
-  async run({
-    password,
-    repeatPassword,
-    username,
-    email,
-    id
-  }: RegisterUserRequest): Promise<void> {
-    // Password rule before any lookup: a weak password is always a 400.
-    const plainPassword = new PlainPassword(password);
-    this.validatePasswordConfirmation(password, repeatPassword);
-    await this.ensureIdDoesNotExist(id);
-    await this.ensureUserDoesNotExist(email);
+  async run(request: RegisterUserRequest): Promise<void> {
+    const applicant = this.validateApplicant(request);
 
-    const encryptedPassword = this.encrypter.hash(plainPassword.value);
-    const date = new Date();
+    // Checked before the email, so their answer never depends on it.
+    await this.ensureIdIsFree(applicant.id);
+    await this.ensureUsernameIsFree(applicant.username.value);
 
-    const user = new User({
-      id: createUserId(id),
-      email: new Email(email),
-      username: new Username(username),
-      password: new PasswordHash(encryptedPassword),
-      emailValidated: false,
-      authMethods: [
-        UserAuthMethod.local(new PasswordHash(encryptedPassword), date)
-      ],
-      roles: new UserRoles(['user']),
-      metadata: Metadata.create(username)
+    const now = new Date();
+    const existing = await this.authRepository.search(applicant.email.value);
+
+    if (existing === null) {
+      await this.createAndNotify(this.newRegistration(applicant, now));
+      return;
+    }
+
+    if (existing.isReplaceableAt(now)) {
+      await this.replace(existing, this.newRegistration(applicant, now), now);
+      return;
+    }
+
+    this.notifyExistingOwner(existing);
+  }
+
+  /**
+   * Every rule on the request runs before any lookup, so a 400 never depends
+   * on what is stored. The password is hashed on every path, so all of them
+   * do the same costly work.
+   */
+  private validateApplicant(request: RegisterUserRequest): Applicant {
+    const plainPassword = new PlainPassword(request.password);
+    this.validatePasswordConfirmation(request.password, request.repeatPassword);
+    const id = createUserId(request.id);
+    const email = new Email(request.email);
+    const username = new Username(request.username);
+
+    return {
+      id,
+      email,
+      username,
+      password: new PasswordHash(this.encrypter.hash(plainPassword.value))
+    };
+  }
+
+  private newRegistration(
+    { id, email, username, password }: Applicant,
+    at: Date
+  ): Registration {
+    const { token, tokenHash } = this.oneTimeToken.generate();
+    const user = User.register({
+      id,
+      email,
+      username,
+      password,
+      activationToken: EmailToken.activation(tokenHash, at),
+      at
     });
 
-    await this.authRepository.save(user);
+    return { user, token };
+  }
+
+  /** A duplicate-email race (`emailTaken`) is answered like any other path. */
+  private async createAndNotify({ user, token }: Registration): Promise<void> {
+    const outcome = await this.authRepository.create(user);
+    if (outcome === 'emailTaken') return;
+
+    this.accountNotifier.activation(user.email, token);
     logger.info(`User <${user.username.value}> registered`);
   }
-  private async ensureIdDoesNotExist(id: string): Promise<void> {
+
+  /**
+   * Replaces a pending account whose activation expired, in one unit: if it
+   * was activated or linked meanwhile, or the email was taken again after the
+   * delete, nothing is written and nothing is sent.
+   */
+  private async replace(
+    existing: User,
+    { user, token }: Registration,
+    at: Date
+  ): Promise<void> {
+    let replaced: boolean;
+
+    try {
+      replaced = await this.unitOfWork.run(async () => {
+        if (!(await this.authRepository.deleteIfReplaceable(existing, at))) {
+          return false;
+        }
+        if ((await this.authRepository.create(user)) === 'emailTaken') {
+          throw new ReplacementLostRaceSignal();
+        }
+
+        return true;
+      });
+    } catch (error: unknown) {
+      if (error instanceof ReplacementLostRaceSignal) return;
+      throw error;
+    }
+
+    if (!replaced) return;
+
+    this.accountNotifier.activation(user.email, token);
+    logger.info(`User <${user.username.value}> registered again`);
+  }
+
+  /** A pending account with a valid link is left alone: no write, no email. */
+  private notifyExistingOwner(existing: User): void {
+    if (existing.emailValidated) {
+      this.accountNotifier.registrationAttempt(existing.email);
+    }
+  }
+
+  private async ensureIdIsFree(id: string): Promise<void> {
     const storedUser = await this.authRepository.findByQuery({ id });
     if (storedUser.length > 0) {
       throw new DomainConflictException(`User with id ${id} already exists`);
     }
   }
 
-  private async ensureUserDoesNotExist(email: string): Promise<void> {
-    const storedUser = await this.authRepository.search(email);
-    if (storedUser) {
-      throw new InvalidArgumentException(`User ${email} already exists`);
+  /** Every stored account holds its username, expired pending ones too. */
+  private async ensureUsernameIsFree(username: string): Promise<void> {
+    const storedUser = await this.authRepository.findByQuery({ username });
+    if (storedUser.length > 0) {
+      throw new DomainConflictException(USERNAME_TAKEN_MESSAGE);
     }
   }
 

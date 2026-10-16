@@ -5,9 +5,12 @@ import { RegisterUserLocalController } from '../../../../../src/apps/agroApi/con
 import { registerRequest } from '../../../../../src/apps/agroApi/controllers/Auth/requestSchemas.js';
 import { RegisterUserLocal } from '../../../../../src/Contexts/Auth/application/index.js';
 import {
+  AccountNotifierMock,
   AuthRepositoryMock,
   EncrypterAdapterMock
 } from '../../../../Contexts/Auth/__mocks__/index.js';
+import { OneTimeTokenToolMock } from '../../../../Contexts/shared/__mocks__/OneTimeTokenToolMock.js';
+import { UnitOfWorkMock } from '../../../../Contexts/shared/__mocks__/UnitOfWorkMock.js';
 
 import {
   buildNext,
@@ -25,7 +28,10 @@ describe('RegisterUserLocalController', () => {
   beforeEach(() => {
     registerUserLocal = new RegisterUserLocal({
       authRepository: new AuthRepositoryMock({ find: false }),
-      encrypter: new EncrypterAdapterMock({ login: false })
+      encrypter: new EncrypterAdapterMock({ login: false }),
+      oneTimeToken: new OneTimeTokenToolMock(),
+      accountNotifier: new AccountNotifierMock(),
+      unitOfWork: new UnitOfWorkMock()
     });
     controller = new RegisterUserLocalController({ registerUserLocal });
   });
@@ -43,7 +49,7 @@ describe('RegisterUserLocalController', () => {
     await controller.run(req, res, next as NextFunction);
 
     expect(runSpy).toHaveBeenCalledWith(body);
-    expect(status).toHaveBeenCalledWith(httpStatus.CREATED);
+    expect(status).toHaveBeenCalledWith(httpStatus.ACCEPTED);
     expect(send).toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();
   });

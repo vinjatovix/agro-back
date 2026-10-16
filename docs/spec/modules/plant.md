@@ -8,7 +8,7 @@ status: formalized (derived from codebase snapshot)
 
 ## 1. PURPOSE
 
-The Plant module defines the --biological definition layer-- of AgroApp.
+The Plant module defines the --biological definition layer-- of MiBancal.
 
 It represents a plant as a --species-level aggregate--, not a spatial or temporal instance.
 

@@ -9,7 +9,7 @@ import {
 
 import {
   AgroWorld,
-  mailbox,
+  settledMailbox,
   startSuite,
   stopSuite,
   suite,
@@ -24,8 +24,9 @@ setWorldConstructor(AgroWorld);
 BeforeAll(startSuite);
 
 Before(async () => {
+  // Emails still leaving from the previous scenario must not land in this one.
+  (await settledMailbox()).clear();
   await suite().environmentArranger.arrange();
-  mailbox().clear();
 });
 
 AfterAll(stopSuite);

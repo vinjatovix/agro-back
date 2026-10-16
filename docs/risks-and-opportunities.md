@@ -1,4 +1,4 @@
-# AgroApp - Ideas Backlog & Future Opportunities (v2.x)
+# MiBancal - Ideas Backlog & Future Opportunities (v2.x)
 
 > **IMPORTANT STATUS NOTE (v1.4.0 Baseline)**
 > All critical architectural risks and structural bottlenecks previously identified in this document have been successfully mitigated and formalized as strict rules within the core specifications (`docs/spec/**`).

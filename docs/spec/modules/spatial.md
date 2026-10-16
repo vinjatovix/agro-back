@@ -8,7 +8,7 @@ status: stable
 
 # 1. PURPOSE
 
-This module defines spatial and ecological computation rules for AgroApp.
+This module defines spatial and ecological computation rules for MiBancal.
 
 It is responsible for:
 

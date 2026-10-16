@@ -2,6 +2,7 @@ import { World } from '@cucumber/cucumber';
 import type request from 'supertest';
 
 import type { Nullable } from '../../../../../../src/shared/domain/types/Nullable.js';
+import type { SeededUser } from '../../shared/seeders/index.js';
 
 export type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE' | 'OPTIONS';
 
@@ -36,6 +37,11 @@ export class AgroWorld extends World {
 
   loggedInToken?: string;
   loggedInEmail?: string;
+
+  /** Plain activation token of the scenario (seeded or read from an email). */
+  activationToken?: string;
+  /** Accounts the scenario seeded, by email. */
+  readonly seededUsers = new Map<string, SeededUser>();
 
   route?: string;
   method?: HttpMethod;

@@ -8,7 +8,7 @@ status: stable
 
 ## 1. PURPOSE
 
-Defines testing strategy across all AgroApp layers.
+Defines testing strategy across all MiBancal layers.
 
 Ensures correctness, regression safety, and architectural compliance.
 
@@ -44,7 +44,7 @@ Unit tests now explicitly include:
 - `Metadata.update` and `hasStateChanged` (including rejecting value objects, nested or inside arrays, and objects whose prototype has no `constructor`, instead of silently reporting no change)
 - one timestamp per request: `UpdateBed` and `UpdatePlant` pass the same `at` to every mutation they call, and the returned aggregate carries it as `updatedAt`
 - `Bed` does not mutate the plant list it was built from
-- Auth writes: each `UserPatch` sent by `ValidateMail`, `UpdatePasswordLocal` and `AuthenticateWithGoogle` carries audit data by the acting user and keeps `createdAt`/`createdBy` (`AuthRepositoryMock.assertUpdateAuditedBy`); `MongoAuthRepository.update` stores that metadata as received and keeps any other field stored under `metadata`
+- Auth writes: each `User` method (`register`, `activate`, `issueEmailToken`, `changePassword`, `linkProvider`) sets `updatedAt`/`updatedBy` to the given time and the account's username and keeps `createdAt`/`createdBy`; use-case tests check the `before`/`after` states passed to `AuthRepository.update` (`AuthRepositoryMock.lastUpdate`); `MongoAuthRepository.update` stores that metadata as received, keeps any other field stored under `metadata`, unsets removed fields and answers `stale` when a changed field no longer holds its `before` value
 
 Use-case tests use the in-memory fake `BaseMongoCrudRepositoryMock`, which mirrors `updateWithDiff(current, updated)`: the write, or on an empty diff the no-op confirmation, only succeeds on an active entity at the expected version; a write stores `updated` exactly as received with the version bumped and never adds audit data; it returns `'written'` after a write and `'unchanged'` after a confirmed no-op; stale → `DomainStaleVersionException`, missing/inactive → `DomainNotFoundException` (on both paths). It checks a persisted snapshot of version/active state, so mutating a read instance (e.g. `markAsDeleted(user)`) does not change what is "stored" until it is written. `getStoredPrimitives(id)` lets tests compare the returned aggregate with what was stored.
 
@@ -131,7 +131,7 @@ Rules:
 - Call the API only in the `When` step under test. Build prior state (created, updated to a given version, soft-deleted, bed with plants…) in `Given` steps with seeders or DB helpers (e.g. `the bed is stored at version 1`, `the plant was last updated by another user`, `a soft-deleted plant exists`), never with setup `PATCH`/`DELETE` requests.
 - A read-only check after the `When` step (e.g. `a GET user request to "..." should return the same body`) is allowed in `Then`: it builds no state.
 - When asserting the acting user (e.g. audit data), read the username from the token the step actually sends (`usernameFor(world, role)`).
-- A login step (`an authentication with body`) never replaces a role's token. Steps act as that user only through the explicit `logged-in` role (`a POST logged-in request to "..." with body`) or the `logged-in-token` route segment (`a GET request to "/api/v1/auth/validate/logged-in-token"`).
+- A login step (`an authentication with body`) never replaces a role's token. Steps act as that user only through the explicit `logged-in` role (`a POST logged-in request to "..." with body`) or the `logged-in-token` route segment of a GET route. Account states (pending, expired, validated, Google-linked) are seeded straight into the database by `UserSeeder` (validated by default), and steps that read email use `settledMailbox()`, which first waits for the emails the API sends in the background.
 - Scenarios run in random order on every run (`order: 'random'` in `cucumber.mjs`), and each run prints `Random order using seed: <n>`. To reproduce a failing order: `npm run test:features -- --order random:<n>`. To run only some features: `npm run test:features -- path/to/a.feature path/to/b.feature`.
 - No module-level `let`/`var` under `step_definitions/`: a lint rule (`no-restricted-syntax`) rejects it. Per-scenario state goes on the World; per-run resources come from `suite()`.
 

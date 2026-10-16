@@ -8,7 +8,7 @@ status: stable
 
 ## 1. PURPOSE
 
-This module defines the persistence model and update mechanics for AgroApp.
+This module defines the persistence model and update mechanics for MiBancal.
 
 It is responsible for:
 
@@ -99,7 +99,7 @@ The persistence layer (`updateWithDiff`, repositories, or DB-level triggers) MUS
 
 **Explicit exception — `version`**: `updateWithDiff` advances `version` with `$inc: { version: 1 }` in the same conditional write. This is a concurrency mechanism, not audit data, and it is the only field storage changes on its own. Because every write advances it by exactly one, storage only reports whether it wrote and the aggregate derives its own version (`syncVersion`).
 
-The User aggregate follows the same rule outside `MongoCrudRepository`: `MongoAuthRepository.update(patch)` stores the `UserPatch` as received, including the metadata the use case computed with `Metadata.update`, and adds no audit data of its own. The patch metadata is written with dotted paths (`metadata.updatedAt`, …), so a field stored under `metadata` that the patch does not carry is kept.
+The User aggregate follows the same rule outside `MongoCrudRepository`: `MongoAuthRepository.update(before, after)` receives two full states produced by `User` methods, writes the top-level diff (`$set` for changed fields, `$unset` for removed ones, never `null`) and adds no audit data of its own. The metadata is written with dotted paths (`metadata.updatedAt`, …), so a field stored under `metadata` that the state does not carry is kept. User has no `version`: the write only matches while every changed field (except `metadata`) still holds its `before` value, and answers `written`, `unchanged` or `stale`.
 
 ---
 
@@ -841,7 +841,6 @@ Persistence MUST:
 - removal of `Record<string, unknown>` leakage
 - formal contract enforcement for null vs undefined semantics
 - unification of mapping strategy across all aggregates
-- User mutation methods: `User` is still updated through a partial `UserPatch` built by use cases (proposal in [Iteration 26](../../roadmap.md#iteration-26-implement-email-account-activation-flow))
 
 ---
 

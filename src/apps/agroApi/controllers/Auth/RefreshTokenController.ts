@@ -6,6 +6,9 @@ export type RefreshTokenControllerDependencies = {
   refreshToken: RefreshToken;
 };
 
+/** Session set by the auth middleware: the verified token and its payload. */
+type SessionLocals = { token: string; id?: unknown };
+
 export class RefreshTokenController extends HttpController {
   protected readonly refreshToken: RefreshToken;
   constructor({ refreshToken }: RefreshTokenControllerDependencies) {
@@ -13,11 +16,18 @@ export class RefreshTokenController extends HttpController {
     this.refreshToken = refreshToken;
   }
 
-  run = async (req: Request, res: Response, next: NextFunction) => {
+  run = async (
+    _req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     try {
-      const { token } = res.locals.user as { token: string };
+      const { token, id } = res.locals.user as SessionLocals;
 
-      const refreshedToken = await this.refreshToken.run(token);
+      const refreshedToken = await this.refreshToken.run({
+        token,
+        userId: typeof id === 'string' ? id : ''
+      });
       res.status(this.status()).json({ token: refreshedToken });
     } catch (error) {
       next(error);

@@ -8,7 +8,7 @@ status: evolving
 
 ## 1. PURPOSE
 
-This module defines the cultivation logging and historical recording layer of AgroApp.
+This module defines the cultivation logging and historical recording layer of MiBancal.
 
 It represents all time-based actions and state changes that occur in PlantInstances over time.
 
@@ -359,7 +359,7 @@ Events module:
 
 ## 13. FINAL NOTE
 
-Events are what turn AgroApp from a CRUD system into a temporal model.
+Events are what turn MiBancal from a CRUD system into a temporal model.
 
 Without events: data
 With events: time, causality, and simulation capability

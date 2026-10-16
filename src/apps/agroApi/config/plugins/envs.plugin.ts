@@ -41,6 +41,13 @@ export const envs = {
     .get('JWT_DEFAULT_DURATION')
     .default('2h')
     .asString(),
+  // Page that receives the activation link; one trailing `/` is dropped so
+  // links never contain `//activate`.
+  FRONTEND_BASE_URL: env
+    .get('FRONTEND_BASE_URL')
+    .required()
+    .asUrlString()
+    .replace(/\/$/, ''),
   GOOGLE_CLIENT_ID: env.get('GOOGLE_CLIENT_ID').default('').asString(),
   BCRYPT_SALT_ROUNDS: env
     .get('BCRYPT_SALT_ROUNDS')

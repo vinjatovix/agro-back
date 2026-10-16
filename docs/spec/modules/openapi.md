@@ -8,7 +8,7 @@ status: active
 
 ## 1. PURPOSE
 
-Defines the formal API contract of AgroApp.
+Defines the formal API contract of MiBancal.
 
 This is the **single source of truth for external consumers**.
 
@@ -237,7 +237,7 @@ PlantInstances are managed as standalone aggregates associated with a specific B
 - POST /api/v1/auth/login
 - POST /api/v1/auth/refresh
 - POST /api/v1/auth/google
-- GET /api/v1/auth/validate/{token}
+- POST /api/v1/auth/activate
 - POST /api/v1/auth/update
 
 ---
@@ -381,4 +381,4 @@ For endpoints returning **204 No Content**:
 
 ## 10. FINAL NOTE
 
-OpenAPI becomes the **external transport contract layer of AgroApp**, while Query DSL Contract v1.5.0 defines the actual semantics of querying.
+OpenAPI becomes the **external transport contract layer of MiBancal**, while Query DSL Contract v1.5.0 defines the actual semantics of querying.

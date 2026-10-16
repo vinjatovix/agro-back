@@ -8,7 +8,7 @@ status: stable
 
 ## 1. PURPOSE
 
-The Knowledge System represents the ecological and agronomic intelligence layer of AgroApp.
+The Knowledge System represents the ecological and agronomic intelligence layer of MiBancal.
 
 It is responsible for modeling agricultural relationships, external biological agents, taxonomic datasets, and environmental interactions that influence plants.
 
@@ -266,7 +266,7 @@ Planned extensions:
 
 ## 10. FINAL NOTE
 
-The Knowledge System is the **intelligence layer of AgroApp**.
+The Knowledge System is the **intelligence layer of MiBancal**.
 
 It must remain:
 

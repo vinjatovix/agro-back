@@ -5,19 +5,7 @@ Feature: Update Password
   I want to be able to update my password
 
   Background:
-    Given a POST request to "/api/v1/auth/register" with body
-      """
-      {
-        "id": "5242b159-af34-459b-b371-ce2b647c56a1",
-        "username": "updateUser",
-        "email": "update@password.com",
-        "password": "#aD3fe2.0%",
-        "repeatPassword": "#aD3fe2.0%"
-      }
-      """
-    Then the response status code should be 201
-    Then the response body should be empty
-    And response matches OpenAPI contract
+    Given an active account exists with email "update@password.com" and password "#aD3fe2.0%"
 
   Scenario: Login with valid credentials
     Given an authentication with body
