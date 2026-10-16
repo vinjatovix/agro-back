@@ -30,7 +30,7 @@ The system supports the following authentication providers:
 
 The current codebase in `@src/Contexts/Auth` implements:
 
-- **`RegisterUserLocal`** (`POST /auth/register`, [Iteration 26](../../roadmap.md#iteration-26-implement-email-account-activation-flow)): every well-formed registration answers `202` with an empty body, whatever the email. Order: password rules and confirmation, then every other request rule (id, email, username), then the password is hashed (on every path), then a taken id (`409 "User with id <id> already exists"`) and a taken username (`409 "Username already in use"`, including the username of an expired pending account) are checked, and only then the email:
+- **`RegisterUserLocal`** (`POST /auth/register`, [Iteration 26](../../roadmap.md#iteration-26-implement-email-account-activation-flow)): every well-formed registration answers `202` with an empty body, whatever the email. Order: password rules and confirmation, then every other request rule (id, email, username), then the password is hashed (on every path), then a taken id (`409 "User with id <id> already exists"`), then the account of the email is looked up, then a taken username (`409 "Username already in use"`). A username is taken by any other account, including an expired pending account of another email, an active account or a pending one with a valid link; the only holder that does not count is the replaceable pending account of the same email, which this registration replaces and whose username it keeps ([Iteration 26b](../../roadmap.md#iteration-26b-implement-password-reset-by-email); the check compares ids, as usernames and emails are unique). Then, by the email's account:
   - new email → a PENDING account (`emailValidated: false`, `local` method, one activation token) and the activation email;
   - ACTIVE account → nothing stored, the owner gets the "registration attempt" notice;
   - PENDING with a valid activation token → nothing stored, nothing sent;
@@ -40,29 +40,32 @@ The current codebase in `@src/Contexts/Auth` implements:
 - **`LoginUserLocal`:** verifies local email/password credentials and issues a stateless JWT. After the password matches, an account whose email is not validated gets the same `401 "Invalid credentials"`, in every mode (§7). Every refusal costs one bcrypt comparison: a missing account, or one without a local password (Google only), runs `EncrypterTool.simulateCompare` against a hash of an unknown value built once with the configured cost, so response time does not reveal whether the email has an account.
 - **`AuthenticateWithGoogle`:** verifies Google ID tokens, links Google through `User.linkProvider` (§3.5), auto-creates users derived from Google profiles, and generates JWTs. A write that lost a race is retried once after reading the account again; a second loss is a `409`.
 - **`RefreshToken`:** loads the account of the verified session (`searchById`); a removed or unvalidated account gets the same `401 "Invalid token"` as a bad token, otherwise the session is extended.
+- **`ForgotPassword`** (`POST /auth/password/forgot`, body `{ email }`, [Iteration 26b](../../roadmap.md#iteration-26b-implement-password-reset-by-email)): every well-formed email answers `202` with an empty body. The request only looks the account up; for an existing one, a background task issues a `passwordReset` token (30 minutes, replacing any previous one) and sends the reset email. Within 2 minutes of the last reset token nothing is issued or sent (`User.hasRecentResetToken`). If the token write loses a race (`stale`) no email is sent. An unknown email schedules nothing. Background failures are only logged (recipient domain and reason). Guarded by `passwordResetLimiter`.
+- **`ResetPassword`** (`POST /auth/password/reset`, body `{ token, password, repeatPassword }`, [Iteration 26b](../../roadmap.md#iteration-26b-implement-password-reset-by-email)): checks the password rules and the confirmation first, so a password `400` leaves the token usable; then finds the account by the token hash and applies `User.resetPassword`: stores the new hash (adding the `local` auth method if missing, keeping linked providers), sets `emailValidated: true`, and removes the reset token and any activation token, in one write. Answers `204` with no body and no session token, and emails the "password changed" notice. Any token that cannot reset (unknown, used, expired, replaced, an activation token, the loser of a concurrent reset) gets `400 { "message": "Invalid or expired token" }`. Failed attempts count towards `authLimiter`.
 - **`UpdatePasswordLocal`:** safely updates a user's password through `User.changePassword`, verifying the old password matches first; a concurrent change of the same account is a `409`.
 
-`GET /auth/validate/:token` and `ValidateMail` were removed in [Iteration 26](../../roadmap.md#iteration-26-implement-email-account-activation-flow). `POST /auth/register` uses `registrationLimiter`, which counts every request (5 per IP every 15 minutes): every registration answers the same success and may send an email.
+`GET /auth/validate/:token` and `ValidateMail` were removed in [Iteration 26](../../roadmap.md#iteration-26-implement-email-account-activation-flow). `POST /auth/register` uses `registrationLimiter` and `POST /auth/password/forgot` uses `passwordResetLimiter`; both count every request (5 per IP every 15 minutes) because every request answers the same success and may send an email.
 
 ### 3.2 Planned Features
 
 - **Stateless OAuth Multi-provider:** GitHub sign-in through a server-side exchange of the authorization code (with PKCE), requiring a primary verified email, and one user-resolution step shared with Google (§3.5). **`[TARGET STATE (Pending [Iteration 28](../../roadmap.md#iteration-28-implement-stateless-github-oauth))]`**
-- **Password reset by email:** `POST /auth/password/forgot` (always `202`, no account enumeration; emails a single-use token valid for 30 minutes, stored only as a hash) and `POST /auth/password/reset` (sets the password, creating the `local` auth method if missing, validates the email, notifies the owner, does not log in). **`[TARGET STATE (Pending [Iteration 26b](../../roadmap.md#iteration-26b-implement-password-reset-by-email))]`**
 
 ### 3.3 Request Validation _(CURRENTLY IMPLEMENTED)_
 
 Auth routes validate input with Zod through `validateRequest` (validation.md §3.2–§3.3); schemas live in `src/apps/agroApi/controllers/Auth/requestSchemas.ts`. Every route below also declares an empty strict `query`, so any query parameter gets `"Unknown field"`, and any body field not listed gets `"Unknown field"` too. Field order is the order of the error keys.
 
-| Route                 | Validated input                                                                                                   |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `POST /auth/register` | body `id` (RFC UUID), `email` (email), `username` (string), `password` and `repeatPassword` (strings, must match) |
-| `POST /auth/login`    | body `email` (email), `password` (string)                                                                         |
-| `POST /auth/google`   | body `idToken` (string)                                                                                           |
-| `POST /auth/activate` | body `token` (string, 1 to 512 characters)                                                                        |
-| `POST /auth/update`   | body `password` and `repeatPassword` (strings, must match), `oldPassword` (string)                                |
-| `POST /auth/refresh`  | no client input, no schema                                                                                        |
+| Route                        | Validated input                                                                                                   |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `POST /auth/register`        | body `id` (RFC UUID), `email` (email), `username` (string), `password` and `repeatPassword` (strings, must match) |
+| `POST /auth/login`           | body `email` (email), `password` (string)                                                                         |
+| `POST /auth/google`          | body `idToken` (string)                                                                                           |
+| `POST /auth/activate`        | body `token` (string, 1 to 512 characters)                                                                        |
+| `POST /auth/password/forgot` | body `email` (email)                                                                                              |
+| `POST /auth/password/reset`  | body `token` (string, 1 to 512 characters), `password` and `repeatPassword` (strings, must match)                 |
+| `POST /auth/update`          | body `password` and `repeatPassword` (strings, must match), `oldPassword` (string)                                |
+| `POST /auth/refresh`         | no client input, no schema                                                                                        |
 
-- **Strength rule** lives only in the domain value object `PlainPassword`: 8 to 64 characters (counted in code points, so an emoji is one) and at most 72 bytes in UTF-8, because bcrypt ignores every byte after the 72nd, with at least one uppercase letter, one lowercase letter, one digit and one non-alphanumeric character (ASCII letters and digits; anything else, such as `ñ` or a space, counts as the special character). `RegisterUserLocal` and `UpdatePasswordLocal` build it before any repository lookup, so a weak password is always a `400` with a top-level `message` (e.g. `"<PlainPassword> must include at least one digit"`), never a `409` or `401`. The schemas only check that both fields are strings.
+- **Strength rule** lives only in the domain value object `PlainPassword`: 8 to 64 characters (counted in code points, so an emoji is one) and at most 72 bytes in UTF-8, because bcrypt ignores every byte after the 72nd, with at least one uppercase letter, one lowercase letter, one digit and one non-alphanumeric character (ASCII letters and digits; anything else, such as `ñ` or a space, counts as the special character). `RegisterUserLocal`, `UpdatePasswordLocal` and `ResetPassword` build it before any repository lookup, so a weak password is always a `400` with a top-level `message` (e.g. `"<PlainPassword> must include at least one digit"`), never a `409` or `401`. The schemas only check that both fields are strings.
 - **Match rule:** `"Passwords do not match"` under `repeatPassword`, reported together with other field errors. The use cases check it again with the same text and answer `400` (`InvalidArgumentException`) if called without the schema. A new password equal to the old one is also a `400` (`"New password must be different from old password"`), checked after the old password is verified.
 - **Stricter formats:** `email` uses Zod's email format and `id` an RFC UUID (version and variant digits checked). Examples now answered `400`: email `a!b@example.com`, id `12345678-1234-1234-1234-123456789012`. The domain value object `Email` uses the same pattern as Zod, so any entry point (not only HTTP) rejects the same addresses; `User.fromPrimitives` builds `Email` too, so a stored user whose email no longer matches can no longer be loaded.
 - No message contains the submitted value.
@@ -86,16 +89,18 @@ Auth routes validate input with Zod through `validateRequest` (validation.md §3
 
 ### 3.4.1 Account Emails _(CURRENTLY IMPLEMENTED, [Iteration 26](../../roadmap.md#iteration-26-implement-email-account-activation-flow))_
 
-Built by `MailerAccountNotifier` (`src/Contexts/Auth/application/notifications`), Spanish only, with `text` and a minimal `html`. None contains a password; only the activation email contains a token, and only inside the link's fragment.
+Built by `MailerAccountNotifier` (`src/Contexts/Auth/application/notifications`), Spanish only, with `text` and a minimal `html`. None contains a password; only the activation and password reset emails contain a token, and only inside the link's fragment.
 
-| Kind                  | Sent when                                          | Subject                                         |
-| --------------------- | -------------------------------------------------- | ----------------------------------------------- |
-| `activation`          | Registration creates or replaces a pending account | `Activa tu cuenta de MiBancal`                  |
-| `registrationAttempt` | Registration with the email of an ACTIVE account   | `Alguien ha intentado registrarse con tu email` |
-| `providerLinked`      | A provider sign-in links an ACTIVE account         | `Se ha vinculado <Proveedor> a tu cuenta`       |
+| Kind                  | Sent when                                                    | Subject                                         |
+| --------------------- | ------------------------------------------------------------ | ----------------------------------------------- |
+| `activation`          | Registration creates or replaces a pending account           | `Activa tu cuenta de MiBancal`                  |
+| `registrationAttempt` | Registration with the email of an ACTIVE account             | `Alguien ha intentado registrarse con tu email` |
+| `providerLinked`      | A provider sign-in links an ACTIVE account                   | `Se ha vinculado <Proveedor> a tu cuenta`       |
+| `passwordReset`       | A reset is requested for an existing account (Iteration 26b) | `Restablece tu contraseña de MiBancal`          |
+| `passwordChanged`     | A password reset is completed (Iteration 26b)                | `Tu contraseña de MiBancal ha sido cambiada`    |
 
-- **Link:** `${FRONTEND_BASE_URL}/activate#token=<token>`. `FRONTEND_BASE_URL` is a required URL setting (one trailing `/` dropped); a missing or malformed value stops start-up in every mode. Fragments never reach servers, proxies or `Referer`.
-- **Activation token:** 32 random bytes as base64url (43 characters) from `OneTimeTokenTool` (`node:crypto`), valid 24 hours, single use. The account stores only `SHA-256(token)` in hex inside `emailTokens: [{ purpose, tokenHash, expiresAt }]` (absent when empty, never `[]` or `null`; at most one token per purpose, `passwordReset` reserved for Iteration 26b). Unique partial index `users_email_token_hash_unique` on `emailTokens.tokenHash` (migration `20261016120000-create-users-email-token-index`).
+- **Links:** `${FRONTEND_BASE_URL}/activate#token=<token>` and `${FRONTEND_BASE_URL}/reset-password#token=<token>` (valid 30 minutes, said in the email, which also tells whoever did not ask for it to ignore it). `FRONTEND_BASE_URL` is a required URL setting (one trailing `/` dropped); a missing or malformed value stops start-up in every mode. Fragments never reach servers, proxies or `Referer`.
+- **Activation token:** 32 random bytes as base64url (43 characters) from `OneTimeTokenTool` (`node:crypto`), valid 24 hours, single use. The account stores only `SHA-256(token)` in hex inside `emailTokens: [{ purpose, tokenHash, expiresAt }]` (absent when empty, never `[]` or `null`; at most one token per purpose; `passwordReset` tokens are built the same way and live 30 minutes). Unique partial index `users_email_token_hash_unique` on `emailTokens.tokenHash` (migration `20261016120000-create-users-email-token-index`).
 - **Background sending:** the notifier builds the message at once and hands `mailer.send` to `BackgroundTasks` (`InProcessBackgroundTasks`): no request waits for the mailer. A failure is logged at `warn` as `Account email <kind> to <recipient domain> failed: <reason>` (`MailDeliveryException.reason` or the error class name), never the address, token, link or body. The HTTP server stop waits for pending sends up to `MAIL_SEND_TIMEOUT_MS`. An email in flight is lost if the process crashes (accepted; no queue).
 
 ### 3.5 Account Linking and Pre-Hijacking Protection _(CURRENTLY IMPLEMENTED, [Iteration 26](../../roadmap.md#iteration-26-implement-email-account-activation-flow))_
@@ -112,7 +117,7 @@ One person has one `User`, whatever the ways they sign in: each one is an entry 
 4. **A pending account cannot hold an email forever.** A registration with the email of an unvalidated account whose activation token has expired replaces that account. While the token is valid, the registration gets the same answer as any other (no account enumeration, §3.2) and nothing changes.
 5. **The activation email** tells whoever did not create the account not to open the link: opening it would validate an account whose password someone else chose.
 
-A user whose password was removed by rule 2 signs in through the provider only, until they set a new one with the password reset (§3.2, [Iteration 26b](../../roadmap.md#iteration-26b-implement-password-reset-by-email)). A reset also validates the email, so the real owner of a pre-hijacked account takes it back with it.
+A user whose password was removed by rule 2 signs in through the provider only, until they set a new one with the password reset (`ResetPassword`, §3.1, [Iteration 26b](../../roadmap.md#iteration-26b-implement-password-reset-by-email)). A reset also validates the email, so the real owner of a pre-hijacked account takes it back with it.
 
 ---
 

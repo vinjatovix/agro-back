@@ -11,6 +11,10 @@ interface Options {
   refresh?: boolean;
 }
 
+/** What `hash` returns for any value. */
+export const MOCK_PASSWORD_HASH =
+  '$2a$12$mZgfH4D7z4dZcZHDKyogqOOnEWS6XHLdczPJktzD88djpvlr3Bq1C';
+
 const DEFAULT_OPTIONS: Options = {
   login: false,
   token: false,
@@ -18,11 +22,13 @@ const DEFAULT_OPTIONS: Options = {
 };
 
 export class EncrypterAdapterMock implements EncrypterAdapter {
-  private readonly hashMock: jest.Mock<(password: string) => string>;
+  private readonly hashMock: jest.Mock<(password: string) => Promise<string>>;
   private readonly compareMock: jest.Mock<
-    (value: string, encryptedValue: string) => boolean
+    (value: string, encryptedValue: string) => Promise<boolean>
   >;
-  private readonly simulateCompareMock = jest.fn<(value: string) => void>();
+  private readonly simulateCompareMock = jest
+    .fn<(value: string) => Promise<void>>()
+    .mockResolvedValue(undefined);
   private readonly generateTokenMock: jest.Mock<
     (payload: UnknownRecord, duration?: string) => Promise<Nullable<string>>
   >;
@@ -35,13 +41,11 @@ export class EncrypterAdapterMock implements EncrypterAdapter {
 
   constructor({ login, token, refresh }: Options = DEFAULT_OPTIONS) {
     this.hashMock = jest
-      .fn<(password: string) => string>()
-      .mockReturnValue(
-        '$2a$12$mZgfH4D7z4dZcZHDKyogqOOnEWS6XHLdczPJktzD88djpvlr3Bq1C'
-      );
+      .fn<(password: string) => Promise<string>>()
+      .mockResolvedValue(MOCK_PASSWORD_HASH);
     this.compareMock = jest
-      .fn<(value: string, encryptedValue: string) => boolean>()
-      .mockReturnValue(login ?? false);
+      .fn<(value: string, encryptedValue: string) => Promise<boolean>>()
+      .mockResolvedValue(login ?? false);
     this.generateTokenMock = jest
       .fn<
         (payload: UnknownRecord, duration?: string) => Promise<Nullable<string>>
@@ -59,7 +63,7 @@ export class EncrypterAdapterMock implements EncrypterAdapter {
       .mockResolvedValue(refresh === false ? null : random.word());
   }
 
-  hash(password: string): string {
+  hash(password: string): Promise<string> {
     return this.hashMock(password);
   }
 
@@ -67,12 +71,12 @@ export class EncrypterAdapterMock implements EncrypterAdapter {
     expect(this.hashMock).toHaveBeenCalledWith(expected);
   }
 
-  compare(value: string, encryptedValue: string): boolean {
+  compare(value: string, encryptedValue: string): Promise<boolean> {
     return this.compareMock(value, encryptedValue);
   }
 
-  simulateCompare(value: string): void {
-    this.simulateCompareMock(value);
+  simulateCompare(value: string): Promise<void> {
+    return this.simulateCompareMock(value);
   }
 
   assertSimulateCompareHasBeenCalledWith(expectedValue: string): void {

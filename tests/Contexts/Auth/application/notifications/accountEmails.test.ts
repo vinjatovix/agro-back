@@ -1,6 +1,13 @@
 import {
   activationEmail,
   activationLink,
+  PASSWORD_CHANGED_GUIDANCE,
+  PASSWORD_CHANGED_SUBJECT,
+  PASSWORD_RESET_SUBJECT,
+  PASSWORD_RESET_WARNING,
+  passwordChangedEmail,
+  passwordResetEmail,
+  passwordResetLink,
   providerLinkedEmail,
   REGISTRATION_ATTEMPT_GUIDANCE,
   registrationAttemptEmail
@@ -44,6 +51,56 @@ describe('account emails', () => {
 
       expect(message.text).toContain(warning);
       expect(message.html).toContain(warning);
+    });
+  });
+
+  describe('passwordReset', () => {
+    const link = passwordResetLink(BASE_URL, token);
+    const message = passwordResetEmail({ to, link });
+
+    it('should be a valid message with the exact subject', () => {
+      expect(() => EmailMessage.create(message)).not.toThrow();
+      expect(message.subject).toBe(PASSWORD_RESET_SUBJECT);
+    });
+
+    it('should carry the token only after `#` in the reset link', () => {
+      expect(link).toBe(`${BASE_URL}/reset-password#token=${token}`);
+      expect(link.split('#')[0]).not.toContain(token);
+      expect(message.text).toContain(link);
+      expect(message.html).toContain(link);
+    });
+
+    it('should say it expires in 30 minutes and works once', () => {
+      expect(message.text).toMatch(/30 minutos/);
+      expect(message.text).toMatch(/solo funciona una vez/);
+    });
+
+    it('should include the warning for recipients who did not request it', () => {
+      expect(message.text).toContain(PASSWORD_RESET_WARNING);
+      expect(message.html).toContain(PASSWORD_RESET_WARNING);
+    });
+  });
+
+  describe('passwordChanged', () => {
+    const message = passwordChangedEmail({ to });
+
+    it('should be a valid message with the exact subject', () => {
+      expect(() => EmailMessage.create(message)).not.toThrow();
+      expect(message.subject).toBe(PASSWORD_CHANGED_SUBJECT);
+    });
+
+    it('should inform the user that the password was changed', () => {
+      expect(message.text).toMatch(/ha sido cambiada correctamente/);
+    });
+
+    it('should provide security guidance to contact support or reset', () => {
+      expect(message.text).toContain(PASSWORD_CHANGED_GUIDANCE);
+    });
+
+    it('should contain no token and no link', () => {
+      expect(message.text).not.toMatch(TOKEN_SHAPE);
+      expect(message.text).not.toMatch(/https?:\/\//);
+      expect(message.html).not.toMatch(/<a /);
     });
   });
 

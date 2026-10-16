@@ -10,6 +10,8 @@ import { InvalidEmailTokenException } from '../errors/index.js';
 import { createUserId, type UserId } from '../UserId.js';
 import {
   EmailToken,
+  PASSWORD_RESET_THROTTLE_WINDOW_MS,
+  PASSWORD_RESET_TOKEN_TTL_MS,
   PasswordHash,
   UserAuthMethod,
   Username,
@@ -282,6 +284,58 @@ export class User
         password: hash,
         authMethods: this.state.authMethods.map((method) =>
           method.isLocal() ? method.withPassword(hash) : method
+        )
+      },
+      at
+    );
+  }
+
+  /**
+   * True while the unexpired reset token was issued less than
+   * `PASSWORD_RESET_THROTTLE_WINDOW_MS` ago. The issue time is derived from
+   * `expiresAt`, so it assumes tokens live `PASSWORD_RESET_TOKEN_TTL_MS`.
+   */
+  hasRecentResetToken(at: Date): boolean {
+    const token = this.state.emailTokens.find(
+      (stored) => stored.purpose === 'passwordReset'
+    );
+    if (token === undefined || token.isExpiredAt(at)) {
+      return false;
+    }
+
+    return (
+      token.expiresAt.getTime() - at.getTime() >
+      PASSWORD_RESET_TOKEN_TTL_MS - PASSWORD_RESET_THROTTLE_WINDOW_MS
+    );
+  }
+
+  /**
+   * Resets the password using an unexpired passwordReset token. Proves inbox
+   * ownership: validates the email, adds or updates the local auth method,
+   * purges any activation and reset tokens, and preserves third-party providers.
+   */
+  resetPassword(tokenHash: string, newPassword: PasswordHash, at: Date): void {
+    const token = this.state.emailTokens.find((stored) =>
+      stored.matches('passwordReset', tokenHash)
+    );
+
+    if (token === undefined || token.isExpiredAt(at)) {
+      throw new InvalidEmailTokenException();
+    }
+
+    this.commit(
+      {
+        password: newPassword,
+        emailValidated: true,
+        authMethods: User.normalizeAuthMethods({
+          authMethods: [...this.state.authMethods],
+          password: newPassword,
+          linkedAt: at
+        }),
+        emailTokens: this.state.emailTokens.filter(
+          (stored) =>
+            stored.purpose !== 'passwordReset' &&
+            stored.purpose !== 'activation'
         )
       },
       at

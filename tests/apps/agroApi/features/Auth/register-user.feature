@@ -105,7 +105,7 @@ Feature: Register a new user
     And 1 user should be stored with email "tokenless@aa.com"
     And 1 email should have been sent to "tokenless@aa.com"
 
-  Scenario: Replacing an expired account cannot reuse its username
+  Scenario: Replacing an expired account keeps its own username
     Given a pending account with an expired activation token exists with email "expired2@aa.com", id "5a3c9f1e-7b6d-4cae-8f5a-4b3c2d1e0f9a" and username "expired2"
     When a POST request to "/api/v1/auth/register" with body
       """
@@ -113,6 +113,28 @@ Feature: Register a new user
         "id": "6b4d0a2f-8c7e-4dbf-9a6b-5c4d3e2f1a0b",
         "username": "expired2",
         "email": "expired2@aa.com",
+        "password": "#aD3fe2.0%",
+        "repeatPassword": "#aD3fe2.0%"
+      }
+      """
+    Then the response status code should be 202
+    And the response body should be empty
+    And response matches OpenAPI contract
+    And the user seeded with email "expired2@aa.com" should no longer be stored
+    And 1 user should be stored with email "expired2@aa.com"
+    And the stored user "expired2@aa.com" should be pending
+    And the stored user "expired2@aa.com" should have username "expired2"
+    And 1 email should have been sent to "expired2@aa.com"
+    And the last email to "expired2@aa.com" should have subject "Activa tu cuenta de MiBancal"
+
+  Scenario: Another email cannot take the username of an expired account
+    Given a pending account with an expired activation token exists with email "expired3@aa.com", id "7c5e1b3a-9d8f-4eca-8b7c-6d5e4f3a2b1c" and username "expired3"
+    When a POST request to "/api/v1/auth/register" with body
+      """
+      {
+        "id": "8d6f2c4b-0e9a-4fdb-9c8d-7e6f5a4b3c2d",
+        "username": "expired3",
+        "email": "intruder3@aa.com",
         "password": "#aD3fe2.0%",
         "repeatPassword": "#aD3fe2.0%"
       }
@@ -125,7 +147,7 @@ Feature: Register a new user
       }
       """
     And response matches OpenAPI contract
-    And the user seeded with email "expired2@aa.com" should still be stored
+    And the user seeded with email "expired3@aa.com" should still be stored
     And no email should have been sent
 
   Scenario: Existing id

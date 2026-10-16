@@ -185,6 +185,36 @@ export class UserMother {
     });
   }
 
+  /** A validated account with a local password and a reset token. */
+  static activeWithResetToken(
+    token: EmailToken = EmailTokenMother.passwordReset(),
+    options: Omit<PendingOptions, 'token' | 'at'> = {}
+  ): User {
+    const user = UserMother.active(options);
+    user.issueEmailToken(token, new Date());
+    return user;
+  }
+
+  /** An unvalidated pending account holding an activation token and a reset token. */
+  static pendingWithResetToken(
+    token: EmailToken = EmailTokenMother.passwordReset(),
+    options: PendingOptions = {}
+  ): User {
+    const user = UserMother.pending(options);
+    user.issueEmailToken(token, new Date());
+    return user;
+  }
+
+  /** A Google-only validated account with a reset token. */
+  static googleOnlyWithResetToken(
+    token: EmailToken = EmailTokenMother.passwordReset(),
+    providerUserId: string = random.guid()
+  ): User {
+    const user = UserMother.googleOnly(providerUserId);
+    user.issueEmailToken(token, new Date());
+    return user;
+  }
+
   static randomUsername(): Username {
     return new Username(
       random.word({ min: Username.MIN_LENGTH, max: Username.MAX_LENGTH })

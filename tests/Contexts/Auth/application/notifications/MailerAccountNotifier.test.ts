@@ -35,7 +35,7 @@ describe('MailerAccountNotifier', () => {
     notifier = new MailerAccountNotifier({
       mailer,
       backgroundTasks,
-      activationLinkBaseUrl: BASE_URL
+      frontendBaseUrl: BASE_URL
     });
   });
 
@@ -54,6 +54,16 @@ describe('MailerAccountNotifier', () => {
       'providerLinked',
       () => notifier.providerLinked(email, 'google', new Date()),
       'Se ha vinculado Google a tu cuenta'
+    ],
+    [
+      'passwordReset',
+      () => notifier.passwordReset(email, TOKEN),
+      'Restablece tu contraseña de MiBancal'
+    ],
+    [
+      'passwordChanged',
+      () => notifier.passwordChanged(email),
+      'Tu contraseña de MiBancal ha sido cambiada'
     ]
   ])(
     'should send one %s email to the recipient',
@@ -80,6 +90,15 @@ describe('MailerAccountNotifier', () => {
     );
   });
 
+  it('should link to the frontend password reset page with the token in the fragment', async () => {
+    notifier.passwordReset(email, TOKEN);
+    await backgroundTasks.idle();
+
+    expect(mailer.sentMessages()[0]?.text).toContain(
+      `${BASE_URL}/reset-password#token=${TOKEN}`
+    );
+  });
+
   it('should schedule the send without waiting for the mailer', () => {
     const sendSpy = jest.spyOn(mailer, 'send');
 
@@ -93,7 +112,7 @@ describe('MailerAccountNotifier', () => {
     notifier = new MailerAccountNotifier({
       mailer: new FailingMailer(),
       backgroundTasks,
-      activationLinkBaseUrl: BASE_URL
+      frontendBaseUrl: BASE_URL
     });
 
     expect(() => notifier.activation(email, TOKEN)).not.toThrow();

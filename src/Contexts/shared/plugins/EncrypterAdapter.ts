@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { compareSync, genSaltSync, hashSync } from 'bcryptjs';
+import { compare as bcryptCompare, hash as bcryptHash } from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import type { SignOptions } from 'jsonwebtoken';
 
@@ -14,22 +14,24 @@ const SALT_ROUNDS = envs.BCRYPT_SALT_ROUNDS;
 const DEFAULT_TOKEN_DURATION = envs.JWT_DEFAULT_DURATION;
 const { sign, verify } = jwt;
 
-/** Built on first use with the configured cost; nobody knows its value. */
-let unusableHash: string | undefined;
+/**
+ * Built on first use with the configured cost; nobody knows its value. Kept as
+ * a promise so concurrent first calls share one hash.
+ */
+let unusableHash: Promise<string> | undefined;
 
 export class EncrypterAdapter implements EncrypterTool {
-  hash(password: string): string {
-    const salt = genSaltSync(SALT_ROUNDS);
-    return hashSync(password, salt);
+  async hash(password: string): Promise<string> {
+    return bcryptHash(password, SALT_ROUNDS);
   }
 
-  compare(password: string, hash: string): boolean {
-    return compareSync(password, hash);
+  async compare(password: string, hash: string): Promise<boolean> {
+    return bcryptCompare(password, hash);
   }
 
-  simulateCompare(password: string): void {
+  async simulateCompare(password: string): Promise<void> {
     unusableHash ??= this.hash(randomBytes(32).toString('base64url'));
-    compareSync(password, unusableHash);
+    await bcryptCompare(password, await unusableHash);
   }
 
   async generateToken(

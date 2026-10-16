@@ -31,11 +31,11 @@ export class LoginUserLocal {
     // Every path pays one bcrypt comparison, so a missing account or one
     // without a password takes as long as a wrong password.
     if (!storedUser || !localPassword) {
-      this.encrypter.simulateCompare(password);
+      await this.encrypter.simulateCompare(password);
       throw new DomainUnauthorizedException(INVALID_CREDENTIALS_MESSAGE);
     }
 
-    const success = this.encrypter.compare(password, localPassword.value);
+    const success = await this.encrypter.compare(password, localPassword.value);
     if (!success) {
       throw new DomainUnauthorizedException(INVALID_CREDENTIALS_MESSAGE);
     }

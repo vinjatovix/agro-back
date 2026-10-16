@@ -6,6 +6,8 @@ export class AccountNotifierMock implements AccountNotifier {
   readonly activation = jest.fn<void, [Email, string]>();
   readonly registrationAttempt = jest.fn<void, [Email]>();
   readonly providerLinked = jest.fn<void, [Email, AuthProvider, Date]>();
+  readonly passwordReset = jest.fn<void, [Email, string]>();
+  readonly passwordChanged = jest.fn<void, [Email]>();
 
   assertActivationSentTo(email: Email, token: string): void {
     expect(this.activation).toHaveBeenCalledTimes(1);
@@ -26,9 +28,21 @@ export class AccountNotifierMock implements AccountNotifier {
     );
   }
 
+  assertPasswordResetSentTo(email: Email, token: string): void {
+    expect(this.passwordReset).toHaveBeenCalledTimes(1);
+    expect(this.passwordReset).toHaveBeenCalledWith(email, token);
+  }
+
+  assertPasswordChangedSentTo(email: Email): void {
+    expect(this.passwordChanged).toHaveBeenCalledTimes(1);
+    expect(this.passwordChanged).toHaveBeenCalledWith(email);
+  }
+
   assertNothingSent(): void {
     expect(this.activation).not.toHaveBeenCalled();
     expect(this.registrationAttempt).not.toHaveBeenCalled();
     expect(this.providerLinked).not.toHaveBeenCalled();
+    expect(this.passwordReset).not.toHaveBeenCalled();
+    expect(this.passwordChanged).not.toHaveBeenCalled();
   }
 }

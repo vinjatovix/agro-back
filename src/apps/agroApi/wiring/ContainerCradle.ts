@@ -48,9 +48,11 @@ import type { AccountNotifier } from '../../../Contexts/Auth/application/notific
 import type {
   ActivateAccount,
   AuthenticateWithGoogle,
+  ForgotPassword,
   LoginUserLocal,
   RefreshToken,
   RegisterUserLocal,
+  ResetPassword,
   UpdatePasswordLocal
 } from '../../../Contexts/Auth/application/useCases/index.js';
 import type { MongoAuthRepository } from '../../../Contexts/Auth/infrastructure/persistence/MongoAuthRepository.js';
@@ -68,9 +70,11 @@ import type { DBEnvironmentArranger } from '../../../shared/infrastructure/persi
 import type {
   ActivateAccountController,
   AuthenticateWithGoogleController,
+  ForgotPasswordController,
   LoginUserLocalController,
   RefreshTokenController,
   RegisterUserLocalController,
+  ResetPasswordController,
   UpdatePasswordLocalController
 } from '../controllers/Auth/index.js';
 import type {
@@ -118,7 +122,7 @@ export type ContainerCradle = {
   mailer: Mailer;
   backgroundTasks: BackgroundTasks;
   accountNotifier: AccountNotifier;
-  activationLinkBaseUrl: string;
+  frontendBaseUrl: string;
 
   // Singletons
   environmentArranger: DBEnvironmentArranger;
@@ -140,6 +144,8 @@ export type ContainerCradle = {
   loginUserLocal: LoginUserLocal;
   authenticateWithGoogle: AuthenticateWithGoogle;
   activateAccount: ActivateAccount;
+  forgotPassword: ForgotPassword;
+  resetPassword: ResetPassword;
   refreshToken: RefreshToken;
   updatePasswordLocal: UpdatePasswordLocal;
   createFamily: CreateFamily;
@@ -169,6 +175,8 @@ export type ContainerCradle = {
   loginUserLocalController: LoginUserLocalController;
   authenticateWithGoogleController: AuthenticateWithGoogleController;
   activateAccountController: ActivateAccountController;
+  forgotPasswordController: ForgotPasswordController;
+  resetPasswordController: ResetPasswordController;
   refreshTokenController: RefreshTokenController;
   updatePasswordLocalController: UpdatePasswordLocalController;
   createFamilyController: CreateFamilyController;
