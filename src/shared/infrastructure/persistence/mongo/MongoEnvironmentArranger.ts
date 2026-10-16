@@ -28,19 +28,22 @@ export class MongoEnvironmentArranger extends EnvironmentArranger {
       .listCollections(undefined, { nameOnly: true })
       .toArray();
 
-    return collections.map((collection) => collection.name);
+    return collections
+      .map((collection) => collection.name)
+      .filter((name) => !name.startsWith('system.'));
   }
 
   protected client(): MongoClient {
     return this.DBClient;
   }
 
+  /** Empties every collection at once; `deleteMany` keeps indexes and validators. */
   protected async cleanDatabase(): Promise<void> {
     const collections = await this.collections();
-    const client = this.client();
+    const db = this.client().db();
 
-    for (const collection of collections) {
-      await client.db().collection(collection).deleteMany({});
-    }
+    await Promise.all(
+      collections.map((collection) => db.collection(collection).deleteMany({}))
+    );
   }
 }

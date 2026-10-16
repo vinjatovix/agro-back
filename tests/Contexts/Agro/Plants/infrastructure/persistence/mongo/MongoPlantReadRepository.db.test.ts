@@ -1,3 +1,4 @@
+import { asClass } from 'awilix';
 import {
   type Binary,
   Collection,
@@ -5,10 +6,6 @@ import {
   type MongoClient,
   type UpdateFilter
 } from 'mongodb';
-import {
-  type AppContainer,
-  createAppContainer
-} from '../../../../../../../src/apps/agroApi/container.js';
 import type {
   PlantField,
   PlantReadRepository
@@ -21,12 +18,15 @@ import {
 import type { PlantFilter } from '../../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantFilter.js';
 import type { PlantRepository } from '../../../../../../../src/Contexts/Agro/Plants/domain/repositories/interfaces/PlantRepository.js';
 import { PlantKnowledge } from '../../../../../../../src/Contexts/Agro/Plants/domain/value-objects/index.js';
+import { PlantQueryMapper } from '../../../../../../../src/Contexts/Agro/Plants/infrastructure/persistence/mongo/mappers/PlantQueryMapper.js';
+import { MongoPlantReadRepository } from '../../../../../../../src/Contexts/Agro/Plants/infrastructure/persistence/mongo/MongoPlantReadRepository.js';
+import { MongoPlantRepository } from '../../../../../../../src/Contexts/Agro/Plants/infrastructure/persistence/mongo/MongoPlantRepository.js';
 import { toMongoId } from '../../../../../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoId.js';
 import type { QueryOptions } from '../../../../../../../src/shared/domain/query/interfaces/QueryOptions.js';
-import type { EnvironmentArranger } from '../../../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
-import { DBClientFactory } from '../../../../../../../src/shared/infrastructure/persistence/index.js';
-import { createTestDBConfig } from '../../../../../../shared/infrastructure/persistence/mongo/testDBConfig.js';
-import { SOURCE_ROOT } from '../../../../../../shared/sourceRoot.js';
+import {
+  createDbTestContext,
+  type DbTestContext
+} from '../../../../../../shared/infrastructure/persistence/mongo/dbTestContext.js';
 import { random } from '../../../../../shared/fixtures/random.js';
 import { PlantReadViewMother } from '../../../application/queries/PlantReadViewMother.js';
 import { PlantFactory } from '../../../domain/mothers/PlantFactory.js';
@@ -39,10 +39,9 @@ import {
 
 type PlantQuery = QueryOptions<PlantFilter, PlantField, never>;
 
-let container: AppContainer;
+let context: DbTestContext;
 let readRepository: PlantReadRepository;
 let writeRepository: PlantRepository;
-let environmentArranger: EnvironmentArranger;
 let client: MongoClient;
 
 type StoredId = { _id: Binary | string };
@@ -66,19 +65,13 @@ const named = (primary: string, scientificName: string): Plant =>
 
 describe('MongoPlantReadRepository', () => {
   beforeAll(async () => {
-    client = await DBClientFactory.createClient(
-      'agroApi-test',
-      createTestDBConfig()
-    );
-
-    container = await createAppContainer({
-      db: client.db(),
-      client,
-      sourceRoot: SOURCE_ROOT
+    context = await createDbTestContext({
+      plantQueryMapper: asClass(PlantQueryMapper).singleton(),
+      plantReadRepository: asClass(MongoPlantReadRepository).singleton(),
+      plantRepository: asClass(MongoPlantRepository).singleton()
     });
-    environmentArranger = container.resolve<EnvironmentArranger>(
-      'environmentArranger'
-    );
+    client = context.client;
+    const { container } = context;
     readRepository = container.resolve<PlantReadRepository>(
       'plantReadRepository'
     );
@@ -86,13 +79,11 @@ describe('MongoPlantReadRepository', () => {
   });
 
   beforeEach(async () => {
-    await environmentArranger.arrange();
+    await context.reset();
   });
 
   afterAll(async () => {
-    await environmentArranger.arrange();
-    await environmentArranger.close();
-    await client.close();
+    await context.close();
   });
 
   describe('findById', () => {

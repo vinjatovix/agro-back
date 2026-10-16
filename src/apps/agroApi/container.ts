@@ -5,7 +5,8 @@ import {
   asClass,
   asValue,
   createContainer,
-  InjectionMode
+  InjectionMode,
+  type NameAndRegistrationPair
 } from 'awilix';
 import type { Db, MongoClient } from 'mongodb';
 
@@ -38,18 +39,17 @@ const pkg = JSON.parse(
   readFileSync(resolve(process.cwd(), 'package.json'), 'utf-8')
 ) as { version: string };
 
-export async function createAppContainer(
-  deps: ContainerDeps
-): Promise<AppContainer> {
-  const container = createContainer<ContainerCradle>({
-    injectionMode: InjectionMode.PROXY,
-    strict: true
-  });
-
-  // Explicit registrations
-  container.register({
-    db: asValue(deps.db), // Runtime Mongo database instance connected at start-up
-    DBClient: asValue(deps.client), // Runtime Mongo client connection handle
+/** Components registered by hand rather than discovered by `scanComponents`. */
+export function buildExplicitRegistrations({
+  db,
+  client
+}: Pick<
+  ContainerDeps,
+  'db' | 'client'
+>): NameAndRegistrationPair<ContainerCradle> {
+  return {
+    db: asValue(db), // Runtime Mongo database instance connected at start-up
+    DBClient: asValue(client), // Runtime Mongo client connection handle
     appVersion: asValue(pkg.version), // Service release version read from package.json
     logger: asValue<AppLogger>(buildLogger('agroApi')), // Contextual root logger instance
     bedPersistenceMapper: asValue(bedPersistenceMapper), // Plain persistence mapper without class state
@@ -59,7 +59,18 @@ export async function createAppContainer(
     cropSpatialService: asClass(CropSpatialService).singleton(), // Spatial collision and boundary validator
     unitOfWork: asClass(MongoUnitOfWork).singleton(), // Groups cross-aggregate writes in one Mongo transaction
     familySummaryReader: aliasTo('familyReadRepository') // Plants' port, served by the family read side
+  };
+}
+
+export async function createAppContainer(
+  deps: ContainerDeps
+): Promise<AppContainer> {
+  const container = createContainer<ContainerCradle>({
+    injectionMode: InjectionMode.PROXY,
+    strict: true
   });
+
+  container.register(buildExplicitRegistrations(deps));
 
   const components = await scanComponents(deps.sourceRoot, COMPONENT_ROLES);
 

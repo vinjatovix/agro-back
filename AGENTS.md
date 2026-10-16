@@ -22,6 +22,7 @@ Contract-driven REST API for agricultural asset management.
 - **Contract Testing:** HTTP responses must match the OpenAPI contract (`assertResponseMatchesOpenApi` / Gherkin step).
 - **Acceptance Test Setup:** In Gherkin scenarios, call the API only in the `When` step under test. Build prior state (created, updated, soft-deleted…) in `Given` steps with seeders/DB helpers (e.g. `a soft-deleted bed exists for the current user`), never with setup `PATCH`/`DELETE` requests, so scenarios don't depend on unrelated rules such as `If-Match` versions.
 - **Dependency Injection:** Config in `src/apps/agroApi/container.ts`. Use constructor injection.
+- **Test Groups:** A Jest file opens a real Mongo connection if and only if it is named `*.db.test.ts` (project `db`); every other `*.test.ts` is in `no-db`, where a real `connect()` fails at once. Database tests build their components with `createDbTestContext` (`tests/shared/infrastructure/persistence/mongo/dbTestContext.ts`), never `createAppContainer`. `npm run test:unit:nodb` needs no database. Never use `--forceExit`; a leak fails the file and points to `npm run test:unit:leaks`. `TEST_LOGS=1` prints application logs during tests.
 - **Imports Order:**
   1. **External dependencies** (from `package.json`): Node.js built-ins, then npm packages, **all alphabetical**.
   2. **Barrel imports** (from `index.ts` files): Distant/parent contexts/domains, **alphabetical**.

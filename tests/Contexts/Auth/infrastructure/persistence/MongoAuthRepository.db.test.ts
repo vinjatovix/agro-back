@@ -1,19 +1,16 @@
+import { asClass } from 'awilix';
 import type { Binary, Collection, MongoClient } from 'mongodb';
-import {
-  type AppContainer,
-  createAppContainer
-} from '../../../../../src/apps/agroApi/container.js';
 import type { AuthRepository } from '../../../../../src/Contexts/Auth/domain/repositories/interfaces/AuthRepository.js';
+import { MongoAuthRepository } from '../../../../../src/Contexts/Auth/infrastructure/persistence/MongoAuthRepository.js';
 import { toMongoId } from '../../../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoId.js';
-import { EnvironmentArranger } from '../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
-import { DBClientFactory } from '../../../../../src/shared/infrastructure/persistence/index.js';
-import { createTestDBConfig } from '../../../../shared/infrastructure/persistence/mongo/testDBConfig.js';
-import { SOURCE_ROOT } from '../../../../shared/sourceRoot.js';
+import {
+  createDbTestContext,
+  type DbTestContext
+} from '../../../../shared/infrastructure/persistence/mongo/dbTestContext.js';
 import { UserMother } from '../../domain/mothers/UserMother.js';
 
-let container: AppContainer;
+let context: DbTestContext;
 let repository: AuthRepository;
-let environmentArranger: Promise<EnvironmentArranger>;
 let client: MongoClient;
 
 // Stored users read raw, keyed by the `toMongoId` form of their id.
@@ -24,32 +21,20 @@ const usersCollection = (): Collection<RawUserDocument> =>
 
 describe('MongoAuthRepository', () => {
   beforeAll(async () => {
-    client = await DBClientFactory.createClient(
-      'agroApi-test',
-      createTestDBConfig()
-    );
-
-    const db = client.db();
-
-    container = await createAppContainer({
-      db,
-      client,
-      sourceRoot: SOURCE_ROOT
+    context = await createDbTestContext({
+      authRepository: asClass(MongoAuthRepository).singleton()
     });
-    environmentArranger = Promise.resolve(
-      container.resolve<EnvironmentArranger>('environmentArranger')
-    );
+    client = context.client;
+    const { container } = context;
     repository = container.resolve<AuthRepository>('authRepository');
   });
 
   beforeEach(async () => {
-    await (await environmentArranger).arrange();
+    await context.reset();
   });
 
   afterAll(async () => {
-    await (await environmentArranger).arrange();
-    await (await environmentArranger).close();
-    await client.close();
+    await context.close();
   });
 
   describe('save', () => {

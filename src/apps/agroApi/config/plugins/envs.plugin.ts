@@ -45,5 +45,6 @@ export const envs = {
   BCRYPT_SALT_ROUNDS: env
     .get('BCRYPT_SALT_ROUNDS')
     .default('12')
-    .asIntPositive()
+    .asIntPositive(),
+  TEST_LOGS: env.get('TEST_LOGS').default('false').asBool()
 };

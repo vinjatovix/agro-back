@@ -16,43 +16,56 @@ const DIRECTORY = 'logs';
 const ERRORS_FILENAME = `${DIRECTORY}/error-logs.log`;
 const INFO_FILENAME = `${DIRECTORY}/info-logs.log`;
 
+const serviceName = (service: unknown): string => {
+  if (typeof service === 'string') return service;
+  if (service) return JSON.stringify(service);
+  return 'app';
+};
+
+const buildConsoleTransport = (
+  silent: boolean
+): winston.transports.ConsoleTransportInstance =>
+  new winston.transports.Console({
+    silent,
+    format: winston.format.combine(
+      winston.format.colorize({ all: true }),
+      winston.format.printf(
+        (info) =>
+          `[${info.level}] ${serviceName(info.service)} - ${String(
+            info.timestamp
+          )} : ${String(info.message)}`
+      )
+    )
+  });
+
+// A File transport opens its file as soon as it is built, so tests never build one.
+const buildFileTransports = (): winston.transports.FileTransportInstance[] => [
+  new winston.transports.File({
+    filename: ERRORS_FILENAME,
+    level: 'error'
+  }),
+  new winston.transports.File({
+    filename: INFO_FILENAME
+  })
+];
+
+const buildTransports = (): winston.transport[] => {
+  if (envs.NODE_ENV === 'test') {
+    return [buildConsoleTransport(!envs.TEST_LOGS)];
+  }
+
+  if (envs.NODE_ENV === 'production') {
+    return buildFileTransports();
+  }
+
+  return [...buildFileTransports(), buildConsoleTransport(false)];
+};
+
 const rootLogger = winston.createLogger({
   level: 'info',
   format: combine(timestamp(), json()),
-  transports: [
-    new winston.transports.File({
-      filename: ERRORS_FILENAME,
-      level: 'error'
-    }),
-    new winston.transports.File({
-      filename: INFO_FILENAME
-    })
-  ]
+  transports: buildTransports()
 });
-
-if (envs.NODE_ENV !== 'production') {
-  rootLogger.add(
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize({ all: true }),
-        winston.format.printf((info) => {
-          let service: string;
-          if (typeof info.service === 'string') {
-            service = info.service;
-          } else if (info.service) {
-            service = JSON.stringify(info.service);
-          } else {
-            service = 'app';
-          }
-
-          return `[${info.level}] ${service} - ${String(
-            info.timestamp
-          )} : ${String(info.message)}`;
-        })
-      )
-    })
-  );
-}
 
 export const attachMongoTransport = (client: MongoClient): void => {
   if (envs.NODE_ENV === 'test') return;

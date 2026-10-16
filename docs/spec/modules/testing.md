@@ -1,6 +1,6 @@
 # MODULE: TESTING
 
-version: 1.4.0
+version: 1.5.0
 source-spec: v1.4.0
 status: stable
 
@@ -160,6 +160,62 @@ Added coverage:
 - Beds feature scenarios (CRUD flows)
 - cross-entity ownership rules (user/bed isolation)
 - query-driven filtering scenarios (list endpoints with filters, sorting, pagination)
+
+---
+
+### 2.6 Test Groups, Commands and Guards
+
+Jest runs two projects (`jest.config.ts`); Cucumber is the third group.
+
+| Group        | Files                                   | Needs database                                   |
+| ------------ | --------------------------------------- | ------------------------------------------------ |
+| `no-db`      | every `*.test.ts` except `*.db.test.ts` | never                                            |
+| `db`         | `*.db.test.ts`                          | Docker Mongo, one database per worker (`test-N`) |
+| `acceptance` | `*.feature`                             | Docker Mongo with every migration applied        |
+
+A file opens a real Mongo connection if and only if it is named `*.db.test.ts`; the folder does not count. In `no-db`, `MongoClient.prototype.connect` fails at once with a message asking to rename the file (tests that `jest.mock('mongodb')` keep their fake). The `db` group pings Mongo once before any file and stops with one message when it is down.
+
+| Command                   | Runs                                         | Coverage |
+| ------------------------- | -------------------------------------------- | -------- |
+| `npm test`                | `test:unit` then `test:features`             | yes      |
+| `npm run test:unit`       | `no-db` + `db`, in parallel                  | yes      |
+| `npm run test:unit:nodb`  | `no-db` (Mongo can be stopped)               | no       |
+| `npm run test:unit:db`    | `db`                                         | no       |
+| `npm run test:unit:watch` | watch mode, both groups                      | no       |
+| `npm run test:unit:leaks` | `--detectOpenHandles --runInBand` diagnostic | no       |
+| `npm run test:features`   | Cucumber                                     | no       |
+
+`test:unit:nodb` and `test:unit:db` take only paths as extra arguments (`npm run test:unit:db -- tests/Contexts/Auth`): the scripts end with `--` so `--selectProjects` does not read the path as a project name.
+
+Leaks fail the run instead of being hidden (`--forceExit` is never used):
+
+- the test environment (`tests/support/jest/LeakGuardEnvironment.ts`) compares active resources per type (timers, sockets, servers…) at the start and end of each file; while some type is higher it re-checks for a fixed 10 s (`LEAK_GRACE_PERIOD_MS` in `jest.config.ts`, passed through `testEnvironmentOptions`), then fails that file naming the types and pointing to `npm run test:unit:leaks`. A resource type that is not a leak goes, with a comment, in `IGNORED_RESOURCE_TYPES` in that file;
+- the root `globalTeardown` watchdog (`leakWatchdog.ts`) fails the run with the same pointer if the main process is still alive 10 s after it;
+- both are off in watch mode.
+
+Database tests build only what they use with `createDbTestContext` (`tests/shared/infrastructure/persistence/mongo/dbTestContext.ts`), never `createAppContainer`:
+
+```ts
+let context: DbTestContext;
+
+beforeAll(async () => {
+  context = await createDbTestContext({
+    bedRepository: asClass(MongoBedRepository).singleton()
+  });
+});
+beforeEach(async () => {
+  await context.reset();
+});
+afterAll(async () => {
+  await context.close();
+});
+```
+
+It opens one connection per file, registers the production explicit registrations (`buildExplicitRegistrations` in `container.ts`) plus the given components in a `strict` Awilix container (repositories, query mappers and adapters singleton; use cases `.scoped()`, resolved through `container.createScope()`), and `reset()` empties every collection concurrently with `deleteMany` (indexes and validators stay; the acceptance `Before` hook uses the same reset).
+
+Logs: under `NODE_ENV=test` the logger writes no files and its console is silent; `TEST_LOGS=1 <any test command>` prints the logs. `TEST_LOGS` must not go in `.env.test` (dotenv loads it with `override: true`). Tests that assert on logging inject `AppLogger` doubles built with `jest.fn()`.
+
+Password hashing uses `BCRYPT_SALT_ROUNDS=4` in `.env.test` and the CI test job; development and production keep 12.
 
 ---
 

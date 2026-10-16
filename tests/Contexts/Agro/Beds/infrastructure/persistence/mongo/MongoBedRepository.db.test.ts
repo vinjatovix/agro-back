@@ -1,28 +1,25 @@
+import { asClass } from 'awilix';
 import { Collection, type MongoClient } from 'mongodb';
-import {
-  type AppContainer,
-  createAppContainer
-} from '../../../../../../../src/apps/agroApi/container.js';
 import { randomBedId } from '../../../../../../../src/Contexts/Agro/Beds/domain/BedId.js';
 import type { Bed } from '../../../../../../../src/Contexts/Agro/Beds/domain/entities/Bed.js';
 import type { BedPrimitives } from '../../../../../../../src/Contexts/Agro/Beds/domain/entities/types/BedPrimitives.js';
 import type { BedRepository } from '../../../../../../../src/Contexts/Agro/Beds/domain/repositories/interfaces/BedRepository.js';
+import { MongoBedRepository } from '../../../../../../../src/Contexts/Agro/Beds/infrastructure/persistence/MongoBedRepository.js';
 import { bedDomainMapper } from '../../../../../../../src/Contexts/Agro/Beds/mappers/bedDomainMapper.js';
 import {
   DomainConflictException,
   DomainNotFoundException,
   DomainStaleVersionException
 } from '../../../../../../../src/Contexts/shared/domain/errors/index.js';
-import type { EnvironmentArranger } from '../../../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
-import { DBClientFactory } from '../../../../../../../src/shared/infrastructure/persistence/index.js';
-import { createTestDBConfig } from '../../../../../../shared/infrastructure/persistence/mongo/testDBConfig.js';
-import { SOURCE_ROOT } from '../../../../../../shared/sourceRoot.js';
+import {
+  createDbTestContext,
+  type DbTestContext
+} from '../../../../../../shared/infrastructure/persistence/mongo/dbTestContext.js';
 import { random } from '../../../../../shared/fixtures/random.js';
 import { BedFactory } from '../../../domain/mothers/BedFactory.js';
 
-let container: AppContainer;
+let context: DbTestContext;
 let repository: BedRepository;
-let environmentArranger: Promise<EnvironmentArranger>;
 let client: MongoClient;
 
 async function findExisting(id: string): Promise<Bed> {
@@ -37,31 +34,19 @@ async function findExisting(id: string): Promise<Bed> {
 
 describe('MongoBedRepository', () => {
   beforeAll(async () => {
-    client = await DBClientFactory.createClient(
-      'agroApi-test',
-      createTestDBConfig()
-    );
-
-    const db = client.db();
-
-    container = await createAppContainer({
-      db,
-      client,
-      sourceRoot: SOURCE_ROOT
+    context = await createDbTestContext({
+      bedRepository: asClass(MongoBedRepository).singleton()
     });
-    environmentArranger = Promise.resolve(
-      container.resolve<EnvironmentArranger>('environmentArranger')
-    );
-    repository = container.resolve<BedRepository>('bedRepository');
+    client = context.client;
+    repository = context.container.resolve<BedRepository>('bedRepository');
   });
+
   beforeEach(async () => {
-    await (await environmentArranger).arrange();
+    await context.reset();
   });
 
   afterAll(async () => {
-    await (await environmentArranger).arrange();
-    await (await environmentArranger).close();
-    await client.close();
+    await context.close();
   });
 
   describe('save + findById', () => {

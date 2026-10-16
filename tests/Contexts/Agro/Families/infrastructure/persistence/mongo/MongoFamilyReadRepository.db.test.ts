@@ -1,8 +1,5 @@
+import { asClass } from 'awilix';
 import type { Binary, MongoClient } from 'mongodb';
-import {
-  type AppContainer,
-  createAppContainer
-} from '../../../../../../../src/apps/agroApi/container.js';
 import type {
   FamilyField,
   FamilyReadRepository
@@ -11,20 +8,21 @@ import type { Family } from '../../../../../../../src/Contexts/Agro/Families/dom
 import type { FamilyRepository } from '../../../../../../../src/Contexts/Agro/Families/domain/repositories/interfaces/FamilyRepository.js';
 import type { FamilyFilter } from '../../../../../../../src/Contexts/Agro/Families/domain/types/FamilyFilter.js';
 import { toFamilyReadView } from '../../../../../../../src/Contexts/Agro/Families/infrastructure/persistence/familyReadViewMapper.js';
+import { MongoFamilyReadRepository } from '../../../../../../../src/Contexts/Agro/Families/infrastructure/persistence/MongoFamilyReadRepository.js';
+import { MongoFamilyRepository } from '../../../../../../../src/Contexts/Agro/Families/infrastructure/persistence/MongoFamilyRepository.js';
 import { familyPersistenceMapper } from '../../../../../../../src/Contexts/Agro/Families/mappers/familyPersistenceMapper.js';
 import { toMongoId } from '../../../../../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoId.js';
 import type { QueryOptions } from '../../../../../../../src/shared/domain/query/interfaces/QueryOptions.js';
-import type { EnvironmentArranger } from '../../../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
-import { DBClientFactory } from '../../../../../../../src/shared/infrastructure/persistence/index.js';
-import { createTestDBConfig } from '../../../../../../shared/infrastructure/persistence/mongo/testDBConfig.js';
-import { SOURCE_ROOT } from '../../../../../../shared/sourceRoot.js';
+import {
+  createDbTestContext,
+  type DbTestContext
+} from '../../../../../../shared/infrastructure/persistence/mongo/dbTestContext.js';
 import { random } from '../../../../../shared/fixtures/random.js';
 import { FamilyScenarios } from '../../../domain/mothers/FamilyScenarios.js';
 
-let container: AppContainer;
+let context: DbTestContext;
 let readRepository: FamilyReadRepository;
 let writeRepository: FamilyRepository;
-let environmentArranger: EnvironmentArranger;
 let client: MongoClient;
 
 type StoredId = { _id: Binary | string };
@@ -40,19 +38,12 @@ const saveAll = async (families: Family[]): Promise<void> => {
 
 describe('MongoFamilyReadRepository', () => {
   beforeAll(async () => {
-    client = await DBClientFactory.createClient(
-      'agroApi-test',
-      createTestDBConfig()
-    );
-
-    container = await createAppContainer({
-      db: client.db(),
-      client,
-      sourceRoot: SOURCE_ROOT
+    context = await createDbTestContext({
+      familyReadRepository: asClass(MongoFamilyReadRepository).singleton(),
+      familyRepository: asClass(MongoFamilyRepository).singleton()
     });
-    environmentArranger = container.resolve<EnvironmentArranger>(
-      'environmentArranger'
-    );
+    client = context.client;
+    const { container } = context;
     readRepository = container.resolve<FamilyReadRepository>(
       'familyReadRepository'
     );
@@ -60,13 +51,11 @@ describe('MongoFamilyReadRepository', () => {
   });
 
   beforeEach(async () => {
-    await environmentArranger.arrange();
+    await context.reset();
   });
 
   afterAll(async () => {
-    await environmentArranger.arrange();
-    await environmentArranger.close();
-    await client.close();
+    await context.close();
   });
 
   describe('findById and findBySlug', () => {

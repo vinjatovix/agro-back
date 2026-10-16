@@ -1,7 +1,9 @@
-import type { Collection, Document, MongoClient } from 'mongodb';
+import type { Collection, Document } from 'mongodb';
 import { MongoPageQuery } from '../../../../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoPageQuery.js';
-import { DBClientFactory } from '../../../../../../src/shared/infrastructure/persistence/index.js';
-import { createTestDBConfig } from '../../../../../shared/infrastructure/persistence/mongo/testDBConfig.js';
+import {
+  createDbTestContext,
+  type DbTestContext
+} from '../../../../../shared/infrastructure/persistence/mongo/dbTestContext.js';
 
 type StoredItem = {
   _id: string;
@@ -22,18 +24,15 @@ const item = (index: number, name: string): StoredItem => ({
 const ids = (documents: StoredItem[]): string[] =>
   documents.map(({ _id }) => _id);
 
-let client: MongoClient;
+let context: DbTestContext;
 let collection: Collection<Document>;
 let storedItems: Collection<StoredItem>;
 
 describe('MongoPageQuery', () => {
   beforeAll(async () => {
-    client = await DBClientFactory.createClient(
-      'agroApi-test',
-      createTestDBConfig()
-    );
-    collection = client.db().collection(COLLECTION);
-    storedItems = client.db().collection<StoredItem>(COLLECTION);
+    context = await createDbTestContext();
+    collection = context.db.collection(COLLECTION);
+    storedItems = context.db.collection<StoredItem>(COLLECTION);
   });
 
   beforeEach(async () => {
@@ -42,7 +41,7 @@ describe('MongoPageQuery', () => {
 
   afterAll(async () => {
     await collection.drop().catch(() => undefined);
-    await client.close();
+    await context.close();
   });
 
   const seed = async (names: string[]): Promise<void> => {

@@ -457,10 +457,17 @@ The project includes:
 ### Commands
 
 ```bash
-npm run test:unit
+npm run test:unit        # Jest projects no-db + db, in parallel, with coverage
+npm run test:unit:nodb   # no database needed
+npm run test:unit:db     # *.db.test.ts only
+npm run test:unit:leaks  # slow diagnostic for a leaked timer/socket (--detectOpenHandles --runInBand)
 npm run test:features
 npm run test
 ```
+
+- A test file opens a real Mongo connection if and only if it is named `*.db.test.ts`; database tests use `createDbTestContext`, never `createAppContainer`.
+- Never add `--forceExit` or `--detectOpenHandles` to `test:unit`: a file that leaves something open fails on its own and points to `test:unit:leaks`.
+- Application logs are silent in tests; prefix any test command with `TEST_LOGS=1` to print them.
 
 ---
 

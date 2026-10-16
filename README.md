@@ -107,8 +107,13 @@ npm run test:features
 - Unit tests
 
 ```bash
-npm run test:unit
+npm run test:unit        # both groups in parallel, with coverage
+npm run test:unit:nodb   # tests that need no database (Mongo can be stopped)
+npm run test:unit:db     # *.db.test.ts files, against the Docker MongoDB
+npm run test:unit:leaks  # slow diagnostic: shows where a leaked timer/socket was opened
 ```
+
+> A test file opens a real Mongo connection if and only if it is named `*.db.test.ts`. A file that leaves timers, sockets or servers open fails with a pointer to `npm run test:unit:leaks`. Application logs are silent in tests and log files are never written; run any test command with `TEST_LOGS=1` to print them.
 
 > Repository tests run against the Docker MongoDB. Jest workers run in parallel and each one gets its own database (`test-1`, `test-2`…, see `tests/shared/infrastructure/persistence/mongo/testDBConfig.ts`); `docker/mongo/mongo-init.js` lets the test user write to `test-1`…`test-16`. A container created before this rule needs the grant once:
 >

@@ -1,48 +1,34 @@
-import { Collection, type MongoClient } from 'mongodb';
-import {
-  type AppContainer,
-  createAppContainer
-} from '../../../../../../../src/apps/agroApi/container.js';
+import { asClass } from 'awilix';
+import { Collection } from 'mongodb';
 import { randomFamilyId } from '../../../../../../../src/Contexts/Agro/Families/domain/FamilyId.js';
 import type { FamilyRepository } from '../../../../../../../src/Contexts/Agro/Families/domain/repositories/interfaces/FamilyRepository.js';
 import type { FamilyPrimitives } from '../../../../../../../src/Contexts/Agro/Families/domain/types/FamilyPrimitives.js';
+import { MongoFamilyRepository } from '../../../../../../../src/Contexts/Agro/Families/infrastructure/persistence/MongoFamilyRepository.js';
 import { familyDomainMapper } from '../../../../../../../src/Contexts/Agro/Families/mappers/familyDomainMapper.js';
 import {
   DomainNotFoundException,
   DomainStaleVersionException
 } from '../../../../../../../src/Contexts/shared/domain/errors/index.js';
-import type { EnvironmentArranger } from '../../../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
-import { DBClientFactory } from '../../../../../../../src/shared/infrastructure/persistence/index.js';
-import { createTestDBConfig } from '../../../../../../shared/infrastructure/persistence/mongo/testDBConfig.js';
-import { SOURCE_ROOT } from '../../../../../../shared/sourceRoot.js';
+import {
+  createDbTestContext,
+  type DbTestContext
+} from '../../../../../../shared/infrastructure/persistence/mongo/dbTestContext.js';
 import { FamilyScenarios } from '../../../domain/mothers/FamilyScenarios.js';
 
-let container: AppContainer;
+let context: DbTestContext;
 let repository: FamilyRepository;
-let environmentArranger: Promise<EnvironmentArranger>;
-let client: MongoClient;
 
 describe('MongoFamilyRepository', () => {
   beforeAll(async () => {
-    client = await DBClientFactory.createClient(
-      'agroApi-test',
-      createTestDBConfig()
-    );
-
-    const db = client.db();
-
-    container = await createAppContainer({
-      db,
-      client,
-      sourceRoot: SOURCE_ROOT
+    context = await createDbTestContext({
+      familyRepository: asClass(MongoFamilyRepository).singleton()
     });
-    environmentArranger = Promise.resolve(
-      container.resolve<EnvironmentArranger>('environmentArranger')
-    );
-    repository = container.resolve<FamilyRepository>('familyRepository');
+    repository =
+      context.container.resolve<FamilyRepository>('familyRepository');
   });
+
   beforeEach(async () => {
-    await (await environmentArranger).arrange();
+    await context.reset();
   });
 
   afterEach(() => {
@@ -50,9 +36,7 @@ describe('MongoFamilyRepository', () => {
   });
 
   afterAll(async () => {
-    await (await environmentArranger).arrange();
-    await (await environmentArranger).close();
-    await client.close();
+    await context.close();
   });
 
   describe('save + findById', () => {

@@ -1,8 +1,18 @@
 import type { Config } from 'jest';
 
-const config: Config = {
+/**
+ * How long a finished test file (or the whole run) may keep resources open
+ * before the leak guard fails it. Read by `LeakGuardEnvironment` and the
+ * `leakWatchdog` from `testEnvironmentOptions`; not configurable from the
+ * environment.
+ */
+const LEAK_GRACE_PERIOD_MS = 10_000;
+
+const baseProjectConfig: Config = {
   preset: 'ts-jest',
-  testEnvironment: 'node',
+  // Fails a file that ends with timers, sockets or servers still open.
+  testEnvironment: '<rootDir>/tests/support/jest/LeakGuardEnvironment.ts',
+  testEnvironmentOptions: { leakGracePeriodMs: LEAK_GRACE_PERIOD_MS },
 
   setupFilesAfterEnv: ['<rootDir>/setupTests.ts'],
 
@@ -51,9 +61,28 @@ const config: Config = {
     '^(\\.{1,2}/.*)\\.js$': '$1'
   },
 
-  cacheDirectory: '.tmp/jestCache',
+  cacheDirectory: '.tmp/jestCache'
+};
 
-  collectCoverage: true,
+const config: Config = {
+  // A file opens a real Mongo connection if and only if it is `*.db.test.ts`.
+  projects: [
+    {
+      ...baseProjectConfig,
+      displayName: 'no-db',
+      testPathIgnorePatterns: ['/node_modules/', '\\.db\\.test\\.ts$'],
+      setupFiles: ['<rootDir>/tests/support/jest/noDbGuard.ts']
+    },
+    {
+      ...baseProjectConfig,
+      displayName: 'db',
+      testMatch: ['<rootDir>/**/*.db.test.ts'],
+      globalSetup: '<rootDir>/tests/support/jest/dbGlobalSetup.ts'
+    }
+  ],
+
+  // Fails the run when something keeps the main process alive after it.
+  globalTeardown: '<rootDir>/tests/support/jest/leakWatchdog.ts',
 
   collectCoverageFrom: [
     'src/**/*.ts',

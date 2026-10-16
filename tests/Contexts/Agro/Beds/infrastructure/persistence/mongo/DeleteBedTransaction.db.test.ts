@@ -1,23 +1,22 @@
-import type { Db, MongoClient } from 'mongodb';
+import { asClass } from 'awilix';
+import type { Db } from 'mongodb';
 
 import { up } from '../../../../../../../migrations/scripts/20261005140000-create-plant-instances-collection.js';
-import {
-  type AppContainer,
-  createAppContainer
-} from '../../../../../../../src/apps/agroApi/container.js';
-import type { DeleteBed } from '../../../../../../../src/Contexts/Agro/Beds/application/useCases/index.js';
+import { DeleteBed } from '../../../../../../../src/Contexts/Agro/Beds/application/useCases/index.js';
 import type { Bed } from '../../../../../../../src/Contexts/Agro/Beds/domain/entities/Bed.js';
 import type { BedRepository } from '../../../../../../../src/Contexts/Agro/Beds/domain/repositories/interfaces/BedRepository.js';
+import { MongoBedRepository } from '../../../../../../../src/Contexts/Agro/Beds/infrastructure/persistence/MongoBedRepository.js';
 import { PlantInstanceLifecycleStatus } from '../../../../../../../src/Contexts/Agro/PlantInstances/domain/entities/types/index.js';
 import type { PlantInstanceRepository } from '../../../../../../../src/Contexts/Agro/PlantInstances/domain/repositories/interfaces/PlantInstanceRepository.js';
+import { MongoPlantInstanceRepository } from '../../../../../../../src/Contexts/Agro/PlantInstances/infrastructure/persistence/MongoPlantInstanceRepository.js';
 import type { MongoPlantInstanceDocument } from '../../../../../../../src/Contexts/Agro/PlantInstances/infrastructure/persistence/types/MongoPlantInstanceDocument.js';
 import type { PlantInstancePersistenceMapper } from '../../../../../../../src/Contexts/Agro/PlantInstances/mappers/interfaces/PlantInstancePersistenceMapper.js';
 import type { UserSessionInfo } from '../../../../../../../src/Contexts/Auth/application/index.js';
 import { toMongoId } from '../../../../../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoId.js';
-import type { EnvironmentArranger } from '../../../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
-import { DBClientFactory } from '../../../../../../../src/shared/infrastructure/persistence/index.js';
-import { createTestDBConfig } from '../../../../../../shared/infrastructure/persistence/mongo/testDBConfig.js';
-import { SOURCE_ROOT } from '../../../../../../shared/sourceRoot.js';
+import {
+  createDbTestContext,
+  type DbTestContext
+} from '../../../../../../shared/infrastructure/persistence/mongo/dbTestContext.js';
 import { measureMs, median } from '../../../../../../shared/utils/latency.js';
 import { random } from '../../../../../shared/fixtures/random.js';
 import { PlantInstanceMother } from '../../../../PlantInstances/domain/mothers/PlantInstanceMother.js';
@@ -27,10 +26,8 @@ const WRITE_BUDGET_MS = 150;
 const LATENCY_RUNS = 10;
 const CROPS_PER_BED = 200;
 
-let container: AppContainer;
-let client: MongoClient;
+let context: DbTestContext;
 let db: Db;
-let environmentArranger: EnvironmentArranger;
 let bedRepository: BedRepository;
 let plantInstanceRepository: PlantInstanceRepository;
 let persistenceMapper: PlantInstancePersistenceMapper;
@@ -47,7 +44,7 @@ function ownerOf(bed: Bed): UserSessionInfo {
 }
 
 function deleteBed(): DeleteBed {
-  return container.createScope().resolve<DeleteBed>('deleteBed');
+  return context.container.createScope().resolve<DeleteBed>('deleteBed');
 }
 
 async function seedBedWithCrops(cropCount: number): Promise<Bed> {
@@ -75,21 +72,17 @@ async function cropsInBed(bed: Bed): Promise<MongoPlantInstanceDocument[]> {
 
 describe('DeleteBed transaction (integration)', () => {
   beforeAll(async () => {
-    client = await DBClientFactory.createClient(
-      'agroApi-test',
-      createTestDBConfig()
-    );
-    db = client.db();
+    context = await createDbTestContext({
+      bedRepository: asClass(MongoBedRepository).singleton(),
+      plantInstanceRepository: asClass(
+        MongoPlantInstanceRepository
+      ).singleton(),
+      deleteBed: asClass(DeleteBed).scoped()
+    });
+    db = context.db;
     await up(db);
 
-    container = await createAppContainer({
-      db,
-      client,
-      sourceRoot: SOURCE_ROOT
-    });
-    environmentArranger = container.resolve<EnvironmentArranger>(
-      'environmentArranger'
-    );
+    const { container } = context;
     bedRepository = container.resolve<BedRepository>('bedRepository');
     plantInstanceRepository = container.resolve<PlantInstanceRepository>(
       'plantInstanceRepository'
@@ -100,7 +93,7 @@ describe('DeleteBed transaction (integration)', () => {
   });
 
   beforeEach(async () => {
-    await environmentArranger.arrange();
+    await context.reset();
   });
 
   afterEach(() => {
@@ -108,7 +101,7 @@ describe('DeleteBed transaction (integration)', () => {
   });
 
   afterAll(async () => {
-    await client.close();
+    await context.close();
   });
 
   it('keeps the bed and every crop active when removing the crops fails', async () => {
