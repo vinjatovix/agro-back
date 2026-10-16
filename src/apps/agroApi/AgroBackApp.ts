@@ -8,7 +8,7 @@ import {
   DBClientFactory,
   DBConfigFactory
 } from '../../shared/infrastructure/persistence/index.js';
-import { createAppContainer } from './container.js';
+import { createAppContainer, type AppContainer } from './container.js';
 import { Server } from './server.js';
 
 export interface AgroBackAppConfig {
@@ -21,6 +21,7 @@ export class AgroBackApp {
   private client?: MongoClient;
   private db?: Db;
   private server?: Server;
+  private appContainer?: AppContainer;
   private host?: string;
 
   constructor(private readonly config: AgroBackAppConfig) {}
@@ -38,6 +39,7 @@ export class AgroBackApp {
       client: this.client,
       sourceRoot
     });
+    this.appContainer = container;
     this.server = new Server(host, port, logger, container);
 
     await this.server.listen();
@@ -65,5 +67,10 @@ export class AgroBackApp {
 
   get httpServer() {
     return this.server?.getHTTPServer();
+  }
+
+  /** The container serving requests, once started. */
+  get container(): AppContainer | undefined {
+    return this.appContainer;
   }
 }

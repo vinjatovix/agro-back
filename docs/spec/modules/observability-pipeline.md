@@ -8,7 +8,7 @@ status: evolving
 
 ## 1. PURPOSE `[TARGET STATE (Pending Iterations [48](../../roadmap.md#iteration-48-implement-mongodb-change-stream-tailer-for-outbox) & [43](../../roadmap.md#iteration-43-implement-winston-kafka-transport))]`
 
-Defines the technical specifications, boundaries, and policies of AgroApp's distributed logging pipeline, ensuring high-availability and performant system monitoring through the PLG Stack (Promtail/Vector, Loki, Grafana) buffered by Apache Kafka.
+Defines the technical specifications, boundaries, and policies of MiBancal's distributed logging pipeline, ensuring high-availability and performant system monitoring through the PLG Stack (Promtail/Vector, Loki, Grafana) buffered by Apache Kafka.
 
 ---
 
@@ -17,7 +17,7 @@ Defines the technical specifications, boundaries, and policies of AgroApp's dist
 The system's technical telemetry and diagnostic logs follow this streaming path:
 
 ```
-[ AgroApp API (Winston) ]
+[ MiBancal API (Winston) ]
             │
             │ (Winston Kafka Transport) - Asynchronous Transport
             ▼

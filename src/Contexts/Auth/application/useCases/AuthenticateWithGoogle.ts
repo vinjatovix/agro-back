@@ -1,4 +1,7 @@
-import { DomainUnauthorizedException } from '../../../shared/domain/errors/index.js';
+import {
+  DomainConflictException,
+  DomainUnauthorizedException
+} from '../../../shared/domain/errors/index.js';
 import { Email, Metadata } from '../../../shared/domain/valueObject/index.js';
 import {
   buildLogger,
@@ -6,7 +9,6 @@ import {
   type GoogleIdTokenVerifierTool
 } from '../../../shared/plugins/index.js';
 import { User } from '../../domain/entities/User.js';
-import { UserPatch } from '../../domain/entities/UserPatch.js';
 import type { AuthRepository } from '../../domain/repositories/interfaces/AuthRepository.js';
 import { randomUserId } from '../../domain/UserId.js';
 import {
@@ -15,6 +17,8 @@ import {
   UserRoles
 } from '../../domain/value-objects/index.js';
 import type { AuthenticateWithGoogleRequest } from '../interfaces/index.js';
+import { CONCURRENT_CHANGE_MESSAGE } from '../messages.js';
+import type { AccountNotifier } from '../notifications/index.js';
 
 const logger = buildLogger('authenticateWithGoogle');
 const INVALID_GOOGLE_TOKEN_MESSAGE = 'Invalid Google token';
@@ -25,21 +29,25 @@ export type AuthenticateWithGoogleDependencies = {
   authRepository: AuthRepository;
   encrypter: EncrypterTool;
   googleIdTokenVerifier: GoogleIdTokenVerifierTool;
+  accountNotifier: AccountNotifier;
 };
 
 export class AuthenticateWithGoogle {
   private readonly authRepository: AuthRepository;
   private readonly encrypter: EncrypterTool;
   private readonly googleIdTokenVerifier: GoogleIdTokenVerifierTool;
+  private readonly accountNotifier: AccountNotifier;
 
   constructor({
     authRepository,
     encrypter,
-    googleIdTokenVerifier
+    googleIdTokenVerifier,
+    accountNotifier
   }: AuthenticateWithGoogleDependencies) {
     this.authRepository = authRepository;
     this.encrypter = encrypter;
     this.googleIdTokenVerifier = googleIdTokenVerifier;
+    this.accountNotifier = accountNotifier;
   }
 
   async run({ idToken }: AuthenticateWithGoogleRequest): Promise<string> {
@@ -74,46 +82,60 @@ export class AuthenticateWithGoogle {
       return existingByProvider;
     }
 
-    const existingByEmail = await this.authRepository.search(email);
-    if (existingByEmail) {
-      const linkedMethod = existingByEmail.findAuthMethod('google');
-      if (linkedMethod && linkedMethod.providerUserId !== providerUserId) {
-        throw new DomainUnauthorizedException(INVALID_GOOGLE_TOKEN_MESSAGE);
-      }
-
-      if (!linkedMethod) {
-        await this.linkGoogleMethod(existingByEmail, providerUserId);
-      }
-
-      logger.info(
-        `User <${existingByEmail.username.value}> linked Google authentication`
-      );
-      return existingByEmail;
-    }
-
-    return this.createGoogleUser(email, providerUserId);
+    return this.resolveByEmail(email, providerUserId, { isRetry: false });
   }
 
-  private async linkGoogleMethod(
+  private async resolveByEmail(
+    email: string,
+    providerUserId: string,
+    { isRetry }: { isRetry: boolean }
+  ): Promise<User> {
+    const existingByEmail = await this.authRepository.search(email);
+    if (!existingByEmail) {
+      return this.createGoogleUser(email, providerUserId);
+    }
+
+    const linked = await this.linkGoogle(existingByEmail, providerUserId);
+    if (linked) return existingByEmail;
+
+    // Another change landed between the read and the write: read once more.
+    if (isRetry) {
+      throw new DomainConflictException(CONCURRENT_CHANGE_MESSAGE);
+    }
+
+    return this.resolveByEmail(email, providerUserId, { isRetry: true });
+  }
+
+  /**
+   * Links Google to an account found by email. Answers `false` when the
+   * write lost a race (`stale`) and nothing was stored.
+   */
+  private async linkGoogle(
     user: User,
     providerUserId: string
-  ): Promise<void> {
-    const linkedAt = new Date();
-    const userPatch = new UserPatch({
-      id: user.id,
-      metadata: Metadata.update(user.metadata, user.username.value, linkedAt),
-      ...(user.emailValidated ? {} : { emailValidated: true }),
-      authMethods: [
-        ...user.authMethods,
-        new UserAuthMethod({
-          provider: 'google',
-          providerUserId,
-          linkedAt
-        })
-      ]
-    });
+  ): Promise<boolean> {
+    const linkedMethod = user.findAuthMethod('google');
+    if (linkedMethod && linkedMethod.providerUserId !== providerUserId) {
+      throw new DomainUnauthorizedException(INVALID_GOOGLE_TOKEN_MESSAGE);
+    }
 
-    await this.authRepository.update(userPatch);
+    const now = new Date();
+    const before = user.toPrimitives();
+    const outcome = user.linkProvider(
+      new UserAuthMethod({ provider: 'google', providerUserId, linkedAt: now }),
+      now
+    );
+    if (outcome === 'alreadyLinked') return true;
+
+    const write = await this.authRepository.update(before, user.toPrimitives());
+    if (write === 'stale') return false;
+
+    if (outcome === 'linkedToActiveAccount') {
+      this.accountNotifier.providerLinked(user.email, 'google', now);
+    }
+
+    logger.info(`User <${user.username.value}> linked Google authentication`);
+    return true;
   }
 
   private async createGoogleUser(

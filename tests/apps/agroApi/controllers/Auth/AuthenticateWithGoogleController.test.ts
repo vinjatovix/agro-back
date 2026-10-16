@@ -5,6 +5,7 @@ import { AuthenticateWithGoogleController } from '../../../../../src/apps/agroAp
 import { googleAuthRequest } from '../../../../../src/apps/agroApi/controllers/Auth/requestSchemas.js';
 import { AuthenticateWithGoogle } from '../../../../../src/Contexts/Auth/application/index.js';
 import {
+  AccountNotifierMock,
   AuthRepositoryMock,
   EncrypterAdapterMock,
   GoogleIdTokenVerifierMock
@@ -32,7 +33,8 @@ describe('AuthenticateWithGoogleController', () => {
         email: 'google-user@aa.com',
         emailVerified: true,
         name: 'Google User'
-      })
+      }),
+      accountNotifier: new AccountNotifierMock()
     });
     controller = new AuthenticateWithGoogleController({
       authenticateWithGoogle

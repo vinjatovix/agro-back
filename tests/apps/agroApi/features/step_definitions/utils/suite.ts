@@ -6,7 +6,11 @@ import {
   createAppContainer,
   type AppContainer
 } from '../../../../../../src/apps/agroApi/container.js';
-import type { EncrypterTool } from '../../../../../../src/Contexts/shared/plugins/index.js';
+import type { AuthRepository } from '../../../../../../src/Contexts/Auth/domain/repositories/interfaces/AuthRepository.js';
+import type {
+  EncrypterTool,
+  OneTimeTokenTool
+} from '../../../../../../src/Contexts/shared/plugins/index.js';
 import type { EnvironmentArranger } from '../../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
 import {
   DBClientFactory,
@@ -29,6 +33,8 @@ export interface SuiteResources {
   readonly httpServer: Server;
   readonly client: MongoClient;
   readonly container: AppContainer;
+  /** The container serving the API's requests (its mailer, its tasks). */
+  readonly appContainer: AppContainer;
   readonly environmentArranger: EnvironmentArranger;
   readonly tokens: Readonly<Record<SuiteRole, string>>;
   readonly ids: Readonly<Record<SuiteRole, string>>;
@@ -104,6 +110,13 @@ const buildSuite = async (): Promise<SuiteResources> => {
 
   const httpServer = app.httpServer;
 
+  if (!app.container) {
+    throw new TypeError('Application container is not available');
+  }
+
+  const appContainer = app.container;
+  const encrypter = container.resolve<EncrypterTool>('encrypter');
+
   const ids: Record<SuiteRole, string> = {
     admin: random.uuid(),
     user: random.uuid(),
@@ -111,23 +124,25 @@ const buildSuite = async (): Promise<SuiteResources> => {
     collaborator: random.uuid()
   };
 
-  const tokens = await generateTokens(
-    container.resolve<EncrypterTool>('encrypter'),
-    ids
-  );
+  const tokens = await generateTokens(encrypter, ids);
 
   return {
     app,
     httpServer,
     client,
     container,
+    appContainer,
     environmentArranger,
     tokens,
     ids,
     seeders: {
       family: FamilySeeder(httpServer, tokens.admin),
       plant: PlantSeeder(httpServer, tokens.admin),
-      user: UserSeeder(httpServer)
+      user: UserSeeder({
+        authRepository: container.resolve<AuthRepository>('authRepository'),
+        encrypter,
+        oneTimeToken: container.resolve<OneTimeTokenTool>('oneTimeToken')
+      })
     }
   };
 };

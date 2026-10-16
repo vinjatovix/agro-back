@@ -5,7 +5,7 @@ Feature: Authenticate with Google
   I want to authenticate using a Google id token
 
   Scenario: Authenticate a new user with a valid Google token
-    Given a POST request to "/api/v1/auth/google" with body
+    When a POST request to "/api/v1/auth/google" with body
       """
       {
         "idToken": "test-google|google-sub-001|google.new%40aa.com|true|Google%20New"
@@ -15,44 +15,49 @@ Feature: Authenticate with Google
     Then the response body should include an auth token
     And response matches OpenAPI contract
 
-  Scenario: Link Google auth method to an existing local account
-    # 1) First we create a LOCAL account (password-based auth only).
-    Given a POST request to "/api/v1/auth/register" with body
+  Scenario: Google sign-in secures a pending account: its password stops working
+    Given a pending account exists with email "google.pending@aa.com" and password "#aD3fe2.0%"
+    When a POST request to "/api/v1/auth/google" with body
       """
       {
-        "id": "6fbbd4ef-5870-4ee3-9605-9316e57edf10",
-        "username": "googlelink1",
-        "email": "google.link@aa.com",
-        "password": "#aD3fe2.0%",
-        "repeatPassword": "#aD3fe2.0%"
+        "idToken": "test-google|google-sub-pending|google.pending%40aa.com|true|Google%20Pending"
       }
       """
-    Then the response status code should be 201
-    Then the response body should be empty
+    Then the response status code should be 200
+    And the response body should include an auth token
     And response matches OpenAPI contract
+    And the stored user "google.pending@aa.com" should be validated
+    And the stored user "google.pending@aa.com" should have no password
+    And the account "google.pending@aa.com" should not log in with password "#aD3fe2.0%"
+    And no email should have been sent
 
-    # 2) First Google sign-in for that same email:
-    #    there is no google auth method yet, so backend links Google -> local account.
-    Given a POST request to "/api/v1/auth/google" with body
+  Scenario: Google sign-in links an active account, which keeps its password
+    Given an active account exists with email "google.link@aa.com" and password "#aD3fe2.0%"
+    When a POST request to "/api/v1/auth/google" with body
       """
       {
         "idToken": "test-google|google-sub-link-001|google.link%40aa.com|true|Google%20Linked"
       }
       """
     Then the response status code should be 200
-    Then the response body should include an auth token
+    And the response body should include an auth token
     And response matches OpenAPI contract
-    # 3) Second Google sign-in with same sub:
-    #    now the account is already linked, so this is pure Google login (idempotency check).
-    Given a POST request to "/api/v1/auth/google" with body
+    And the account "google.link@aa.com" should log in with password "#aD3fe2.0%"
+    And 1 email should have been sent to "google.link@aa.com"
+    And the last email to "google.link@aa.com" should have subject "Se ha vinculado Google a tu cuenta"
+
+  Scenario: An account already linked to Google changes nothing
+    Given an account linked to Google identity "google-sub-linked" exists with email "google.linked@aa.com"
+    When a POST request to "/api/v1/auth/google" with body
       """
       {
-        "idToken": "test-google|google-sub-link-001|google.link%40aa.com|true|Google%20Linked"
+        "idToken": "test-google|google-sub-linked|google.linked%40aa.com|true|Google%20Linked"
       }
       """
     Then the response status code should be 200
-    Then the response body should include an auth token
+    And the response body should include an auth token
     And response matches OpenAPI contract
+    And no email should have been sent
 
   Scenario: Invalid Google token
     Given a POST request to "/api/v1/auth/google" with body

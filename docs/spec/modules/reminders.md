@@ -8,7 +8,7 @@ status: evolving
 
 ## 1. PURPOSE `[TARGET STATE (Pending [Iteration 79](../../roadmap.md#iteration-79-implement-stateful-reminder-aggregate-and-crud))]`
 
-This module defines the explicit, stateful, and persisted care task recommendation engine of AgroApp.
+This module defines the explicit, stateful, and persisted care task recommendation engine of MiBancal.
 
 It is responsible for automatically generating, scheduling, and updating task actions (such as watering, fertilization, or crop rotations) to guide the gardener's daily activities.
 

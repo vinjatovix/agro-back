@@ -44,31 +44,34 @@ import type {
 import type { PlantQueryMapper } from '../../../Contexts/Agro/Plants/infrastructure/persistence/mongo/mappers/PlantQueryMapper.js';
 import type { MongoPlantRepository } from '../../../Contexts/Agro/Plants/infrastructure/persistence/mongo/MongoPlantRepository.js';
 import type { PlantPersistenceMapper } from '../../../Contexts/Agro/Plants/mappers/interfaces/PlantPersistenceMapper.js';
+import type { AccountNotifier } from '../../../Contexts/Auth/application/notifications/index.js';
 import type {
+  ActivateAccount,
   AuthenticateWithGoogle,
   LoginUserLocal,
   RefreshToken,
   RegisterUserLocal,
-  UpdatePasswordLocal,
-  ValidateMail
+  UpdatePasswordLocal
 } from '../../../Contexts/Auth/application/useCases/index.js';
 import type { MongoAuthRepository } from '../../../Contexts/Auth/infrastructure/persistence/MongoAuthRepository.js';
 import type { CheckHealth } from '../../../Contexts/health/application/useCases/CheckHealth.js';
+import type { BackgroundTasks } from '../../../Contexts/shared/application/background/index.js';
 import type { UnitOfWork } from '../../../Contexts/shared/application/interfaces/index.js';
 import type { Mailer } from '../../../Contexts/shared/application/mailer/index.js';
 import type {
   AppLogger,
   EncrypterTool,
-  GoogleIdTokenVerifierAdapter
+  GoogleIdTokenVerifierAdapter,
+  OneTimeTokenTool
 } from '../../../Contexts/shared/plugins/index.js';
 import type { DBEnvironmentArranger } from '../../../shared/infrastructure/persistence/index.js';
 import type {
+  ActivateAccountController,
   AuthenticateWithGoogleController,
   LoginUserLocalController,
   RefreshTokenController,
   RegisterUserLocalController,
-  UpdatePasswordLocalController,
-  ValidateMailController
+  UpdatePasswordLocalController
 } from '../controllers/Auth/index.js';
 import type {
   CreateBedController,
@@ -113,11 +116,16 @@ export type ContainerCradle = {
   unitOfWork: UnitOfWork;
   familySummaryReader: FamilySummaryReader;
   mailer: Mailer;
+  backgroundTasks: BackgroundTasks;
+  accountNotifier: AccountNotifier;
+  emailValidationRequired: boolean;
+  activationLinkBaseUrl: string;
 
   // Singletons
   environmentArranger: DBEnvironmentArranger;
   encrypter: EncrypterTool;
   googleIdTokenVerifier: GoogleIdTokenVerifierAdapter;
+  oneTimeToken: OneTimeTokenTool;
   authRepository: MongoAuthRepository;
   familyRepository: MongoFamilyRepository;
   familyReadRepository: FamilyReadRepository;
@@ -132,7 +140,7 @@ export type ContainerCradle = {
   registerUserLocal: RegisterUserLocal;
   loginUserLocal: LoginUserLocal;
   authenticateWithGoogle: AuthenticateWithGoogle;
-  validateMail: ValidateMail;
+  activateAccount: ActivateAccount;
   refreshToken: RefreshToken;
   updatePasswordLocal: UpdatePasswordLocal;
   createFamily: CreateFamily;
@@ -161,7 +169,7 @@ export type ContainerCradle = {
   registerUserLocalController: RegisterUserLocalController;
   loginUserLocalController: LoginUserLocalController;
   authenticateWithGoogleController: AuthenticateWithGoogleController;
-  validateMailController: ValidateMailController;
+  activateAccountController: ActivateAccountController;
   refreshTokenController: RefreshTokenController;
   updatePasswordLocalController: UpdatePasswordLocalController;
   createFamilyController: CreateFamilyController;

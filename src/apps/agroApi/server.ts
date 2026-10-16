@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import qs from 'qs';
 
 import migrations from '../../../migrations/index.js';
+import type { BackgroundTasks } from '../../Contexts/shared/application/background/index.js';
 import type { AppLogger } from '../../Contexts/shared/plugins/logger.plugin.js';
 import { envs } from './config/plugins/envs.plugin.js';
 import type { AppContainer } from './container.js';
@@ -122,6 +123,11 @@ export class Server {
   }
 
   async stop(): Promise<void> {
+    await this.closeHttpServer();
+    await this.drainBackgroundTasks();
+  }
+
+  private closeHttpServer(): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!this.httpServer) {
         resolve();
@@ -139,5 +145,31 @@ export class Server {
         resolve();
       });
     });
+  }
+
+  /**
+   * Waits for work started after an answer (emails) for at most
+   * `MAIL_SEND_TIMEOUT_MS`, so a clean shutdown does not drop it.
+   */
+  private async drainBackgroundTasks(): Promise<void> {
+    const backgroundTasks =
+      this.container.resolve<BackgroundTasks>('backgroundTasks');
+    let timer: NodeJS.Timeout | undefined;
+    const timeout = new Promise<'timeout'>((resolve) => {
+      timer = setTimeout(() => resolve('timeout'), envs.MAIL_SEND_TIMEOUT_MS);
+    });
+
+    try {
+      const outcome = await Promise.race([
+        backgroundTasks.idle().then(() => 'idle' as const),
+        timeout
+      ]);
+
+      if (outcome === 'timeout') {
+        this.logger.warn('Stopped before every background task settled');
+      }
+    } finally {
+      clearTimeout(timer);
+    }
   }
 }

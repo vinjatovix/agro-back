@@ -252,7 +252,7 @@ Agro-Back implements an Express HTTP server starting at `src/index.ts`. All endp
     - `POST /register` ──► Registers local credentials.
     - `POST /login` ──► Standard local login.
     - `POST /google` ──► Verifies Google ID tokens.
-    - `GET /validate/:token` ──► Validates registration token.
+    - `POST /activate` ──► Validates the email with the emailed activation token.
     - `POST /refresh` ──► Renews session token.
     - `POST /update` ──► Modifies profile password/credentials.
 2.  **Beds (`/api/v1/beds`):**

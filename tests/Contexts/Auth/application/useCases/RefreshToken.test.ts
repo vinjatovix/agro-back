@@ -1,28 +1,77 @@
 import { RefreshToken } from '../../../../../src/Contexts/Auth/application/useCases/RefreshToken.js';
 import { DomainUnauthorizedException } from '../../../../../src/Contexts/shared/domain/errors/index.js';
 import { random } from '../../../shared/fixtures/index.js';
+import { AuthRepositoryMock } from '../../__mocks__/AuthRepositoryMock.js';
 import { EncrypterAdapterMock } from '../../__mocks__/EncrypterAdapterMock.js';
+import { UserMother } from '../../domain/mothers/UserMother.js';
+
+const errorOf = (promise: Promise<unknown>): Promise<unknown> =>
+  promise.then(
+    () => undefined,
+    (error: unknown) => error
+  );
 
 describe('RefreshToken', () => {
-  it('should return a new token when current token is refreshable', async () => {
-    const encrypter = new EncrypterAdapterMock({ refresh: true });
-    const refreshToken = new RefreshToken({ encrypter });
-    const token = random.word({ min: 6, max: 255 });
+  let repository: AuthRepositoryMock;
+  let encrypter: EncrypterAdapterMock;
+  const token = random.word({ min: 6, max: 255 });
 
-    const newToken = await refreshToken.run(token);
+  const build = (emailValidationRequired = true): RefreshToken =>
+    new RefreshToken({
+      authRepository: repository,
+      encrypter,
+      emailValidationRequired
+    });
+
+  beforeEach(() => {
+    repository = new AuthRepositoryMock();
+    encrypter = new EncrypterAdapterMock({ refresh: true });
+  });
+
+  it('should return a new token for an active account', async () => {
+    const user = UserMother.active();
+    repository.setSearchByIdResult(user);
+
+    const newToken = await build().run({ token, userId: user.id });
 
     expect(newToken).toEqual(expect.any(String));
+    repository.assertSearchByIdHasBeenCalledWith(user.id);
     encrypter.assertRefreshTokenHasBeenCalledWith(token);
   });
 
   it('should throw an auth error when token cannot be refreshed', async () => {
-    const encrypter = new EncrypterAdapterMock({ refresh: false });
-    const refreshToken = new RefreshToken({ encrypter });
-    const token = random.word({ min: 6, max: 255 });
+    encrypter = new EncrypterAdapterMock({ refresh: false });
+    const user = UserMother.active();
+    repository.setSearchByIdResult(user);
 
-    await expect(refreshToken.run(token)).rejects.toThrow(
+    await expect(build().run({ token, userId: user.id })).rejects.toThrow(
       DomainUnauthorizedException
     );
-    encrypter.assertRefreshTokenHasBeenCalledWith(token);
+  });
+
+  it.each([
+    ['the account no longer exists', () => null],
+    ['the email is not validated', () => UserMother.pending()]
+  ])('should refuse like a bad token when %s', async (_case, found) => {
+    repository.setSearchByIdResult(found());
+
+    const refused = await errorOf(
+      build().run({ token, userId: random.uuid() })
+    );
+
+    expect(refused).toBeInstanceOf(DomainUnauthorizedException);
+    encrypter = new EncrypterAdapterMock({ refresh: false });
+    repository.setSearchByIdResult(UserMother.active());
+    expect(refused).toEqual(
+      await errorOf(build().run({ token, userId: random.uuid() }))
+    );
+  });
+
+  it('should refresh a pending account when validation is not required', async () => {
+    repository.setSearchByIdResult(UserMother.pending());
+
+    await expect(
+      build(false).run({ token, userId: random.uuid() })
+    ).resolves.toEqual(expect.any(String));
   });
 });

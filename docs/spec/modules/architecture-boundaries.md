@@ -8,7 +8,7 @@ status: stable
 
 ## 1. PURPOSE
 
-Defines strict separation rules across AgroApp architecture layers.
+Defines strict separation rules across MiBancal architecture layers.
 
 ---
 

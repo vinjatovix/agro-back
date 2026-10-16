@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { PASSWORDS_DO_NOT_MATCH_MESSAGE } from '../../../../Contexts/Auth/application/index.js';
 import type { RequestSchemas } from '../../middlewares/validateRequest.js';
-import { emptyBody, emptyQuery } from '../../shared/requestSchemas.js';
+import { emptyQuery } from '../../shared/requestSchemas.js';
 
 type PasswordPair = { password: string; repeatPassword: string };
 
@@ -44,7 +44,7 @@ const loginBody = z.object({
 
 const googleAuthBody = z.object({ idToken: z.string() });
 
-const validateMailParams = z.object({ token: z.string().min(1) });
+const activateBody = z.object({ token: z.string().min(1).max(512) });
 
 const updatePasswordBody = withMatchingPasswords(
   z.object({
@@ -69,10 +69,9 @@ export const googleAuthRequest = {
   body: googleAuthBody
 } satisfies RequestSchemas;
 
-export const validateMailRequest = {
-  params: validateMailParams,
+export const activateRequest = {
   query: emptyQuery,
-  body: emptyBody
+  body: activateBody
 } satisfies RequestSchemas;
 
 export const updatePasswordRequest = {

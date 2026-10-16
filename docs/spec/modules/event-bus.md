@@ -8,7 +8,7 @@ status: evolving
 
 ## 1. PURPOSE `[TARGET STATE (Pending Iterations [47](../../roadmap.md#iteration-47-write-domain-events-to-outbox-within-transactions), [48](../../roadmap.md#iteration-48-implement-mongodb-change-stream-tailer-for-outbox) & [50](../../roadmap.md#iteration-50-implement-consumer-idempotence-with-ttl-store))]`
 
-Defines the event-driven integration layer of AgroApp.
+Defines the event-driven integration layer of MiBancal.
 
 It specifies how modules publish and consume asynchronous **Domain Events** to trigger cross-module workflows (such as updating or dismissing scheduled Reminders when plants are removed or watered) in a decoupled, resilient, and chronological manner.
 

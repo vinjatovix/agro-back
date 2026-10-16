@@ -66,6 +66,7 @@ jobs:
       MONGO_PASSWORD: localPassword
       MONGO_APP_NAME: 'Cluster0'
       JWT_SECRET: secret
+      FRONTEND_BASE_URL: http://localhost:5173
       JWT_DEFAULT_DURATION: 2h
       BCRYPT_SALT_ROUNDS: 4
       MONGO_REPLICA_SET: rs0

@@ -1,13 +1,13 @@
 openapi: 3.0.3
 
 info:
-  title: AgroApp API
+  title: MiBancal API
   version: 1.0.0
-  description: API for managing plants and user authentication in the AgroApp application.
+  description: API for managing plants and user authentication in the MiBancal application.
   termsOfService: http://example.com/terms/
   contact:
-    name: AgroApp Support
-    email: vinjadevix@gmail.com
+    name: MiBancal Support
+    email: hola@mibancal.app
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
@@ -48,7 +48,15 @@ paths:
   /api/v1/auth/register:
     post:
       tags: [Auth]
-      summary: Register user
+      summary: Register a local account
+      description: >
+        Every well-formed registration gets the same `202` with an empty body,
+        whether or not the email already has an account. If the registration can
+        proceed, an activation email is on its way (Spanish only). The owner of an
+        existing account gets a "registration attempt" notice instead. The id and
+        the username are checked before the email: a taken id or username is a
+        `409` that does not depend on the email. Every attempt counts towards the
+        rate limit (5 per IP every 15 minutes).
       requestBody:
         required: true
         content:
@@ -56,10 +64,43 @@ paths:
             schema:
               $ref: '#/components/schemas/RegisterUserRequest'
       responses:
-        '201':
-          description: User created. No body; call `/auth/login` to get a token.
+        '202':
+          description: >
+            Accepted. No body. Activate the account from the emailed link, then
+            call `/auth/login`.
+        # Request shape or password rules only; never says that the email
+        # already has an account.
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        # "User with id <id> already exists" or "Username already in use".
         '409':
           $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/auth/activate:
+    post:
+      tags: [Auth]
+      summary: Activate an account with the emailed token
+      description: >
+        Called by the frontend page the activation email links to; the page reads
+        the token from the link's fragment (`#token=…`) and posts it here. The
+        token is single-use and expires 24 hours after it was issued. Success only
+        confirms the email; it returns no session token. Failed attempts count
+        towards the authentication rate limit.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivateAccountRequest'
+      responses:
+        '204':
+          description: Email validated. Log in with `/auth/login`.
+        # A schema error (`errors.token`, `errors.<unknown field>`), or the
+        # uniform `{ "message": "Invalid or expired token" }` for any token that
+        # cannot activate an account (unknown, expired, used, replaced,
+        # malformed or of another purpose).
         '400':
           $ref: '#/components/responses/ValidationError'
         '500':
@@ -69,6 +110,9 @@ paths:
     post:
       tags: [Auth]
       summary: Login user
+      description: >
+        An account whose email is not validated is refused with the same `401`
+        as wrong credentials (except when the API runs in `development`).
       requestBody:
         required: true
         content:
@@ -97,6 +141,12 @@ paths:
     post:
       tags: [Auth]
       summary: Authenticate with Google
+      description: >
+        Signing in with Google for the email of an existing account links Google
+        to it. If that account's email was not validated, its local password is
+        removed and the email becomes validated; if it was validated, the password
+        stays and the owner is emailed that Google was linked. Always answers the
+        usual `{ token }`.
       requestBody:
         required: true
         content:
@@ -121,38 +171,13 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  /api/v1/auth/validate/{token}:
-    get:
-      tags: [Auth]
-      summary: Validate email
-      parameters:
-        - name: token
-          in: path
-          required: true
-          schema:
-            type: string
-            minLength: 1
-      responses:
-        '200':
-          description: Email validated
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  token:
-                    type: string
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
   /api/v1/auth/refresh:
     post:
       tags: [Auth]
       summary: Refresh token
+      description: >
+        Refused with the same `401` as an invalid token when the account no
+        longer exists or its email is not validated (except in `development`).
       security:
         - bearerAuth: []
       responses:
@@ -1384,6 +1409,17 @@ components:
           minLength: 8
           maxLength: 64
           description: Must equal `password`.
+
+    ActivateAccountRequest:
+      type: object
+      additionalProperties: false
+      required: [token]
+      properties:
+        token:
+          type: string
+          minLength: 1
+          maxLength: 512
+          description: Opaque token from the activation link (43 base64url characters today).
 
     AuthenticateWithGoogleRequest:
       type: object

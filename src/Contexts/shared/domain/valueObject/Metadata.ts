@@ -9,10 +9,8 @@ export class Metadata implements Serializable<MetadataPrimitives> {
     public readonly updatedBy: string
   ) {}
 
-  static create(user: string): Metadata {
-    const now = new Date();
-
-    return new Metadata(now, user, now, user);
+  static create(user: string, at: Date = new Date()): Metadata {
+    return new Metadata(at, user, at, user);
   }
 
   static update(

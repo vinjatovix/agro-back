@@ -13,7 +13,11 @@ export const EXPLICIT_NAMES: ReadonlySet<string> = new Set([
   'cropSpatialService',
   'unitOfWork',
   'familySummaryReader',
-  'mailer'
+  'mailer',
+  'backgroundTasks',
+  'accountNotifier',
+  'emailValidationRequired',
+  'activationLinkBaseUrl'
 ]);
 
 export function getCradlePropertyNames(cradleFilePath: string): string[] {

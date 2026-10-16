@@ -8,7 +8,7 @@ status: formalized (derived from feature tests + QueryOptions implementation)
 
 ## 1. PURPOSE
 
-Defines the canonical Query Language used across AgroApp.
+Defines the canonical Query Language used across MiBancal.
 
 This module specifies how external query parameters are translated into structured QueryOptions used by the application layer.
 
@@ -345,6 +345,6 @@ But NOT:
 
 ## 13. FINAL STATEMENT
 
-This module defines the **semantic query language of AgroApp**.
+This module defines the **semantic query language of MiBancal**.
 
 It is stable, versioned, and independent of transport.

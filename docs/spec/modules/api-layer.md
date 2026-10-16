@@ -8,7 +8,7 @@ status: evolving
 
 ## 1. PURPOSE
 
-This module defines the external HTTP contract of AgroApp.
+This module defines the external HTTP contract of MiBancal.
 
 It specifies the resources exposed to clients, including:
 
@@ -52,14 +52,14 @@ All authentication, session, JWT payload, and user profile location management d
 
 Auth routes validate input with the shared Zod step `validateRequest` (validation.md §3.2–§3.3; rules per route in auth.md §3.3). The strict body schema reports an empty body as one error per missing field. The request objects live in `controllers/Auth/requestSchemas.ts`: routes import them from the controllers barrel and controllers from the sibling file, so dependencies only go `routes → controllers`.
 
-| Route                       | Chain                                                           |
-| --------------------------- | --------------------------------------------------------------- |
-| `POST /auth/register`       | `authLimiter → validateRequest(registerRequest) → controller`   |
-| `POST /auth/login`          | `authLimiter → validateRequest(loginRequest) → controller`      |
-| `POST /auth/google`         | `authLimiter → validateRequest(googleAuthRequest) → controller` |
-| `GET /auth/validate/:token` | `validateRequest(validateMailRequest) → controller`             |
-| `POST /auth/refresh`        | `auth → controller` (no input schema)                           |
-| `POST /auth/update`         | `auth → validateRequest(updatePasswordRequest) → controller`    |
+| Route                 | Chain                                                                 |
+| --------------------- | --------------------------------------------------------------------- |
+| `POST /auth/register` | `registrationLimiter → validateRequest(registerRequest) → controller` |
+| `POST /auth/activate` | `authLimiter → validateRequest(activateRequest) → controller`         |
+| `POST /auth/login`    | `authLimiter → validateRequest(loginRequest) → controller`            |
+| `POST /auth/google`   | `authLimiter → validateRequest(googleAuthRequest) → controller`       |
+| `POST /auth/refresh`  | `auth → controller` (no input schema)                                 |
+| `POST /auth/update`   | `auth → validateRequest(updatePasswordRequest) → controller`          |
 
 Health (`GET /health`, `GET /test-error`) reads no client input and has no input schema.
 

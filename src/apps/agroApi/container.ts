@@ -15,7 +15,9 @@ import { familyPersistenceMapper } from '../../Contexts/Agro/Families/mappers/fa
 import { CropSpatialService } from '../../Contexts/Agro/PlantInstances/domain/services/CropSpatialService.js';
 import { plantInstancePersistenceMapper } from '../../Contexts/Agro/PlantInstances/mappers/plantInstancePersistenceMapper.js';
 import { plantPersistenceMapper } from '../../Contexts/Agro/Plants/mappers/plantPersistenceMapper.js';
+import { MailerAccountNotifier } from '../../Contexts/Auth/application/notifications/index.js';
 import type { Mailer } from '../../Contexts/shared/application/mailer/index.js';
+import { InProcessBackgroundTasks } from '../../Contexts/shared/infrastructure/background/index.js';
 import { createMailer } from '../../Contexts/shared/infrastructure/mailer/index.js';
 import { MongoUnitOfWork } from '../../Contexts/shared/infrastructure/persistence/mongo/MongoUnitOfWork.js';
 import {
@@ -76,7 +78,11 @@ export function buildExplicitRegistrations({
         logger,
         appVersion: pkg.version
       })
-    ) // One channel picked from NODE_ENV and RESEND_API_KEY; fails start-up on bad settings
+    ), // One channel picked from NODE_ENV and RESEND_API_KEY; fails start-up on bad settings
+    backgroundTasks: asClass(InProcessBackgroundTasks).singleton(), // Work started after the answer (emails); drained on shutdown
+    accountNotifier: asClass(MailerAccountNotifier).singleton(), // Spanish account emails, sent in the background
+    emailValidationRequired: asValue(envs.NODE_ENV !== 'development'), // Login and refresh need a validated email, except in development
+    activationLinkBaseUrl: asValue(envs.FRONTEND_BASE_URL) // Frontend page the activation email links to
   };
 }
 

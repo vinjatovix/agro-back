@@ -1,12 +1,8 @@
 import { UpdatePasswordLocal } from '../../../../../src/Contexts/Auth/application/useCases/UpdatePasswordLocal.js';
-import type { UserPatch } from '../../../../../src/Contexts/Auth/domain/entities/UserPatch.js';
-import {
-  createUserId,
-  randomUserId
-} from '../../../../../src/Contexts/Auth/domain/UserId.js';
-import { PasswordHash } from '../../../../../src/Contexts/Auth/domain/value-objects/PasswordHash.js';
+import { randomUserId } from '../../../../../src/Contexts/Auth/domain/UserId.js';
 import { Username } from '../../../../../src/Contexts/Auth/domain/value-objects/Username.js';
 import {
+  DomainConflictException,
   DomainNotFoundException,
   DomainUnauthorizedException,
   InvalidArgumentException
@@ -116,25 +112,39 @@ describe('UpdatePasswordLocal', () => {
     );
   });
 
-  it('should patch a valid user', async () => {
-    const storedUser = UserMother.create({
+  it('should change the password of the stored user', async () => {
+    const storedUser = UserMother.active({
       email: new Email(CURRENT_USER.email)
     });
+    const before = storedUser.toPrimitives();
     repository.setSearchResult(storedUser);
 
     expect(await updatePassword.run(PAYLOAD, CURRENT_USER)).toBeUndefined();
 
-    repository.assertUpdateHasBeenCalledWith(
+    const [updatedFrom, updatedTo] = repository.lastUpdate();
+    expect(updatedFrom).toEqual(before);
+    expect(updatedTo.password).not.toBe(before.password);
+    expect(updatedTo.authMethods).toEqual([
+      { ...before.authMethods[0], password: updatedTo.password }
+    ]);
+    expect(updatedTo.metadata).toEqual(
       expect.objectContaining({
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        id: createUserId(CURRENT_USER.id),
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        password: expect.any(PasswordHash)
-      }) as UserPatch
+        createdAt: before.metadata.createdAt,
+        createdBy: before.metadata.createdBy,
+        updatedBy: storedUser.username.value
+      })
     );
-    repository.assertUpdateAuditedBy(
-      CURRENT_USER.username,
-      storedUser.metadata
+    encrypter.assertHashHasBeenCalledWith(PAYLOAD.password);
+  });
+
+  it('should answer a conflict when the account changed meanwhile', async () => {
+    repository.setSearchResult(
+      UserMother.active({ email: new Email(CURRENT_USER.email) })
+    );
+    repository.setUpdateOutcomes('stale');
+
+    await expect(updatePassword.run(PAYLOAD, CURRENT_USER)).rejects.toThrow(
+      DomainConflictException
     );
   });
 });
