@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { compareSync, genSaltSync, hashSync } from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import type { SignOptions } from 'jsonwebtoken';
@@ -13,6 +14,9 @@ const SALT_ROUNDS = envs.BCRYPT_SALT_ROUNDS;
 const DEFAULT_TOKEN_DURATION = envs.JWT_DEFAULT_DURATION;
 const { sign, verify } = jwt;
 
+/** Built on first use with the configured cost; nobody knows its value. */
+let unusableHash: string | undefined;
+
 export class EncrypterAdapter implements EncrypterTool {
   hash(password: string): string {
     const salt = genSaltSync(SALT_ROUNDS);
@@ -21,6 +25,11 @@ export class EncrypterAdapter implements EncrypterTool {
 
   compare(password: string, hash: string): boolean {
     return compareSync(password, hash);
+  }
+
+  simulateCompare(password: string): void {
+    unusableHash ??= this.hash(randomBytes(32).toString('base64url'));
+    compareSync(password, unusableHash);
   }
 
   async generateToken(

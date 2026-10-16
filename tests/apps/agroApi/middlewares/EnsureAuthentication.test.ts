@@ -20,6 +20,7 @@ describe('EnsureAuthentication.run', () => {
   const encrypter: jest.Mocked<EncrypterTool> = {
     hash: jest.fn(),
     compare: jest.fn(),
+    simulateCompare: jest.fn(),
     generateToken: jest.fn(),
     verifyToken: jest.fn(),
     refreshToken: jest.fn()

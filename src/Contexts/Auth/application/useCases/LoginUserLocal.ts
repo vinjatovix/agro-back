@@ -27,12 +27,11 @@ export class LoginUserLocal {
 
   async run({ email, password }: LoginUserRequest): Promise<string> {
     const storedUser = await this.authRepository.search(email);
-    if (!storedUser) {
-      throw new DomainUnauthorizedException(INVALID_CREDENTIALS_MESSAGE);
-    }
-
-    const localPassword = storedUser.password;
-    if (!localPassword) {
+    const localPassword = storedUser?.password;
+    // Every path pays one bcrypt comparison, so a missing account or one
+    // without a password takes as long as a wrong password.
+    if (!storedUser || !localPassword) {
+      this.encrypter.simulateCompare(password);
       throw new DomainUnauthorizedException(INVALID_CREDENTIALS_MESSAGE);
     }
 

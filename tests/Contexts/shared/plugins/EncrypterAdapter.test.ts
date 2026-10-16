@@ -81,6 +81,30 @@ describe('EncrypterAdapter', () => {
     });
   });
 
+  describe('simulateCompare', () => {
+    it('should compare against one hash built once with the configured cost', () => {
+      mockedGenSaltSync.mockReturnValue('generated-salt');
+      mockedHashSync.mockReturnValue('unusable-hash');
+
+      adapter.simulateCompare('first-password');
+      new EncrypterAdapter().simulateCompare('second-password');
+
+      expect(mockedGenSaltSync).toHaveBeenCalledTimes(1);
+      expect(mockedGenSaltSync).toHaveBeenCalledWith(envs.BCRYPT_SALT_ROUNDS);
+      expect(mockedHashSync).toHaveBeenCalledTimes(1);
+      expect(mockedCompareSync).toHaveBeenNthCalledWith(
+        1,
+        'first-password',
+        'unusable-hash'
+      );
+      expect(mockedCompareSync).toHaveBeenNthCalledWith(
+        2,
+        'second-password',
+        'unusable-hash'
+      );
+    });
+  });
+
   describe('generateToken', () => {
     it('should resolve a token when jwt sign succeeds', async () => {
       mockedJwt.sign.mockImplementation(

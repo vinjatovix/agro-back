@@ -22,6 +22,7 @@ export class EncrypterAdapterMock implements EncrypterAdapter {
   private readonly compareMock: jest.Mock<
     (value: string, encryptedValue: string) => boolean
   >;
+  private readonly simulateCompareMock = jest.fn<(value: string) => void>();
   private readonly generateTokenMock: jest.Mock<
     (payload: UnknownRecord, duration?: string) => Promise<Nullable<string>>
   >;
@@ -68,6 +69,14 @@ export class EncrypterAdapterMock implements EncrypterAdapter {
 
   compare(value: string, encryptedValue: string): boolean {
     return this.compareMock(value, encryptedValue);
+  }
+
+  simulateCompare(value: string): void {
+    this.simulateCompareMock(value);
+  }
+
+  assertSimulateCompareHasBeenCalledWith(expectedValue: string): void {
+    expect(this.simulateCompareMock).toHaveBeenCalledWith(expectedValue);
   }
 
   assertCompareHasBeenCalledWith(
