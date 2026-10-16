@@ -40,13 +40,24 @@ describe('LoginUserLocal', () => {
     );
   });
 
-  it('should throw an error when the user does not exist', async () => {
-    repository = new AuthRepositoryMock();
-    loginUser = build();
-    const request = LoginUserRequestMother.random();
+  it.each([
+    ['the account does not exist', () => null],
+    ['the account has no password', () => UserMother.googleOnly()]
+  ])(
+    'should refuse with the cost of a password check when %s',
+    async (_case, found) => {
+      repository.setSearchResult(found());
+      const compareSpy = jest.spyOn(encrypter, 'compare');
+      const request = LoginUserRequestMother.random();
 
-    await expect(loginUser.run(request)).rejects.toThrow(`Invalid credentials`);
-  });
+      await expect(loginUser.run(request)).rejects.toThrow(
+        DomainUnauthorizedException
+      );
+
+      encrypter.assertSimulateCompareHasBeenCalledWith(request.password);
+      expect(compareSpy).not.toHaveBeenCalled();
+    }
+  );
 
   it('should throw an error when the password is invalid', async () => {
     encrypter = new EncrypterAdapterMock({ login: false });
