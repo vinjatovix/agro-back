@@ -226,13 +226,21 @@ describe('validateRequest over HTTP', () => {
         body: { ...objectWithKeys(fieldNames(30)), tags: [1] }
       };
 
-      const bodies = new Set<string>();
-      for (let run = 0; run < REPEATED_CALLS; run++) {
-        const response = await post(app, invalid);
-        bodies.add(JSON.stringify(response.body));
+      const server = app.listen(0);
+      try {
+        const bodies = new Set<string>();
+        for (let run = 0; run < REPEATED_CALLS; run++) {
+          const response = await request(server)
+            .post(samplePath(invalid.id))
+            .query(invalid.query)
+            .send(invalid.body);
+          expect(response.status).toBe(httpStatus.BAD_REQUEST);
+          bodies.add(JSON.stringify(response.body));
+        }
+        expect(bodies.size).toBe(1);
+      } finally {
+        server.close();
       }
-
-      expect(bodies.size).toBe(1);
     });
   });
 
