@@ -47,7 +47,7 @@ export class Server {
     this.port = port;
     this.host = host;
     this.express = express();
-    this.express.set('trust proxy', false);
+    this.express.set('trust proxy', process.env.NODE_ENV === 'production');
     // The version ETag set by controllers is the only entity tag emitted.
     this.express.set('etag', false);
     this.container = container;
