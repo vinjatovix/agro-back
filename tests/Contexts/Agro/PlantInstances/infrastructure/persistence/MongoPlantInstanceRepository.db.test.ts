@@ -1,58 +1,44 @@
-import type { Db, MongoClient } from 'mongodb';
+import { asClass } from 'awilix';
+import type { Db } from 'mongodb';
 import { up } from '../../../../../../migrations/scripts/20261005140000-create-plant-instances-collection.js';
-import {
-  type AppContainer,
-  createAppContainer
-} from '../../../../../../src/apps/agroApi/container.js';
 import { randomBedId } from '../../../../../../src/Contexts/Agro/Beds/domain/BedId.js';
 import { PlantInstanceLifecycleStatus } from '../../../../../../src/Contexts/Agro/PlantInstances/domain/entities/types/index.js';
 import type { PlantInstanceRepository } from '../../../../../../src/Contexts/Agro/PlantInstances/domain/repositories/interfaces/PlantInstanceRepository.js';
+import { MongoPlantInstanceRepository } from '../../../../../../src/Contexts/Agro/PlantInstances/infrastructure/persistence/MongoPlantInstanceRepository.js';
 import type { MongoPlantInstanceDocument } from '../../../../../../src/Contexts/Agro/PlantInstances/infrastructure/persistence/types/MongoPlantInstanceDocument.js';
 import { randomUserId } from '../../../../../../src/Contexts/Auth/domain/UserId.js';
 import { DomainConflictException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { toMongoId } from '../../../../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoId.js';
-import type { EnvironmentArranger } from '../../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
-import { DBClientFactory } from '../../../../../../src/shared/infrastructure/persistence/index.js';
-import { createTestDBConfig } from '../../../../../shared/infrastructure/persistence/mongo/testDBConfig.js';
-import { SOURCE_ROOT } from '../../../../../shared/sourceRoot.js';
+import {
+  createDbTestContext,
+  type DbTestContext
+} from '../../../../../shared/infrastructure/persistence/mongo/dbTestContext.js';
 import { PlantInstanceMother } from '../../domain/mothers/PlantInstanceMother.js';
 
-let container: AppContainer;
+let context: DbTestContext;
 let repository: PlantInstanceRepository;
-let environmentArranger: EnvironmentArranger;
-let client: MongoClient;
 let db: Db;
 
 describe('MongoPlantInstanceRepository (integration)', () => {
   beforeAll(async () => {
-    client = await DBClientFactory.createClient(
-      'agroApi-test',
-      createTestDBConfig()
-    );
-
-    db = client.db();
+    context = await createDbTestContext({
+      plantInstanceRepository: asClass(MongoPlantInstanceRepository).singleton()
+    });
+    db = context.db;
 
     await up(db);
 
-    container = await createAppContainer({
-      db,
-      client,
-      sourceRoot: SOURCE_ROOT
-    });
-    environmentArranger = container.resolve<EnvironmentArranger>(
-      'environmentArranger'
-    );
-    repository = container.resolve<PlantInstanceRepository>(
+    repository = context.container.resolve<PlantInstanceRepository>(
       'plantInstanceRepository'
     );
   });
 
   beforeEach(async () => {
-    await environmentArranger.arrange();
+    await context.reset();
   });
 
   afterAll(async () => {
-    await client.close();
+    await context.close();
   });
 
   it('saves and finds an owned active plant instance by id', async () => {

@@ -1,21 +1,16 @@
-import type { MongoClient } from 'mongodb';
-
-import {
-  type AppContainer,
-  createAppContainer
-} from '../../../../../../src/apps/agroApi/container.js';
+import { asClass } from 'awilix';
 import type { BedRepository } from '../../../../../../src/Contexts/Agro/Beds/domain/repositories/interfaces/BedRepository.js';
+import { MongoBedRepository } from '../../../../../../src/Contexts/Agro/Beds/infrastructure/persistence/MongoBedRepository.js';
+
 import type { UnitOfWork } from '../../../../../../src/Contexts/shared/application/interfaces/index.js';
 import { DomainConflictException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
-import type { EnvironmentArranger } from '../../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
-import { DBClientFactory } from '../../../../../../src/shared/infrastructure/persistence/index.js';
-import { createTestDBConfig } from '../../../../../shared/infrastructure/persistence/mongo/testDBConfig.js';
-import { SOURCE_ROOT } from '../../../../../shared/sourceRoot.js';
+import {
+  createDbTestContext,
+  type DbTestContext
+} from '../../../../../shared/infrastructure/persistence/mongo/dbTestContext.js';
 import { BedFactory } from '../../../../Agro/Beds/domain/mothers/BedFactory.js';
 
-let container: AppContainer;
-let client: MongoClient;
-let environmentArranger: EnvironmentArranger;
+let context: DbTestContext;
 let unitOfWork: UnitOfWork;
 let bedRepository: BedRepository;
 
@@ -34,28 +29,20 @@ async function storedVersion(id: string): Promise<number | undefined> {
 
 describe('MongoUnitOfWork (integration)', () => {
   beforeAll(async () => {
-    client = await DBClientFactory.createClient(
-      'agroApi-test',
-      createTestDBConfig()
-    );
-    container = await createAppContainer({
-      db: client.db(),
-      client,
-      sourceRoot: SOURCE_ROOT
+    context = await createDbTestContext({
+      bedRepository: asClass(MongoBedRepository).singleton()
     });
-    environmentArranger = container.resolve<EnvironmentArranger>(
-      'environmentArranger'
-    );
+    const { container } = context;
     unitOfWork = container.resolve<UnitOfWork>('unitOfWork');
     bedRepository = container.resolve<BedRepository>('bedRepository');
   });
 
   beforeEach(async () => {
-    await environmentArranger.arrange();
+    await context.reset();
   });
 
   afterAll(async () => {
-    await client.close();
+    await context.close();
   });
 
   it('rolls back a bed version raise when the unit fails afterwards', async () => {

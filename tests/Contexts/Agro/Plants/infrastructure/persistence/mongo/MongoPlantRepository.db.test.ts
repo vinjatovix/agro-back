@@ -1,11 +1,10 @@
+import { asClass } from 'awilix';
 import { Collection, type MongoClient, MongoServerError } from 'mongodb';
-import {
-  type AppContainer,
-  createAppContainer
-} from '../../../../../../../src/apps/agroApi/container.js';
 import type { Plant } from '../../../../../../../src/Contexts/Agro/Plants/domain/entities/Plant.js';
 import type { PlantPrimitives } from '../../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantPrimitives.js';
 import type { PlantRepository } from '../../../../../../../src/Contexts/Agro/Plants/domain/repositories/interfaces/PlantRepository.js';
+import { PlantQueryMapper } from '../../../../../../../src/Contexts/Agro/Plants/infrastructure/persistence/mongo/mappers/PlantQueryMapper.js';
+import { MongoPlantRepository } from '../../../../../../../src/Contexts/Agro/Plants/infrastructure/persistence/mongo/MongoPlantRepository.js';
 import { plantDomainMapper } from '../../../../../../../src/Contexts/Agro/Plants/mappers/plantDomainMapper.js';
 import { ensureFound } from '../../../../../../../src/Contexts/shared/application/utils/ensureFound.js';
 import {
@@ -13,17 +12,16 @@ import {
   DomainNotFoundException,
   DomainStaleVersionException
 } from '../../../../../../../src/Contexts/shared/domain/errors/index.js';
-import type { EnvironmentArranger } from '../../../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
-import { DBClientFactory } from '../../../../../../../src/shared/infrastructure/persistence/index.js';
-import { createTestDBConfig } from '../../../../../../shared/infrastructure/persistence/mongo/testDBConfig.js';
-import { SOURCE_ROOT } from '../../../../../../shared/sourceRoot.js';
+import {
+  createDbTestContext,
+  type DbTestContext
+} from '../../../../../../shared/infrastructure/persistence/mongo/dbTestContext.js';
 import { random } from '../../../../../shared/fixtures/random.js';
 import { PlantFactory } from '../../../domain/mothers/PlantFactory.js';
 import { PlantIdentityBuilder } from '../../../domain/mothers/PlantIdentityBuilder.js';
 
-let container: AppContainer;
+let context: DbTestContext;
 let repository: PlantRepository;
-let environmentArranger: Promise<EnvironmentArranger>;
 let client: MongoClient;
 
 const findExisting = async (id: string): Promise<Plant> =>
@@ -31,31 +29,21 @@ const findExisting = async (id: string): Promise<Plant> =>
 
 describe('MongoPlantRepository', () => {
   beforeAll(async () => {
-    client = await DBClientFactory.createClient(
-      'agroApi-test',
-      createTestDBConfig()
-    );
-
-    const db = client.db();
-
-    container = await createAppContainer({
-      db,
-      client,
-      sourceRoot: SOURCE_ROOT
+    context = await createDbTestContext({
+      plantQueryMapper: asClass(PlantQueryMapper).singleton(),
+      plantRepository: asClass(MongoPlantRepository).singleton()
     });
-    environmentArranger = Promise.resolve(
-      container.resolve<EnvironmentArranger>('environmentArranger')
-    );
+    client = context.client;
+    const { container } = context;
     repository = container.resolve<PlantRepository>('plantRepository');
   });
+
   beforeEach(async () => {
-    await (await environmentArranger).arrange();
+    await context.reset();
   });
 
   afterAll(async () => {
-    await (await environmentArranger).arrange();
-    await (await environmentArranger).close();
-    await client.close();
+    await context.close();
   });
 
   describe('save + findById', () => {

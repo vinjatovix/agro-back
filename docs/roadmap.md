@@ -553,6 +553,16 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
   WHAT: Update use cases handling crop placement to wrap repository saves inside MongoDB ACID transaction sessions.
   ```
 
+## Tooling: Faster Test Suite
+
+**Spec Module(s)**: [testing.md](spec/modules/testing.md)
+
+- **Status**: Done when merged (branch `028-faster-test-suite`, requested by the maintainer; not a numbered iteration because it changes no product behaviour)
+- **Value delivered**: The pre-PR run (`npm test`) drops from ~160 s to under 45 s with the same tests, coverage files and contract checks, and leaks fail the run instead of being hidden by `--forceExit`.
+- **Definition of Done**: `test:unit` runs in parallel with coverage and without `--detectOpenHandles` / `--forceExit`; a per-file leak guard and a main-process watchdog fail the run naming `npm run test:unit:leaks`; Jest projects `no-db` and `db` (`*.db.test.ts`) can run alone, `no-db` without Docker; database tests build only the components they use (`createDbTestContext`) and the reset empties collections concurrently; the logger writes no files and is silent under `NODE_ENV=test` unless `TEST_LOGS=1`; tests hash passwords with bcrypt cost 4.
+- **Dependencies**: Iteration 24 (the transaction tests keep their 150 ms write budget under parallel runs).
+- **Risks**: `process.getActiveResourcesInfo()` is still experimental in Node 22; a type that is not a leak is ignored in one place with a comment.
+
 ---
 
 # Phase 2: Identity & Access

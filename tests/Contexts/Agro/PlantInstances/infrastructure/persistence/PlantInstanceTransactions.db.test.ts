@@ -1,28 +1,28 @@
-import type { Db, MongoClient } from 'mongodb';
+import { asClass } from 'awilix';
+import type { Db } from 'mongodb';
 
 import { up } from '../../../../../../migrations/scripts/20261005140000-create-plant-instances-collection.js';
-import {
-  type AppContainer,
-  createAppContainer
-} from '../../../../../../src/apps/agroApi/container.js';
 import type { Bed } from '../../../../../../src/Contexts/Agro/Beds/domain/entities/Bed.js';
 import type { BedRepository } from '../../../../../../src/Contexts/Agro/Beds/domain/repositories/interfaces/BedRepository.js';
-import type {
+import { MongoBedRepository } from '../../../../../../src/Contexts/Agro/Beds/infrastructure/persistence/MongoBedRepository.js';
+import {
   PlacePlantInstance,
   RemovePlantInstance,
   UpdatePlantInstance
 } from '../../../../../../src/Contexts/Agro/PlantInstances/application/useCases/index.js';
 import type { PlantInstance } from '../../../../../../src/Contexts/Agro/PlantInstances/domain/entities/PlantInstance.js';
 import { PlantInstanceLifecycleStatus } from '../../../../../../src/Contexts/Agro/PlantInstances/domain/entities/types/index.js';
-import type { MongoPlantInstanceRepository } from '../../../../../../src/Contexts/Agro/PlantInstances/infrastructure/persistence/MongoPlantInstanceRepository.js';
+import { MongoPlantInstanceRepository } from '../../../../../../src/Contexts/Agro/PlantInstances/infrastructure/persistence/MongoPlantInstanceRepository.js';
 import { createPlantId } from '../../../../../../src/Contexts/Agro/Plants/domain/PlantId.js';
 import type { PlantRepository } from '../../../../../../src/Contexts/Agro/Plants/domain/repositories/interfaces/PlantRepository.js';
+import { PlantQueryMapper } from '../../../../../../src/Contexts/Agro/Plants/infrastructure/persistence/mongo/mappers/PlantQueryMapper.js';
+import { MongoPlantRepository } from '../../../../../../src/Contexts/Agro/Plants/infrastructure/persistence/mongo/MongoPlantRepository.js';
 import type { UserSessionInfo } from '../../../../../../src/Contexts/Auth/application/index.js';
 import { Coordinates } from '../../../../../../src/shared/domain/value-objects/Coordinates.js';
-import type { EnvironmentArranger } from '../../../../../../src/shared/infrastructure/arranger/EnvironmentArranger.js';
-import { DBClientFactory } from '../../../../../../src/shared/infrastructure/persistence/index.js';
-import { createTestDBConfig } from '../../../../../shared/infrastructure/persistence/mongo/testDBConfig.js';
-import { SOURCE_ROOT } from '../../../../../shared/sourceRoot.js';
+import {
+  createDbTestContext,
+  type DbTestContext
+} from '../../../../../shared/infrastructure/persistence/mongo/dbTestContext.js';
 import { measureMs, median } from '../../../../../shared/utils/latency.js';
 import { random } from '../../../../shared/fixtures/random.js';
 import { BedFactory } from '../../../Beds/domain/mothers/BedFactory.js';
@@ -34,10 +34,8 @@ const LATENCY_RUNS = 10;
 const START = new Coordinates(10, 10);
 const TARGET = { x: 60, y: 60 };
 
-let container: AppContainer;
-let client: MongoClient;
+let context: DbTestContext;
 let db: Db;
-let environmentArranger: EnvironmentArranger;
 let bedRepository: BedRepository;
 let plantRepository: PlantRepository;
 let plantInstanceRepository: MongoPlantInstanceRepository;
@@ -56,7 +54,7 @@ function ownerOf(bed: Bed): UserSessionInfo {
 }
 
 function useCase<T>(name: string): T {
-  return container.createScope().resolve<T>(name);
+  return context.container.createScope().resolve<T>(name);
 }
 
 async function seedBed(): Promise<{ bed: Bed; plantId: string }> {
@@ -100,21 +98,21 @@ async function storedBedVersion(bed: Bed): Promise<number | undefined> {
 
 describe('Crop transactions (integration)', () => {
   beforeAll(async () => {
-    client = await DBClientFactory.createClient(
-      'agroApi-test',
-      createTestDBConfig()
-    );
-    db = client.db();
+    context = await createDbTestContext({
+      bedRepository: asClass(MongoBedRepository).singleton(),
+      plantQueryMapper: asClass(PlantQueryMapper).singleton(),
+      plantRepository: asClass(MongoPlantRepository).singleton(),
+      plantInstanceRepository: asClass(
+        MongoPlantInstanceRepository
+      ).singleton(),
+      placePlantInstance: asClass(PlacePlantInstance).scoped(),
+      removePlantInstance: asClass(RemovePlantInstance).scoped(),
+      updatePlantInstance: asClass(UpdatePlantInstance).scoped()
+    });
+    db = context.db;
     await up(db);
 
-    container = await createAppContainer({
-      db,
-      client,
-      sourceRoot: SOURCE_ROOT
-    });
-    environmentArranger = container.resolve<EnvironmentArranger>(
-      'environmentArranger'
-    );
+    const { container } = context;
     bedRepository = container.resolve<BedRepository>('bedRepository');
     plantRepository = container.resolve<PlantRepository>('plantRepository');
     plantInstanceRepository = container.resolve<MongoPlantInstanceRepository>(
@@ -123,7 +121,7 @@ describe('Crop transactions (integration)', () => {
   });
 
   beforeEach(async () => {
-    await environmentArranger.arrange();
+    await context.reset();
   });
 
   afterEach(() => {
@@ -131,7 +129,7 @@ describe('Crop transactions (integration)', () => {
   });
 
   afterAll(async () => {
-    await client.close();
+    await context.close();
   });
 
   describe('rollback', () => {
