@@ -30,7 +30,7 @@ describe('MonthSet', () => {
   it('should create full year set', () => {
     const set = MonthSet.allYear();
 
-    expect(set.toArray().length).toBe(12);
+    expect(set.toArray()).toHaveLength(12);
     expect(set.has(1)).toBe(true);
     expect(set.has(12)).toBe(true);
   });

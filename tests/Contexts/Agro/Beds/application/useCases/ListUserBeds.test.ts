@@ -42,6 +42,21 @@ describe('ListUserBeds', () => {
     expect(result.every(({ crops }) => crops === undefined)).toBe(true);
   });
 
+  it('should list only the crop ids when embedding is explicitly off', async () => {
+    const userId = randomUserId();
+    const bed = BedFactory.create({ userId });
+    repository.addToStorage(bed);
+    const crop = PlantInstanceMother.create({ userId, bedId: bed.id });
+    plantInstanceRepository.addToStorage(crop);
+
+    const result = await useCase.execute(userId, { embedCrops: false });
+
+    expect(result).toHaveLength(1);
+    expect(result[0]?.bed.id).toBe(bed.id);
+    expect(result[0]?.cropIds).toEqual([crop.id]);
+    expect(result[0]?.crops).toBeUndefined();
+  });
+
   it('should embed each bed its own full crops when asked to', async () => {
     const userId = randomUserId();
     const bed1 = BedFactory.create({ userId });

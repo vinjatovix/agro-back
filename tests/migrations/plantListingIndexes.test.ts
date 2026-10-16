@@ -58,7 +58,7 @@ const buildPlants = (
   const collection: MigrationCollection = { indexes, createIndex, dropIndex };
   const db: MigrationDb = { collection: () => collection };
 
-  return { db, dropIndex, stored };
+  return { db, createIndex, dropIndex, stored };
 };
 
 const startupFamilyIndex: MigrationIndex = {
@@ -92,6 +92,39 @@ describe('plant listing indexes migration', () => {
       }
     );
 
+    it('should drop the old family index before creating any listing index', async () => {
+      const { db, createIndex, dropIndex } = buildPlants([startupFamilyIndex]);
+
+      await up(db);
+
+      const dropOrder = dropIndex.mock.invocationCallOrder[0] ?? Infinity;
+      expect(
+        createIndex.mock.invocationCallOrder.every((order) => order > dropOrder)
+      ).toBe(true);
+    });
+
+    it('should keep a family index that already has the plant collation', async () => {
+      const { db, dropIndex } = buildPlants([
+        { ...startupFamilyIndex, collation: PLANT_COLLATION }
+      ]);
+
+      await up(db);
+
+      expect(dropIndex).not.toHaveBeenCalled();
+    });
+
+    it('should reject with the error of a failing index creation', async () => {
+      const { db, createIndex } = buildPlants([startupFamilyIndex]);
+      const error = mongoError(67);
+      createIndex.mockImplementation((_key, options) =>
+        options.name === 'plants_name_primary_idx'
+          ? Promise.reject(error)
+          : Promise.resolve(options.name)
+      );
+
+      await expect(up(db)).rejects.toBe(error);
+    });
+
     it('should not fail on a database without the plants collection', async () => {
       const { db, stored } = buildPlants([], { exists: false });
 
@@ -123,6 +156,24 @@ describe('plant listing indexes migration', () => {
         expect.objectContaining({ ...startupFamilyIndex })
       ]);
       expect(stored.get('plants_family_idx')?.collation).toBeUndefined();
+    });
+
+    it('should drop every listing index before restoring the family index', async () => {
+      const { db, createIndex, dropIndex } = buildPlants([startupFamilyIndex]);
+      await up(db);
+      createIndex.mockClear();
+      dropIndex.mockClear();
+
+      await down(db);
+
+      expect(dropIndex.mock.calls.map(([name]) => name).sort()).toEqual(
+        LISTING_INDEXES.map(([name]) => name).sort()
+      );
+      const lastDrop = Math.max(...dropIndex.mock.invocationCallOrder);
+      expect(createIndex.mock.invocationCallOrder).toEqual([
+        expect.any(Number)
+      ]);
+      expect(createIndex.mock.invocationCallOrder[0]).toBeGreaterThan(lastDrop);
     });
 
     it('should not fail when the listing indexes are missing', async () => {

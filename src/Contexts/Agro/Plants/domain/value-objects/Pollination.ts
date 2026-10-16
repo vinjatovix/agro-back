@@ -13,11 +13,11 @@ export type PollinationChanges = NonNullable<
 >;
 
 // Types carried by animals: only they have agents (bees, hummingbirds…).
-const ANIMAL_TYPES: readonly PollinationType[] = [
+const ANIMAL_TYPES: ReadonlySet<PollinationType> = new Set([
   PollinationType.INSECT,
   PollinationType.BIRD,
   PollinationType.BAT
-];
+]);
 
 const PATH = 'phenology.flowering.pollination';
 
@@ -83,7 +83,7 @@ export class Pollination {
   }
 
   private static carriesAgents(types: readonly PollinationType[]): boolean {
-    return types.some((type) => ANIMAL_TYPES.includes(type));
+    return types.some((type) => ANIMAL_TYPES.has(type));
   }
 
   private static checkTypes(types: readonly PollinationType[]): void {

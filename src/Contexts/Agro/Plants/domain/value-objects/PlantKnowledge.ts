@@ -84,7 +84,7 @@ export class PlantKnowledge {
   /** Prunings per year: above zero (`0.5` is once every two years). */
   private static checkPruningFrequencies(props: PlantKnowledgeProps): void {
     props.pruning?.forEach((entry, index) => {
-      if (!(entry.frequencyPerYear > 0)) {
+      if (Number.isNaN(entry.frequencyPerYear) || entry.frequencyPerYear <= 0) {
         throw new InvalidArgumentException(
           `knowledge.pruning.${index}.frequencyPerYear must be greater than 0`
         );

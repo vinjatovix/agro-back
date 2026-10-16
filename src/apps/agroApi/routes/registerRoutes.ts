@@ -25,16 +25,32 @@ const loadRouteFiles = (): string[] =>
     ignore: [CURRENT_FILE_GLOB]
   }).map(toUnixPath);
 
-export async function registerRoutes(router: Router): Promise<void> {
-  for (const file of loadRouteFiles()) {
-    try {
-      const module = (await import(file)) as Partial<RouteModule>;
-      const registerRoute = getRegisterRouteOrThrow(module, file);
+const reportFailure = (file: string, err: unknown): never => {
+  console.error(`Failed to load route file ${file}:`, err);
+  throw err;
+};
 
-      registerRoute(router);
-    } catch (err) {
-      console.error(`Failed to load route file ${file}:`, err);
-      throw err;
-    }
+const importRouteModule = async (
+  file: string
+): Promise<Partial<RouteModule>> => {
+  try {
+    return (await import(file)) as Partial<RouteModule>;
+  } catch (err) {
+    return reportFailure(file, err);
   }
+};
+
+export async function registerRoutes(router: Router): Promise<void> {
+  const files = loadRouteFiles();
+  // Modules load concurrently; routes are registered in file order, which
+  // Express matching depends on.
+  const modules = await Promise.all(files.map(importRouteModule));
+
+  files.forEach((file, index) => {
+    try {
+      getRegisterRouteOrThrow(modules[index] ?? {}, file)(router);
+    } catch (err) {
+      reportFailure(file, err);
+    }
+  });
 }

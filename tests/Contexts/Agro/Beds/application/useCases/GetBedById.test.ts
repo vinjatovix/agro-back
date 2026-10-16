@@ -45,6 +45,27 @@ describe('GetBedById', () => {
     repository.assertFindOwnedActiveByIdHasBeenCalledWith(bed.id, bed.userId);
   });
 
+  it('should list only the crop ids when embedding is explicitly off', async () => {
+    const bed = BedFactory.create();
+    repository.addToStorage(bed);
+    const user = {
+      username: 'test-user',
+      id: bed.userId,
+      email: 'test-user@example.com',
+      roles: ['user']
+    };
+    const crop = PlantInstanceMother.create({
+      userId: bed.userId,
+      bedId: bed.id
+    });
+    plantInstanceRepository.addToStorage(crop);
+
+    const result = await useCase.execute(bed.id, user, { embedCrops: false });
+
+    expect(result.cropIds).toEqual([crop.id]);
+    expect(result.crops).toBeUndefined();
+  });
+
   it('should load the full crops when asked to embed them', async () => {
     const bed = BedFactory.create();
     repository.addToStorage(bed);

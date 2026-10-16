@@ -7,7 +7,7 @@ export const cloneView = (value: unknown): Record<string, unknown> =>
   cloneValue(value) as Record<string, unknown>;
 
 const cloneValue = (value: unknown): unknown => {
-  if (value instanceof Date) return new Date(value.getTime());
+  if (value instanceof Date) return new Date(value);
   if (Array.isArray(value)) return value.map(cloneValue);
   if (value !== null && typeof value === 'object') {
     return Object.fromEntries(

@@ -16,7 +16,8 @@ They are aligned with the **current architecture, tooling, and real usage patter
 5. [Managing Dependencies](#managing-dependencies)
 6. [Testing Guidelines](#testing-guidelines)
 7. [Formatting & Linting](#formatting--linting)
-8. [Documentation Style](#documentation-style)
+8. [Static analysis](#static-analysis)
+9. [Documentation Style](#documentation-style)
 
 ---
 
@@ -498,6 +499,40 @@ npm run format
   - lint
   - test:unit
   - check-circular
+
+---
+
+## Static analysis
+
+SonarCloud analyses every push and pull request. A finding is **fixed in code by default**. Only two mechanisms close a finding as intentional, and both keep the reason in version control:
+
+1. **Line-scoped `NOSONAR`**, only on a loop whose order or shared state matters (or a migration batch/cursor). It goes on the reported line, never on a block or a file, and always carries a reason:
+
+   ```ts
+   for (const row of rows) {
+     await seed(row); // NOSONAR: rows are seeded in table order; listings assert that order
+   }
+   ```
+
+   A loop whose iterations are independent uses `Promise.all` instead.
+
+2. **`sonar.issue.ignore.multicriteria`** in `sonar-project.properties`, for a test-only folder where one rule never applies. One rule × one path pattern per entry, with a comment above it giving the reason:
+
+   ```properties
+   sonar.issue.ignore.multicriteria=e1
+   # Component-scanner fixtures are empty shells on purpose: they test file discovery, not behaviour.
+   sonar.issue.ignore.multicriteria.e1.ruleKey=typescript:S1186
+   sonar.issue.ignore.multicriteria.e1.resourceKey=tests/apps/agroApi/wiring/fixtures/**/*
+   ```
+
+Never:
+
+- `sonar.exclusions` or a file-wide rule disable to silence a finding.
+- An ignore entry on a path under `src/`.
+- Marking a finding "Accepted" or "False positive" only in the SonarCloud web UI.
+- `NOSONAR` without a reason.
+
+CI installs dependencies with `npm ci --ignore-scripts`, so no third-party install hook runs implicitly. A tool that needs its install hook gets an explicit, named `npm rebuild <pkg>` step after the install.
 
 ---
 

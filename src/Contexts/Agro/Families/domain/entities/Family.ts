@@ -148,7 +148,7 @@ export class Family extends AggregateRoot<FamilyId> {
   }
 
   private mergeExtra(extraChanges: FamilyExtraChanges): FamilyExtraPrimitives {
-    const next: FamilyExtraPrimitives = { ...(this.props.extra ?? {}) };
+    const next: FamilyExtraPrimitives = { ...this.props.extra };
 
     for (const key of EXTRA_KEYS) {
       applyExtraKey(next, key, extraChanges[key]);

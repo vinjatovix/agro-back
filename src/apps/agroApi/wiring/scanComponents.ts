@@ -85,14 +85,13 @@ export async function scanComponents(
     const files = findFilesForRole(sourceRoot, role);
     files.sort((a, b) => a.localeCompare(b));
 
-    for (const file of files) {
-      if (processedFiles.has(file)) {
-        continue;
-      }
-      processedFiles.add(file);
-      const components = await inspectFileExports(file, role);
-      allComponents.push(...components);
-    }
+    const pendingFiles = files.filter((file) => !processedFiles.has(file));
+    pendingFiles.forEach((file) => processedFiles.add(file));
+
+    const componentsByFile = await Promise.all(
+      pendingFiles.map((file) => inspectFileExports(file, role))
+    );
+    allComponents.push(...componentsByFile.flat());
   }
 
   allComponents.sort((a, b) => a.file.localeCompare(b.file));

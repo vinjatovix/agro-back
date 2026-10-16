@@ -112,9 +112,9 @@ describe('MongoAuthRepository', () => {
     });
 
     it('should not return a non existing user', async () => {
-      expect(await repository.search(UserMother.random().email.value)).toBe(
-        null
-      );
+      expect(
+        await repository.search(UserMother.random().email.value)
+      ).toBeNull();
     });
 
     it('should return an existing user by provider identity', async () => {

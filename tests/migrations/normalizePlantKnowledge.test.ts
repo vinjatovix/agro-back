@@ -464,6 +464,28 @@ describe('normalize-plant-knowledge migration', () => {
         {
           knowledge: { pruning: [legacyPruningEntry({ frequencyPerYear: 0 })] }
         }
+      ],
+      [
+        'a pruning entry with a negative frequencyPerYear',
+        {
+          knowledge: { pruning: [legacyPruningEntry({ frequencyPerYear: -1 })] }
+        }
+      ],
+      [
+        'a pruning entry with a non-numeric frequencyPerYear',
+        {
+          knowledge: {
+            pruning: [legacyPruningEntry({ frequencyPerYear: '2' })]
+          }
+        }
+      ],
+      [
+        'a pruning entry with a NaN frequencyPerYear',
+        {
+          knowledge: {
+            pruning: [legacyPruningEntry({ frequencyPerYear: Number.NaN })]
+          }
+        }
       ]
     ])('should stop on %s without writing', async (_, overrides) => {
       const { db, written } = fakeDb([
@@ -484,6 +506,64 @@ describe('normalize-plant-knowledge migration', () => {
         PlantsChangedWhileMigratingError
       );
       await expect(migration).rejects.toMatchObject({ count: 1 });
+    });
+
+    it('should leave a plant whose every section is already normalized untouched', async () => {
+      const operation = await migrate(
+        legacyPlant({
+          phenology: {
+            flowering: {
+              months: [6],
+              pollination: { types: ['insect'], agents: ['bee'] }
+            },
+            harvest: { months: [8], description: 'Pick when red' }
+          },
+          knowledge: {
+            resources: [{ type: 'article', url: 'https://example.com/a' }],
+            pruning: [
+              legacyPruningEntry({ season: undefined, seasons: ['spring'] })
+            ],
+            propagation: { methods: { seed: { seasons: ['spring'] } } },
+            ecology: { strategicBenefits: ['Attracts pollinators'] }
+          }
+        })
+      );
+
+      expect(operation).toBeUndefined();
+    });
+
+    it('should keep the spores method a horsetail already has', async () => {
+      const operation = await migrate(
+        legacyPlant({
+          identity: identityWith({ scientificName: 'Equisetum arvense' }),
+          phenology: { flowering: { months: [4] }, harvest: { months: [] } },
+          knowledge: {
+            propagation: { methods: { spores: { seasons: ['summer'] } } }
+          }
+        })
+      );
+
+      expect(operation).toBeUndefined();
+    });
+
+    it('should write more plants than one batch holds in several batches', async () => {
+      const plants = Array.from({ length: 501 }, (_, index) =>
+        legacyPlant({ _id: `plant-${index}`, status: undefined })
+      );
+      const batchSizes: number[] = [];
+      const db: MigrationDb = {
+        collection: () => ({
+          find: () => Readable.from(plants),
+          bulkWrite: (operations) => {
+            batchSizes.push(operations.length);
+            return Promise.resolve({ matchedCount: operations.length });
+          }
+        })
+      };
+
+      await up(db);
+
+      expect(batchSizes).toEqual([500, 1]);
     });
 
     it('should give a known resource stored without type its type', async () => {

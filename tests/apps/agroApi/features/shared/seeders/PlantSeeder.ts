@@ -65,7 +65,7 @@ export const PlantSeeder = (httpServer: Server, token: string) => {
     async createMany(count: number, overrides = {}) {
       const plants: PlantPrimitives[] = [];
       for (let i = 0; i < count; i++) {
-        const plant = await this.create(overrides);
+        const plant = await this.create(overrides); // NOSONAR: inserted one by one; unsorted listings return insertion order, which scenarios assert
         plants.push(plant);
       }
       return plants;

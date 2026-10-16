@@ -92,9 +92,8 @@ Given(
     const families = await suite().seeders.family.createMany(count);
 
     for (const family of families) {
-      await suite().seeders.plant.createMany(2, {
-        'identity.family': family.id
-      });
+      const overrides = { 'identity.family': family.id };
+      await suite().seeders.plant.createMany(2, overrides); // NOSONAR: inserted family by family; unsorted listings return insertion order
     }
   }
 );
@@ -111,9 +110,8 @@ Given(
   'the following plants exist:',
   async function (this: AgroWorld, dataTable: DataTable) {
     for (const row of dataTable.hashes()) {
-      const plant = await suite().seeders.plant.create(
-        plantOverrides(this, row)
-      );
+      const overrides = plantOverrides(this, row);
+      const plant = await suite().seeders.plant.create(overrides); // NOSONAR: rows inserted in table order; unsorted listings return insertion order
 
       assert.exists(plant.id, `PlantSeeder failed for "${row.name}"`);
     }
