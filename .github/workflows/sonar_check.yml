@@ -46,10 +46,8 @@ jobs:
       - name: Install dependencies
         run: npm ci --ignore-scripts
 
-      - name: Install Docker Compose
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y docker-compose
+      - name: Check Docker Compose
+        run: docker compose version
 
       - name: Run mongo docker
         run: |
