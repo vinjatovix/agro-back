@@ -70,7 +70,7 @@ const config: Config = {
     {
       ...baseProjectConfig,
       displayName: 'no-db',
-      testPathIgnorePatterns: ['/node_modules/', '\\.db\\.test\\.ts$'],
+      testPathIgnorePatterns: ['/node_modules/', String.raw`\.db\.test\.ts$`],
       setupFiles: ['<rootDir>/tests/support/jest/noDbGuard.ts']
     },
     {
