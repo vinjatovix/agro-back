@@ -54,7 +54,7 @@ export class UpdatePasswordLocal {
     );
 
     const encryptedPassword = new PasswordHash(
-      this.encrypter.hash(newPassword.value)
+      await this.encrypter.hash(newPassword.value)
     );
     const before = storedUser.toPrimitives();
     storedUser.changePassword(encryptedPassword, new Date());
@@ -85,7 +85,7 @@ export class UpdatePasswordLocal {
       throw new DomainUnauthorizedException(INVALID_CREDENTIALS_MESSAGE);
     }
 
-    this.ensureOldPasswordMatches(
+    await this.ensureOldPasswordMatches(
       request.oldPassword,
       storedUser.password.value
     );
@@ -98,11 +98,14 @@ export class UpdatePasswordLocal {
     return storedUser;
   }
 
-  private ensureOldPasswordMatches(
+  private async ensureOldPasswordMatches(
     oldPassword: string,
     storedPasswordHash: string
-  ): void {
-    const success = this.encrypter.compare(oldPassword, storedPasswordHash);
+  ): Promise<void> {
+    const success = await this.encrypter.compare(
+      oldPassword,
+      storedPasswordHash
+    );
     if (!success) {
       throw new DomainUnauthorizedException(INVALID_CREDENTIALS_MESSAGE);
     }

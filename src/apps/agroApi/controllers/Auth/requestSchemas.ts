@@ -54,6 +54,16 @@ const updatePasswordBody = withMatchingPasswords(
   })
 );
 
+const forgotPasswordBody = z.object({ email: z.email() });
+
+const resetPasswordBody = withMatchingPasswords(
+  z.object({
+    token: z.string().min(1).max(512),
+    password: z.string(),
+    repeatPassword: z.string()
+  })
+);
+
 export const registerRequest = {
   query: emptyQuery,
   body: registerBody
@@ -77,4 +87,14 @@ export const activateRequest = {
 export const updatePasswordRequest = {
   query: emptyQuery,
   body: updatePasswordBody
+} satisfies RequestSchemas;
+
+export const forgotPasswordRequest = {
+  query: emptyQuery,
+  body: forgotPasswordBody
+} satisfies RequestSchemas;
+
+export const resetPasswordRequest = {
+  query: emptyQuery,
+  body: resetPasswordBody
 } satisfies RequestSchemas;

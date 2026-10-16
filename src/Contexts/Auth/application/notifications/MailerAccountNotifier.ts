@@ -8,30 +8,37 @@ import type { Email } from '../../../shared/domain/valueObject/index.js';
 import type { AuthProvider } from '../../domain/value-objects/types/index.js';
 import type { AccountNotifier } from './AccountNotifier.js';
 import { activationEmail, activationLink } from './activationEmail.js';
+import { passwordChangedEmail } from './passwordChangedEmail.js';
+import { passwordResetEmail, passwordResetLink } from './passwordResetEmail.js';
 import { providerLinkedEmail } from './providerLinkedEmail.js';
 import { registrationAttemptEmail } from './registrationAttemptEmail.js';
 
-type NoticeKind = 'activation' | 'registrationAttempt' | 'providerLinked';
+type NoticeKind =
+  | 'activation'
+  | 'registrationAttempt'
+  | 'providerLinked'
+  | 'passwordReset'
+  | 'passwordChanged';
 
 export type MailerAccountNotifierDependencies = {
   mailer: Mailer;
   backgroundTasks: BackgroundTasks;
-  activationLinkBaseUrl: string;
+  frontendBaseUrl: string;
 };
 
 export class MailerAccountNotifier implements AccountNotifier {
   private readonly mailer: Mailer;
   private readonly backgroundTasks: BackgroundTasks;
-  private readonly activationLinkBaseUrl: string;
+  private readonly frontendBaseUrl: string;
 
   constructor({
     mailer,
     backgroundTasks,
-    activationLinkBaseUrl
+    frontendBaseUrl
   }: MailerAccountNotifierDependencies) {
     this.mailer = mailer;
     this.backgroundTasks = backgroundTasks;
-    this.activationLinkBaseUrl = activationLinkBaseUrl;
+    this.frontendBaseUrl = frontendBaseUrl;
   }
 
   activation(email: Email, token: string): void {
@@ -39,7 +46,7 @@ export class MailerAccountNotifier implements AccountNotifier {
       'activation',
       activationEmail({
         to: email.value,
-        link: activationLink(this.activationLinkBaseUrl, token)
+        link: activationLink(this.frontendBaseUrl, token)
       })
     );
   }
@@ -56,6 +63,20 @@ export class MailerAccountNotifier implements AccountNotifier {
       'providerLinked',
       providerLinkedEmail({ to: email.value, provider, linkedAt: at })
     );
+  }
+
+  passwordReset(email: Email, token: string): void {
+    this.send(
+      'passwordReset',
+      passwordResetEmail({
+        to: email.value,
+        link: passwordResetLink(this.frontendBaseUrl, token)
+      })
+    );
+  }
+
+  passwordChanged(email: Email): void {
+    this.send('passwordChanged', passwordChangedEmail({ to: email.value }));
   }
 
   /** A build error is a programming error: it propagates to the caller. */

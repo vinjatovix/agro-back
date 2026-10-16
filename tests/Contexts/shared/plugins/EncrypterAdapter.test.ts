@@ -1,10 +1,9 @@
-import { compareSync, genSaltSync, hashSync } from 'bcryptjs';
+import { compare, hash } from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 jest.mock('bcryptjs', () => ({
-  compareSync: jest.fn(),
-  genSaltSync: jest.fn(),
-  hashSync: jest.fn()
+  compare: jest.fn(),
+  hash: jest.fn()
 }));
 
 jest.mock('jsonwebtoken', () => ({
@@ -20,13 +19,9 @@ import { EncrypterAdapter } from '../../../../src/Contexts/shared/plugins/Encryp
 import type { UnknownRecord } from '../../../../src/shared/domain/types/UnknownRecord.js';
 
 describe('EncrypterAdapter', () => {
-  const mockedGenSaltSync = genSaltSync as jest.MockedFunction<
-    typeof genSaltSync
-  >;
-  const mockedHashSync = hashSync as jest.MockedFunction<typeof hashSync>;
-  const mockedCompareSync = compareSync as jest.MockedFunction<
-    typeof compareSync
-  >;
+  // Overloaded with a callback form, so MockedFunction would type them as void.
+  const mockedHash = hash as unknown as jest.Mock;
+  const mockedCompare = compare as unknown as jest.Mock;
   const mockedJwt = jwt as unknown as {
     sign: jest.Mock;
     verify: jest.Mock;
@@ -40,65 +35,59 @@ describe('EncrypterAdapter', () => {
   });
 
   describe('hash', () => {
-    it('should hash a password using generated salt', () => {
-      mockedGenSaltSync.mockReturnValue('generated-salt');
-      mockedHashSync.mockReturnValue('hashed-password');
+    it('should hash a password with the configured cost', async () => {
+      mockedHash.mockResolvedValue('hashed-password');
 
-      const result = adapter.hash('plain-password');
+      const result = await adapter.hash('plain-password');
 
       expect(result).toBe('hashed-password');
-      expect(mockedGenSaltSync).toHaveBeenCalledWith(envs.BCRYPT_SALT_ROUNDS);
-      expect(mockedHashSync).toHaveBeenCalledWith(
+      expect(mockedHash).toHaveBeenCalledWith(
         'plain-password',
-        'generated-salt'
+        envs.BCRYPT_SALT_ROUNDS
       );
     });
   });
 
   describe('compare', () => {
-    it('should return true when bcrypt comparison succeeds', () => {
-      mockedCompareSync.mockReturnValue(true);
+    it.each([true, false])(
+      'should resolve %s as bcrypt does',
+      async (matches) => {
+        mockedCompare.mockResolvedValue(matches);
 
-      const result = adapter.compare('plain-password', 'hashed-password');
+        const result = await adapter.compare(
+          'plain-password',
+          'hashed-password'
+        );
 
-      expect(result).toBe(true);
-      expect(mockedCompareSync).toHaveBeenCalledWith(
-        'plain-password',
-        'hashed-password'
-      );
-    });
-
-    it('should return false when bcrypt comparison fails', () => {
-      mockedCompareSync.mockReturnValue(false);
-
-      const result = adapter.compare('plain-password', 'hashed-password');
-
-      expect(result).toBe(false);
-      expect(mockedCompareSync).toHaveBeenCalledWith(
-        'plain-password',
-        'hashed-password'
-      );
-    });
+        expect(result).toBe(matches);
+        expect(mockedCompare).toHaveBeenCalledWith(
+          'plain-password',
+          'hashed-password'
+        );
+      }
+    );
   });
 
   describe('simulateCompare', () => {
-    it('should compare against one hash built once with the configured cost', () => {
-      mockedGenSaltSync.mockReturnValue('generated-salt');
-      mockedHashSync.mockReturnValue('unusable-hash');
+    it('should compare against one hash built once with the configured cost, even on concurrent first calls', async () => {
+      mockedHash.mockResolvedValue('unusable-hash');
+      mockedCompare.mockResolvedValue(false);
 
-      adapter.simulateCompare('first-password');
-      new EncrypterAdapter().simulateCompare('second-password');
+      await Promise.all([
+        adapter.simulateCompare('first-password'),
+        new EncrypterAdapter().simulateCompare('second-password')
+      ]);
 
-      expect(mockedGenSaltSync).toHaveBeenCalledTimes(1);
-      expect(mockedGenSaltSync).toHaveBeenCalledWith(envs.BCRYPT_SALT_ROUNDS);
-      expect(mockedHashSync).toHaveBeenCalledTimes(1);
-      expect(mockedCompareSync).toHaveBeenNthCalledWith(
-        1,
+      expect(mockedHash).toHaveBeenCalledTimes(1);
+      expect(mockedHash).toHaveBeenCalledWith(
+        expect.any(String),
+        envs.BCRYPT_SALT_ROUNDS
+      );
+      expect(mockedCompare).toHaveBeenCalledWith(
         'first-password',
         'unusable-hash'
       );
-      expect(mockedCompareSync).toHaveBeenNthCalledWith(
-        2,
+      expect(mockedCompare).toHaveBeenCalledWith(
         'second-password',
         'unusable-hash'
       );

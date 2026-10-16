@@ -2,7 +2,8 @@ import { randomBytes } from 'node:crypto';
 
 import {
   ACTIVATION_TOKEN_TTL_MS,
-  EmailToken
+  EmailToken,
+  PASSWORD_RESET_TOKEN_TTL_MS
 } from '../../../../../src/Contexts/Auth/domain/value-objects/EmailToken.js';
 import type {
   EmailTokenPrimitives,
@@ -42,7 +43,14 @@ export class EmailTokenMother {
     return EmailToken.create({
       purpose: 'passwordReset',
       tokenHash: tokenHash ?? EmailTokenMother.randomHash(),
-      expiresAt: expiresAt ?? new Date(Date.now() + HOUR_MS)
+      expiresAt: expiresAt ?? new Date(Date.now() + PASSWORD_RESET_TOKEN_TTL_MS)
+    });
+  }
+
+  /** A password reset token that expired one hour before `at`. */
+  static expiredPasswordReset(at: Date = new Date()): EmailToken {
+    return EmailTokenMother.passwordReset({
+      expiresAt: new Date(at.getTime() - HOUR_MS)
     });
   }
 

@@ -3,6 +3,7 @@ import request from 'supertest';
 
 import {
   createAuthLimiter,
+  createPasswordResetLimiter,
   createRegistrationLimiter
 } from '../../../../src/apps/agroApi/middlewares/rateLimiters.js';
 
@@ -57,6 +58,16 @@ describe('rate limit config', () => {
       const statuses = await statusesOf(app, LIMIT + 1);
 
       expect(statuses).toEqual([...Array<number>(LIMIT).fill(400), 429]);
+    });
+  });
+
+  describe('password reset limiter', () => {
+    it('should count successful answers and refuse the sixth request', async () => {
+      const app = appWith(createPasswordResetLimiter({ skip: neverSkip }), 202);
+
+      const statuses = await statusesOf(app, LIMIT + 1);
+
+      expect(statuses).toEqual([...Array<number>(LIMIT).fill(202), 429]);
     });
   });
 });

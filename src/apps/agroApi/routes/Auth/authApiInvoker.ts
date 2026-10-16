@@ -2,15 +2,19 @@ import { makeInvoker } from 'awilix-express';
 import {
   ActivateAccountController,
   AuthenticateWithGoogleController,
+  ForgotPasswordController,
   LoginUserLocalController,
   RefreshTokenController,
   RegisterUserLocalController,
+  ResetPasswordController,
   UpdatePasswordLocalController
 } from '../../controllers/Auth/index.js';
 
 const api = ({
   registerUserLocalController,
   activateAccountController,
+  forgotPasswordController,
+  resetPasswordController,
   loginUserLocalController,
   authenticateWithGoogleController,
   refreshTokenController,
@@ -18,6 +22,8 @@ const api = ({
 }: {
   registerUserLocalController: RegisterUserLocalController;
   activateAccountController: ActivateAccountController;
+  forgotPasswordController: ForgotPasswordController;
+  resetPasswordController: ResetPasswordController;
   loginUserLocalController: LoginUserLocalController;
   authenticateWithGoogleController: AuthenticateWithGoogleController;
   refreshTokenController: RefreshTokenController;
@@ -26,6 +32,8 @@ const api = ({
   return {
     registerUser: registerUserLocalController.run,
     activateAccount: activateAccountController.run,
+    forgotPassword: forgotPasswordController.run,
+    resetPassword: resetPasswordController.run,
     login: loginUserLocalController.run,
     authenticateWithGoogle: authenticateWithGoogleController.run,
     refreshToken: refreshTokenController.run,

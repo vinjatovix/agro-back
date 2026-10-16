@@ -2,6 +2,7 @@ export { createRequestLoggerMiddleware } from './requestLogger.js';
 export {
   authLimiter,
   globalLimiter,
+  passwordResetLimiter,
   registrationLimiter,
   strictLimiter
 } from './rateLimiters.js';

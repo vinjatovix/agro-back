@@ -32,25 +32,44 @@ export const createAuthLimiter = ({
   });
 
 /**
- * Counts every registration: each one answers the same success and may send
- * an email, so counting only failures would allow unlimited emails.
+ * Counts every request, for routes whose every answer is the same success and
+ * may send an email: counting only failures would allow unlimited emails.
  */
-export const createRegistrationLimiter = ({
-  skip = skipInTests
-}: { skip?: Skip } = {}): RequestHandler =>
+const createEveryRequestLimiter = (
+  message: string,
+  skip: Skip
+): RequestHandler =>
   rateLimit({
     windowMs: FIFTEEN_MINUTES_MS,
     max: 5,
-    message: 'Too many registration attempts, please try again later',
+    message,
     standardHeaders: true,
     legacyHeaders: false,
     skipSuccessfulRequests: false,
     skip
   });
 
+export const createRegistrationLimiter = ({
+  skip = skipInTests
+}: { skip?: Skip } = {}): RequestHandler =>
+  createEveryRequestLimiter(
+    'Too many registration attempts, please try again later',
+    skip
+  );
+
 export const authLimiter = createAuthLimiter();
 
 export const registrationLimiter = createRegistrationLimiter();
+
+export const createPasswordResetLimiter = ({
+  skip = skipInTests
+}: { skip?: Skip } = {}): RequestHandler =>
+  createEveryRequestLimiter(
+    'Too many password reset attempts, please try again later',
+    skip
+  );
+
+export const passwordResetLimiter = createPasswordResetLimiter();
 
 export const strictLimiter = rateLimit({
   windowMs: FIFTEEN_MINUTES_MS,

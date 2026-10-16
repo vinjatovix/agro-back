@@ -1,6 +1,7 @@
 import {
   ACTIVATION_TOKEN_TTL_MS,
-  EmailToken
+  EmailToken,
+  PASSWORD_RESET_TOKEN_TTL_MS
 } from '../../../../src/Contexts/Auth/domain/value-objects/EmailToken.js';
 import { InvalidArgumentException } from '../../../../src/Contexts/shared/domain/errors/index.js';
 import { EmailTokenMother } from './mothers/EmailTokenMother.js';
@@ -71,6 +72,21 @@ describe('EmailToken', () => {
       ACTIVATION_TOKEN_TTL_MS
     );
     expect(ACTIVATION_TOKEN_TTL_MS).toBe(24 * 60 * 60 * 1000);
+  });
+
+  it('should build a password reset token that expires 30 minutes after issue', () => {
+    const issuedAt = new Date('2026-10-16T08:00:00.000Z');
+
+    const token = EmailToken.passwordReset(
+      EmailTokenMother.randomHash(),
+      issuedAt
+    );
+
+    expect(token.purpose).toBe('passwordReset');
+    expect(token.expiresAt.getTime() - issuedAt.getTime()).toBe(
+      PASSWORD_RESET_TOKEN_TTL_MS
+    );
+    expect(PASSWORD_RESET_TOKEN_TTL_MS).toBe(30 * 60 * 1000);
   });
 
   it('should not share its expiry date with the caller', () => {

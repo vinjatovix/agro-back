@@ -7,6 +7,8 @@ import {
 } from './types/EmailTokenPrimitives.js';
 
 export const ACTIVATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
+export const PASSWORD_RESET_TOKEN_TTL_MS = 30 * 60 * 1000;
+export const PASSWORD_RESET_THROTTLE_WINDOW_MS = 2 * 60 * 1000;
 
 // SHA-256 in lowercase hex.
 const TOKEN_HASH_REGEX = /^[0-9a-f]{64}$/;
@@ -47,6 +49,15 @@ export class EmailToken implements Serializable<EmailTokenPrimitives> {
       purpose: 'activation',
       tokenHash,
       expiresAt: new Date(issuedAt.getTime() + ACTIVATION_TOKEN_TTL_MS)
+    });
+  }
+
+  /** A password reset token that expires `PASSWORD_RESET_TOKEN_TTL_MS` after `issuedAt`. */
+  static passwordReset(tokenHash: string, issuedAt: Date): EmailToken {
+    return EmailToken.create({
+      purpose: 'passwordReset',
+      tokenHash,
+      expiresAt: new Date(issuedAt.getTime() + PASSWORD_RESET_TOKEN_TTL_MS)
     });
   }
 

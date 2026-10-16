@@ -1,5 +1,7 @@
 export * from './ActivateAccount.js';
+export * from './ForgotPassword.js';
 export * from './RegisterUserLocal.js';
+export * from './ResetPassword.js';
 export * from './LoginUserLocal.js';
 export * from './AuthenticateWithGoogle.js';
 export * from './RefreshToken.js';

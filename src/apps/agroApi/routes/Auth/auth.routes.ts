@@ -1,14 +1,17 @@
 import type { Router } from 'express';
 import {
   activateRequest,
+  forgotPasswordRequest,
   googleAuthRequest,
   loginRequest,
   registerRequest,
+  resetPasswordRequest,
   updatePasswordRequest
 } from '../../controllers/Auth/index.js';
 import {
   auth,
   authLimiter,
+  passwordResetLimiter,
   registrationLimiter,
   validateRequest
 } from '../../middlewares/index.js';
@@ -31,6 +34,20 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
     authLimiter,
     validateRequest(activateRequest),
     authApiInvoker('activateAccount')
+  );
+
+  router.post(
+    `${prefix}/password/forgot`,
+    passwordResetLimiter,
+    validateRequest(forgotPasswordRequest),
+    authApiInvoker('forgotPassword')
+  );
+
+  router.post(
+    `${prefix}/password/reset`,
+    authLimiter,
+    validateRequest(resetPasswordRequest),
+    authApiInvoker('resetPassword')
   );
 
   router.post(

@@ -1,7 +1,10 @@
 import { User } from '../../../../src/Contexts/Auth/domain/entities/User.js';
 import { InvalidEmailTokenException } from '../../../../src/Contexts/Auth/domain/errors/index.js';
 import { randomUserId } from '../../../../src/Contexts/Auth/domain/UserId.js';
-import { UserAuthMethod } from '../../../../src/Contexts/Auth/domain/value-objects/index.js';
+import {
+  EmailToken,
+  UserAuthMethod
+} from '../../../../src/Contexts/Auth/domain/value-objects/index.js';
 import {
   DomainUnauthorizedException,
   InvalidArgumentException
@@ -296,6 +299,144 @@ describe('User', () => {
           LATER
         )
       ).toThrow(InvalidArgumentException);
+    });
+  });
+
+  describe('hasRecentResetToken', () => {
+    it('should return false when user has no reset token', () => {
+      const user = UserMother.active();
+
+      const result = user.hasRecentResetToken(new Date());
+
+      expect(result).toBe(false);
+    });
+
+    it('should return true when a reset token was issued less than 2 minutes ago', () => {
+      const issuedAt = new Date('2026-10-16T10:00:00.000Z');
+      const token = EmailTokenMother.passwordReset({
+        expiresAt: new Date(issuedAt.getTime() + 30 * 60 * 1000)
+      });
+      const user = UserMother.activeWithResetToken(token);
+      const checkAt = new Date('2026-10-16T10:01:00.000Z');
+
+      const result = user.hasRecentResetToken(checkAt);
+
+      expect(result).toBe(true);
+    });
+
+    it.each([
+      ['exactly 2 minutes ago', '2026-10-16T10:02:00.000Z'],
+      ['more than 2 minutes ago', '2026-10-16T10:02:01.000Z']
+    ])(
+      'should return false when the reset token was issued %s',
+      (_case, checkAt) => {
+        const issuedAt = new Date('2026-10-16T10:00:00.000Z');
+        const token = EmailToken.passwordReset(
+          EmailTokenMother.randomHash(),
+          issuedAt
+        );
+        const user = UserMother.activeWithResetToken(token);
+
+        expect(user.hasRecentResetToken(new Date(checkAt))).toBe(false);
+      }
+    );
+
+    it('should return false when the reset token is expired', () => {
+      const checkAt = new Date('2026-10-16T11:00:00.000Z');
+      const token = EmailTokenMother.expiredPasswordReset(checkAt);
+      const user = UserMother.activeWithResetToken(token);
+
+      const result = user.hasRecentResetToken(checkAt);
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('resetPassword', () => {
+    it('should reset password on an active account and remove the reset token', () => {
+      const token = EmailTokenMother.passwordReset();
+      const user = UserMother.activeWithResetToken(token);
+      const newPassword = UserMother.randomPasswordHash();
+      const at = new Date();
+
+      user.resetPassword(token.tokenHash, newPassword, at);
+
+      expect(user.password).toEqual(newPassword);
+      expect(user.emailValidated).toBe(true);
+      expect(user.emailTokens).toEqual([]);
+      expect(user.findAuthMethod('local')?.password).toEqual(newPassword);
+      expect(user.metadata.updatedAt).toEqual(at);
+      expect(user.metadata.updatedBy).toBe(user.username.value);
+    });
+
+    it('should validate a pending account, replace password, and purge activation token', () => {
+      const token = EmailTokenMother.passwordReset();
+      const user = UserMother.pendingWithResetToken(token);
+      const newPassword = UserMother.randomPasswordHash();
+      const at = new Date();
+
+      user.resetPassword(token.tokenHash, newPassword, at);
+
+      expect(user.password).toEqual(newPassword);
+      expect(user.emailValidated).toBe(true);
+      expect(user.emailTokens).toEqual([]);
+      expect(user.findAuthMethod('local')?.password).toEqual(newPassword);
+      expect(user.metadata.updatedAt).toEqual(at);
+    });
+
+    it('should add local password to a google-only account and preserve google provider', () => {
+      const token = EmailTokenMother.passwordReset();
+      const user = UserMother.googleOnlyWithResetToken(token);
+      const newPassword = UserMother.randomPasswordHash();
+      const at = new Date();
+
+      user.resetPassword(token.tokenHash, newPassword, at);
+
+      expect(user.password).toEqual(newPassword);
+      expect(user.emailValidated).toBe(true);
+      expect(user.emailTokens).toEqual([]);
+      expect(user.findAuthMethod('local')?.password).toEqual(newPassword);
+      expect(user.findAuthMethod('google')).toBeDefined();
+      expect(user.metadata.updatedAt).toEqual(at);
+    });
+
+    it.each([
+      [
+        'an unknown token hash',
+        (_at: Date): EmailToken => EmailTokenMother.passwordReset(),
+        (_token: EmailToken): string => '0'.repeat(64)
+      ],
+      [
+        'an expired token',
+        (at: Date): EmailToken => EmailTokenMother.expiredPasswordReset(at),
+        (token: EmailToken): string => token.tokenHash
+      ]
+    ])(
+      'should throw InvalidEmailTokenException when given %s',
+      (_case, makeToken, hashToSubmit) => {
+        const at = new Date('2026-10-16T10:00:00.000Z');
+        const token = makeToken(at);
+        const user = UserMother.activeWithResetToken(token);
+
+        expect(() =>
+          user.resetPassword(
+            hashToSubmit(token),
+            UserMother.randomPasswordHash(),
+            at
+          )
+        ).toThrow(InvalidEmailTokenException);
+      }
+    );
+
+    it('should refuse an activation token passed to resetPassword', () => {
+      const activationToken = EmailTokenMother.activation();
+      const user = UserMother.pending({ token: activationToken });
+      const newPassword = UserMother.randomPasswordHash();
+      const at = new Date();
+
+      expect(() =>
+        user.resetPassword(activationToken.tokenHash, newPassword, at)
+      ).toThrow(InvalidEmailTokenException);
     });
   });
 

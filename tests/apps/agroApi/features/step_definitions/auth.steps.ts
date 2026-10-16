@@ -4,6 +4,7 @@ import { assert } from 'chai';
 import { envs } from '../../../../../src/apps/agroApi/config/plugins/envs.plugin.js';
 import { API_PREFIXES } from '../../../../../src/apps/agroApi/routes/shared/apiPrefixes.js';
 import type { EmailMessage } from '../../../../../src/Contexts/shared/application/mailer/index.js';
+import { toMongoId } from '../../../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoId.js';
 import type { EncrypterTool } from '../../../../../src/Contexts/shared/plugins/index.js';
 
 import type {
@@ -24,7 +25,10 @@ import {
 
 const ACTIVATE_ROUTE = `${API_PREFIXES.auth}/activate`;
 const LOGIN_ROUTE = `${API_PREFIXES.auth}/login`;
+const FORGOT_PASSWORD_ROUTE = `${API_PREFIXES.auth}/password/forgot`;
+const RESET_PASSWORD_ROUTE = `${API_PREFIXES.auth}/password/reset`;
 const TOKEN_IN_LINK = /\/activate#token=([A-Za-z0-9_%-]+)/;
+const RESET_TOKEN_IN_LINK = /\/reset-password#token=([A-Za-z0-9_%-]+)/;
 const TOKEN_HASH = /^[0-9a-f]{64}$/;
 
 const seedAccount = async (
@@ -83,6 +87,15 @@ const tokenInLastEmailTo = async (address: string): Promise<string> => {
   return decodeURIComponent(match[1]);
 };
 
+const resetTokenInLastEmailTo = async (address: string): Promise<string> => {
+  const match = RESET_TOKEN_IN_LINK.exec((await lastEmailTo(address)).text);
+  if (!match?.[1]) {
+    assert.fail(`The last email to ${address} has no password reset link`);
+  }
+
+  return decodeURIComponent(match[1]);
+};
+
 const postActivationToken = (world: AgroWorld, token: unknown): void => {
   prepareRequest(world, {
     method: 'POST',
@@ -99,6 +112,25 @@ const scenarioActivationToken = (world: AgroWorld): string => {
 
   return world.activationToken;
 };
+
+const seededResetToken = (world: AgroWorld, email: string): string => {
+  const { resetToken } = seededUser(world, email);
+  assert.exists(resetToken, `No reset token seeded for ${email}`);
+
+  return resetToken;
+};
+
+const resetPasswordStatus = async (
+  token: string,
+  password: string
+): Promise<number> =>
+  (
+    await buildRequest({
+      method: 'post',
+      route: RESET_PASSWORD_ROUTE,
+      body: { token, password, repeatPassword: password }
+    })
+  ).status;
 
 const loginStatus = async (email: string, password: string): Promise<number> =>
   (
@@ -370,6 +402,13 @@ Then(
 );
 
 Then(
+  'the stored user {string} should have username {string}',
+  async function (this: AgroWorld, email: string, username: string) {
+    assert.strictEqual((await storedUser(email)).username, username);
+  }
+);
+
+Then(
   'the stored user {string} should have no password',
   async function (this: AgroWorld, email: string) {
     const user = await storedUser(email);
@@ -419,10 +458,10 @@ Then(
 Then(
   'the user seeded with email {string} should no longer be stored',
   async function (this: AgroWorld, email: string) {
-    const { id, username } = seededUser(this, email);
+    const { id } = seededUser(this, email);
 
     assert.strictEqual(
-      await rawCollection('users').countDocuments({ username }),
+      await rawCollection('users').countDocuments({ _id: toMongoId(id) }),
       0,
       `The account ${id} is still stored`
     );
@@ -432,10 +471,10 @@ Then(
 Then(
   'the user seeded with email {string} should still be stored',
   async function (this: AgroWorld, email: string) {
-    const { username } = seededUser(this, email);
+    const { id } = seededUser(this, email);
 
     assert.strictEqual(
-      await rawCollection('users').countDocuments({ username }),
+      await rawCollection('users').countDocuments({ _id: toMongoId(id) }),
       1
     );
   }
@@ -492,5 +531,156 @@ Then(
     });
 
     assert.strictEqual(response.status, 400);
+  }
+);
+
+Given(
+  'an active account exists with email {string}, password {string} and a password reset token',
+  async function (this: AgroWorld, email: string, password: string) {
+    await seedAccount(this, 'active', { email, password, resetToken: 'valid' });
+  }
+);
+
+Given(
+  'an active account exists with email {string} and a recent password reset token',
+  async function (this: AgroWorld, email: string) {
+    await seedAccount(this, 'active', { email, resetToken: 'recent' });
+  }
+);
+
+Given(
+  'an active account exists with email {string} and an expired password reset token',
+  async function (this: AgroWorld, email: string) {
+    await seedAccount(this, 'active', { email, resetToken: 'expired' });
+  }
+);
+
+Given(
+  'a pending account exists with email {string}, password {string} and a password reset token',
+  async function (this: AgroWorld, email: string, password: string) {
+    await seedAccount(this, 'pending', {
+      email,
+      password,
+      resetToken: 'valid'
+    });
+  }
+);
+
+Given(
+  'a Google-only account with Google identity {string} exists with email {string} and a password reset token',
+  async function (this: AgroWorld, googleSub: string, email: string) {
+    await seedAccount(this, 'googleOnly', {
+      email,
+      googleSub,
+      resetToken: 'valid'
+    });
+  }
+);
+
+When(
+  'I request a password reset for {string}',
+  function (this: AgroWorld, email: string) {
+    prepareRequest(this, {
+      method: 'POST',
+      route: FORGOT_PASSWORD_ROUTE,
+      body: JSON.stringify({ email })
+    });
+  }
+);
+
+When(
+  'I reset the password using the seeded reset token for {string} with password {string} and repeat password {string}',
+  function (
+    this: AgroWorld,
+    email: string,
+    password: string,
+    repeatPassword: string
+  ) {
+    prepareRequest(this, {
+      method: 'POST',
+      route: RESET_PASSWORD_ROUTE,
+      body: JSON.stringify({
+        token: seededResetToken(this, email),
+        password,
+        repeatPassword
+      })
+    });
+  }
+);
+
+When(
+  'the activation token is posted as reset token with password {string} and repeat password {string}',
+  function (this: AgroWorld, password: string, repeatPassword: string) {
+    const token = scenarioActivationToken(this);
+    prepareRequest(this, {
+      method: 'POST',
+      route: RESET_PASSWORD_ROUTE,
+      body: JSON.stringify({ token, password, repeatPassword })
+    });
+  }
+);
+
+Then(
+  'the last email to {string} should link to the password reset page',
+  async function (this: AgroWorld, address: string) {
+    const message = await lastEmailTo(address);
+    const token = await resetTokenInLastEmailTo(address);
+
+    assert.include(
+      message.text,
+      `${envs.FRONTEND_BASE_URL}/reset-password#token=${token}`
+    );
+    assert.notInclude(message.subject, token);
+  }
+);
+
+Then(
+  'the reset link emailed to {string} should set the password {string}',
+  async function (this: AgroWorld, email: string, password: string) {
+    assert.strictEqual(
+      await resetPasswordStatus(await resetTokenInLastEmailTo(email), password),
+      204
+    );
+  }
+);
+
+Then(
+  'the reset token seeded for {string} should be refused',
+  async function (this: AgroWorld, email: string) {
+    assert.strictEqual(
+      await resetPasswordStatus(seededResetToken(this, email), 'Refused1!'),
+      400
+    );
+  }
+);
+
+Then(
+  'the stored user {string} should keep Google identity {string}',
+  async function (this: AgroWorld, email: string, googleSub: string) {
+    const methods = ((await storedUser(email)).authMethods ?? []) as Array<
+      Record<string, unknown>
+    >;
+
+    assert.isTrue(
+      methods.some(
+        ({ provider, providerUserId }) =>
+          provider === 'google' && providerUserId === googleSub
+      ),
+      `${email} no longer holds Google identity ${googleSub}`
+    );
+  }
+);
+
+Then(
+  'the stored user {string} should hold only a password reset token hash',
+  async function (this: AgroWorld, email: string) {
+    const user = await storedUser(email);
+    const tokens = user.emailTokens as Array<Record<string, unknown>>;
+    const emailed = await resetTokenInLastEmailTo(email);
+
+    assert.lengthOf(tokens, 1);
+    assert.strictEqual(tokens[0]?.purpose, 'passwordReset');
+    assert.match(String(tokens[0]?.tokenHash), TOKEN_HASH);
+    assert.notInclude(JSON.stringify(user), emailed);
   }
 );

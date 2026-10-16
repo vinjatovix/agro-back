@@ -77,14 +77,15 @@ export class RegisterUserLocal {
   }
 
   async run(request: RegisterUserRequest): Promise<void> {
-    const applicant = this.validateApplicant(request);
+    const applicant = await this.validateApplicant(request);
 
-    // Checked before the email, so their answer never depends on it.
+    // Refused before the email is resolved; only the replaceable account of
+    // that same email may give its username back.
     await this.ensureIdIsFree(applicant.id);
-    await this.ensureUsernameIsFree(applicant.username.value);
 
     const now = new Date();
     const existing = await this.authRepository.search(applicant.email.value);
+    await this.ensureUsernameIsFree(applicant.username.value, existing, now);
 
     if (existing === null) {
       await this.createAndNotify(this.newRegistration(applicant, now));
@@ -104,7 +105,9 @@ export class RegisterUserLocal {
    * on what is stored. The password is hashed on every path, so all of them
    * do the same costly work.
    */
-  private validateApplicant(request: RegisterUserRequest): Applicant {
+  private async validateApplicant(
+    request: RegisterUserRequest
+  ): Promise<Applicant> {
     const plainPassword = new PlainPassword(request.password);
     this.validatePasswordConfirmation(request.password, request.repeatPassword);
     const id = createUserId(request.id);
@@ -115,7 +118,7 @@ export class RegisterUserLocal {
       id,
       email,
       username,
-      password: new PasswordHash(this.encrypter.hash(plainPassword.value))
+      password: new PasswordHash(await this.encrypter.hash(plainPassword.value))
     };
   }
 
@@ -193,10 +196,20 @@ export class RegisterUserLocal {
     }
   }
 
-  /** Every stored account holds its username, expired pending ones too. */
-  private async ensureUsernameIsFree(username: string): Promise<void> {
-    const storedUser = await this.authRepository.findByQuery({ username });
-    if (storedUser.length > 0) {
+  /**
+   * Every stored account holds its username, except the expired pending
+   * account of the same email that this registration replaces.
+   */
+  private async ensureUsernameIsFree(
+    username: string,
+    existing: User | null,
+    at: Date
+  ): Promise<void> {
+    const holders = await this.authRepository.findByQuery({ username });
+    const replaced =
+      existing !== null && existing.isReplaceableAt(at) ? existing.id : null;
+
+    if (holders.some((holder) => holder.id !== replaced)) {
       throw new DomainConflictException(USERNAME_TAKEN_MESSAGE);
     }
   }

@@ -14,7 +14,8 @@ import { UnitOfWorkMock } from '../../../shared/__mocks__/UnitOfWorkMock.js';
 import {
   AccountNotifierMock,
   AuthRepositoryMock,
-  EncrypterAdapterMock
+  EncrypterAdapterMock,
+  MOCK_PASSWORD_HASH
 } from '../../__mocks__/index.js';
 import { UserMother } from '../../domain/mothers/UserMother.js';
 import { RegisterUserRequestMother } from '../mothers/RegisterUserRequestMother.js';
@@ -102,7 +103,7 @@ describe('RegisterUserLocal', () => {
       const order: string[] = [];
       jest.spyOn(encrypter, 'hash').mockImplementation(() => {
         order.push('hash');
-        return UserMother.randomPasswordHash().value;
+        return Promise.resolve(UserMother.randomPasswordHash().value);
       });
       jest.spyOn(repository, 'findByQuery').mockImplementation(() => {
         order.push('lookup');
@@ -201,9 +202,7 @@ describe('RegisterUserLocal', () => {
       await registerUser.run(request);
 
       encrypter.assertHashHasBeenCalledWith(request.password);
-      expect(repository.createdUser().password?.value).toBe(
-        encrypter.hash(request.password)
-      );
+      expect(repository.createdUser().password?.value).toBe(MOCK_PASSWORD_HASH);
     });
 
     it('should answer the same and send nothing when it loses a duplicate-email race', async () => {
@@ -313,19 +312,72 @@ describe('RegisterUserLocal', () => {
       notifier.assertNothingSent();
     });
 
-    it("should refuse to reuse the expired account's own username", async () => {
-      const request = RegisterUserRequestMother.random();
-      const old = storedFor(request, (email) =>
-        UserMother.pendingExpired(new Date(), { email })
-      );
+    it.each([
+      [
+        'with an expired token',
+        (email: Email) => UserMother.pendingExpired(new Date(), { email })
+      ],
+      [
+        'without token',
+        (email: Email) => UserMother.pendingWithoutToken({ email })
+      ]
+    ])(
+      'should let the replacement keep the username of the pending account %s',
+      async (_case, make) => {
+        const request = RegisterUserRequestMother.random();
+        const old = storedFor(request, make);
+        repository.addToStorage(old);
+        const deleteSpy = jest.spyOn(repository, 'deleteIfReplaceable');
+
+        await expect(
+          registerUser.run({ ...request, username: old.username.value })
+        ).resolves.toBeUndefined();
+
+        expect(deleteSpy).toHaveBeenCalledWith(old, expect.any(Date));
+        expect(repository.createdUser().username).toEqual(old.username);
+        notifier.assertActivationSentTo(
+          new Email(request.email),
+          oneTimeToken.lastGenerated().token
+        );
+      }
+    );
+
+    it('should refuse the username of an expired pending account of another email', async () => {
+      const old = UserMother.pendingExpired(new Date());
+      const request = {
+        ...RegisterUserRequestMother.random(),
+        username: old.username.value
+      };
       repository.addToStorage(old);
 
-      await expect(
-        registerUser.run({ ...request, username: old.username.value })
-      ).rejects.toThrow(DomainConflictException);
+      await expect(registerUser.run(request)).rejects.toThrow(
+        DomainConflictException
+      );
 
-      repository.assertNotDeleted();
+      repository.assertNotWritten();
       notifier.assertNothingSent();
     });
+
+    it.each([
+      ['an active account', (email: Email) => UserMother.active({ email })],
+      [
+        'a pending account with a valid token',
+        (email: Email) => UserMother.pending({ email })
+      ]
+    ])(
+      'should still refuse the username held by %s of the same email',
+      async (_case, make) => {
+        const request = RegisterUserRequestMother.random();
+        const owner = storedFor(request, make);
+        repository.addToStorage(owner);
+
+        await expect(
+          registerUser.run({ ...request, username: owner.username.value })
+        ).rejects.toThrow(DomainConflictException);
+
+        repository.assertNotWritten();
+        notifier.assertNothingSent();
+      }
+    );
   });
 });

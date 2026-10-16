@@ -386,6 +386,7 @@ describe('MongoAuthRepository', () => {
       });
 
       expect(results).toHaveLength(1);
+      expect(results[0]?.id).toBe(user.id);
       expect(results[0]?.username?.value).toBe(user.username.value);
     });
 

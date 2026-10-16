@@ -16,7 +16,7 @@ export const EXPLICIT_NAMES: ReadonlySet<string> = new Set([
   'mailer',
   'backgroundTasks',
   'accountNotifier',
-  'activationLinkBaseUrl'
+  'frontendBaseUrl'
 ]);
 
 export function getCradlePropertyNames(cradleFilePath: string): string[] {

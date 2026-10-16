@@ -9,4 +9,6 @@ export interface AccountNotifier {
   activation(email: Email, token: string): void;
   registrationAttempt(email: Email): void;
   providerLinked(email: Email, provider: AuthProvider, at: Date): void;
+  passwordReset(email: Email, token: string): void;
+  passwordChanged(email: Email): void;
 }

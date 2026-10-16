@@ -106,6 +106,59 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /api/v1/auth/password/forgot:
+    post:
+      tags: [Auth]
+      summary: Request password reset email
+      description: >
+        Requests a password reset link for the given email address.
+        Answers with 202 Accepted and an empty body whether or not an account exists,
+        preventing account enumeration. When an account exists, a single-use 30-minute
+        token is generated and sent in the background. If a reset token was already issued
+        within the last 2 minutes, no new email or token is generated.
+        Every request counts toward the password reset rate limit (5 requests per 15 minutes per IP).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+      responses:
+        '202':
+          description: Accepted. If the email belongs to an account, a reset email is on its way.
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/auth/password/reset:
+    post:
+      tags: [Auth]
+      summary: Reset account password with one-time token
+      description: >
+        Resets the password of the account matching the provided one-time reset token.
+        Validates password rules and confirmation match before checking the token.
+        On success, sets or creates the local password, marks the email as validated,
+        removes the reset token, discards any pending activation token, and notifies the owner.
+        Does not issue a session token; user must log in explicitly with the new password.
+        Failed attempts count towards the authentication rate limit (5 failed attempts per 15 minutes per IP).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '204':
+          description: Password reset completed successfully. No body.
+        '400':
+          # Validation error (password rules, missing fields) OR uniform
+          # { "message": "Invalid or expired token" } for unknown, expired, used,
+          # replaced, or mismatched tokens.
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
   /api/v1/auth/login:
     post:
       tags: [Auth]
@@ -1420,6 +1473,37 @@ components:
           minLength: 1
           maxLength: 512
           description: Opaque token from the activation link (43 base64url characters today).
+
+    ForgotPasswordRequest:
+      type: object
+      additionalProperties: false
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+          description: The email address associated with the account.
+
+    ResetPasswordRequest:
+      type: object
+      additionalProperties: false
+      required: [token, password, repeatPassword]
+      properties:
+        token:
+          type: string
+          minLength: 1
+          maxLength: 512
+          description: Opaque token from the reset link fragment (43 base64url characters).
+        password:
+          type: string
+          minLength: 8
+          maxLength: 64
+          description: New password meeting complexity rules.
+        repeatPassword:
+          type: string
+          minLength: 8
+          maxLength: 64
+          description: Matching password confirmation.
 
     AuthenticateWithGoogleRequest:
       type: object
