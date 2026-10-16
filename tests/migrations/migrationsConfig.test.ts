@@ -1,3 +1,4 @@
+import { EventEmitter } from 'node:events';
 import { readFileSync } from 'node:fs';
 
 import { config, database, up as migrationUp } from 'migrate-mongo';
@@ -58,14 +59,33 @@ describe('migrations runner', () => {
 
   describe('up', () => {
     const close = jest.fn();
+    let client: EventEmitter;
 
     beforeEach(() => {
       close.mockReset();
       close.mockResolvedValue(undefined);
+      client = Object.assign(new EventEmitter(), { close });
       jest.mocked(database.connect).mockResolvedValue({
         db: {},
-        client: { close }
+        client
       } as unknown as Awaited<ReturnType<typeof database.connect>>);
+    });
+
+    it('should close the client only once no connection is in use', async () => {
+      jest.mocked(migrationUp).mockImplementationOnce(() => {
+        client.emit('connectionCheckOutStarted');
+        return Promise.resolve(['a.js']);
+      });
+
+      const result = migrations.up();
+      await new Promise((resolve) => setImmediate(resolve));
+
+      expect(close).not.toHaveBeenCalled();
+
+      client.emit('connectionCheckedIn');
+      await result;
+
+      expect(close).toHaveBeenCalledTimes(1);
     });
 
     it('should close the client and rethrow when a lock is in place', async () => {
