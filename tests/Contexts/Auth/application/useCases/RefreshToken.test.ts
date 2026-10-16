@@ -16,12 +16,8 @@ describe('RefreshToken', () => {
   let encrypter: EncrypterAdapterMock;
   const token = random.word({ min: 6, max: 255 });
 
-  const build = (emailValidationRequired = true): RefreshToken =>
-    new RefreshToken({
-      authRepository: repository,
-      encrypter,
-      emailValidationRequired
-    });
+  const build = (): RefreshToken =>
+    new RefreshToken({ authRepository: repository, encrypter });
 
   beforeEach(() => {
     repository = new AuthRepositoryMock();
@@ -65,13 +61,5 @@ describe('RefreshToken', () => {
     expect(refused).toEqual(
       await errorOf(build().run({ token, userId: random.uuid() }))
     );
-  });
-
-  it('should refresh a pending account when validation is not required', async () => {
-    repository.setSearchByIdResult(UserMother.pending());
-
-    await expect(
-      build(false).run({ token, userId: random.uuid() })
-    ).resolves.toEqual(expect.any(String));
   });
 });

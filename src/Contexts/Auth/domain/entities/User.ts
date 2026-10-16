@@ -318,8 +318,9 @@ export class User
     return !this.state.emailValidated && !this.hasUnexpiredActivation(at);
   }
 
-  canStartSession(emailValidationRequired: boolean): boolean {
-    return !emailValidationRequired || this.state.emailValidated;
+  /** Only an ACTIVE account can log in or refresh, in every mode. */
+  canStartSession(): boolean {
+    return this.state.emailValidated;
   }
 
   private securePendingAccount(method: UserAuthMethod, at: Date): void {
