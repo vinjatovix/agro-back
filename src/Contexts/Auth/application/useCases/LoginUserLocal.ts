@@ -14,22 +14,15 @@ const TOKEN_GENERATION_ERROR_MESSAGE =
 export type LoginUserLocalDependencies = {
   authRepository: AuthRepository;
   encrypter: EncrypterTool;
-  emailValidationRequired: boolean;
 };
 
 export class LoginUserLocal {
   private readonly authRepository: AuthRepository;
   private readonly encrypter: EncrypterTool;
-  private readonly emailValidationRequired: boolean;
 
-  constructor({
-    authRepository,
-    encrypter,
-    emailValidationRequired
-  }: LoginUserLocalDependencies) {
+  constructor({ authRepository, encrypter }: LoginUserLocalDependencies) {
     this.authRepository = authRepository;
     this.encrypter = encrypter;
-    this.emailValidationRequired = emailValidationRequired;
   }
 
   async run({ email, password }: LoginUserRequest): Promise<string> {
@@ -50,7 +43,7 @@ export class LoginUserLocal {
 
     // After the password check, so an unvalidated account costs and answers
     // the same as a wrong password.
-    if (!storedUser.canStartSession(this.emailValidationRequired)) {
+    if (!storedUser.canStartSession()) {
       throw new DomainUnauthorizedException(INVALID_CREDENTIALS_MESSAGE);
     }
 

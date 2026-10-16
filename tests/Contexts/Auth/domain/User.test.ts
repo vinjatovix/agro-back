@@ -322,18 +322,11 @@ describe('User', () => {
 
   describe('canStartSession', () => {
     it.each([
-      [true, false, false],
-      [true, true, true],
-      [false, false, true],
-      [false, true, true]
-    ])(
-      'validation required %s, email validated %s: %s',
-      (required, validated, expected) => {
-        const user = validated ? UserMother.active() : UserMother.pending();
-
-        expect(user.canStartSession(required)).toBe(expected);
-      }
-    );
+      ['pending', UserMother.pending(), false],
+      ['active', UserMother.active(), true]
+    ])('%s account: %s', (_state, user, expected) => {
+      expect(user.canStartSession()).toBe(expected);
+    });
   });
 
   describe('toPrimitives', () => {

@@ -81,7 +81,6 @@ export function buildExplicitRegistrations({
     ), // One channel picked from NODE_ENV and RESEND_API_KEY; fails start-up on bad settings
     backgroundTasks: asClass(InProcessBackgroundTasks).singleton(), // Work started after the answer (emails); drained on shutdown
     accountNotifier: asClass(MailerAccountNotifier).singleton(), // Spanish account emails, sent in the background
-    emailValidationRequired: asValue(envs.NODE_ENV !== 'development'), // Login and refresh need a validated email, except in development
     activationLinkBaseUrl: asValue(envs.FRONTEND_BASE_URL) // Frontend page the activation email links to
   };
 }

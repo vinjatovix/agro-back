@@ -118,7 +118,6 @@ export type ContainerCradle = {
   mailer: Mailer;
   backgroundTasks: BackgroundTasks;
   accountNotifier: AccountNotifier;
-  emailValidationRequired: boolean;
   activationLinkBaseUrl: string;
 
   // Singletons

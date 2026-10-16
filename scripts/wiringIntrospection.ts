@@ -16,7 +16,6 @@ export const EXPLICIT_NAMES: ReadonlySet<string> = new Set([
   'mailer',
   'backgroundTasks',
   'accountNotifier',
-  'emailValidationRequired',
   'activationLinkBaseUrl'
 ]);
 

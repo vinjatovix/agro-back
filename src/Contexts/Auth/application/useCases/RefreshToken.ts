@@ -13,28 +13,21 @@ export type RefreshTokenRequest = {
 export type RefreshTokenDependencies = {
   authRepository: AuthRepository;
   encrypter: EncrypterTool;
-  emailValidationRequired: boolean;
 };
 
 export class RefreshToken {
   private readonly authRepository: AuthRepository;
   private readonly encrypter: EncrypterTool;
-  private readonly emailValidationRequired: boolean;
 
-  constructor({
-    authRepository,
-    encrypter,
-    emailValidationRequired
-  }: RefreshTokenDependencies) {
+  constructor({ authRepository, encrypter }: RefreshTokenDependencies) {
     this.authRepository = authRepository;
     this.encrypter = encrypter;
-    this.emailValidationRequired = emailValidationRequired;
   }
 
   /** A removed or unvalidated account gets the same answer as a bad token. */
   async run({ token, userId }: RefreshTokenRequest): Promise<string> {
     const user = await this.authRepository.searchById(userId);
-    if (!user?.canStartSession(this.emailValidationRequired)) {
+    if (!user?.canStartSession()) {
       throw new DomainUnauthorizedException(INVALID_TOKEN_MESSAGE);
     }
 

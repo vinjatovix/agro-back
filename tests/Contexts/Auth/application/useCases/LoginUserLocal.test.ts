@@ -19,12 +19,8 @@ describe('LoginUserLocal', () => {
   let repository: AuthRepositoryMock;
   let loginUser: LoginUserLocal;
 
-  const build = (emailValidationRequired = true): LoginUserLocal =>
-    new LoginUserLocal({
-      authRepository: repository,
-      encrypter,
-      emailValidationRequired
-    });
+  const build = (): LoginUserLocal =>
+    new LoginUserLocal({ authRepository: repository, encrypter });
 
   beforeEach(() => {
     encrypter = new EncrypterAdapterMock({ login: true });
@@ -60,33 +56,18 @@ describe('LoginUserLocal', () => {
     await expect(loginUser.run(request)).rejects.toThrow(`Invalid credentials`);
   });
 
-  describe('unvalidated email', () => {
-    const pendingRequest = () => {
-      const request = LoginUserRequestMother.random();
-      repository.setSearchResult(
-        UserMother.pending({ email: new Email(request.email) })
-      );
+  it('should refuse an unvalidated email with the same answer as a wrong password, after checking the password', async () => {
+    const request = LoginUserRequestMother.random();
+    repository.setSearchResult(
+      UserMother.pending({ email: new Email(request.email) })
+    );
+    const compareSpy = jest.spyOn(encrypter, 'compare');
 
-      return request;
-    };
+    const refused = await errorOf(loginUser.run(request));
 
-    it('should refuse it with the same answer as a wrong password, after checking the password', async () => {
-      const request = pendingRequest();
-      const compareSpy = jest.spyOn(encrypter, 'compare');
-
-      const refused = await errorOf(loginUser.run(request));
-
-      expect(refused).toBeInstanceOf(DomainUnauthorizedException);
-      expect(compareSpy).toHaveBeenCalledTimes(1);
-      encrypter = new EncrypterAdapterMock({ login: false });
-      expect(refused).toEqual(await errorOf(build().run(request)));
-    });
-
-    it('should let it in when validation is not required', async () => {
-      const request = pendingRequest();
-      loginUser = build(false);
-
-      await expect(loginUser.run(request)).resolves.toEqual(expect.any(String));
-    });
+    expect(refused).toBeInstanceOf(DomainUnauthorizedException);
+    expect(compareSpy).toHaveBeenCalledTimes(1);
+    encrypter = new EncrypterAdapterMock({ login: false });
+    expect(refused).toEqual(await errorOf(build().run(request)));
   });
 });
