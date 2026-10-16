@@ -55,6 +55,7 @@ import type {
 import type { MongoAuthRepository } from '../../../Contexts/Auth/infrastructure/persistence/MongoAuthRepository.js';
 import type { CheckHealth } from '../../../Contexts/health/application/useCases/CheckHealth.js';
 import type { UnitOfWork } from '../../../Contexts/shared/application/interfaces/index.js';
+import type { Mailer } from '../../../Contexts/shared/application/mailer/index.js';
 import type {
   AppLogger,
   EncrypterTool,
@@ -111,6 +112,7 @@ export type ContainerCradle = {
   cropSpatialService: CropSpatialService;
   unitOfWork: UnitOfWork;
   familySummaryReader: FamilySummaryReader;
+  mailer: Mailer;
 
   // Singletons
   environmentArranger: DBEnvironmentArranger;

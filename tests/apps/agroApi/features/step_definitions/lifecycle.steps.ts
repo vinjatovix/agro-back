@@ -9,6 +9,7 @@ import {
 
 import {
   AgroWorld,
+  mailbox,
   startSuite,
   stopSuite,
   suite,
@@ -22,7 +23,10 @@ setWorldConstructor(AgroWorld);
 
 BeforeAll(startSuite);
 
-Before(() => suite().environmentArranger.arrange());
+Before(async () => {
+  await suite().environmentArranger.arrange();
+  mailbox().clear();
+});
 
 AfterAll(stopSuite);
 

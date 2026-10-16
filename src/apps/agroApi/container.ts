@@ -15,11 +15,14 @@ import { familyPersistenceMapper } from '../../Contexts/Agro/Families/mappers/fa
 import { CropSpatialService } from '../../Contexts/Agro/PlantInstances/domain/services/CropSpatialService.js';
 import { plantInstancePersistenceMapper } from '../../Contexts/Agro/PlantInstances/mappers/plantInstancePersistenceMapper.js';
 import { plantPersistenceMapper } from '../../Contexts/Agro/Plants/mappers/plantPersistenceMapper.js';
+import type { Mailer } from '../../Contexts/shared/application/mailer/index.js';
+import { createMailer } from '../../Contexts/shared/infrastructure/mailer/index.js';
 import { MongoUnitOfWork } from '../../Contexts/shared/infrastructure/persistence/mongo/MongoUnitOfWork.js';
 import {
   buildLogger,
   type AppLogger
 } from '../../Contexts/shared/plugins/index.js';
+import { envs } from './config/plugins/envs.plugin.js';
 import { COMPONENT_ROLES } from './wiring/componentRoles.js';
 import type {
   AppContainer,
@@ -47,18 +50,33 @@ export function buildExplicitRegistrations({
   ContainerDeps,
   'db' | 'client'
 >): NameAndRegistrationPair<ContainerCradle> {
+  const logger = buildLogger('agroApi');
+
   return {
     db: asValue(db), // Runtime Mongo database instance connected at start-up
     DBClient: asValue(client), // Runtime Mongo client connection handle
     appVersion: asValue(pkg.version), // Service release version read from package.json
-    logger: asValue<AppLogger>(buildLogger('agroApi')), // Contextual root logger instance
+    logger: asValue<AppLogger>(logger), // Contextual root logger instance
     bedPersistenceMapper: asValue(bedPersistenceMapper), // Plain persistence mapper without class state
     familyPersistenceMapper: asValue(familyPersistenceMapper), // Plain persistence mapper without class state
     plantPersistenceMapper: asValue(plantPersistenceMapper), // Plain persistence mapper without class state
     plantInstancePersistenceMapper: asValue(plantInstancePersistenceMapper), // Plain persistence mapper without class state
     cropSpatialService: asClass(CropSpatialService).singleton(), // Spatial collision and boundary validator
     unitOfWork: asClass(MongoUnitOfWork).singleton(), // Groups cross-aggregate writes in one Mongo transaction
-    familySummaryReader: aliasTo('familyReadRepository') // Plants' port, served by the family read side
+    familySummaryReader: aliasTo('familyReadRepository'), // Plants' port, served by the family read side
+    mailer: asValue<Mailer>(
+      createMailer({
+        nodeEnv: envs.NODE_ENV,
+        settings: {
+          fromAddress: envs.MAIL_FROM_ADDRESS,
+          fromName: envs.MAIL_FROM_NAME,
+          resendApiKey: envs.RESEND_API_KEY,
+          sendTimeoutMs: envs.MAIL_SEND_TIMEOUT_MS
+        },
+        logger,
+        appVersion: pkg.version
+      })
+    ) // One channel picked from NODE_ENV and RESEND_API_KEY; fails start-up on bad settings
   };
 }
 

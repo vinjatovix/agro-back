@@ -41,7 +41,7 @@ The current codebase in `@src/Contexts/Auth` implements:
 
 - **Stateless OAuth Multi-provider:** Clean verification and profile generation for Github and others. **`[TARGET STATE (Pending [Iteration 28](../../roadmap.md#iteration-28-implement-stateless-github-oauth))]`**
 - **Registration without account enumeration:** today `POST /auth/register` answers `400` when the email is taken and `409` when the id is, so a caller can find out whether an email has an account (`authLimiter` limits it to 5 failed attempts per IP every 15 minutes). **`[TARGET STATE (Proposal in [Iteration 26](../../roadmap.md#iteration-26-implement-email-account-activation-flow))]`**
-- **Core Mailer Infrastructure (Activation Mail):** Programmatically sending actual registration validation emails. **`[TARGET STATE (Pending Iterations [25](../../roadmap.md#iteration-25-implement-mailer-port-and-local-bypass) & [26](../../roadmap.md#iteration-26-implement-email-account-activation-flow))]`**
+- **Activation Mail:** Programmatically sending actual registration validation emails through the `Mailer` port (§3.4). **`[TARGET STATE (Pending [Iteration 26](../../roadmap.md#iteration-26-implement-email-account-activation-flow))]`**
 
 ### 3.3 Request Validation _(CURRENTLY IMPLEMENTED)_
 
@@ -60,6 +60,23 @@ Auth routes validate input with Zod through `validateRequest` (validation.md §3
 - **Match rule:** `"Passwords do not match"` under `repeatPassword`, reported together with other field errors. The use cases check it again with the same text and answer `400` (`InvalidArgumentException`) if called without the schema. A new password equal to the old one is also a `400` (`"New password must be different from old password"`), checked after the old password is verified.
 - **Stricter formats:** `email` uses Zod's email format and `id` an RFC UUID (version and variant digits checked). Examples now answered `400`: email `a!b@example.com`, id `12345678-1234-1234-1234-123456789012`. The domain value object `Email` uses the same pattern as Zod, so any entry point (not only HTTP) rejects the same addresses; `User.fromPrimitives` builds `Email` too, so a stored user whose email no longer matches can no longer be loaded.
 - No message contains the submitted value.
+
+### 3.4 Mailer Infrastructure _(CURRENTLY IMPLEMENTED, [Iteration 25](../../roadmap.md#iteration-25-implement-mailer-port-and-local-bypass))_
+
+- **Port:** `Mailer.send(message: EmailMessage): Promise<MailReceipt>` (`src/Contexts/shared/application/mailer`), injected as `mailer`. `EmailMessage.create({ to, subject, text, html? })` validates before any channel is used: `to` follows the shared `Email` rules, `subject` is trimmed, non-empty and has no line breaks, `text` is non-empty, `html` is optional but non-empty when present. Violations throw `InvalidArgumentException` with one entry per field. No endpoint sends email yet.
+- **Channels, picked once at start-up from `NODE_ENV` and `RESEND_API_KEY`** (`src/Contexts/shared/infrastructure/mailer/createMailer.ts`):
+
+  | `NODE_ENV`    | `RESEND_API_KEY` | Channel                                                      |
+  | ------------- | ---------------- | ------------------------------------------------------------ |
+  | `test`        | any              | `InMemoryMailer`: records messages, never leaves the process |
+  | `development` | empty            | `ConsoleMailer`: logs `[SIMULATED EMAIL]` with the message   |
+  | `development` | set              | `ResendMailer`: real delivery, with a start-up warning       |
+  | `production`  | any              | `ResendMailer`: real delivery                                |
+  | anything else | any              | start-up fails                                               |
+
+- **Settings:** `RESEND_API_KEY` (secret), `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME` (optional, sent quoted as `"Name" <address>`), `MAIL_SEND_TIMEOUT_MS` (default 5000, 1–10000). They are checked only when the real channel is selected: a missing key or sender, a malformed sender, a name with line breaks or an out-of-range time-out stops start-up with an error that names the variable, never its value.
+- **Failures:** `ResendMailer` rejects with `MailDeliveryException` and a `reason`: `unauthorized` (401/403), `rateLimited` (429), `rejected` (other 4xx), `unavailable` (5xx or network error), `timeout`. It is not mapped to an HTTP status yet. A `2xx` whose body cannot be read still resolves (without id). A `timeout` or network failure does not prove the message was not delivered, so a retry may send it twice. `ResendMailer` logs carry the recipient's domain, the provider id or status, never the API key or the body. `ConsoleMailer` logs the whole message on purpose (the developer needs its links), so in development the body reaches the log files and the Mongo log collection.
+- **Acceptance tests:** `mailbox()` (`tests/apps/agroApi/features/step_definitions/utils/mailbox.ts`) returns the suite's `InMemoryMailer` (`sentMessages()`, `clear()`); the Cucumber `Before` hook clears it for every scenario.
 
 ---
 
@@ -152,7 +169,7 @@ This hybrid flow guarantees that layout-dependent physics (climates, seasons) ar
 - **No Shared State:** The authentication session state (specifically, the JWT payload) MUST NOT carry any business-oriented or operational properties (e.g., `postalCode`, `country`, `latitude`, `longitude`, or `hemisphere`).
 - **No Direct Domain Exposure:** Authentication primitives are mapped to domain-specific Value Objects and branded types (`Email`, `UserId`, etc.) only at the boundary level.
 - **Audit Metadata Ownership:** Every User write (`ValidateMail`, `UpdatePasswordLocal`, linking Google in `AuthenticateWithGoogle`) sends a `UserPatch` that carries its own metadata, computed in memory with `Metadata.update(storedUser.metadata, actingUser, at?)`: `createdAt`/`createdBy` are kept, and linking Google uses one timestamp for `linkedAt` and `updatedAt`. `AuthRepository.update(patch)` stores it as received and never adds audit data (persistence.md, Metadata Ownership). **`[TARGET STATE (Proposal in [Iteration 26](../../roadmap.md#iteration-26-implement-email-account-activation-flow))]`** replace `UserPatch` with User mutation methods that own this update.
-- **`[TARGET STATE (Pending [Iteration 25](../../roadmap.md#iteration-25-implement-mailer-port-and-local-bypass))]` Local Development Email Validation Bypass:** The local email validation check is strictly enforced in production/staging environments, blocking unvalidated local logins until activated. However, to prevent developer deadlocks prior to full mailer integration ([Iteration 26](../../roadmap.md#iteration-26-implement-email-account-activation-flow)), the login system implements a temporary validation bypass strictly constrained to local development environments (`NODE_ENV === 'development'`), enabling local testing and rapid prototyping.
+- **`[TARGET STATE (Pending [Iteration 26](../../roadmap.md#iteration-26-implement-email-account-activation-flow))]` Local Development Email Validation Bypass:** The local email validation check is strictly enforced in every mode except `development` (only `development`, `test` and `production` are accepted; any other `NODE_ENV` stops start-up), blocking unvalidated local logins until activated. However, to prevent developer deadlocks prior to full mailer integration ([Iteration 26](../../roadmap.md#iteration-26-implement-email-account-activation-flow)), the login system implements a temporary validation bypass strictly constrained to local development environments (`NODE_ENV === 'development'`), enabling local testing and rapid prototyping.
 
 ### 7.1 Account Deletion & Right to be Forgotten (GDPR) `[TARGET STATE]`
 

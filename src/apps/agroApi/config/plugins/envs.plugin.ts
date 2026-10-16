@@ -46,5 +46,12 @@ export const envs = {
     .get('BCRYPT_SALT_ROUNDS')
     .default('12')
     .asIntPositive(),
+  MAIL_FROM_ADDRESS: env.get('MAIL_FROM_ADDRESS').default('').asString(),
+  MAIL_FROM_NAME: env.get('MAIL_FROM_NAME').default('').asString(),
+  RESEND_API_KEY: env.get('RESEND_API_KEY').default('').asString(),
+  MAIL_SEND_TIMEOUT_MS: env
+    .get('MAIL_SEND_TIMEOUT_MS')
+    .default('5000')
+    .asIntPositive(),
   TEST_LOGS: env.get('TEST_LOGS').default('false').asBool()
 };

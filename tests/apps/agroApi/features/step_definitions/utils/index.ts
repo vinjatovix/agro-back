@@ -3,6 +3,7 @@ export * from './database.js';
 export * from './fieldAssertions.js';
 export * from './headers.js';
 export * from './interpolate.js';
+export * from './mailbox.js';
 export * from './parseJsonObject.js';
 export * from './plantOverrides.js';
 export * from './requests.js';
