@@ -12,6 +12,7 @@ import {
   toRegistrationName
 } from '../../../src/apps/agroApi/wiring/componentRoles.js';
 import { scanComponents } from '../../../src/apps/agroApi/wiring/scanComponents.js';
+import { InMemoryMailer } from '../../../src/Contexts/shared/infrastructure/mailer/index.js';
 import { SOURCE_ROOT } from '../../shared/sourceRoot.js';
 
 describe('container wiring', () => {
@@ -104,5 +105,17 @@ describe('container wiring', () => {
       expect(component.registrationName).toBe(expectedName);
       expect(container.registrations[expectedName]).toBeDefined();
     }
+  });
+
+  it('resolves the mailer as the in-memory recorder in test mode', async () => {
+    const client = new MongoClient('mongodb://localhost:27017');
+    const db = client.db('test');
+    const container = await createAppContainer({
+      db,
+      client,
+      sourceRoot: SOURCE_ROOT
+    });
+
+    expect(container.resolve('mailer')).toBeInstanceOf(InMemoryMailer);
   });
 });

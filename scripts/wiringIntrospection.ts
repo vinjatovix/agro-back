@@ -12,7 +12,8 @@ export const EXPLICIT_NAMES: ReadonlySet<string> = new Set([
   'plantInstancePersistenceMapper',
   'cropSpatialService',
   'unitOfWork',
-  'familySummaryReader'
+  'familySummaryReader',
+  'mailer'
 ]);
 
 export function getCradlePropertyNames(cradleFilePath: string): string[] {

@@ -586,8 +586,16 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [auth.md](spec/modules/auth.md)
 
+- **Status**: Completed
 - **Value delivered**: Establishes technology-agnostic email sending infrastructure.
-- **Definition of Done**: `Mailer` port defined. In-memory adapter implemented. Local development bypass (`NODE_ENV === 'development'`) is active.
+- **Definition of Done**: `Mailer` port defined. In-memory adapter implemented for tests. Real delivery through Resend's HTTPS API (free plan: 100 emails/day). Local development (`NODE_ENV === 'development'`) sends for real when `RESEND_API_KEY` is set and simulates delivery (logs the message) when it is not. Tests record in memory, production always sends, and any other `NODE_ENV` stops start-up.
+- **Decisions taken**:
+  - Resend is called over HTTPS with native `fetch`, without its SDK (no new dependency). Brevo is the documented fallback if the daily cap is ever hit.
+  - In development the API key decides: with `RESEND_API_KEY` delivery is real (a start-up warning says so), without it delivery is simulated. A key without `MAIL_FROM_ADDRESS` stops start-up instead of falling back to simulation.
+  - Only `development`, `test` and `production` are accepted; any other `NODE_ENV` stops start-up, so a typo cannot silently run without email or send from an undeclared environment.
+  - `MailDeliveryException` (reasons `rejected`, `unauthorized`, `rateLimited`, `unavailable`, `timeout`) has no HTTP mapping yet: no endpoint can raise it. Iteration 26 decides the status (likely `503`) with its contract change.
+  - Each send is bounded by `MAIL_SEND_TIMEOUT_MS` (default 5 s, at most 10 s). That is far above the 150 ms write budget: Iteration 26 must decide whether sending happens inside the request.
+  - A `timeout` or network failure does not prove the email was not sent, and there is no retry yet. If Iteration 26 adds retries (e.g. "resend activation"), it must send Resend's `Idempotency-Key` header with a key the caller keeps between attempts, so a retry cannot deliver twice.
 - **Dependencies**: None.
 - **Risks**: None.
 - **Prompt for /speckit.specify**:
