@@ -1,3 +1,5 @@
+import './buildEnvPlaceholders.js';
+
 import { globSync } from 'glob';
 import type { RouteModule } from '../src/apps/agroApi/routes/route.types.js';
 import { getRegisterRouteOrThrow } from '../src/apps/agroApi/routes/routeModuleValidation.js';
