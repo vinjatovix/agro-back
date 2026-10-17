@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { Lifetime } from 'awilix';
+import { asValue, Lifetime } from 'awilix';
 import { MongoClient } from 'mongodb';
 
 import {
@@ -13,6 +13,8 @@ import {
 } from '../../../src/apps/agroApi/wiring/componentRoles.js';
 import { scanComponents } from '../../../src/apps/agroApi/wiring/scanComponents.js';
 import { InMemoryMailer } from '../../../src/Contexts/shared/infrastructure/mailer/index.js';
+import { GoogleIdTokenVerifierAdapter } from '../../../src/Contexts/shared/plugins/index.js';
+import { GoogleIdTokenVerifierMock } from '../../Contexts/Auth/__mocks__/index.js';
 import { SOURCE_ROOT } from '../../shared/sourceRoot.js';
 
 describe('container wiring', () => {
@@ -105,6 +107,34 @@ describe('container wiring', () => {
       expect(component.registrationName).toBe(expectedName);
       expect(container.registrations[expectedName]).toBeDefined();
     }
+  });
+
+  it('resolves an override instead of the scanned component', async () => {
+    const client = new MongoClient('mongodb://localhost:27017');
+    const db = client.db('test');
+    const fake = new GoogleIdTokenVerifierMock();
+    const container = await createAppContainer({
+      db,
+      client,
+      sourceRoot: SOURCE_ROOT,
+      overrides: { googleIdTokenVerifier: asValue(fake) }
+    });
+
+    expect(container.resolve('googleIdTokenVerifier')).toBe(fake);
+  });
+
+  it('resolves the real Google verifier without overrides', async () => {
+    const client = new MongoClient('mongodb://localhost:27017');
+    const db = client.db('test');
+    const container = await createAppContainer({
+      db,
+      client,
+      sourceRoot: SOURCE_ROOT
+    });
+
+    expect(container.resolve('googleIdTokenVerifier')).toBeInstanceOf(
+      GoogleIdTokenVerifierAdapter
+    );
   });
 
   it('resolves the mailer as the in-memory recorder in test mode', async () => {

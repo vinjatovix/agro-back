@@ -21,6 +21,7 @@ import {
 import type { RegisterUserRequest } from '../interfaces/index.js';
 import {
   PASSWORDS_DO_NOT_MATCH_MESSAGE,
+  USER_NOT_CREATED_MESSAGE,
   USERNAME_TAKEN_MESSAGE
 } from '../messages.js';
 import type { AccountNotifier } from '../notifications/index.js';
@@ -141,7 +142,7 @@ export class RegisterUserLocal {
 
   /** A duplicate-email race (`emailTaken`) is answered like any other path. */
   private async createAndNotify({ user, token }: Registration): Promise<void> {
-    const outcome = await this.authRepository.create(user);
+    const outcome = await this.createUser(user);
     if (outcome === 'emailTaken') return;
 
     this.accountNotifier.activation(user.email, token);
@@ -165,7 +166,7 @@ export class RegisterUserLocal {
         if (!(await this.authRepository.deleteIfReplaceable(existing, at))) {
           return false;
         }
-        if ((await this.authRepository.create(user)) === 'emailTaken') {
+        if ((await this.createUser(user)) === 'emailTaken') {
           throw new ReplacementLostRaceSignal();
         }
 
@@ -180,6 +181,24 @@ export class RegisterUserLocal {
 
     this.accountNotifier.activation(user.email, token);
     logger.info(`User <${user.username.value}> registered again`);
+  }
+
+  /**
+   * Inserts the account. A username taken since the check is a conflict (it
+   * rolls the replacement unit back); a local account links no provider, so
+   * `providerTaken` gets the generic conflict.
+   */
+  private async createUser(user: User): Promise<'created' | 'emailTaken'> {
+    const outcome = await this.authRepository.create(user);
+
+    if (outcome === 'usernameTaken') {
+      throw new DomainConflictException(USERNAME_TAKEN_MESSAGE);
+    }
+    if (outcome === 'providerTaken') {
+      throw new DomainConflictException(USER_NOT_CREATED_MESSAGE);
+    }
+
+    return outcome;
   }
 
   /** A pending account with a valid link is left alone: no write, no email. */

@@ -8,7 +8,8 @@ import {
   DomainConflictException,
   DomainStaleVersionException,
   DomainUnauthorizedException,
-  DomainForbiddenException
+  DomainForbiddenException,
+  DomainServiceUnavailableException
 } from '../../../../Contexts/shared/domain/errors/index.js';
 
 const DOMAIN_EXCEPTION_MAP = new Map<DomainExceptionConstructor, number>([
@@ -17,7 +18,8 @@ const DOMAIN_EXCEPTION_MAP = new Map<DomainExceptionConstructor, number>([
   [DomainConflictException, httpStatus.CONFLICT],
   [DomainStaleVersionException, httpStatus.PRECONDITION_FAILED],
   [DomainUnauthorizedException, httpStatus.UNAUTHORIZED],
-  [DomainForbiddenException, httpStatus.FORBIDDEN]
+  [DomainForbiddenException, httpStatus.FORBIDDEN],
+  [DomainServiceUnavailableException, httpStatus.SERVICE_UNAVAILABLE]
 ]);
 
 export const domainExceptionMapper = (

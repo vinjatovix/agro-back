@@ -63,7 +63,7 @@ import type { Mailer } from '../../../Contexts/shared/application/mailer/index.j
 import type {
   AppLogger,
   EncrypterTool,
-  GoogleIdTokenVerifierAdapter,
+  GoogleIdTokenVerifierTool,
   OneTimeTokenTool
 } from '../../../Contexts/shared/plugins/index.js';
 import type { DBEnvironmentArranger } from '../../../shared/infrastructure/persistence/index.js';
@@ -123,11 +123,12 @@ export type ContainerCradle = {
   backgroundTasks: BackgroundTasks;
   accountNotifier: AccountNotifier;
   frontendBaseUrl: string;
+  googleClientId: string;
 
   // Singletons
   environmentArranger: DBEnvironmentArranger;
   encrypter: EncrypterTool;
-  googleIdTokenVerifier: GoogleIdTokenVerifierAdapter;
+  googleIdTokenVerifier: GoogleIdTokenVerifierTool;
   oneTimeToken: OneTimeTokenTool;
   authRepository: MongoAuthRepository;
   familyRepository: MongoFamilyRepository;

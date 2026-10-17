@@ -26,7 +26,6 @@ type UserQuery = { id?: string; username?: string };
  * local password). Results set with the `set*` helpers win over that default.
  */
 export class AuthRepositoryMock implements AuthRepository {
-  private readonly saveMock = jest.fn<Promise<void>, [User]>();
   private readonly createMock = jest.fn<Promise<CreateUserOutcome>, [User]>();
   private readonly updateMock = jest.fn<
     Promise<UpdateUserOutcome>,
@@ -55,7 +54,6 @@ export class AuthRepositoryMock implements AuthRepository {
 
   constructor({ find }: { find: boolean } = DEFAULT_OPTIONS) {
     this.isFindable = find;
-    this.saveMock.mockResolvedValue(undefined);
     this.createMock.mockResolvedValue('created');
     this.updateMock.mockResolvedValue('written');
     this.deleteIfReplaceableMock.mockResolvedValue(true);
@@ -100,10 +98,6 @@ export class AuthRepositoryMock implements AuthRepository {
           (username === undefined || user.username.value === username)
       );
     });
-  }
-
-  save(user: User): Promise<void> {
-    return this.saveMock(user);
   }
 
   create(user: User): Promise<CreateUserOutcome> {
@@ -178,8 +172,22 @@ export class AuthRepositoryMock implements AuthRepository {
     this.searchByProviderResult = user;
   }
 
+  /** Results answered by the next `searchByProvider` calls, in order. */
+  setSearchByProviderResults(...users: Array<Nullable<User>>): void {
+    for (const user of users) {
+      this.searchByProviderMock.mockReturnValueOnce(user);
+    }
+  }
+
   setCreateOutcome(outcome: CreateUserOutcome): void {
     this.createMock.mockResolvedValue(outcome);
+  }
+
+  /** Outcomes answered by the next `create` calls, in order. */
+  setCreateOutcomes(...outcomes: CreateUserOutcome[]): void {
+    for (const outcome of outcomes) {
+      this.createMock.mockResolvedValueOnce(outcome);
+    }
   }
 
   /** Outcomes answered by the next `update` calls, in order. */
@@ -197,10 +205,6 @@ export class AuthRepositoryMock implements AuthRepository {
     this.storage.push(user);
   }
 
-  assertSaveHasBeenCalledWith(expected: unknown): void {
-    expect(this.saveMock).toHaveBeenCalledWith(expected);
-  }
-
   assertCreatedWith(expected: unknown): void {
     expect(this.createMock).toHaveBeenCalledTimes(1);
     expect(this.createMock).toHaveBeenCalledWith(expected);
@@ -213,6 +217,11 @@ export class AuthRepositoryMock implements AuthRepository {
     if (!user) throw new TypeError('No user was created');
 
     return user;
+  }
+
+  /** Every user passed to `create`, in call order. */
+  createdUsers(): User[] {
+    return this.createMock.mock.calls.map(([user]) => user);
   }
 
   assertUpdatedFrom(before: unknown, after: unknown): void {
@@ -236,7 +245,6 @@ export class AuthRepositoryMock implements AuthRepository {
   }
 
   assertNotWritten(): void {
-    expect(this.saveMock).not.toHaveBeenCalled();
     expect(this.createMock).not.toHaveBeenCalled();
     expect(this.updateMock).not.toHaveBeenCalled();
     expect(this.deleteIfReplaceableMock).not.toHaveBeenCalled();

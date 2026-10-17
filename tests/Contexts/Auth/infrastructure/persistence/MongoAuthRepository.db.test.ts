@@ -8,6 +8,7 @@ import {
 } from 'mongodb';
 import { up as createAccountIndexes } from '../../../../../migrations/scripts/20261003130000-account-family-unique-indexes.js';
 import { up as createEmailTokenIndex } from '../../../../../migrations/scripts/20261016120000-create-users-email-token-index.js';
+import { up as createProviderUserIdIndex } from '../../../../../migrations/scripts/20261017120000-create-users-provider-user-id-index.js';
 import type { User } from '../../../../../src/Contexts/Auth/domain/entities/User.js';
 import type { AuthRepository } from '../../../../../src/Contexts/Auth/domain/repositories/interfaces/AuthRepository.js';
 import { MongoAuthRepository } from '../../../../../src/Contexts/Auth/infrastructure/persistence/MongoAuthRepository.js';
@@ -82,6 +83,7 @@ describe('MongoAuthRepository', () => {
 
     await createAccountIndexes(db);
     await createEmailTokenIndex(db);
+    await createProviderUserIdIndex(db);
 
     repository = context.container.resolve<AuthRepository>('authRepository');
     unitOfWork = context.container.resolve<UnitOfWork>('unitOfWork');
@@ -93,16 +95,6 @@ describe('MongoAuthRepository', () => {
 
   afterAll(async () => {
     await context.close();
-  });
-
-  describe('save', () => {
-    it('should save a user without an `id` field', async () => {
-      const user = UserMother.random();
-
-      await repository.save(user);
-
-      expect(await rawUser(user)).not.toHaveProperty('id');
-    });
   });
 
   describe('create', () => {
@@ -128,16 +120,35 @@ describe('MongoAuthRepository', () => {
       expect(outcome).toBe('emailTaken');
     });
 
-    it('should refuse a taken username without echoing it', async () => {
+    it('should answer usernameTaken when the username is already stored', async () => {
       const stored = UserMother.active();
       await repository.create(stored);
 
-      const result = repository.create(
+      const outcome = await repository.create(
         UserMother.pending({ username: stored.username })
       );
 
-      await expect(result).rejects.toThrow(DomainConflictException);
-      await expect(result).rejects.not.toThrow(stored.username.value);
+      expect(outcome).toBe('usernameTaken');
+    });
+
+    it('should answer providerTaken when the Google identity is already stored', async () => {
+      const stored = UserMother.googleOnly();
+      const providerUserId = stored.findAuthMethod('google')?.providerUserId;
+      await repository.create(stored);
+
+      const outcome = await repository.create(
+        UserMother.googleOnly(providerUserId)
+      );
+
+      expect(outcome).toBe('providerTaken');
+    });
+
+    it('should store two accounts with a password and different Google identities', async () => {
+      const first = UserMother.activeLinkedTo('google');
+      const second = UserMother.activeLinkedTo('google');
+
+      expect(await repository.create(first)).toBe('created');
+      expect(await repository.create(second)).toBe('created');
     });
 
     it('should refuse a taken id', async () => {
@@ -278,7 +289,7 @@ describe('MongoAuthRepository', () => {
     it('should return an existing user', async () => {
       const user = UserMother.random();
 
-      await repository.save(user);
+      await repository.create(user);
 
       expect(await repository.search(user.email.value)).toMatchObject(user);
     });
@@ -303,7 +314,7 @@ describe('MongoAuthRepository', () => {
         authMethods: [UserMother.randomGoogleAuthMethod(providerUserId)]
       });
 
-      await repository.save(user);
+      await repository.create(user);
 
       const found = await repository.searchByProvider('google', providerUserId);
 
@@ -316,6 +327,30 @@ describe('MongoAuthRepository', () => {
       const found = await repository.searchByProvider('google', 'missing-sub');
 
       expect(found).toBeNull();
+    });
+
+    it('should look up a provider identity with its index, never a collection scan', async () => {
+      const user = UserMother.googleOnly();
+      const providerUserId = user.findAuthMethod('google')?.providerUserId;
+      if (!providerUserId) throw new TypeError('No Google identity');
+      await repository.create(user);
+      await repository.create(UserMother.active());
+      const filter = await filterSentBy(() =>
+        repository.searchByProvider('google', providerUserId)
+      );
+
+      const explain = await usersCollection()
+        .find(filter)
+        .explain('executionStats');
+
+      const stages = planStages(
+        (explain.executionStats as Record<string, unknown>).executionStages
+      );
+      expect(stages.map(({ stage }) => stage)).not.toContain('COLLSCAN');
+      expect(stages).toContainEqual({
+        stage: 'IXSCAN',
+        indexName: 'users_auth_provider_user_id_unique'
+      });
     });
   });
 
@@ -379,7 +414,7 @@ describe('MongoAuthRepository', () => {
   describe('findByQuery', () => {
     it('should find a user by username', async () => {
       const user = UserMother.random();
-      await repository.save(user);
+      await repository.create(user);
 
       const results = await repository.findByQuery({
         username: user.username.value
@@ -392,7 +427,7 @@ describe('MongoAuthRepository', () => {
 
     it('should find a user by id', async () => {
       const user = UserMother.random();
-      await repository.save(user);
+      await repository.create(user);
 
       const results = await repository.findByQuery({ id: user.id });
 
@@ -408,7 +443,7 @@ describe('MongoAuthRepository', () => {
 
     it('should not include password in results', async () => {
       const user = UserMother.random();
-      await repository.save(user);
+      await repository.create(user);
 
       const results = await repository.findByQuery({
         username: user.username.value
@@ -420,8 +455,8 @@ describe('MongoAuthRepository', () => {
     it('should return all users when query is empty', async () => {
       const userA = UserMother.random();
       const userB = UserMother.random();
-      await repository.save(userA);
-      await repository.save(userB);
+      await repository.create(userA);
+      await repository.create(userB);
 
       const results = await repository.findByQuery({});
 

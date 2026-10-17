@@ -4,8 +4,12 @@ import type { User } from '../../entities/User.js';
 import type { AuthProvider } from '../../value-objects/types/AuthProvider.js';
 import type { EmailTokenPurpose } from '../../value-objects/types/EmailTokenPrimitives.js';
 
-/** `created`, or `emailTaken` when another account already stores the email. */
-export type CreateUserOutcome = 'created' | 'emailTaken';
+/**
+ * `created`, or which unique value another account already stores:
+ * `emailTaken`, `usernameTaken` or `providerTaken` (a linked provider id).
+ */
+export type CreateUserOutcome =
+  'created' | 'emailTaken' | 'usernameTaken' | 'providerTaken';
 
 /**
  * `written`, `unchanged` (nothing to write) or `stale`: a field the write
@@ -14,12 +18,10 @@ export type CreateUserOutcome = 'created' | 'emailTaken';
 export type UpdateUserOutcome = 'written' | 'unchanged' | 'stale';
 
 export interface AuthRepository {
-  /** Upserts the whole account. Only used to create Google accounts. */
-  save(user: User): Promise<void>;
-
   /**
-   * Inserts a new account. A stored email answers `emailTaken`; a taken
-   * username or id throws `DomainConflictException` without echoing it.
+   * Inserts a new account, never overwriting one. A stored email, username
+   * or provider id answers its outcome; a duplicate id throws
+   * `DomainConflictException`.
    */
   create(user: User): Promise<CreateUserOutcome>;
 
@@ -51,6 +53,7 @@ export interface AuthRepository {
     tokenHash: string
   ): Promise<Nullable<User>>;
 
+  /** Served by the unique index `users_auth_provider_user_id_unique`. */
   searchByProvider(
     provider: AuthProvider,
     providerUserId: string

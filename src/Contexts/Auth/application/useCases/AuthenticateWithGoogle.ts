@@ -1,8 +1,11 @@
+import { randomBytes, randomInt } from 'node:crypto';
+
+import type { Nullable } from '../../../../shared/domain/types/Nullable.js';
 import {
   DomainConflictException,
   DomainUnauthorizedException
 } from '../../../shared/domain/errors/index.js';
-import { Email, Metadata } from '../../../shared/domain/valueObject/index.js';
+import { Email } from '../../../shared/domain/valueObject/index.js';
 import {
   buildLogger,
   type EncrypterTool,
@@ -10,20 +13,24 @@ import {
 } from '../../../shared/plugins/index.js';
 import { User } from '../../domain/entities/User.js';
 import type { AuthRepository } from '../../domain/repositories/interfaces/AuthRepository.js';
-import { randomUserId } from '../../domain/UserId.js';
 import {
-  UserAuthMethod,
-  Username,
-  UserRoles
-} from '../../domain/value-objects/index.js';
+  deriveUsernameBase,
+  usernameWithSuffix
+} from '../../domain/services/googleUsernameCandidates.js';
+import { randomUserId } from '../../domain/UserId.js';
+import { UserAuthMethod, Username } from '../../domain/value-objects/index.js';
 import type { AuthenticateWithGoogleRequest } from '../interfaces/index.js';
-import { CONCURRENT_CHANGE_MESSAGE } from '../messages.js';
+import {
+  CONCURRENT_CHANGE_MESSAGE,
+  USER_NOT_CREATED_MESSAGE
+} from '../messages.js';
 import type { AccountNotifier } from '../notifications/index.js';
 
 const logger = buildLogger('authenticateWithGoogle');
 const INVALID_GOOGLE_TOKEN_MESSAGE = 'Invalid Google token';
 const TOKEN_GENERATION_ERROR_MESSAGE =
   'Failed to generate authentication token';
+const NUMBERED_USERNAME_TRIES = 3;
 
 export type AuthenticateWithGoogleDependencies = {
   authRepository: AuthRepository;
@@ -62,13 +69,16 @@ export class AuthenticateWithGoogle {
       throw new DomainUnauthorizedException(INVALID_GOOGLE_TOKEN_MESSAGE);
     }
 
-    const user = await this.resolveUser(tokenPayload.email, tokenPayload.sub);
+    const user = await this.resolveUser(tokenPayload.email, tokenPayload.sub, {
+      isRetry: false
+    });
     return this.generateAuthToken(user);
   }
 
   private async resolveUser(
     email: string,
-    providerUserId: string
+    providerUserId: string,
+    retry: { isRetry: boolean }
   ): Promise<User> {
     const existingByProvider = await this.authRepository.searchByProvider(
       'google',
@@ -82,7 +92,7 @@ export class AuthenticateWithGoogle {
       return existingByProvider;
     }
 
-    return this.resolveByEmail(email, providerUserId, { isRetry: false });
+    return this.resolveByEmail(email, providerUserId, retry);
   }
 
   private async resolveByEmail(
@@ -92,7 +102,7 @@ export class AuthenticateWithGoogle {
   ): Promise<User> {
     const existingByEmail = await this.authRepository.search(email);
     if (!existingByEmail) {
-      return this.createGoogleUser(email, providerUserId);
+      return this.createGoogleUser(email, providerUserId, { isRetry });
     }
 
     const linked = await this.linkGoogle(existingByEmail, providerUserId);
@@ -138,52 +148,81 @@ export class AuthenticateWithGoogle {
     return true;
   }
 
+  /**
+   * Creates the account, or signs in to the one a concurrent request created
+   * for the same email or Google identity (once; a second loss is a `409`).
+   */
   private async createGoogleUser(
     email: string,
-    providerUserId: string
+    providerUserId: string,
+    { isRetry }: { isRetry: boolean }
   ): Promise<User> {
-    const username = this.deriveUsernameFromEmail(email);
-    const date = new Date();
-
-    const user = new User({
-      id: randomUserId(),
-      email: new Email(email),
-      username,
-      emailValidated: true,
-      authMethods: [
-        new UserAuthMethod({
-          provider: 'google',
-          providerUserId,
-          linkedAt: date
-        })
-      ],
-      roles: new UserRoles(['user']),
-      metadata: Metadata.create(username.value)
-    });
-
-    await this.authRepository.save(user);
-    logger.info(
-      `Created user <${user.username.value}> with Google authentication`
+    const created = await this.insertGoogleUser(
+      new Email(email),
+      providerUserId
     );
 
-    return user;
+    if (created) {
+      logger.info(
+        `Created user <${created.username.value}> with Google authentication`
+      );
+      return created;
+    }
+
+    if (isRetry) {
+      throw new DomainConflictException(CONCURRENT_CHANGE_MESSAGE);
+    }
+
+    return this.resolveUser(email, providerUserId, { isRetry: true });
   }
 
-  private deriveUsernameFromEmail(email: string): Username {
-    const localPart = email.split('@')[0] ?? '';
-    const normalized = localPart.replaceAll(/[^a-zA-Z0-9]/g, '').toLowerCase();
+  /**
+   * Inserts with the first free username candidate. Answers `null` when
+   * another account already stores the email or the Google identity.
+   */
+  private async insertGoogleUser(
+    email: Email,
+    providerUserId: string
+  ): Promise<Nullable<User>> {
+    const now = new Date();
+    const method = new UserAuthMethod({
+      provider: 'google',
+      providerUserId,
+      linkedAt: now
+    });
 
-    const minLength = Username.MIN_LENGTH;
-    const maxLength = Username.MAX_LENGTH;
-    const fallback = 'user';
-    const base = normalized.length > 0 ? normalized : fallback;
+    for (const username of this.usernameCandidates(email)) {
+      const user = User.registerWithProvider({
+        id: randomUserId(),
+        email,
+        username,
+        method,
+        at: now
+      });
+      const outcome = await this.authRepository.create(user);
 
-    const padded =
-      base.length >= minLength
-        ? base
-        : `${base}${fallback}`.slice(0, minLength);
+      if (outcome === 'created') return user;
+      if (outcome !== 'usernameTaken') return null;
+    }
 
-    return new Username(padded.slice(0, maxLength));
+    throw new DomainConflictException(USER_NOT_CREATED_MESSAGE);
+  }
+
+  /**
+   * The base derived from the email, then a few random 4-digit variants,
+   * then one with 8 random hex characters.
+   */
+  private usernameCandidates(email: Email): Username[] {
+    const base = deriveUsernameBase(email);
+    const numbered = Array.from({ length: NUMBERED_USERNAME_TRIES }, () =>
+      usernameWithSuffix(base, String(randomInt(1000, 10_000)))
+    );
+
+    return [
+      new Username(base),
+      ...numbered,
+      usernameWithSuffix(base, randomBytes(4).toString('hex'))
+    ];
   }
 
   private async generateAuthToken(user: User): Promise<string> {

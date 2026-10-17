@@ -7,3 +7,7 @@ export const CONCURRENT_CHANGE_MESSAGE =
 
 // Checked by registration and by the unique index, never echoing the value.
 export const USERNAME_TAKEN_MESSAGE = 'Username already in use';
+
+// An insert hit a unique value it cannot recover from (e.g. every Google
+// username candidate was taken), reported without the value.
+export const USER_NOT_CREATED_MESSAGE = 'User could not be created, try again';
