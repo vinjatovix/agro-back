@@ -17,7 +17,7 @@ export const globalLimiter = rateLimit({
   skip: skipInTests
 });
 
-/** Counts failed attempts only: login, Google sign-in, activation. */
+/** Counts failed attempts only: login, Google sign-in, GitHub sign-in, activation. */
 export const createAuthLimiter = ({
   skip = skipInTests
 }: { skip?: Skip } = {}): RequestHandler =>

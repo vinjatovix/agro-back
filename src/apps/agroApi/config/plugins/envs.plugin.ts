@@ -50,6 +50,12 @@ export const envs = {
     .replace(/\/$/, ''),
   // Only audience accepted in Google ID tokens; required like the frontend.
   GOOGLE_CLIENT_ID: env.get('GOOGLE_CLIENT_ID').required().asString(),
+  // GitHub OAuth app credentials; required so the feature can never half-start.
+  // The redirect URI is a server-side setting registered with the GitHub app;
+  // the client never supplies it.
+  GITHUB_CLIENT_ID: env.get('GITHUB_CLIENT_ID').required().asString(),
+  GITHUB_CLIENT_SECRET: env.get('GITHUB_CLIENT_SECRET').required().asString(),
+  GITHUB_REDIRECT_URI: env.get('GITHUB_REDIRECT_URI').required().asUrlString(),
   BCRYPT_SALT_ROUNDS: env
     .get('BCRYPT_SALT_ROUNDS')
     .default('12')

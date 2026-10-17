@@ -1,4 +1,5 @@
 export * from './ActivateAccountController.js';
+export * from './AuthenticateWithGithubController.js';
 export * from './AuthenticateWithGoogleController.js';
 export * from './ForgotPasswordController.js';
 export * from './LoginUserLocalController.js';
@@ -9,6 +10,7 @@ export * from './UpdatePasswordLocalController.js';
 export {
   activateRequest,
   forgotPasswordRequest,
+  githubAuthRequest,
   googleAuthRequest,
   loginRequest,
   registerRequest,

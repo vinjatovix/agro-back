@@ -2,6 +2,7 @@ import type { Router } from 'express';
 import {
   activateRequest,
   forgotPasswordRequest,
+  githubAuthRequest,
   googleAuthRequest,
   loginRequest,
   registerRequest,
@@ -62,6 +63,13 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
     authLimiter,
     validateRequest(googleAuthRequest),
     authApiInvoker('authenticateWithGoogle')
+  );
+
+  router.post(
+    `${prefix}/github`,
+    authLimiter,
+    validateRequest(githubAuthRequest),
+    authApiInvoker('authenticateWithGithub')
   );
 
   router.post(`${prefix}/refresh`, auth, authApiInvoker('refreshToken'));

@@ -3,6 +3,7 @@ export * from './ForgotPassword.js';
 export * from './RegisterUserLocal.js';
 export * from './ResetPassword.js';
 export * from './LoginUserLocal.js';
+export * from './AuthenticateWithGithub.js';
 export * from './AuthenticateWithGoogle.js';
 export * from './RefreshToken.js';
 export * from './UpdatePasswordLocal.js';

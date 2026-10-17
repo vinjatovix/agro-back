@@ -50,4 +50,34 @@ describe('envs plugin', () => {
 
     expect(loadEnvs).toThrow(/GOOGLE_CLIENT_ID/);
   });
+
+  it('should load with the GitHub settings', () => {
+    process.env.GITHUB_CLIENT_ID = 'the-client-id';
+    process.env.GITHUB_CLIENT_SECRET = 'the-client-secret';
+
+    expect(loadEnvs()).toMatchObject({
+      GITHUB_CLIENT_ID: 'the-client-id',
+      GITHUB_CLIENT_SECRET: 'the-client-secret'
+    });
+  });
+
+  it.each([
+    ['GITHUB_CLIENT_ID', 'empty', ''],
+    ['GITHUB_CLIENT_ID', 'absent', undefined],
+    ['GITHUB_CLIENT_SECRET', 'empty', ''],
+    ['GITHUB_CLIENT_SECRET', 'absent', undefined],
+    ['GITHUB_REDIRECT_URI', 'empty', ''],
+    ['GITHUB_REDIRECT_URI', 'absent', undefined]
+  ])(
+    'should refuse to load with %s %s, naming the setting',
+    (key, _case, value) => {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+
+      expect(loadEnvs).toThrow(new RegExp(key));
+    }
+  );
 });

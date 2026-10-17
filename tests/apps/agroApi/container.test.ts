@@ -13,9 +13,13 @@ import {
 } from '../../../src/apps/agroApi/wiring/componentRoles.js';
 import { scanComponents } from '../../../src/apps/agroApi/wiring/scanComponents.js';
 import { InMemoryMailer } from '../../../src/Contexts/shared/infrastructure/mailer/index.js';
-import { GoogleIdTokenVerifierAdapter } from '../../../src/Contexts/shared/plugins/index.js';
+import {
+  GithubIdentityProviderAdapter,
+  GoogleIdTokenVerifierAdapter
+} from '../../../src/Contexts/shared/plugins/index.js';
 import { GoogleIdTokenVerifierMock } from '../../Contexts/Auth/__mocks__/index.js';
 import { SOURCE_ROOT } from '../../shared/sourceRoot.js';
+import { FakeGithubIdentityProvider } from './features/shared/fakes/FakeGithubIdentityProvider.js';
 
 describe('container wiring', () => {
   it('registers every discovered component plus the explicit registrations', async () => {
@@ -134,6 +138,34 @@ describe('container wiring', () => {
 
     expect(container.resolve('googleIdTokenVerifier')).toBeInstanceOf(
       GoogleIdTokenVerifierAdapter
+    );
+  });
+
+  it('resolves the GitHub override instead of the scanned provider', async () => {
+    const client = new MongoClient('mongodb://localhost:27017');
+    const db = client.db('test');
+    const fake = new FakeGithubIdentityProvider();
+    const container = await createAppContainer({
+      db,
+      client,
+      sourceRoot: SOURCE_ROOT,
+      overrides: { githubIdentityProvider: asValue(fake) }
+    });
+
+    expect(container.resolve('githubIdentityProvider')).toBe(fake);
+  });
+
+  it('resolves the real GitHub provider without overrides', async () => {
+    const client = new MongoClient('mongodb://localhost:27017');
+    const db = client.db('test');
+    const container = await createAppContainer({
+      db,
+      client,
+      sourceRoot: SOURCE_ROOT
+    });
+
+    expect(container.resolve('githubIdentityProvider')).toBeInstanceOf(
+      GithubIdentityProviderAdapter
     );
   });
 

@@ -46,7 +46,12 @@ import type { MongoPlantRepository } from '../../../Contexts/Agro/Plants/infrast
 import type { PlantPersistenceMapper } from '../../../Contexts/Agro/Plants/mappers/interfaces/PlantPersistenceMapper.js';
 import type { AccountNotifier } from '../../../Contexts/Auth/application/notifications/index.js';
 import type {
+  ProviderUserResolver,
+  SessionTokenIssuer
+} from '../../../Contexts/Auth/application/services/index.js';
+import type {
   ActivateAccount,
+  AuthenticateWithGithub,
   AuthenticateWithGoogle,
   ForgotPassword,
   LoginUserLocal,
@@ -63,12 +68,14 @@ import type { Mailer } from '../../../Contexts/shared/application/mailer/index.j
 import type {
   AppLogger,
   EncrypterTool,
+  GithubIdentityProviderTool,
   GoogleIdTokenVerifierTool,
   OneTimeTokenTool
 } from '../../../Contexts/shared/plugins/index.js';
 import type { DBEnvironmentArranger } from '../../../shared/infrastructure/persistence/index.js';
 import type {
   ActivateAccountController,
+  AuthenticateWithGithubController,
   AuthenticateWithGoogleController,
   ForgotPasswordController,
   LoginUserLocalController,
@@ -122,13 +129,19 @@ export type ContainerCradle = {
   mailer: Mailer;
   backgroundTasks: BackgroundTasks;
   accountNotifier: AccountNotifier;
+  providerUserResolver: ProviderUserResolver;
+  sessionTokenIssuer: SessionTokenIssuer;
   frontendBaseUrl: string;
   googleClientId: string;
+  githubClientId: string;
+  githubClientSecret: string;
+  githubRedirectUri: string;
 
   // Singletons
   environmentArranger: DBEnvironmentArranger;
   encrypter: EncrypterTool;
   googleIdTokenVerifier: GoogleIdTokenVerifierTool;
+  githubIdentityProvider: GithubIdentityProviderTool;
   oneTimeToken: OneTimeTokenTool;
   authRepository: MongoAuthRepository;
   familyRepository: MongoFamilyRepository;
@@ -144,6 +157,7 @@ export type ContainerCradle = {
   registerUserLocal: RegisterUserLocal;
   loginUserLocal: LoginUserLocal;
   authenticateWithGoogle: AuthenticateWithGoogle;
+  authenticateWithGithub: AuthenticateWithGithub;
   activateAccount: ActivateAccount;
   forgotPassword: ForgotPassword;
   resetPassword: ResetPassword;
@@ -175,6 +189,7 @@ export type ContainerCradle = {
   registerUserLocalController: RegisterUserLocalController;
   loginUserLocalController: LoginUserLocalController;
   authenticateWithGoogleController: AuthenticateWithGoogleController;
+  authenticateWithGithubController: AuthenticateWithGithubController;
   activateAccountController: ActivateAccountController;
   forgotPasswordController: ForgotPasswordController;
   resetPasswordController: ResetPasswordController;

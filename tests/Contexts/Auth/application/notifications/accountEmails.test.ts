@@ -144,9 +144,24 @@ describe('account emails', () => {
       expect(message.text).toContain('16 de octubre de 2026');
     });
 
-    it('should say the password still works and to contact support otherwise', () => {
-      expect(message.text).toMatch(/contraseña sigue funcionando/);
+    it('should say previous sign-in methods keep working, without naming a password', () => {
+      expect(message.text).toMatch(/accesos anteriores siguen funcionando/);
       expect(message.text).toMatch(/soporte/);
+      expect(message.text).not.toMatch(/contraseña/i);
+    });
+
+    it('should use the same method-agnostic wording for every provider', () => {
+      const githubMessage = providerLinkedEmail({
+        to,
+        provider: 'github',
+        linkedAt
+      });
+
+      expect(githubMessage.subject).toBe('Se ha vinculado GitHub a tu cuenta');
+      expect(githubMessage.text).toMatch(
+        /accesos anteriores siguen funcionando/
+      );
+      expect(githubMessage.text).not.toMatch(/contraseña/i);
     });
 
     it('should contain no token', () => {

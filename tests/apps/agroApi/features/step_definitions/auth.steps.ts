@@ -282,6 +282,13 @@ Given(
 );
 
 Given(
+  'an account linked to GitHub identity {string} exists with email {string}',
+  async function (this: AgroWorld, githubUserId: string, email: string) {
+    await seedAccount(this, 'githubLinked', { email, githubUserId });
+  }
+);
+
+Given(
   'a session token for the account {string}',
   async function (this: AgroWorld, email: string) {
     const { id, username } = seededUser(this, email);
@@ -742,6 +749,43 @@ Then(
         providerUserId
       })),
       [{ provider: 'google', providerUserId: googleSub }]
+    );
+  }
+);
+
+Then(
+  'the stored user {string} should be a GitHub account with identity {string}',
+  async function (this: AgroWorld, email: string, githubUserId: string) {
+    const user = await storedUser(email);
+    const methods = user.authMethods as Array<Record<string, unknown>>;
+
+    assert.isTrue(user.emailValidated);
+    assert.notProperty(user, 'password');
+    assert.notProperty(user, 'emailTokens');
+    assert.deepEqual(user.roles, ['user']);
+    assert.deepEqual(
+      methods.map(({ provider, providerUserId }) => ({
+        provider,
+        providerUserId
+      })),
+      [{ provider: 'github', providerUserId: githubUserId }]
+    );
+  }
+);
+
+Then(
+  'the stored user {string} should keep GitHub identity {string}',
+  async function (this: AgroWorld, email: string, githubUserId: string) {
+    const methods = ((await storedUser(email)).authMethods ?? []) as Array<
+      Record<string, unknown>
+    >;
+
+    assert.isTrue(
+      methods.some(
+        ({ provider, providerUserId }) =>
+          provider === 'github' && providerUserId === githubUserId
+      ),
+      `${email} no longer holds GitHub identity ${githubUserId}`
     );
   }
 );

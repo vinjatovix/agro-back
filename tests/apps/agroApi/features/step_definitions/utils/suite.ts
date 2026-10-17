@@ -21,6 +21,7 @@ import {
 import { UserMother } from '../../../../../Contexts/Auth/domain/mothers/UserMother.js';
 import { random } from '../../../../../Contexts/shared/fixtures/random.js';
 import { SOURCE_ROOT } from '../../../../../shared/sourceRoot.js';
+import { FakeGithubIdentityProvider } from '../../shared/fakes/FakeGithubIdentityProvider.js';
 import { FakeGoogleIdTokenVerifier } from '../../shared/fakes/FakeGoogleIdTokenVerifier.js';
 import {
   FamilySeeder,
@@ -90,7 +91,8 @@ const buildSuite = async (): Promise<SuiteResources> => {
   );
 
   const overrides: NameAndRegistrationPair<ContainerCradle> = {
-    googleIdTokenVerifier: asValue(new FakeGoogleIdTokenVerifier())
+    googleIdTokenVerifier: asValue(new FakeGoogleIdTokenVerifier()),
+    githubIdentityProvider: asValue(new FakeGithubIdentityProvider())
   };
 
   const container = await createAppContainer({

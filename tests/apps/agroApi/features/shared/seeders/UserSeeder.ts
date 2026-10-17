@@ -31,7 +31,8 @@ export type SeededUserState =
   | 'pendingExpired'
   | 'pendingWithoutToken'
   | 'googleLinked'
-  | 'googleOnly';
+  | 'googleOnly'
+  | 'githubLinked';
 
 /**
  * When the seeded reset token was issued: `recent` is inside the throttle
@@ -83,6 +84,8 @@ export type UserSeedOptions = Partial<
   state?: SeededUserState;
   /** Google identity of `googleLinked` and `googleOnly`. */
   googleSub?: string;
+  /** GitHub numeric identity of `githubLinked`. */
+  githubUserId?: string;
   /** Adds a password reset token to the account, whatever its state. */
   resetToken?: SeededResetToken;
 };
@@ -122,7 +125,7 @@ export const UserSeeder = ({
 
   const build = async (
     seed: Required<Pick<SeededUser, 'id' | 'username' | 'email' | 'password'>>,
-    { state = 'active', googleSub }: UserSeedOptions
+    { state = 'active', googleSub, githubUserId }: UserSeedOptions
   ): Promise<{ user: User; activationToken?: string }> => {
     const now = new Date();
     const { token, tokenHash } = oneTimeToken.generate();
@@ -157,6 +160,17 @@ export const UserSeeder = ({
         new UserAuthMethod({
           provider: 'google',
           providerUserId: googleSub ?? `google-sub-${random.uuid()}`,
+          linkedAt: now
+        }),
+        now
+      );
+    }
+
+    if (state === 'githubLinked') {
+      user.linkProvider(
+        new UserAuthMethod({
+          provider: 'github',
+          providerUserId: githubUserId ?? `github-${random.uuid()}`,
           linkedAt: now
         }),
         now
