@@ -1,10 +1,12 @@
 import type { Server } from 'node:http';
+import { asValue, type NameAndRegistrationPair } from 'awilix';
 import type { MongoClient } from 'mongodb';
 
 import { AgroBackApp } from '../../../../../../src/apps/agroApi/AgroBackApp.js';
 import {
   createAppContainer,
-  type AppContainer
+  type AppContainer,
+  type ContainerCradle
 } from '../../../../../../src/apps/agroApi/container.js';
 import type { AuthRepository } from '../../../../../../src/Contexts/Auth/domain/repositories/interfaces/AuthRepository.js';
 import type {
@@ -19,6 +21,7 @@ import {
 import { UserMother } from '../../../../../Contexts/Auth/domain/mothers/UserMother.js';
 import { random } from '../../../../../Contexts/shared/fixtures/random.js';
 import { SOURCE_ROOT } from '../../../../../shared/sourceRoot.js';
+import { FakeGoogleIdTokenVerifier } from '../../shared/fakes/FakeGoogleIdTokenVerifier.js';
 import {
   FamilySeeder,
   PlantSeeder,
@@ -86,10 +89,15 @@ const buildSuite = async (): Promise<SuiteResources> => {
     DBConfigFactory.createConfig()
   );
 
+  const overrides: NameAndRegistrationPair<ContainerCradle> = {
+    googleIdTokenVerifier: asValue(new FakeGoogleIdTokenVerifier())
+  };
+
   const container = await createAppContainer({
     db: client.db(),
     client,
-    sourceRoot: SOURCE_ROOT
+    sourceRoot: SOURCE_ROOT,
+    overrides
   });
 
   const environmentArranger = container.resolve<EnvironmentArranger>(
@@ -99,7 +107,8 @@ const buildSuite = async (): Promise<SuiteResources> => {
   const app = new AgroBackApp({
     host: process.env.HOST || 'http://localhost',
     port: process.env.PORT || '0',
-    sourceRoot: SOURCE_ROOT
+    sourceRoot: SOURCE_ROOT,
+    overrides
   });
 
   await app.start(container.resolve('logger'));

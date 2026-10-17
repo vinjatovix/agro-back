@@ -5,3 +5,4 @@ export * from './DomainConflictException.js';
 export * from './DomainUnauthorizedException.js';
 export * from './DomainForbiddenException.js';
 export * from './DomainStaleVersionException.js';
+export * from './DomainServiceUnavailableException.js';

@@ -8,13 +8,19 @@ import {
   DBClientFactory,
   DBConfigFactory
 } from '../../shared/infrastructure/persistence/index.js';
-import { createAppContainer, type AppContainer } from './container.js';
+import {
+  createAppContainer,
+  type AppContainer,
+  type CreateAppContainerDeps
+} from './container.js';
 import { Server } from './server.js';
 
 export interface AgroBackAppConfig {
   host: string;
   port: string;
   sourceRoot: string;
+  /** Test doubles for external providers; production passes nothing. */
+  overrides?: CreateAppContainerDeps['overrides'];
 }
 
 export class AgroBackApp {
@@ -27,7 +33,7 @@ export class AgroBackApp {
   constructor(private readonly config: AgroBackAppConfig) {}
 
   async start(logger: AppLogger): Promise<void> {
-    const { host, port, sourceRoot } = this.config;
+    const { host, port, sourceRoot, overrides } = this.config;
     this.client = await DBClientFactory.createClient(
       'agroApi',
       DBConfigFactory.createConfig()
@@ -37,7 +43,8 @@ export class AgroBackApp {
     const container = await createAppContainer({
       db: this.db,
       client: this.client,
-      sourceRoot
+      sourceRoot,
+      ...(overrides && { overrides })
     });
     this.appContainer = container;
     this.server = new Server(host, port, logger, container);

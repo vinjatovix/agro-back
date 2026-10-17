@@ -1,9 +1,15 @@
-import { AuthenticateWithGoogle } from '../../../../../src/Contexts/Auth/application/index.js';
+import {
+  AuthenticateWithGoogle,
+  CONCURRENT_CHANGE_MESSAGE,
+  USER_NOT_CREATED_MESSAGE
+} from '../../../../../src/Contexts/Auth/application/index.js';
 import type { User } from '../../../../../src/Contexts/Auth/domain/entities/User.js';
 import {
   DomainConflictException,
+  DomainServiceUnavailableException,
   DomainUnauthorizedException
 } from '../../../../../src/Contexts/shared/domain/errors/index.js';
+import { GOOGLE_UNAVAILABLE_MESSAGE } from '../../../../../src/Contexts/shared/plugins/index.js';
 import {
   AccountNotifierMock,
   AuthRepositoryMock,
@@ -156,36 +162,162 @@ describe('AuthenticateWithGoogle', () => {
     notifier.assertNothingSent();
   });
 
-  it('should create a new user when user does not exist', async () => {
-    repository.setSearchByProviderResult(null);
-    repository.setSearchResult(null);
+  describe('returning Google user', () => {
+    it.each([
+      ['the same email', 'google-user@aa.com'],
+      ['a changed email', 'new-address@aa.com']
+    ])(
+      'should sign in by Google identity with %s, with no write and no email',
+      async (_case, email) => {
+        const storedUser = UserMother.activeLinkedTo('google', 'google-sub-1');
+        repository.setSearchByProviderResult(storedUser);
+        verifier.setPayload({
+          sub: 'google-sub-1',
+          email,
+          emailVerified: true
+        });
+        const generateSpy = jest.spyOn(encrypter, 'generateToken');
+        const searchSpy = jest.spyOn(repository, 'search');
 
-    await authenticateWithGoogle.run(request);
+        await authenticateWithGoogle.run(request);
 
-    repository.assertSaveHasBeenCalledWith(
-      expect.objectContaining({
-        email: expect.objectContaining({
-          value: 'google-user@aa.com'
-        }) as jest.AsymmetricMatcher,
-        password: undefined,
-        emailValidated: true,
-        authMethods: expect.arrayContaining([
-          expect.objectContaining({
-            provider: 'google',
-            providerUserId: 'google-sub-1'
-          }) as jest.AsymmetricMatcher
-        ]) as jest.AsymmetricMatcher
-      })
+        expect(generateSpy).toHaveBeenCalledWith({
+          id: storedUser.id,
+          email: storedUser.email.value,
+          username: storedUser.username.value,
+          roles: storedUser.roles.value
+        });
+        expect(searchSpy).not.toHaveBeenCalled();
+        repository.assertNotWritten();
+        notifier.assertNothingSent();
+      }
     );
-    notifier.assertNothingSent();
+  });
+
+  describe('new Google user', () => {
+    beforeEach(() => {
+      repository.setSearchByProviderResult(null);
+      repository.setSearchResult(null);
+    });
+
+    it('should insert a validated account with Google linked, no password and the user role', async () => {
+      const token = await authenticateWithGoogle.run(request);
+
+      expect(token).toEqual(expect.any(String));
+      const created = repository.createdUser();
+      expect(created.email.value).toBe('google-user@aa.com');
+      expect(created.emailValidated).toBe(true);
+      expect(created.toPrimitives()).not.toHaveProperty('password');
+      expect(created.toPrimitives()).not.toHaveProperty('emailTokens');
+      expect(created.roles.value).toEqual(['user']);
+      expect(
+        created.authMethods.map((method) => method.toPrimitives())
+      ).toEqual([
+        expect.objectContaining({
+          provider: 'google',
+          providerUserId: 'google-sub-1'
+        })
+      ]);
+      expect(created.username.value).toBe('googleuser');
+      notifier.assertNothingSent();
+    });
+
+    it('should try another username starting with the base when it is taken', async () => {
+      repository.setCreateOutcomes('usernameTaken');
+
+      await authenticateWithGoogle.run(request);
+
+      const [first, second] = repository
+        .createdUsers()
+        .map((user) => user.username.value);
+      expect(first).toBe('googleuser');
+      expect(second).toMatch(/^googleuser\d{4}$/);
+    });
+
+    it('should end with an 8-hex suffix after the numbered usernames are taken', async () => {
+      repository.setCreateOutcomes(
+        'usernameTaken',
+        'usernameTaken',
+        'usernameTaken',
+        'usernameTaken'
+      );
+
+      await authenticateWithGoogle.run(request);
+
+      const usernames = repository
+        .createdUsers()
+        .map((user) => user.username.value);
+      expect(usernames).toHaveLength(5);
+      expect(usernames.at(-1)).toMatch(/^googleuser[0-9a-f]{8}$/);
+    });
+
+    it('should answer a conflict without a token when every username is taken', async () => {
+      repository.setCreateOutcomes(
+        'usernameTaken',
+        'usernameTaken',
+        'usernameTaken',
+        'usernameTaken',
+        'usernameTaken'
+      );
+      const generateSpy = jest.spyOn(encrypter, 'generateToken');
+
+      const result = authenticateWithGoogle.run(request);
+
+      await expect(result).rejects.toThrow(DomainConflictException);
+      await expect(result).rejects.toThrow(USER_NOT_CREATED_MESSAGE);
+      expect(repository.createdUsers()).toHaveLength(5);
+      expect(generateSpy).not.toHaveBeenCalled();
+    });
+
+    it.each(['emailTaken', 'providerTaken'] as const)(
+      'should sign in to the account a concurrent request created (%s)',
+      async (outcome) => {
+        const winner = UserMother.activeLinkedTo('google', 'google-sub-1');
+        repository.setCreateOutcomes(outcome);
+        repository.setSearchByProviderResults(null, winner);
+        const generateSpy = jest.spyOn(encrypter, 'generateToken');
+
+        await authenticateWithGoogle.run(request);
+
+        expect(repository.createdUsers()).toHaveLength(1);
+        expect(generateSpy).toHaveBeenCalledWith(
+          expect.objectContaining({ id: winner.id })
+        );
+        expect(repository.updateCount()).toBe(0);
+      }
+    );
+
+    it('should answer a conflict after losing the creation race twice', async () => {
+      repository.setCreateOutcomes('emailTaken', 'emailTaken');
+
+      const result = authenticateWithGoogle.run(request);
+
+      await expect(result).rejects.toThrow(DomainConflictException);
+      await expect(result).rejects.toThrow(CONCURRENT_CHANGE_MESSAGE);
+      expect(repository.createdUsers()).toHaveLength(2);
+    });
+  });
+
+  it('should let an unavailable Google propagate without touching the repository', async () => {
+    verifier.setFailure(
+      new DomainServiceUnavailableException(GOOGLE_UNAVAILABLE_MESSAGE)
+    );
+    const providerSpy = jest.spyOn(repository, 'searchByProvider');
+
+    await expect(authenticateWithGoogle.run(request)).rejects.toThrow(
+      DomainServiceUnavailableException
+    );
+    expect(providerSpy).not.toHaveBeenCalled();
+    repository.assertNotWritten();
   });
 
   it('should throw when Google token is invalid', async () => {
     verifier.setPayload(null);
 
     await expect(authenticateWithGoogle.run(request)).rejects.toThrow(
-      'Invalid Google token'
+      DomainUnauthorizedException
     );
+    repository.assertNotWritten();
   });
 
   it('should throw when Google email is not verified', async () => {
@@ -195,8 +327,9 @@ describe('AuthenticateWithGoogle', () => {
       emailVerified: false
     });
 
-    await expect(async () => {
-      await authenticateWithGoogle.run(request);
-    }).rejects.toThrow('Invalid Google token');
+    await expect(authenticateWithGoogle.run(request)).rejects.toThrow(
+      DomainUnauthorizedException
+    );
+    repository.assertNotWritten();
   });
 });

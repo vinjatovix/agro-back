@@ -58,6 +58,53 @@ describe('User', () => {
     ).toThrow(InvalidArgumentException);
   });
 
+  describe('registerWithProvider', () => {
+    const method = UserMother.randomGoogleAuthMethod();
+    const username = UserMother.randomUsername();
+    const user = User.registerWithProvider({
+      id: randomUserId(),
+      email: EmailMother.random(),
+      username,
+      method,
+      at: REGISTERED_AT
+    });
+
+    it('should create a validated account with the user role', () => {
+      expect(user.emailValidated).toBe(true);
+      expect(user.roles.toPrimitives()).toEqual(['user']);
+    });
+
+    it('should hold only the provider method, no password and no email tokens', () => {
+      expect(user.authMethods).toEqual([method]);
+      expect(user.password).toBeUndefined();
+      expect(user.toPrimitives()).not.toHaveProperty('password');
+      expect(user.toPrimitives()).not.toHaveProperty('emailTokens');
+    });
+
+    it('should be created and updated by its own username at registration', () => {
+      expect(user.metadata.toPrimitives()).toEqual({
+        createdAt: REGISTERED_AT,
+        createdBy: username.value,
+        updatedAt: REGISTERED_AT,
+        updatedBy: username.value
+      });
+    });
+
+    it('should refuse a local method', () => {
+      const password = UserMother.randomPasswordHash();
+
+      expect(() =>
+        User.registerWithProvider({
+          id: randomUserId(),
+          email: EmailMother.random(),
+          username,
+          method: UserAuthMethod.local(password, REGISTERED_AT),
+          at: REGISTERED_AT
+        })
+      ).toThrow(InvalidArgumentException);
+    });
+  });
+
   describe('register', () => {
     const token = EmailTokenMother.activation({
       expiresAt: new Date(REGISTERED_AT.getTime() + 24 * HOUR_MS)

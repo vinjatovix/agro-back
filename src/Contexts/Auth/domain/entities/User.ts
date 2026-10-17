@@ -136,6 +136,40 @@ export class User
     });
   }
 
+  /**
+   * A new account created by signing in with an external provider: its email
+   * is validated by the provider, it has no password and no email tokens.
+   */
+  static registerWithProvider({
+    id,
+    email,
+    username,
+    method,
+    at
+  }: {
+    id: UserId;
+    email: Email;
+    username: Username;
+    method: UserAuthMethod;
+    at: Date;
+  }): User {
+    if (method.provider === 'local') {
+      throw new InvalidArgumentException(
+        '<User> provider registration requires a non-local method'
+      );
+    }
+
+    return new User({
+      id,
+      email,
+      username,
+      emailValidated: true,
+      authMethods: [method],
+      roles: new UserRoles(['user']),
+      metadata: Metadata.create(username.value, at)
+    });
+  }
+
   static fromPrimitives({
     id,
     email,

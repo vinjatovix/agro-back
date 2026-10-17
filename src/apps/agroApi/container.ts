@@ -81,13 +81,20 @@ export function buildExplicitRegistrations({
     ), // One channel picked from NODE_ENV and RESEND_API_KEY; fails start-up on bad settings
     backgroundTasks: asClass(InProcessBackgroundTasks).singleton(), // Work started after the answer (emails); drained on shutdown
     accountNotifier: asClass(MailerAccountNotifier).singleton(), // Spanish account emails, sent in the background
-    frontendBaseUrl: asValue(envs.FRONTEND_BASE_URL) // Frontend the account emails link to (activation, password reset)
+    frontendBaseUrl: asValue(envs.FRONTEND_BASE_URL), // Frontend the account emails link to (activation, password reset)
+    googleClientId: asValue(envs.GOOGLE_CLIENT_ID) // Only audience accepted in Google ID tokens (the web client)
   };
 }
 
-export async function createAppContainer(
-  deps: ContainerDeps
-): Promise<AppContainer> {
+export type CreateAppContainerDeps = ContainerDeps & {
+  /** Test doubles for external providers; production passes nothing. */
+  overrides?: NameAndRegistrationPair<ContainerCradle>;
+};
+
+export async function createAppContainer({
+  overrides,
+  ...deps
+}: CreateAppContainerDeps): Promise<AppContainer> {
   const container = createContainer<ContainerCradle>({
     injectionMode: InjectionMode.PROXY,
     strict: true
@@ -103,6 +110,10 @@ export async function createAppContainer(
         component.lifetime
       )
     });
+  }
+
+  if (overrides) {
+    container.register(overrides);
   }
 
   return container;

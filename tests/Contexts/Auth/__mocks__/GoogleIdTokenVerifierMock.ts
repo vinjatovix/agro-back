@@ -24,6 +24,11 @@ export class GoogleIdTokenVerifierMock implements GoogleIdTokenVerifierTool {
     this.verifyIdTokenMock.mockResolvedValue(payload);
   }
 
+  /** The next checks reject with `error` (e.g. Google is unreachable). */
+  setFailure(error: Error): void {
+    this.verifyIdTokenMock.mockRejectedValue(error);
+  }
+
   assertVerifyIdTokenHasBeenCalledWith(expected: string): void {
     expect(this.verifyIdTokenMock).toHaveBeenCalledWith(expected);
   }

@@ -18,6 +18,7 @@ import {
   parseJsonObject,
   prepareRequest,
   rawCollection,
+  sendConcurrently,
   settledMailbox,
   suite,
   type AgroWorld
@@ -25,6 +26,7 @@ import {
 
 const ACTIVATE_ROUTE = `${API_PREFIXES.auth}/activate`;
 const LOGIN_ROUTE = `${API_PREFIXES.auth}/login`;
+const REFRESH_ROUTE = `${API_PREFIXES.auth}/refresh`;
 const FORGOT_PASSWORD_ROUTE = `${API_PREFIXES.auth}/password/forgot`;
 const RESET_PASSWORD_ROUTE = `${API_PREFIXES.auth}/password/reset`;
 const TOKEN_IN_LINK = /\/activate#token=([A-Za-z0-9_%-]+)/;
@@ -682,5 +684,116 @@ Then(
     assert.strictEqual(tokens[0]?.purpose, 'passwordReset');
     assert.match(String(tokens[0]?.tokenHash), TOKEN_HASH);
     assert.notInclude(JSON.stringify(user), emailed);
+  }
+);
+
+type TokenClaims = Record<string, unknown> & { iat: number; exp: number };
+
+/** Claims of a session token, read without checking its signature. */
+const decodeClaims = (token: string): TokenClaims => {
+  const [, payload] = token.split('.');
+  assert.exists(payload, 'The auth token is not a JWT');
+
+  return JSON.parse(
+    Buffer.from(payload, 'base64url').toString('utf-8')
+  ) as TokenClaims;
+};
+
+const tokenInResponse = async (world: AgroWorld): Promise<string> => {
+  const { token } = (await currentResponse(world)).body as { token?: unknown };
+  if (typeof token !== 'string') {
+    assert.fail('No auth token in the response');
+  }
+
+  return token;
+};
+
+When(
+  'I send {int} concurrent anonymous POST requests to {string} with body',
+  async function (this: AgroWorld, count: number, route: string, body: string) {
+    await sendConcurrently(this, count, { method: 'POST', route, body });
+  }
+);
+
+Then(
+  'all responses should have status {int}',
+  function (this: AgroWorld, status: number) {
+    assert.exists(this.responses, 'No concurrent responses recorded');
+    assert.deepEqual(
+      this.responses.map((response) => response.status),
+      this.responses.map(() => status)
+    );
+  }
+);
+
+Then(
+  'the stored user {string} should be a Google account with identity {string}',
+  async function (this: AgroWorld, email: string, googleSub: string) {
+    const user = await storedUser(email);
+    const methods = user.authMethods as Array<Record<string, unknown>>;
+
+    assert.isTrue(user.emailValidated);
+    assert.notProperty(user, 'password');
+    assert.notProperty(user, 'emailTokens');
+    assert.deepEqual(user.roles, ['user']);
+    assert.deepEqual(
+      methods.map(({ provider, providerUserId }) => ({
+        provider,
+        providerUserId
+      })),
+      [{ provider: 'google', providerUserId: googleSub }]
+    );
+  }
+);
+
+Then(
+  'the stored user {string} should have a username starting with {string} other than it',
+  async function (this: AgroWorld, email: string, base: string) {
+    const { username } = await storedUser(email);
+
+    assert.match(String(username), new RegExp(`^${base}.+`));
+  }
+);
+
+Then(
+  'the auth token in the response should identify the account seeded with email {string}',
+  async function (this: AgroWorld, email: string) {
+    const claims = decodeClaims(await tokenInResponse(this));
+
+    assert.strictEqual(claims.id, seededUser(this, email).id);
+  }
+);
+
+Then(
+  'the auth token in the response should be accepted by the token refresh',
+  async function (this: AgroWorld) {
+    const response = await buildRequest({
+      method: 'post',
+      route: REFRESH_ROUTE,
+      token: await tokenInResponse(this)
+    });
+
+    assert.strictEqual(response.status, 200);
+  }
+);
+
+Then(
+  'the auth token in the response should have the claims and lifetime of a password login of {string} with password {string}',
+  async function (this: AgroWorld, email: string, password: string) {
+    const login = await buildRequest({
+      method: 'post',
+      route: LOGIN_ROUTE,
+      body: { email, password }
+    });
+    const { token: loginToken } = login.body as { token?: unknown };
+    if (typeof loginToken !== 'string') {
+      assert.fail(`Login failed for ${email}`);
+    }
+
+    const google = decodeClaims(await tokenInResponse(this));
+    const local = decodeClaims(loginToken);
+
+    assert.sameMembers(Object.keys(google), Object.keys(local));
+    assert.strictEqual(google.exp - google.iat, local.exp - local.iat);
   }
 );

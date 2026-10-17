@@ -1,6 +1,7 @@
 import {
   PASSWORDS_DO_NOT_MATCH_MESSAGE,
-  RegisterUserLocal
+  RegisterUserLocal,
+  USERNAME_TAKEN_MESSAGE
 } from '../../../../../src/Contexts/Auth/application/index.js';
 import type { User } from '../../../../../src/Contexts/Auth/domain/entities/User.js';
 import { ACTIVATION_TOKEN_TTL_MS } from '../../../../../src/Contexts/Auth/domain/value-objects/EmailToken.js';
@@ -214,6 +215,16 @@ describe('RegisterUserLocal', () => {
 
       notifier.assertNothingSent();
     });
+
+    it('should refuse a username taken between the check and the insert', async () => {
+      repository.setCreateOutcome('usernameTaken');
+
+      const result = registerUser.run(RegisterUserRequestMother.random());
+
+      await expect(result).rejects.toThrow(DomainConflictException);
+      await expect(result).rejects.toThrow(USERNAME_TAKEN_MESSAGE);
+      notifier.assertNothingSent();
+    });
   });
 
   describe('email of an existing account', () => {
@@ -309,6 +320,23 @@ describe('RegisterUserLocal', () => {
       await expect(registerUser.run(request)).resolves.toBeUndefined();
 
       await expect(unitSpy.mock.results[0]?.value).rejects.toBeDefined();
+      notifier.assertNothingSent();
+    });
+
+    it('should roll the unit back with a conflict when the username is taken meanwhile', async () => {
+      const request = RegisterUserRequestMother.random();
+      storedFor(request, (email) =>
+        UserMother.pendingExpired(new Date(), { email })
+      );
+      repository.setCreateOutcome('usernameTaken');
+      const unitSpy = jest.spyOn(unitOfWork, 'run');
+
+      const result = registerUser.run(request);
+
+      await expect(result).rejects.toThrow(USERNAME_TAKEN_MESSAGE);
+      await expect(unitSpy.mock.results[0]?.value).rejects.toThrow(
+        DomainConflictException
+      );
       notifier.assertNothingSent();
     });
 

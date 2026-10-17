@@ -13,7 +13,7 @@ import {
   toMongoId
 } from '../../../shared/infrastructure/persistence/mongo/MongoId.js';
 import { MongoRepository } from '../../../shared/infrastructure/persistence/mongo/MongoRepository.js';
-import { USERNAME_TAKEN_MESSAGE } from '../../application/messages.js';
+import { USER_NOT_CREATED_MESSAGE } from '../../application/messages.js';
 import type { UserPrimitives } from '../../domain/entities/types/UserPrimitives.js';
 import { User } from '../../domain/entities/User.js';
 import type {
@@ -65,15 +65,6 @@ export class MongoAuthRepository
   }
   protected collectionName(): string {
     return `${this.entityName().toLowerCase()}s`;
-  }
-
-  async save(user: User): Promise<void> {
-    const { id: _, ...userPrimitives } = user.toPrimitives();
-    const mongoDocument = {
-      _id: toMongoId(user.id),
-      ...userPrimitives
-    };
-    await this.persist(mongoDocument);
   }
 
   async create(user: User): Promise<CreateUserOutcome> {
@@ -252,22 +243,21 @@ export class MongoAuthRepository
   }
 
   /**
-   * Maps a duplicate key on insert. The email is not an error for
-   * registration (it must not reveal the account); username and id are
-   * conflicts reported without the duplicated value.
+   * Maps a duplicate key on insert. Email, username and provider id are
+   * outcomes each caller decides on; an id or any other key is a conflict
+   * reported without the duplicated value.
    */
   private duplicateOutcome(error: unknown, id: string): CreateUserOutcome {
     const key = this.duplicatedKey(error);
 
     if (key === 'email') return 'emailTaken';
-    if (key === 'username') {
-      throw new DomainConflictException(USERNAME_TAKEN_MESSAGE);
-    }
+    if (key === 'username') return 'usernameTaken';
+    if (key === 'authMethods.providerUserId') return 'providerTaken';
     if (key === '_id') {
       throw new DomainConflictException(`User with id ${id} already exists`);
     }
     if (key !== undefined) {
-      throw new DomainConflictException('User could not be created, try again');
+      throw new DomainConflictException(USER_NOT_CREATED_MESSAGE);
     }
     if (error instanceof MongoServerError) {
       MongoErrorHandler.formatError(error);

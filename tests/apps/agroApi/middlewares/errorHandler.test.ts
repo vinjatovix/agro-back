@@ -7,6 +7,7 @@ import {
   DomainConflictException,
   DomainForbiddenException,
   DomainNotFoundException,
+  DomainServiceUnavailableException,
   DomainStaleVersionException,
   DomainUnauthorizedException,
   InvalidArgumentException
@@ -157,6 +158,17 @@ describe('errorHandler middleware', () => {
     expect(mockRes.status).toHaveBeenCalledWith(httpStatus.UNAUTHORIZED);
     expect(mockRes.json).toHaveBeenCalledWith({
       message: 'Unauthorized action'
+    });
+  });
+
+  it('should map DomainServiceUnavailableException to 503 Service Unavailable', () => {
+    const error = new DomainServiceUnavailableException('Provider down');
+
+    errorHandler({ logger: mockLogger })(error, req, res, next);
+
+    expect(mockRes.status).toHaveBeenCalledWith(httpStatus.SERVICE_UNAVAILABLE);
+    expect(mockRes.json).toHaveBeenCalledWith({
+      message: 'Provider down'
     });
   });
 

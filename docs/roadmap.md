@@ -683,9 +683,18 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [auth.md](spec/modules/auth.md)
 
+- **Status**: Completed (2026-10-17, spec `specs/032-google-oauth-login/`)
 - **Value delivered**: Enhances sign-in security and user onboarding with single-sign-on.
 - **Definition of Done**: Google OAuth endpoint receives a Google ID token (`idToken`, obtained by the client through Google Sign-In), verifies its signature and audience, requires a verified email, resolves or creates the user, and issues a stateless JWT.
 - **Implementation notes**: `POST /auth/google` takes `idToken`, not an authorization `code`: the client runs the Google Sign-In flow and the API verifies the token with `google-auth-library`, without storing any state. Since [Iteration 26](#iteration-26-implement-email-account-activation-flow), linking Google to an existing account by email follows the pre-hijacking rules (`User.linkProvider`).
+- **Hardened in this iteration** (details in [auth.md §3.1](spec/modules/auth.md)):
+  - New Google accounts are inserted with `AuthRepository.create` (built by `User.registerWithProvider`); the upsert `save` was removed.
+  - A taken username no longer blocks a first sign-in: the base derived from the email, then 3 random 4-digit variants, then one 8-hex variant; only if all are taken, `409`.
+  - Two simultaneous first sign-ins of the same person both succeed on one account (the losing insert resolves the account again).
+  - Unique sparse index `users_auth_provider_user_id_unique` on `authMethods.providerUserId`: one Google identity per account, and `searchByProvider` no longer scans `users`.
+  - The production verifier lost its `test` mode shortcut (`test-google|…`), receives the client id by injection and checks the single web client id; acceptance tests use a fake verifier registered through the container `overrides` option.
+  - Google's public keys unreachable → `503` (new `DomainServiceUnavailableException`); untrusted tokens keep the uniform `401`.
+  - `GOOGLE_CLIENT_ID` is required in every mode. **The Railway environment must define it before deploying**, or the application will not start.
 - **Dependencies**: None.
 - **Risks**: External provider changes breaking authentication.
 - **Prompt for /speckit.specify**:
@@ -704,6 +713,7 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 - **Implementation notes**: GitHub does not issue ID tokens (it is OAuth 2.0, not OpenID Connect), so it cannot follow Google's flow literally: the API must exchange the code server-side, and that call needs the `client_secret`. What stays common is everything after the provider has given a verified email and a stable user id. Extract that step from `AuthenticateWithGoogle` instead of copying it. Accounts are matched by GitHub's numeric user id, never by login name, which users can change.
 - **Dependencies**: Iterations 26 and 27.
 - **Risks**: Users whose GitHub email is private or unverified cannot sign in until they verify one.
+- **To re-check (from Iteration 27)**: the index `users_auth_provider_user_id_unique` is unique by `providerUserId` value across providers. A GitHub numeric id cannot equal a 21-digit Google `sub` today, but if a per-provider guarantee is needed, store a persistence-only key such as `providerKeys: ["github:<id>"]` with its own unique index.
 - **Proposal (from the Iteration 26 analysis, not yet decided)**: the "provider linked" notice from Iteration 26 says the account's password still works. That is true while Google is the only provider (an active account without Google always has a password), but linking GitHub to an active Google-only account would send a false statement. Option: say that the account's existing sign-in methods keep working, or name them, without assuming a password.
 - **Prompt for /speckit.specify**:
   ```text

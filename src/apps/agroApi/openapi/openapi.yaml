@@ -195,11 +195,25 @@ paths:
       tags: [Auth]
       summary: Authenticate with Google
       description: >
-        Signing in with Google for the email of an existing account links Google
-        to it. If that account's email was not validated, its local password is
-        removed and the email becomes validated; if it was validated, the password
-        stays and the owner is emailed that Google was linked. Always answers the
-        usual `{ token }`.
+        Takes the Google ID token (`idToken`) that the client obtained with
+        Google Sign-In for this application's web client id. The API checks
+        it with Google's public keys (signature, issuer, audience, expiry),
+        requires an email that Google marks as verified, and stores no state
+        between requests: no authorization code, session or nonce.
+
+        The account is matched by Google identity first, then by email. A
+        first sign-in creates an account with a validated email, no password,
+        the `user` role and a username derived from the email (made unique
+        with a short suffix when it is taken). Signing in with Google for the
+        email of an existing account links Google to it: if that account's
+        email was not validated, its local password is removed and the email
+        becomes validated; if it was validated, the password stays and the
+        owner is emailed that Google was linked. Two simultaneous first
+        sign-ins of the same person both succeed on the same account.
+
+        Always answers the usual `{ token }`, identical to a password login.
+        Every untrusted token gets the same `401`. Failed attempts count
+        toward the authentication rate limit.
       requestBody:
         required: true
         content:
@@ -220,9 +234,26 @@ paths:
         '400':
           $ref: '#/components/responses/ValidationError'
         '401':
-          $ref: '#/components/responses/UnauthorizedError'
+          description: >-
+            The token is malformed, forged, expired, issued by someone other
+            than Google or for another application, its email is not verified,
+            or the email belongs to an account linked to another Google
+            identity. Always `{ "message": "Invalid Google token" }`.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [message]
+                properties:
+                  message:
+                    type: string
+                    example: Invalid Google token
+        '409':
+          $ref: '#/components/responses/ConflictError'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableError'
 
   /api/v1/auth/refresh:
     post:
@@ -2842,6 +2873,22 @@ components:
               message:
                 type: string
                 example: Internal server error
+
+    ServiceUnavailableError:
+      description: >-
+        A provider the request depends on could not be reached (for Google
+        sign-in: its public keys could not be fetched). Nothing was stored.
+        The message is generic and the failure is logged; the client may
+        retry later.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [message]
+            properties:
+              message:
+                type: string
+                example: Google sign-in is temporarily unavailable
 
     NotModified:
       description: >-
