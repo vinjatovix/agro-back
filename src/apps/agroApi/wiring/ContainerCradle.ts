@@ -53,8 +53,10 @@ import type {
   ActivateAccount,
   AuthenticateWithGithub,
   AuthenticateWithGoogle,
+  ChangeUserRoles,
   ForgotPassword,
   LoginUserLocal,
+  LookupUser,
   RefreshToken,
   RegisterUserLocal,
   ResetPassword,
@@ -112,6 +114,10 @@ import type {
   GetPlantByIdController,
   UpdatePlantController
 } from '../controllers/Plants/index.js';
+import type {
+  ChangeUserRolesController,
+  LookupUserController
+} from '../controllers/Users/index.js';
 
 export type ContainerCradle = {
   // Explicit values
@@ -163,6 +169,8 @@ export type ContainerCradle = {
   resetPassword: ResetPassword;
   refreshToken: RefreshToken;
   updatePasswordLocal: UpdatePasswordLocal;
+  changeUserRoles: ChangeUserRoles;
+  lookupUser: LookupUser;
   createFamily: CreateFamily;
   getFamilyById: GetFamilyById;
   getFamilyBySlug: GetFamilyBySlug;
@@ -195,6 +203,8 @@ export type ContainerCradle = {
   resetPasswordController: ResetPasswordController;
   refreshTokenController: RefreshTokenController;
   updatePasswordLocalController: UpdatePasswordLocalController;
+  changeUserRolesController: ChangeUserRolesController;
+  lookupUserController: LookupUserController;
   createFamilyController: CreateFamilyController;
   getAllFamiliesController: GetAllFamiliesController;
   getFamilyBySlugController: GetFamilyBySlugController;

@@ -1,8 +1,10 @@
 import type { Nullable } from '../../../../../shared/domain/types/Nullable.js';
+import type { WriteOutcome } from '../../../../shared/domain/repositories/WriteOutcome.js';
 import type { UserPrimitives } from '../../entities/types/UserPrimitives.js';
 import type { User } from '../../entities/User.js';
 import type { AuthProvider } from '../../value-objects/types/AuthProvider.js';
 import type { EmailTokenPurpose } from '../../value-objects/types/EmailTokenPrimitives.js';
+import type { UserRole } from '../../value-objects/UserRoles.js';
 
 /**
  * `created`, or which unique value another account already stores:
@@ -35,6 +37,24 @@ export interface AuthRepository {
     before: UserPrimitives,
     after: UserPrimitives
   ): Promise<UpdateUserOutcome>;
+
+  /**
+   * Version-guarded role change. Writes the diff of two full states plus
+   * `$inc: { version: 1 }`, matching only while `_id` and the read `version`
+   * still hold. A conditional write that matches nothing throws
+   * `DomainStaleVersionException` (412) or `DomainNotFoundException` (404)
+   * after disambiguation. Returns `written` or `unchanged` (confirmed no-op).
+   */
+  updateRoles(
+    before: UserPrimitives,
+    after: UserPrimitives
+  ): Promise<WriteOutcome>;
+
+  /** Exact-equality lookup served by `users_username_unique`. */
+  searchByUsername(username: string): Promise<Nullable<User>>;
+
+  /** Count of accounts holding `role`; equality filter on `roles`. */
+  countByRole(role: UserRole): Promise<number>;
 
   /**
    * Deletes the account only if it is still unvalidated and holds no

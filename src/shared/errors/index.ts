@@ -63,6 +63,15 @@ export class ConflictError extends HttpError {
   }
 }
 
+export class UnprocessableEntityError extends HttpError {
+  constructor(
+    message = 'Unprocessable Entity',
+    errors?: Record<string, string>
+  ) {
+    super(httpStatus.UNPROCESSABLE_ENTITY, message, errors);
+  }
+}
+
 export class PreconditionRequiredError extends HttpError {
   constructor(message = 'Precondition Required') {
     super(httpStatus.PRECONDITION_REQUIRED, message);
@@ -86,6 +95,10 @@ interface CreateError {
   ) => BadRequestError;
   internal: (message: string) => InternalServerError;
   preconditionRequired: (message: string) => PreconditionRequiredError;
+  unprocessableEntity: (
+    message: string,
+    errors?: Record<string, string>
+  ) => UnprocessableEntityError;
   test: (message: string) => TestError;
 }
 
@@ -99,5 +112,7 @@ export const createError: CreateError = {
   internal: (message: string) => new InternalServerError(message),
   preconditionRequired: (message: string) =>
     new PreconditionRequiredError(message),
+  unprocessableEntity: (message: string, errors?: Record<string, string>) =>
+    new UnprocessableEntityError(message, errors),
   test: (message: string) => new TestError(message)
 };

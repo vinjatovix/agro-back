@@ -4,8 +4,13 @@ import { type Db, MongoServerError } from 'mongodb';
 import type { Nullable } from '../../../../shared/domain/types/Nullable.js';
 import type { UnknownRecord } from '../../../../shared/domain/types/UnknownRecord.js';
 import { isRecord } from '../../../../shared/domain/utils/isRecord.js';
-import { DomainConflictException } from '../../../shared/domain/errors/index.js';
+import {
+  DomainConflictException,
+  DomainNotFoundException,
+  DomainStaleVersionException
+} from '../../../shared/domain/errors/index.js';
 import type { MetadataPrimitives } from '../../../shared/domain/MetadataPrimitives.js';
+import type { WriteOutcome } from '../../../shared/domain/repositories/WriteOutcome.js';
 import { MONGO_ERROR_CODES } from '../../../shared/infrastructure/persistence/mongo/mongoErrorCodes.js';
 import { MongoErrorHandler } from '../../../shared/infrastructure/persistence/mongo/MongoErrorHandler.js';
 import {
@@ -29,6 +34,7 @@ import type {
 } from '../../domain/value-objects/types/EmailTokenPrimitives.js';
 import type { UserAuthMethodPrimitives } from '../../domain/value-objects/types/UserAuthMethodPrimitives.js';
 import { Username } from '../../domain/value-objects/Username.js';
+import type { UserRole } from '../../domain/value-objects/UserRoles.js';
 
 export interface AuthDocument {
   _id: string | Binary | UUID;
@@ -40,6 +46,7 @@ export interface AuthDocument {
   emailTokens?: EmailTokenPrimitives[];
   roles: string[];
   metadata: MetadataPrimitives;
+  version?: number;
 }
 
 type UserWrite = {
@@ -103,6 +110,63 @@ export class MongoAuthRepository
     );
 
     return result.matchedCount === 0 ? 'stale' : 'written';
+  }
+
+  /**
+   * Version-guarded role change: writes the diff of two full states plus
+   * `$inc: { version: 1 }`, matching only `_id` + the read version. A write
+   * that matches nothing is disambiguated into 412 (stale) or 404 (missing).
+   */
+  async updateRoles(
+    before: UserPrimitives,
+    after: UserPrimitives
+  ): Promise<WriteOutcome> {
+    const write = this.diff(before, after);
+    const hasSet = Object.keys(write.set).length > 0;
+    const hasUnset = Object.keys(write.unset).length > 0;
+
+    const writeFilter = {
+      _id: toMongoId(before.id),
+      ...this.versionFilter(before.version ?? 0)
+    };
+
+    if (!hasSet && !hasUnset) {
+      const matches = await this.collection().countDocuments(writeFilter, {
+        limit: 1,
+        ...this.sessionOptions()
+      });
+
+      if (matches > 0) return 'unchanged';
+
+      return this.throwFailedRoleWrite(before.id);
+    }
+
+    const result = await this.handleMongoError(() =>
+      this.collection().updateOne(
+        writeFilter,
+        {
+          ...(hasSet && { $set: write.set }),
+          ...(hasUnset && { $unset: write.unset }),
+          $inc: { version: 1 }
+        },
+        this.sessionOptions()
+      )
+    );
+
+    if (result.matchedCount > 0) return 'written';
+
+    return this.throwFailedRoleWrite(before.id);
+  }
+
+  async searchByUsername(username: string): Promise<Nullable<User>> {
+    return this.findOneUser({ username });
+  }
+
+  async countByRole(role: UserRole): Promise<number> {
+    return this.collection().countDocuments(
+      { roles: role },
+      this.sessionOptions()
+    );
   }
 
   async deleteIfReplaceable(user: User, at: Date): Promise<boolean> {
@@ -178,6 +242,36 @@ export class MongoAuthRepository
       id: createUserId(fromMongoId(doc._id)),
       username: new Username(doc.username)
     }));
+  }
+
+  /**
+   * Optimistic concurrency: only match the read version. Documents without a
+   * stored version are read as version 0.
+   */
+  private versionFilter(version: number): UnknownRecord {
+    return version === 0
+      ? { $or: [{ version: 0 }, { version: { $exists: false } }] }
+      : { version };
+  }
+
+  /**
+   * After a failed conditional role write or no-op confirmation, tells a stale
+   * version (412) from a missing document (404).
+   */
+  private async throwFailedRoleWrite(id: string): Promise<never> {
+    const exists =
+      (await this.collection().countDocuments(
+        { _id: toMongoId(id) },
+        this.sessionOptions()
+      )) > 0;
+
+    if (exists) {
+      throw new DomainStaleVersionException(
+        `${this.entityName()} was modified concurrently: ${id}`
+      );
+    }
+
+    throw new DomainNotFoundException(`${this.entityName()} not found: ${id}`);
   }
 
   private async findOneUser(filter: UnknownRecord): Promise<Nullable<User>> {
@@ -297,7 +391,8 @@ export class MongoAuthRepository
             emailTokens: document.emailTokens
           }),
           roles: document.roles,
-          metadata: document.metadata
+          metadata: document.metadata,
+          ...(document.version !== undefined && { version: document.version })
         })
       : null;
   }

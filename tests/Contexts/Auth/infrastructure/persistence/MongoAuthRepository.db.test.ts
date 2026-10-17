@@ -11,9 +11,14 @@ import { up as createEmailTokenIndex } from '../../../../../migrations/scripts/2
 import { up as createProviderUserIdIndex } from '../../../../../migrations/scripts/20261017120000-create-users-provider-user-id-index.js';
 import type { User } from '../../../../../src/Contexts/Auth/domain/entities/User.js';
 import type { AuthRepository } from '../../../../../src/Contexts/Auth/domain/repositories/interfaces/AuthRepository.js';
+import { UserRoles } from '../../../../../src/Contexts/Auth/domain/value-objects/UserRoles.js';
 import { MongoAuthRepository } from '../../../../../src/Contexts/Auth/infrastructure/persistence/MongoAuthRepository.js';
 import type { UnitOfWork } from '../../../../../src/Contexts/shared/application/interfaces/index.js';
-import { DomainConflictException } from '../../../../../src/Contexts/shared/domain/errors/index.js';
+import {
+  DomainConflictException,
+  DomainNotFoundException,
+  DomainStaleVersionException
+} from '../../../../../src/Contexts/shared/domain/errors/index.js';
 import { toMongoId } from '../../../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoId.js';
 import {
   createDbTestContext,
@@ -534,6 +539,106 @@ describe('MongoAuthRepository', () => {
       expect(results.map((result) => result.id)).toEqual(
         expect.arrayContaining([userA.id, userB.id])
       );
+    });
+  });
+
+  describe('searchByUsername', () => {
+    it('should return an existing user by exact username', async () => {
+      const user = UserMother.active();
+      await repository.create(user);
+
+      const found = await repository.searchByUsername(user.username.value);
+
+      expect(found?.id).toBe(user.id);
+    });
+
+    it('should return null when no account holds the username', async () => {
+      expect(await repository.searchByUsername('no-such-user')).toBeNull();
+    });
+
+    it('should use the username unique index, never a collection scan', async () => {
+      const user = UserMother.active();
+      await repository.create(user);
+      await repository.create(UserMother.active());
+      const filter = await filterSentBy(() =>
+        repository.searchByUsername(user.username.value)
+      );
+
+      const explain = await usersCollection()
+        .find(filter)
+        .explain('executionStats');
+
+      const stages = planStages(
+        (explain.executionStats as Record<string, unknown>).executionStages
+      );
+      expect(stages.map(({ stage }) => stage)).not.toContain('COLLSCAN');
+      expect(stages).toContainEqual({
+        stage: 'IXSCAN',
+        indexName: 'users_username_unique'
+      });
+    });
+  });
+
+  describe('countByRole', () => {
+    it('should count only accounts holding the role', async () => {
+      await repository.create(UserMother.active()); // roles: ['user']
+      await repository.create(
+        UserMother.create({ roles: new UserRoles(['user', 'admin']) })
+      );
+      await repository.create(
+        UserMother.create({ roles: new UserRoles(['user', 'admin']) })
+      );
+
+      expect(await repository.countByRole('admin')).toBe(2);
+    });
+  });
+
+  describe('updateRoles', () => {
+    it('should $inc version by one and leave every field but roles and audit untouched', async () => {
+      const user = UserMother.active();
+      await repository.create(user);
+      const before = user.toPrimitives();
+      const storedBefore = await rawUser(user);
+      user.changeRoles(['admin'], [], 'acting-admin', new Date());
+
+      const outcome = await repository.updateRoles(before, user.toPrimitives());
+
+      expect(outcome).toBe('written');
+      const stored = await rawUser(user);
+      if (stored === null || storedBefore === null) {
+        throw new TypeError('The user was not stored');
+      }
+      expect(stored.version).toBe((storedBefore.version as number) + 1);
+      expect(stored.roles).toEqual(expect.arrayContaining(['user', 'admin']));
+      expect(stored.password).toEqual(storedBefore.password);
+      expect(stored.authMethods).toEqual(storedBefore.authMethods);
+      expect(stored.email).toEqual(storedBefore.email);
+      expect(stored.emailValidated).toEqual(storedBefore.emailValidated);
+      expect(stored.metadata).toMatchObject({ updatedBy: 'acting-admin' });
+    });
+
+    it('should surface a stale version as DomainStaleVersionException (412)', async () => {
+      const user = UserMother.active();
+      await repository.create(user);
+      const before = user.toPrimitives();
+      user.changeRoles(['admin'], [], 'acting-admin', new Date());
+      const after = user.toPrimitives();
+
+      await repository.updateRoles(before, after);
+
+      await expect(repository.updateRoles(before, after)).rejects.toThrow(
+        DomainStaleVersionException
+      );
+    });
+
+    it('should surface a missing document as DomainNotFoundException (404)', async () => {
+      const user = UserMother.active();
+      const before = user.toPrimitives();
+      user.changeRoles(['admin'], [], 'acting-admin', new Date());
+
+      await expect(
+        repository.updateRoles(before, user.toPrimitives())
+      ).rejects.toThrow(DomainNotFoundException);
     });
   });
 });
