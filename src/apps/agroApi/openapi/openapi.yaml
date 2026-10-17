@@ -2,7 +2,7 @@ openapi: 3.0.3
 
 info:
   title: MiBancal API
-  version: 1.0.0
+  version: 1.0.1
   description: API for managing plants and user authentication in the MiBancal application.
   termsOfService: http://example.com/terms/
   contact:
