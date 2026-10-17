@@ -255,6 +255,77 @@ paths:
         '503':
           $ref: '#/components/responses/ServiceUnavailableError'
 
+  /api/v1/auth/github:
+    post:
+      tags: [Auth]
+      summary: Authenticate with GitHub
+      description: >
+        Takes a GitHub authorization `code` and the PKCE `codeVerifier` the
+        client generated. The API exchanges the code with GitHub server-side
+        using the application's client secret (which the client never sees) and
+        the verifier, reads the person's stable numeric GitHub user id and the
+        list of emails, and requires one that is both primary and verified. The
+        short-lived GitHub access token is used only to read the identity and is
+        never stored or returned. The API stores no state between requests: no
+        authorization code, verifier or access token.
+
+        The account is matched by GitHub identity first (the numeric user id,
+        never the login name), then by email, through the same resolution step
+        Google uses. A first sign-in creates an account with a validated email,
+        no password, the `user` role and a username derived from the email
+        (made unique with a short suffix when it is taken). Signing in with
+        GitHub for the email of an existing account links GitHub to it: if that
+        account's email was not validated, its local password is removed and the
+        email becomes validated; if it was validated, the existing sign-in
+        methods keep working and the owner is emailed that GitHub was linked.
+        Two simultaneous first sign-ins of the same person both succeed on the
+        same account.
+
+        Always answers the usual `{ token }`, identical to a password or Google
+        login. Every untrusted sign-in gets the same `401`. Failed attempts
+        count toward the authentication rate limit.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthenticateWithGithubRequest'
+      responses:
+        '200':
+          description: JWT token
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [token]
+                properties:
+                  token:
+                    type: string
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          description: >-
+            GitHub rejected the authorization code or the PKCE verifier (invalid,
+            expired, already used, or issued for another application), or the
+            resolved GitHub account has no email that is both primary and
+            verified, or the email belongs to an account linked to another
+            GitHub identity. Always `{ "message": "Invalid GitHub authorization" }`.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [message]
+                properties:
+                  message:
+                    type: string
+                    example: Invalid GitHub authorization
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableError'
+
   /api/v1/auth/refresh:
     post:
       tags: [Auth]
@@ -1543,6 +1614,18 @@ components:
       properties:
         idToken:
           type: string
+
+    AuthenticateWithGithubRequest:
+      type: object
+      additionalProperties: false
+      required: [code, codeVerifier]
+      properties:
+        code:
+          type: string
+          description: The GitHub authorization code obtained through the authorization redirect.
+        codeVerifier:
+          type: string
+          description: The PKCE code verifier the client generated for this authorization.
 
     UpdatePasswordRequest:
       type: object
@@ -2876,10 +2959,11 @@ components:
 
     ServiceUnavailableError:
       description: >-
-        A provider the request depends on could not be reached (for Google
-        sign-in: its public keys could not be fetched). Nothing was stored.
-        The message is generic and the failure is logged; the client may
-        retry later.
+        A provider the request depends on could not be reached, errored, or
+        rate-limited the API (for GitHub sign-in: the code exchange or the email
+        read failed this way; for Google: its public keys could not be fetched).
+        Nothing was stored. The message is generic and the failure is logged;
+        the client may retry later.
       content:
         application/json:
           schema:
@@ -2888,7 +2972,7 @@ components:
             properties:
               message:
                 type: string
-                example: Google sign-in is temporarily unavailable
+                example: GitHub sign-in is temporarily unavailable
 
     NotModified:
       description: >-

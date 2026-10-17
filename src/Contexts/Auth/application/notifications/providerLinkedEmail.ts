@@ -35,7 +35,7 @@ export const providerLinkedEmail = ({
   const paragraphs = [
     'Hola:',
     `El ${date} se vinculó ${name} a tu cuenta de MiBancal. Desde ahora también puedes iniciar sesión con ${name}.`,
-    'Tu contraseña sigue funcionando como hasta ahora.',
+    'Tus accesos anteriores siguen funcionando como hasta ahora.',
     'Si no has sido tú, contacta con el soporte de MiBancal lo antes posible.'
   ];
 

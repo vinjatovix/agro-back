@@ -3,7 +3,11 @@ import httpStatus from 'http-status';
 
 import { AuthenticateWithGoogleController } from '../../../../../src/apps/agroApi/controllers/Auth/AuthenticateWithGoogleController.js';
 import { googleAuthRequest } from '../../../../../src/apps/agroApi/controllers/Auth/requestSchemas.js';
-import { AuthenticateWithGoogle } from '../../../../../src/Contexts/Auth/application/index.js';
+import {
+  AuthenticateWithGoogle,
+  ProviderUserResolver,
+  SessionTokenIssuer
+} from '../../../../../src/Contexts/Auth/application/index.js';
 import {
   AccountNotifierMock,
   AuthRepositoryMock,
@@ -26,15 +30,19 @@ describe('AuthenticateWithGoogleController', () => {
 
   beforeEach(() => {
     authenticateWithGoogle = new AuthenticateWithGoogle({
-      authRepository: new AuthRepositoryMock({ find: false }),
-      encrypter: new EncrypterAdapterMock({ login: true }),
       googleIdTokenVerifier: new GoogleIdTokenVerifierMock({
         sub: 'google-sub-1',
         email: 'google-user@aa.com',
         emailVerified: true,
         name: 'Google User'
       }),
-      accountNotifier: new AccountNotifierMock()
+      providerUserResolver: new ProviderUserResolver({
+        authRepository: new AuthRepositoryMock({ find: false }),
+        accountNotifier: new AccountNotifierMock()
+      }),
+      sessionTokenIssuer: new SessionTokenIssuer({
+        encrypter: new EncrypterAdapterMock({ login: true })
+      })
     });
     controller = new AuthenticateWithGoogleController({
       authenticateWithGoogle

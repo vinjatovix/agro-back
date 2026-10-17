@@ -7,6 +7,11 @@ export interface AuthenticateWithGoogleRequest {
   idToken: string;
 }
 
+export interface AuthenticateWithGithubRequest {
+  code: string;
+  codeVerifier: string;
+}
+
 export interface RegisterUserRequest extends LoginUserRequest {
   id: string;
   username: string;

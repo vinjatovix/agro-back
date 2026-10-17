@@ -4,9 +4,9 @@ import { Username } from '../value-objects/index.js';
 const FALLBACK_USERNAME = 'user';
 
 /**
- * The username a new Google account tries first: the email's local part with
+ * The username a new provider account tries first: the email's local part with
  * only `[a-z0-9]` kept, `user` when nothing is left, padded with `user` up to
- * the minimum length and cut to the maximum one.
+ * the minimum length and cut to the maximum one. Shared by every provider.
  */
 export const deriveUsernameBase = (email: Email): string => {
   const localPart = email.value.split('@')[0] ?? '';

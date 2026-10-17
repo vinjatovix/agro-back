@@ -44,6 +44,13 @@ const loginBody = z.object({
 
 const googleAuthBody = z.object({ idToken: z.string() });
 
+// Strict: both fields are required strings and any unknown field is rejected,
+// so a malformed body is a request-shape 400 naming the offending field.
+const githubAuthBody = z.strictObject({
+  code: z.string(),
+  codeVerifier: z.string()
+});
+
 const activateBody = z.object({ token: z.string().min(1).max(512) });
 
 const updatePasswordBody = withMatchingPasswords(
@@ -77,6 +84,11 @@ export const loginRequest = {
 export const googleAuthRequest = {
   query: emptyQuery,
   body: googleAuthBody
+} satisfies RequestSchemas;
+
+export const githubAuthRequest = {
+  query: emptyQuery,
+  body: githubAuthBody
 } satisfies RequestSchemas;
 
 export const activateRequest = {

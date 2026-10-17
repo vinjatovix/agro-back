@@ -151,6 +151,48 @@ describe('MongoAuthRepository', () => {
       expect(await repository.create(second)).toBe('created');
     });
 
+    it('should answer providerTaken when the same GitHub identity is stored twice', async () => {
+      const providerUserId = '424242';
+      await repository.create(
+        UserMother.create({
+          authMethods: [
+            UserMother.randomProviderMethod('github', providerUserId)
+          ]
+        })
+      );
+
+      const outcome = await repository.create(
+        UserMother.create({
+          authMethods: [
+            UserMother.randomProviderMethod('github', providerUserId)
+          ]
+        })
+      );
+
+      expect(outcome).toBe('providerTaken');
+    });
+
+    // The provider index is unique by `providerUserId` value across providers,
+    // so a GitHub id equal to a Google `sub` cannot both be stored. GitHub ids
+    // (short integers) and Google `sub`s (21 digits) never coincide in
+    // practice, so this is an accepted limitation, not a reachable conflict.
+    it('should answer providerTaken for the same id value under a different provider', async () => {
+      const sharedId = '987654';
+      await repository.create(
+        UserMother.create({
+          authMethods: [UserMother.randomProviderMethod('google', sharedId)]
+        })
+      );
+
+      const outcome = await repository.create(
+        UserMother.create({
+          authMethods: [UserMother.randomProviderMethod('github', sharedId)]
+        })
+      );
+
+      expect(outcome).toBe('providerTaken');
+    });
+
     it('should refuse a taken id', async () => {
       const stored = UserMother.active();
       await repository.create(stored);
@@ -337,6 +379,34 @@ describe('MongoAuthRepository', () => {
       await repository.create(UserMother.active());
       const filter = await filterSentBy(() =>
         repository.searchByProvider('google', providerUserId)
+      );
+
+      const explain = await usersCollection()
+        .find(filter)
+        .explain('executionStats');
+
+      const stages = planStages(
+        (explain.executionStats as Record<string, unknown>).executionStages
+      );
+      expect(stages.map(({ stage }) => stage)).not.toContain('COLLSCAN');
+      expect(stages).toContainEqual({
+        stage: 'IXSCAN',
+        indexName: 'users_auth_provider_user_id_unique'
+      });
+    });
+
+    it('should look up a GitHub identity with the provider index, never a collection scan', async () => {
+      const providerUserId = '13579';
+      await repository.create(
+        UserMother.create({
+          authMethods: [
+            UserMother.randomProviderMethod('github', providerUserId)
+          ]
+        })
+      );
+      await repository.create(UserMother.active());
+      const filter = await filterSentBy(() =>
+        repository.searchByProvider('github', providerUserId)
       );
 
       const explain = await usersCollection()

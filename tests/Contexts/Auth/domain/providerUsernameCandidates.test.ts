@@ -1,13 +1,13 @@
 import {
   deriveUsernameBase,
   usernameWithSuffix
-} from '../../../../src/Contexts/Auth/domain/services/googleUsernameCandidates.js';
+} from '../../../../src/Contexts/Auth/domain/services/providerUsernameCandidates.js';
 import { Username } from '../../../../src/Contexts/Auth/domain/value-objects/index.js';
 import { EmailMother } from '../../shared/domain/mothers/EmailMother.js';
 
 const LONG_BASE = 'averyveryverylongnam';
 
-describe('googleUsernameCandidates', () => {
+describe('providerUsernameCandidates', () => {
   describe('deriveUsernameBase', () => {
     it.each([
       ['maria.lopez@example.com', 'marialopez'],

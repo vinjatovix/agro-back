@@ -16,6 +16,10 @@ import { CropSpatialService } from '../../Contexts/Agro/PlantInstances/domain/se
 import { plantInstancePersistenceMapper } from '../../Contexts/Agro/PlantInstances/mappers/plantInstancePersistenceMapper.js';
 import { plantPersistenceMapper } from '../../Contexts/Agro/Plants/mappers/plantPersistenceMapper.js';
 import { MailerAccountNotifier } from '../../Contexts/Auth/application/notifications/index.js';
+import {
+  ProviderUserResolver,
+  SessionTokenIssuer
+} from '../../Contexts/Auth/application/services/index.js';
 import type { Mailer } from '../../Contexts/shared/application/mailer/index.js';
 import { InProcessBackgroundTasks } from '../../Contexts/shared/infrastructure/background/index.js';
 import { createMailer } from '../../Contexts/shared/infrastructure/mailer/index.js';
@@ -81,8 +85,13 @@ export function buildExplicitRegistrations({
     ), // One channel picked from NODE_ENV and RESEND_API_KEY; fails start-up on bad settings
     backgroundTasks: asClass(InProcessBackgroundTasks).singleton(), // Work started after the answer (emails); drained on shutdown
     accountNotifier: asClass(MailerAccountNotifier).singleton(), // Spanish account emails, sent in the background
+    providerUserResolver: asClass(ProviderUserResolver).singleton(), // Shared find-by-id → by-email → link/create step for every provider
+    sessionTokenIssuer: asClass(SessionTokenIssuer).singleton(), // Mints the session token shared by password, Google and GitHub logins
     frontendBaseUrl: asValue(envs.FRONTEND_BASE_URL), // Frontend the account emails link to (activation, password reset)
-    googleClientId: asValue(envs.GOOGLE_CLIENT_ID) // Only audience accepted in Google ID tokens (the web client)
+    googleClientId: asValue(envs.GOOGLE_CLIENT_ID), // Only audience accepted in Google ID tokens (the web client)
+    githubClientId: asValue(envs.GITHUB_CLIENT_ID), // GitHub OAuth app client id used in the code exchange
+    githubClientSecret: asValue(envs.GITHUB_CLIENT_SECRET), // GitHub OAuth app secret; never leaves the server or is logged
+    githubRedirectUri: asValue(envs.GITHUB_REDIRECT_URI) // Redirect URI registered with the GitHub app (server-side only)
   };
 }
 
