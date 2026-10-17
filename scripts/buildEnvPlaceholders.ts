@@ -15,7 +15,11 @@ const PLACEHOLDERS: Readonly<Record<string, string>> = {
   MONGO_PASSWORD: 'build',
   MONGO_REPLICA_SET: 'build',
   JWT_SECRET: 'build',
-  FRONTEND_BASE_URL: 'http://localhost'
+  FRONTEND_BASE_URL: 'http://localhost',
+  GOOGLE_CLIENT_ID: 'build',
+  GITHUB_CLIENT_ID: 'build',
+  GITHUB_CLIENT_SECRET: 'build',
+  GITHUB_REDIRECT_URI: 'http://localhost'
 };
 
 for (const [name, value] of Object.entries(PLACEHOLDERS)) {
