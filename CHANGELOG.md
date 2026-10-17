@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.1.0](https://github.com/vinjatovix/miBancal-api/compare/v1.0.1...v1.1.0) (2026-10-17)
+
+
+### Features
+
+* **auth:** add admin role management with user discovery ([0354531](https://github.com/vinjatovix/miBancal-api/commit/03545312ce443d1932971141568f946d44d70f4e))
+* **auth:** add GitHub OAuth login ([d284698](https://github.com/vinjatovix/miBancal-api/commit/d284698bd7fa473c259ca34b4ce6109f68ee121a))
+* **auth:** add Google OAuth login ([0c93f32](https://github.com/vinjatovix/miBancal-api/commit/0c93f3207cb91633f7f30d73fa13f66d7c4ec27a))
+
 ## [1.0.1](https://github.com/vinjatovix/agro-back/compare/v1.0.0...v1.0.1) (2026-10-16)
 
 
