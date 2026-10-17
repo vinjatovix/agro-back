@@ -5,11 +5,17 @@ import {
 } from '../../../shared/domain/errors/index.js';
 import type { Serializable } from '../../../shared/domain/interfaces/Serializable.js';
 import type { MetadataPrimitives } from '../../../shared/domain/MetadataPrimitives.js';
+import {
+  type WriteOutcome,
+  versionAfter
+} from '../../../shared/domain/repositories/WriteOutcome.js';
 import { Email, Metadata } from '../../../shared/domain/valueObject/index.js';
 import { InvalidEmailTokenException } from '../errors/index.js';
 import { createUserId, type UserId } from '../UserId.js';
 import {
+  BASE_ROLE,
   EmailToken,
+  type ManageableRole,
   PASSWORD_RESET_THROTTLE_WINDOW_MS,
   PASSWORD_RESET_TOKEN_TTL_MS,
   PasswordHash,
@@ -43,6 +49,7 @@ type UserState = {
   emailTokens: EmailToken[];
   roles: UserRoles;
   metadata: Metadata;
+  version: number;
 };
 
 /**
@@ -65,7 +72,8 @@ export class User
     authMethods,
     emailTokens,
     roles,
-    metadata
+    metadata,
+    version
   }: {
     id: UserId;
     email: Email;
@@ -76,6 +84,7 @@ export class User
     emailTokens?: EmailToken[];
     roles: UserRoles;
     metadata: Metadata;
+    version?: number;
   }) {
     super(id);
     const normalizedAuthMethods = User.normalizeAuthMethods({
@@ -97,7 +106,8 @@ export class User
       authMethods: normalizedAuthMethods,
       emailTokens: tokens,
       roles,
-      metadata
+      metadata,
+      version: version ?? 0
     });
   }
 
@@ -179,7 +189,8 @@ export class User
     authMethods,
     emailTokens,
     roles,
-    metadata
+    metadata,
+    version
   }: {
     id: string;
     email: string;
@@ -190,6 +201,7 @@ export class User
     emailTokens?: EmailTokenPrimitives[];
     roles: string[];
     metadata: MetadataPrimitives;
+    version?: number;
   }): User {
     return new User({
       id: createUserId(id),
@@ -208,7 +220,9 @@ export class User
         )
       }),
       roles: new UserRoles(roles),
-      metadata: Metadata.fromPrimitives(metadata)
+      metadata: Metadata.fromPrimitives(metadata),
+      // A stored document without a version is read as 0.
+      version: version ?? 0
     });
   }
 
@@ -244,6 +258,53 @@ export class User
     return this.state.metadata;
   }
 
+  get version(): number {
+    return this.state.version;
+  }
+
+  /** After a write, advances the in-memory version so the `ETag` matches storage. */
+  syncVersion(outcome: WriteOutcome): void {
+    this.state = Object.freeze({
+      ...this.state,
+      version: versionAfter(this.state.version, outcome)
+    });
+  }
+
+  /**
+   * Applies a role delta over the manageable (elevated) roles only (`add` /
+   * `remove`): the base role `user` can never reach this method. Computes the
+   * resulting set `current.remove(remove).add(add)`; when it equals the current
+   * set the change is a no-op (roles and audit metadata untouched). Otherwise
+   * sets the new roles and records `actor`/`at` as the audit update.
+   */
+  changeRoles(
+    add: ManageableRole[],
+    remove: ManageableRole[],
+    actor: string,
+    at: Date
+  ): void {
+    const nextRoles = this.state.roles.remove(remove).add(add);
+
+    // Base role is permanent: it is not a manageable role, so the delta can
+    // never remove it and the result can never be empty. Guarded as an
+    // unreachable safety net (never an HTTP path).
+    if (!nextRoles.has(BASE_ROLE)) {
+      throw new InvalidArgumentException(
+        `<User> cannot drop the base role <${BASE_ROLE}>`
+      );
+    }
+
+    if (nextRoles.equals(this.state.roles)) {
+      return;
+    }
+
+    this.state = Object.freeze({
+      ...this.state,
+      roles: nextRoles,
+      metadata: Metadata.update(this.state.metadata, actor, at)
+    });
+  }
+
   toPrimitives(): UserPrimitives {
     const { password, emailTokens } = this.state;
 
@@ -258,7 +319,8 @@ export class User
         emailTokens: emailTokens.map((token) => token.toPrimitives())
       }),
       roles: this.roles.toPrimitives(),
-      metadata: this.metadata.toPrimitives()
+      metadata: this.metadata.toPrimitives(),
+      version: this.version
     };
   }
 

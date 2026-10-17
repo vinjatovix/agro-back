@@ -1,5 +1,7 @@
 export * from './ActivateAccount.js';
+export * from './ChangeUserRoles.js';
 export * from './ForgotPassword.js';
+export * from './LookupUser.js';
 export * from './RegisterUserLocal.js';
 export * from './ResetPassword.js';
 export * from './LoginUserLocal.js';

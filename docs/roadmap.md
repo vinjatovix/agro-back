@@ -753,6 +753,26 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
   WHAT: Build a CacheRepository port using Redis, incorporating an immediate, short-lived local memory fallback on connection failure.
   ```
 
+## Iteration 30b: Admin Manages User Roles (with Admin Account Lookup)
+
+**Spec Module(s)**: [auth.md](spec/modules/auth.md), [api-layer.md](spec/modules/api-layer.md), [openapi.md](spec/modules/openapi.md)
+
+- **Spec**: `specs/034-manage-user-roles/` (delivered).
+- **Status**: Delivered. `PATCH /api/v1/users/{userId}/roles` (admin-only, `If-Match`, delta over the manageable role `admin`, idempotent, last-administrator safeguard → 409, overlapping add/remove → 422, minimal `{id, roles, metadata}` + `ETag`) and `GET /api/v1/users/lookup` (admin-only exact lookup by email XOR username → `{id, username, email, roles}` + `ETag`). The `User` aggregate gained a persisted `version`; no migration (version is in-code-defaulted and materialised by `$inc`).
+- **Value delivered**: Lets an administrator grant and revoke roles on other accounts so trusted people can perform privileged actions and permissions can be withdrawn, without reaching into the database.
+- **Definition of Done**: An admin-only endpoint adds and/or removes roles on a target account, identified by its stable `UserId`. The change is expressed as a delta over the _manageable_ (elevated) roles only — in this iteration just `admin`; the base role `user` is permanent and never grantable/revocable (sending it in the delta is a 400), so an account always keeps at least `user` by construction (`collaborator` is added later in Iteration 31). The delta is idempotent, guarded by optimistic concurrency (`If-Match`), recorded in audit metadata, never removes the last administrator (409), and returns a minimal payload (id + resulting roles). A separate admin-only exact lookup by email OR username returns a matching account's id plus minimal identifying fields, with no substring search or navigable user listing.
+- **Dependencies**: Iteration 26 (`User` mutation methods and audit metadata). Note: `User` gets a `version` / `If-Match` for this feature, which Iteration 26 had deferred as unnecessary for its own endpoints.
+- **Risks**: Accidentally exposing the user base through the lookup (mitigated by exact-match only, using the existing unique email/username indexes) or locking the platform out of administration (mitigated by the last-administrator safeguard, within the concurrency limit noted below).
+- **Known limitations / follow-ups**:
+  - **Last-administrator safeguard is not concurrency-safe.** The check counts administrators and the role write happen outside a shared transaction, each guarded only against its own target's version. Two simultaneous requests that each revoke `admin` from a different one of the last two administrators can both pass the count check and both succeed, leaving the platform with zero administrators. Acceptable at current scale (no production data, administration changes are rare and manual). To close it: wrap the count and the write in one transaction and re-check after writing, or enforce a minimum-administrator invariant in storage.
+  - **`countByRole` has no supporting index.** Counting accounts by role is an equality filter on `roles` with no index, so it scans the collection. It runs only when revoking `admin` (a rare operation) over a tiny set of accounts, so it is left unindexed for now. Add an index on `roles` (a migration) if role-based counts or filters become frequent.
+- **Prompt for /speckit.specify**:
+  ```text
+  ADMIN MANAGES USER ROLES WITH ADMIN ACCOUNT LOOKUP
+  WHY: There is no way to create new administrators or withdraw permissions after registration, and no in-API way for an admin to find the id of the account to change.
+  WHAT: Add an admin-only endpoint to grant/revoke the manageable (elevated) roles on an account by its stable id (delta semantics over `admin` only; base role `user` permanent and non-manageable; optimistic concurrency, audit metadata, last-admin safeguard, minimal response), plus an admin-only exact lookup by email or username that returns the account id and minimal identifying fields.
+  ```
+
 ---
 
 # Phase 3: Taxonomy & Social

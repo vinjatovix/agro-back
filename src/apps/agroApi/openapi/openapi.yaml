@@ -25,6 +25,8 @@ tags:
     description: Endpoints for managing garden beds.
   - name: PlantInstances
     description: Endpoints for managing crop instances in beds.
+  - name: Users
+    description: Administrator endpoints for managing accounts and their roles.
 
 paths:
   /api/v1/health:
@@ -1127,6 +1129,101 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /api/v1/users/lookup:
+    get:
+      tags: [Users]
+      summary: Admin exact lookup of an account by email OR username
+      description: >
+        Returns the account's stable id and minimal identifying fields. Exactly
+        one of `email` or `username` MUST be provided (neither/both → 400).
+        Exact match only; no substring or listing. Administrator only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: email
+          in: query
+          required: false
+          schema:
+            type: string
+            format: email
+        - name: username
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The single matching account.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserLookupView'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/users/{userId}/roles:
+    patch:
+      tags: [Users]
+      summary: Admin grants and/or revokes roles on another account
+      description: >
+        Applies a role delta (`add` / `remove`) to the target account's current
+        roles. Administrator only. Mandatory `If-Match`.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangeUserRolesRequest'
+      responses:
+        '200':
+          description: Resulting roles and audit metadata.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserRolesView'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailedError'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityError'
+        '428':
+          $ref: '#/components/responses/PreconditionRequiredError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
 components:
   headers:
     ETag:
@@ -1291,6 +1388,72 @@ components:
         renews a token that has not expired yet.
 
   schemas:
+    # Roles an account can HOLD and that responses expose.
+    Role:
+      type: string
+      enum: [admin, user]
+
+    # Roles the delta can grant/revoke: the manageable (elevated) roles only.
+    # The base role `user` is permanent and NOT manageable, so it is excluded.
+    # A later iteration adds `collaborator` here.
+    ManageableRole:
+      type: string
+      enum: [admin]
+
+    ChangeUserRolesRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 0
+      description: >
+        Role delta over the manageable (elevated) roles only. Omitting both
+        `add` and `remove` (or sending `{}`) is a no-op. `add` and `remove`
+        MUST be disjoint (else 422). The base role `user` is not a
+        `ManageableRole`, so sending it in either array is a 400.
+      properties:
+        add:
+          type: array
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/ManageableRole'
+        remove:
+          type: array
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/ManageableRole'
+
+    UserRolesView:
+      type: object
+      description: Minimal role-change result; exposes no other account data.
+      required: [id, roles, metadata]
+      properties:
+        id:
+          type: string
+          format: uuid
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Role'
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+
+    UserLookupView:
+      type: object
+      description: Minimal identifying fields returned by the admin lookup.
+      required: [id, username, email, roles]
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Role'
+
     Metadata:
       type: object
       required:
@@ -2847,6 +3010,23 @@ components:
           $ref: '#/components/schemas/PaginationResponse'
 
   responses:
+    UnprocessableEntityError:
+      description: >
+        The request is well-formed but cannot be processed: the `add` and
+        `remove` role sets overlap. Checked before any domain logic.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [message]
+            properties:
+              message:
+                type: string
+              errors:
+                type: object
+                additionalProperties:
+                  type: string
+
     UnauthorizedError:
       description: Unauthorized
       content:

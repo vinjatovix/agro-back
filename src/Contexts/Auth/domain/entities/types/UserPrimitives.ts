@@ -13,4 +13,7 @@ export interface UserPrimitives {
   emailTokens?: EmailTokenPrimitives[];
   roles: string[];
   metadata: MetadataPrimitives;
+  // Optimistic-concurrency counter. Absent on documents stored before this
+  // field existed; read as 0. Never set from client input.
+  version?: number;
 }

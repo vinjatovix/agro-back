@@ -13,6 +13,8 @@ import type {
   AuthProvider,
   EmailTokenPurpose
 } from '../../../../src/Contexts/Auth/domain/value-objects/types/index.js';
+import type { UserRole } from '../../../../src/Contexts/Auth/domain/value-objects/UserRoles.js';
+import type { WriteOutcome } from '../../../../src/Contexts/shared/domain/repositories/WriteOutcome.js';
 import { Email } from '../../../../src/Contexts/shared/domain/valueObject/index.js';
 import type { Nullable } from '../../../../src/shared/domain/types/Nullable.js';
 import { UserMother } from '../domain/mothers/UserMother.js';
@@ -31,6 +33,12 @@ export class AuthRepositoryMock implements AuthRepository {
     Promise<UpdateUserOutcome>,
     [UserPrimitives, UserPrimitives]
   >();
+  private readonly updateRolesMock = jest.fn<
+    Promise<WriteOutcome>,
+    [UserPrimitives, UserPrimitives]
+  >();
+  private readonly searchByUsernameMock = jest.fn<Nullable<User>, [string]>();
+  private readonly countByRoleMock = jest.fn<Promise<number>, [UserRole]>();
   private readonly deleteIfReplaceableMock = jest.fn<
     Promise<boolean>,
     [User, Date]
@@ -56,8 +64,11 @@ export class AuthRepositoryMock implements AuthRepository {
     this.isFindable = find;
     this.createMock.mockResolvedValue('created');
     this.updateMock.mockResolvedValue('written');
+    this.updateRolesMock.mockResolvedValue('written');
+    this.countByRoleMock.mockResolvedValue(2);
     this.deleteIfReplaceableMock.mockResolvedValue(true);
     this.searchByIdMock.mockReturnValue(null);
+    this.searchByUsernameMock.mockReturnValue(null);
     this.searchByEmailTokenMock.mockReturnValue(null);
     this.setupLookups();
   }
@@ -111,6 +122,22 @@ export class AuthRepositoryMock implements AuthRepository {
     return this.updateMock(before, after);
   }
 
+  updateRoles(
+    before: UserPrimitives,
+    after: UserPrimitives
+  ): Promise<WriteOutcome> {
+    return this.updateRolesMock(before, after);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async searchByUsername(username: string): Promise<Nullable<User>> {
+    return this.searchByUsernameMock(username);
+  }
+
+  countByRole(role: UserRole): Promise<number> {
+    return this.countByRoleMock(role);
+  }
+
   deleteIfReplaceable(user: User, at: Date): Promise<boolean> {
     return this.deleteIfReplaceableMock(user, at);
   }
@@ -162,6 +189,18 @@ export class AuthRepositoryMock implements AuthRepository {
 
   setSearchByIdResult(user: Nullable<User>): void {
     this.searchByIdMock.mockReturnValue(user);
+  }
+
+  setSearchByUsernameResult(user: Nullable<User>): void {
+    this.searchByUsernameMock.mockReturnValue(user);
+  }
+
+  setUpdateRolesOutcome(outcome: WriteOutcome): void {
+    this.updateRolesMock.mockResolvedValue(outcome);
+  }
+
+  setCountByRole(count: number): void {
+    this.countByRoleMock.mockResolvedValue(count);
   }
 
   setSearchByEmailTokenResult(user: Nullable<User>): void {
@@ -264,6 +303,18 @@ export class AuthRepositoryMock implements AuthRepository {
 
   assertSearchByIdHasBeenCalledWith(expected: string): void {
     expect(this.searchByIdMock).toHaveBeenCalledWith(expected);
+  }
+
+  assertSearchByUsernameHasBeenCalledWith(expected: string): void {
+    expect(this.searchByUsernameMock).toHaveBeenCalledWith(expected);
+  }
+
+  updateRolesCount(): number {
+    return this.updateRolesMock.mock.calls.length;
+  }
+
+  assertRolesNotUpdated(): void {
+    expect(this.updateRolesMock).not.toHaveBeenCalled();
   }
 
   assertSearchByEmailTokenHasBeenCalledWith(

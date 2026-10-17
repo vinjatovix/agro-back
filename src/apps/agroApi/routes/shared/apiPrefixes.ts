@@ -5,5 +5,6 @@ export const API_PREFIXES = {
   families: '/api/v1/families',
   plants: '/api/v1/plants',
   beds: '/api/v1/beds',
-  plantInstances: '/api/v1/plant-instances'
+  plantInstances: '/api/v1/plant-instances',
+  users: '/api/v1/users'
 } as const;
