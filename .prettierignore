@@ -1,4 +1,26 @@
+# Dependencies
 node_modules
-dist
+.coverage
+.c8_output
 coverage
-.tmp
+*.lcov
+.nyc_output/
+dist/
+build/
+coverage/
+
+# Locks
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Configs & Logs
+*.log
+.env*
+.cache/
+.tmp/
+
+# Generated
+graphify-out/
+
+CHANGELOG.md
